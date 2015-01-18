@@ -32,16 +32,19 @@ thread_local DhtClient *DhtCore::_threadDhtClient = nullptr;
 const string DEFAULT_ERPC_SERVER_IP = "localhost";
 const unsigned short DEFAULT_ERPC_SERVER_PORT = 31850;
 
-#define DEFAULT_DHT_MASK_LENGTH 1
-#define DEFAULT_DHT_MASK_OFFSET 0
-
 DhtCore::DhtCore() : numberOfClients(0), numberOfClientThreads(0) {}
 
 DhtCore::DhtCore(const DaqDB::DhtCore &dhtCore)
     : options(dhtCore.options), numberOfClients(0), numberOfClientThreads(0) {}
 
 DhtCore::DhtCore(DhtOptions dhtOptions)
-    : options(dhtOptions), numberOfClients(0), numberOfClientThreads(0) {
+    : options(dhtOptions), numberOfClients(0), numberOfClientThreads(0),
+      _maskLength(dhtOptions.maskLength), _maskOffset(dhtOptions.maskOffset) {
+
+    /** @todo add offset vs key length check */
+    if (_maskLength > sizeof(uint64_t))
+        throw OperationFailedException(Status(NOT_SUPPORTED));
+
     _initSeed();
     _initNeighbors();
     _initRangeToHost();
@@ -111,21 +114,13 @@ void DhtCore::_initNeighbors(void) {
         dhtNode->setPort(option->port);
         dhtNode->setPeerPort(option->peerPort);
         dhtNode->state = DhtNodeState::NODE_INIT;
-        dhtNode->setMaskLength(DEFAULT_DHT_MASK_LENGTH);
-        dhtNode->setMaskOffset(DEFAULT_DHT_MASK_OFFSET);
 
         try {
-            dhtNode->setMaskLength(option->keyRange.maskLength);
-            dhtNode->setMaskOffset(option->keyRange.maskOffset);
             dhtNode->setStart(stoi(option->keyRange.start));
             dhtNode->setEnd(stoi(option->keyRange.end));
         } catch (invalid_argument &ia) {
             // no action needed
         }
-
-        /** @todo add offset vs key length check */
-        if (dhtNode->getMaskLength() > sizeof(uint64_t))
-            throw OperationFailedException(Status(NOT_SUPPORTED));
 
         if (option->local) {
             dhtNode->state = DhtNodeState::NODE_READY;
@@ -141,8 +136,6 @@ void DhtCore::_initNeighbors(void) {
         dhtNode->setIp(DEFAULT_ERPC_SERVER_IP);
         dhtNode->setPort(DEFAULT_ERPC_SERVER_PORT);
         dhtNode->state = DhtNodeState::NODE_READY;
-        dhtNode->setMaskLength(0);
-        dhtNode->setMaskOffset(0);
         _spLocalNode.reset(dhtNode);
     }
 }
@@ -156,12 +149,11 @@ void DhtCore::_initRangeToHost(void) {
     }
 }
 
-uint64_t DhtCore::_genHash(const char *key, uint64_t maskLength,
-                           uint64_t maskOffset) {
+uint64_t DhtCore::_genHash(const char *key) {
     /** @todo byte-granularity assumed, do we need bit-granularity? */
     uint64_t subKey = 0;
-    for (int i = 0; i < maskLength; i++)
-        subKey += (*reinterpret_cast<const uint8_t *>(key + maskOffset + i))
+    for (int i = 0; i < _maskLength; i++)
+        subKey += (*reinterpret_cast<const uint8_t *>(key + _maskOffset + i))
                   << (i * 8);
     return subKey;
 }
@@ -175,13 +167,11 @@ DhtNode *DhtCore::getHostAny() {
 }
 
 DhtNode *DhtCore::getHostForKey(Key key) {
-    if (getLocalNode()->getMaskLength() > 0) {
-        auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
-                                getLocalNode()->getMaskOffset());
-        DAQ_DEBUG("keyHash:" + std::to_string(keyHash) + " maskLen:" +
-                  std::to_string(getLocalNode()->getMaskLength()) +
-                  " maskOffset:" +
-                  std::to_string(getLocalNode()->getMaskOffset()));
+    DAQ_DEBUG("maskLen:" + std::to_string(_maskLength) +
+              " maskOffset:" + std::to_string(_maskOffset));
+    if (_maskLength > 0) {
+        auto keyHash = _genHash(key.data());
+        DAQ_DEBUG("keyHash:" + std::to_string(keyHash));
         for (auto rangeAndHost : _rangeToHost) {
             auto range = rangeAndHost.first;
             DAQ_DEBUG("Node " + rangeAndHost.second->getUri() + " serving " +
@@ -197,9 +187,8 @@ DhtNode *DhtCore::getHostForKey(Key key) {
 }
 
 bool DhtCore::isLocalKey(Key key) {
-    if (getLocalNode()->getMaskLength() > 0) {
-        auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
-                                getLocalNode()->getMaskOffset());
+    if (_maskLength > 0) {
+        auto keyHash = _genHash(key.data());
         return (keyHash >= getLocalNode()->getStart() &&
                 keyHash <= getLocalNode()->getEnd());
     } else {

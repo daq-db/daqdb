@@ -153,8 +153,6 @@ struct RuntimeOptions {
 };
 
 struct DhtKeyRange {
-    unsigned int maskLength = 0;
-    unsigned int maskOffset = 0;
     std::string start = "";
     std::string end = "";
 };
@@ -174,6 +172,8 @@ struct DhtNeighbor {
 
 struct DhtOptions {
     NodeId id = 0;
+    unsigned int maskLength = 0;
+    unsigned int maskOffset = 0;
     std::vector<DhtNeighbor *> neighbors;
 };
 

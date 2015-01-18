@@ -102,8 +102,7 @@ class DhtCore {
     void _initRangeToHost(void);
     void _initSeed(void);
 
-    uint64_t _genHash(const char *key, uint64_t maskLength,
-                      uint64_t maskOffset);
+    uint64_t _genHash(const char *key);
 
     /**
      * Separated DhtClient for each thread is required because of eRpc
@@ -120,6 +119,8 @@ class DhtCore {
     std::unique_ptr<DhtNode> _spLocalNode;
     std::vector<DhtNode *> _neighbors;
     RangeToHost _rangeToHost;
+    unsigned int _maskLength = 0;
+    unsigned int _maskOffset = 0;
 };
 
 } // namespace DaqDB

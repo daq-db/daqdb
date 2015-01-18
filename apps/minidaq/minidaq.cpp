@@ -134,8 +134,6 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
             localDht->ip = "localhost";
             localDht->port = 31851;
             localDht->local = true;
-            localDht->keyRange.maskLength = 0;
-            localDht->keyRange.maskOffset = 0;
             options.dht.neighbors.push_back(localDht.get());
             singleNode = true;
         }
