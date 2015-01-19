@@ -169,21 +169,22 @@ DhtNode *DhtCore::getHostAny() {
 DhtNode *DhtCore::getHostForKey(Key key) {
     DAQ_DEBUG("maskLen:" + std::to_string(_maskLength) +
               " maskOffset:" + std::to_string(_maskOffset));
-    if (_maskLength > 0) {
-        auto keyHash = _genHash(key.data());
-        DAQ_DEBUG("keyHash:" + std::to_string(keyHash));
-        for (auto rangeAndHost : _rangeToHost) {
-            auto range = rangeAndHost.first;
-            DAQ_DEBUG("Node " + rangeAndHost.second->getUri() + " serving " +
-                      std::to_string(range.first) + ":" +
-                      std::to_string(range.second));
-            if ((keyHash >= range.first) && (keyHash <= range.second)) {
-                DAQ_DEBUG("Found match at " + rangeAndHost.second->getUri());
-                return rangeAndHost.second;
-            }
+    if (_maskLength <= 0)
+        throw OperationFailedException(Status(KEY_NOT_FOUND));
+    auto keyHash = _genHash(key.data());
+    DAQ_DEBUG("keyHash:" + std::to_string(keyHash));
+    for (auto rangeAndHost : _rangeToHost) {
+        auto range = rangeAndHost.first;
+        DAQ_DEBUG("Node " + rangeAndHost.second->getUri() + " serving " +
+                  std::to_string(range.first) + ":" +
+                  std::to_string(range.second));
+        if ((keyHash >= range.first) && (keyHash <= range.second)) {
+            DAQ_DEBUG("Found match at " + rangeAndHost.second->getUri());
+            return rangeAndHost.second;
         }
     }
-    return getLocalNode();
+
+    throw OperationFailedException(Status(KEY_NOT_FOUND));
 }
 
 bool DhtCore::isLocalKey(Key key) {

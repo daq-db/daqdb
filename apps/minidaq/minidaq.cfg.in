@@ -14,14 +14,15 @@ neighbors :
 (
     {
         // Local node
-        ip = "10.102.108.53";
-        port = 31851;
+        ip = "10.10.10.53";
+        port = 31850;
         local = 1;
+        keys = { start = "0", end = "100"}
     },
     {
         // Storage node
-        ip = "10.102.108.55";
-        port = 31851;
-        keys = { start = "0", end = "255"}
+        ip = "10.10.10.55";
+        port = 31850;
+        keys = { start = "101", end = "255"}
     },
 );

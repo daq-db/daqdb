@@ -48,7 +48,7 @@ neighbors :
 (
     {
         // replace with ip of storage node
-        ip = "10.102.108.54";
+        ip = "10.10.10.54";
         port = 31850;
         peerPort = 31851;
         local = 1;
@@ -56,7 +56,7 @@ neighbors :
     },
     {
         // replace with ip of peer storage node 
-        ip = "10.102.108.56";
+        ip = "10.10.10.56";
         port = 31850;
         keys = { start = "65", end = "255"}
     },

@@ -126,7 +126,6 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.runtime.maxReadyKeys = maxReadyKeys;
     if (satellite) {
         options.mode = DaqDB::OperationalMode::SATELLITE;
-
     } else {
         options.mode = DaqDB::OperationalMode::STORAGE;
         if (!options.dht.neighbors.size()) {
