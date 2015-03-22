@@ -26,12 +26,14 @@ class MinidaqRoNode : public MinidaqNode {
     virtual ~MinidaqRoNode();
 
     void SetFragmentSize(size_t s);
+    void SetFragmentDistro(const std::string &distro);
     void SetSubdetectorId(int id);
 
   protected:
     void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
     void _Setup(int executorId);
+    std::function<size_t()> _nextFragmentSize;
     Key _NextKey();
     std::string _GetType();
 
