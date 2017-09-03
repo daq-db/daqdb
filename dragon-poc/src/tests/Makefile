@@ -29,24 +29,23 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-TARGET=dragonNode
+TARGET=dragonTest
+
+LIBS += -pthread
+LIBS += -lboost_unit_test_framework
 
 CFLAGS += -std=c++11
 CFLAGS += -O0 -ggdb
 
-SRC = dragonNode.cpp
+SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.c=.o)
-
-all: default
 
 default: $(TARGET)
 
-$(TARGET): $(OBJ) | $(DEPS)
-	$(CXX) $(CFLAGS) -o $@ $^
+$(TARGET): $(OBJ)
+	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
 	$(RM) -f $(TARGET) *.o
 
-clean-all: clean
-
-.PHONY: clean clean-all default print
+.PHONY: clean default print
