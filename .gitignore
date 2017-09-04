@@ -1,0 +1,6 @@
+dragonNode
+dragonTest
+*.o
+.cproject
+.project
+.settings
