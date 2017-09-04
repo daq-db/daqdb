@@ -34,7 +34,7 @@
 
 class DragonTestFixture {
 public:
-	DragonTestFixture ()
+	DragonTestFixture()
 	{
 	}
 };
