@@ -31,10 +31,111 @@
  */
 
 #include <iostream>
+
+#include <boost/program_options.hpp>
+
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <boost/bind.hpp>
+
+#include <boost/filesystem.hpp>
+
+#include "ChordNode.h"
+#include "ProtocolSingleton.h"
+
 using namespace std;
 
-int
-main()
+namespace po = boost::program_options;
+namespace as = boost::asio;
+
+namespace
 {
+const string dhtBackBoneIp = "127.0.0.1";
+const unsigned short dhtBackBonePort = 11000;
+const string dhtOverlayIdentifier = "chordTestBed";
+const string rootDirectory = ".";
+};
+
+int
+main(int argc, const char *argv[])
+{
+	as::io_service io_service;
+	unsigned short inputPort;
+	unsigned short dhtPort = dhtBackBonePort;
+
+	po::options_description argumentsDescription{"Options"};
+	argumentsDescription.add_options()("help,h", "Print help messages")(
+		"port,p", po::value<unsigned short>(&inputPort),
+		"Node Communication port")("dht,d",
+					   po::value<unsigned short>(&dhtPort),
+					   "DHT Communication port");
+	;
+	po::variables_map parsedArguments;
+	try {
+		po::store(po::parse_command_line(argc, argv,
+						 argumentsDescription),
+			  parsedArguments);
+
+		if (parsedArguments.count("help")) {
+			std::cout << argumentsDescription << endl;
+			return 0;
+		}
+
+		po::notify(parsedArguments);
+	} catch (po::error &parserError) {
+		cerr << "Invalid arguments: " << parserError.what() << endl
+		     << endl;
+		std::cerr << argumentsDescription << std::endl;
+		return -1;
+	}
+
+	as::ip::tcp::acceptor acceptor(io_service);
+	boost::system::error_code checkPortErrorCode;
+	acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
+	acceptor.bind({as::ip::tcp::v4(), dhtPort}, checkPortErrorCode);
+	acceptor.close();
+	if (checkPortErrorCode == as::error::address_in_use) {
+		acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
+		acceptor.bind({as::ip::tcp::v4(), 0}, checkPortErrorCode);
+		dhtPort = acceptor.local_endpoint().port();
+		acceptor.close();
+	}
+
+	as::signal_set signals(io_service, SIGINT, SIGTERM);
+	signals.async_wait(
+		boost::bind(&boost::asio::io_service::stop, &io_service));
+
+	boost::filesystem::path dir(boost::filesystem::current_path());
+	dir /= ".chord";
+	boost::filesystem::create_directory(dir);
+	dir /= "data";
+	boost::filesystem::create_directory(dir);
+
+	//! @todo jradtke Move to class
+	string backBone[] = {
+		dhtBackBoneIp,
+	};
+	ChordNode *node = P_SINGLETON->initChordNode(
+		dhtBackBoneIp, dhtPort, dhtOverlayIdentifier, rootDirectory);
+	Node *chord = new Node(backBone[0], dhtBackBonePort);
+	node->join(chord);
+	cout << "\n" << node->printStatus();
+
+	for (;;) {
+		//! @todo jradtke Put daemon tasks here
+		cout << "\n" << node->printStatus();
+		sleep(1);
+
+		io_service.poll();
+		if (io_service.stopped()) {
+			break;
+		}
+	}
+
+	node->shutDown();
+	delete node;
+	delete chord;
+
 	return 0;
 }

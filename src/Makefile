@@ -43,8 +43,10 @@ test: dragon-node
 	tests/dragonTest --color_output=yes --log_level=all
 
 clean:
-
-clean-all: clean
 	$(MAKE) -C node clean
-
+	$(MAKE) -C tests clean
+	
+clean-all: clean
+	$(MAKE) -C ../3rd/cChord clean
+	
 .PHONY: clean clean-all default print
