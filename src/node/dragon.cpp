@@ -90,6 +90,10 @@ main(int argc, const char *argv[])
 		return -1;
 	}
 
+	as::signal_set signals(io_service, SIGINT, SIGTERM);
+	signals.async_wait(
+		boost::bind(&boost::asio::io_service::stop, &io_service));
+
 	as::ip::tcp::acceptor acceptor(io_service);
 	boost::system::error_code checkPortErrorCode;
 	acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
@@ -101,10 +105,6 @@ main(int argc, const char *argv[])
 		dhtPort = acceptor.local_endpoint().port();
 		acceptor.close();
 	}
-
-	as::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(
-		boost::bind(&boost::asio::io_service::stop, &io_service));
 
 	boost::filesystem::path dir(boost::filesystem::current_path());
 	dir /= ".chord";
@@ -123,6 +123,7 @@ main(int argc, const char *argv[])
 	cout << "\n" << node->printStatus();
 
 	for (;;) {
+
 		//! @todo jradtke Put daemon tasks here
 		cout << "\n" << node->printStatus();
 		sleep(1);

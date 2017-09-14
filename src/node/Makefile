@@ -29,48 +29,32 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-TARGET=dragonNode
+TARGET=dragon
 
-# @todo jradtke move to separate makefile for chord dependencies
-CCHORD_FOLDER = ../../3rd/cChord
-CCHORD_INCLUDE = -I$(CCHORD_FOLDER)/engine/helper\
-		-I$(CCHORD_FOLDER)/engine/helper/crypto/\
-		-I$(CCHORD_FOLDER)/engine/helper/mongoose_http_server/callbacks\
-		-I$(CCHORD_FOLDER)/engine/helper/mongoose_http_server\
-		-I$(CCHORD_FOLDER)/engine/helper/thread\
-		-I$(CCHORD_FOLDER)/engine/helper/request\
-		-I$(CCHORD_FOLDER)/engine/p2p/node\
-		-I$(CCHORD_FOLDER)/engine/p2p/protocols/chord\
-		-I$(CCHORD_FOLDER)/engine/p2p/protocols\
-		-I$(CCHORD_FOLDER)/engine/p2p/transport/http\
-		-I$(CCHORD_FOLDER)/engine/p2p/transport
-CCHORD_LNK_OPTIONS = -lpthread -lrt -ldl
-CCHORD_TARGET = libmymed
-CCHORD_LIB = $(CCHORD_FOLDER)/$(CCHORD_TARGET).a
+include dht.mk
 
-INCLUDE = -I.\
-		$(CCHORD_INCLUDE)
+INCLUDE = -I. $(DHT_INCLUDE)
 
 CFLAGS += -std=c++11
 CFLAGS += -O0 -ggdb
 
-DEPS = $(CCHORD_TARGET)
-SRC = dragonNode.cpp
+DEPS = $(DHT_TARGET)
+SRC = dragon.cpp
 OBJ = $(SRC:.c=.o)
-LIB = $(CCHORD_LIB) -lboost_program_options -lboost_system -lboost_filesystem
+LIB = -lboost_program_options -lboost_system -lboost_filesystem $(DHT_LIB)
 
 all: default
 
 default: $(TARGET)
 
 $(CCHORD_TARGET):
-	make -C $(CCHORD_FOLDER)
+	make -C $(DHT_FOLDER)
 
 $(TARGET): $(OBJ) | $(DEPS)
-	$(CXX) $(CFLAGS) $(CCHORD_LNK_OPTIONS) $(INCLUDE) -o $@ $^ $(LIB)
+	$(CXX) $(CFLAGS) $(DHT_LNK_OPTIONS) $(INCLUDE) -o $@ $^ $(LIB)
 
 clean:
-	make -C $(CCHORD_FOLDER) clean
+	make -C $(DHT_FOLDER) clean
 	$(RM) -f $(TARGET) *.o
 
 clean-all: clean
