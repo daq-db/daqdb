@@ -15,9 +15,11 @@ Overview
 Installation
 ------------
 
+```
 cd 3rd/cChord
 git submodule init
 git submodule update
+```
 
 **Building with make**
 
