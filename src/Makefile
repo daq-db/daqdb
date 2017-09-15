@@ -29,24 +29,24 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-TARGET=dragonNode
-
-CFLAGS += -std=c++11
-CFLAGS += -O0 -ggdb
-
-SRC = dragonNode.cpp
-OBJ = $(SRC:.c=.o)
+TARGET = dragon
 
 all: default
 
 default: $(TARGET)
 
-$(TARGET): $(OBJ) | $(DEPS)
-	$(CXX) $(CFLAGS) -o $@ $^
+dragon:
+	$(MAKE) -C node
+
+test: dragon
+	$(MAKE) -C tests
+	tests/dragonTest --color_output=yes --log_level=all
 
 clean:
-	$(RM) -f $(TARGET) *.o
-
+	$(MAKE) -C node clean
+	$(MAKE) -C tests clean
+	
 clean-all: clean
-
+	$(MAKE) -C ../3rd/cChord clean
+	
 .PHONY: clean clean-all default print

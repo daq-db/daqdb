@@ -29,22 +29,25 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-TARGET = dragon-node
+CCHORD_FOLDER = ../../3rd/cChord
+CCHORD_INCLUDE = -I$(CCHORD_FOLDER)/engine/helper\
+		-I$(CCHORD_FOLDER)/engine/helper/crypto/\
+		-I$(CCHORD_FOLDER)/engine/helper/mongoose_http_server/callbacks\
+		-I$(CCHORD_FOLDER)/engine/helper/mongoose_http_server\
+		-I$(CCHORD_FOLDER)/engine/helper/thread\
+		-I$(CCHORD_FOLDER)/engine/helper/request\
+		-I$(CCHORD_FOLDER)/engine/p2p/node\
+		-I$(CCHORD_FOLDER)/engine/p2p/protocols/chord\
+		-I$(CCHORD_FOLDER)/engine/p2p/protocols\
+		-I$(CCHORD_FOLDER)/engine/p2p/transport/http\
+		-I$(CCHORD_FOLDER)/engine/p2p/transport
 
-all: default
+CCHORD_LNK_OPTIONS = -lpthread -lrt -ldl
+CCHORD_TARGET = libmymed
+CCHORD_LIB = $(CCHORD_FOLDER)/$(CCHORD_TARGET).a
 
-default: $(TARGET)
-
-dragon-node:
-	$(MAKE) -C node
-
-test: dragon-node
-	$(MAKE) -C tests
-	tests/dragonTest --color_output=yes --log_level=all
-
-clean:
-
-clean-all: clean
-	$(MAKE) -C node clean
-
-.PHONY: clean clean-all default print
+DHT_FOLDER = $(CCHORD_FOLDER)
+DHT_INCLUDE = $(CCHORD_INCLUDE)
+DHT_TARGET = $(CCHORD_TARGET)
+DHT_LNK_OPTIONS = $(CCHORD_LNK_OPTIONS)
+DHT_LIB = $(CCHORD_LIB)

@@ -1,0 +1,3 @@
+[submodule "3rd/cChord"]
+	path = 3rd/cChord
+	url = https://github.com/Goles/cChord.git

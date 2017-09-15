@@ -30,11 +30,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream>
-using namespace std;
+#include "DhtNode.h"
 
-int
-main()
+namespace DragonDht
 {
-	return 0;
+
+DhtNode::DhtNode()
+{
+	// TODO Auto-generated constructor stub
 }
+
+DhtNode::~DhtNode()
+{
+	// TODO Auto-generated destructor stub
+}
+
+} /* namespace DragonDht */
