@@ -30,17 +30,5 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "DhtNode.h"
+#pragma once
 
-namespace Dht
-{
-
-DhtNode::DhtNode(as::io_service& io_service, unsigned short port)
-{
-}
-
-DhtNode::~DhtNode()
-{
-}
-
-} /* namespace Dht */

@@ -33,15 +33,43 @@
 #ifndef DHT_DHTNODE_H_
 #define DHT_DHTNODE_H_
 
-namespace DragonDht
+#include "PureNode.h"
+
+#include <boost/asio/io_service.hpp>
+#include <boost/container/vector.hpp>
+
+namespace as = boost::asio;
+
+namespace Dht
 {
 
-class DhtNode {
+class DhtNode : public PureNode {
 public:
-	DhtNode();
+	DhtNode(as::io_service &io_service, unsigned short port);
 	virtual ~DhtNode();
+
+	/**
+	 *
+	 * @return
+	 */
+	virtual std::string printStatus() = 0;
+
+	/**
+	 * Fill peerNodes vector with peer node list from DHT.
+	 * This is a subset of full list of nodes in system.
+	 *
+	 * @param peerNodes vector to insert peer nodes
+	 * @return number of peer nodes
+	 */
+	virtual unsigned int
+		getPeerList(boost::container::vector<PureNode>& peerNodes) = 0;
+
+	/**
+	 * Triggers dragon aggregation table update.
+	 */
+	virtual void triggerAggregationUpdate() = 0;
 };
 
-} /* namespace DragonDht */
+} /* namespace Dht */
 
 #endif /* DHT_DHTNODE_H_ */

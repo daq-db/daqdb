@@ -30,84 +30,81 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream>
+#include "CChortNode.h"
 
-#include <boost/program_options.hpp>
-
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
-#include <boost/bind.hpp>
+#include "DhtUtils.h"
 
 #include <boost/filesystem.hpp>
+#include <iostream>
 
-#include "../dht/CChortNode.h"
-#include "DhtNode.h"
+#include "ProtocolSingleton.h"
 
+namespace bf = boost::filesystem;
 using namespace std;
-
-namespace po = boost::program_options;
-namespace as = boost::asio;
 
 namespace
 {
-const unsigned short dhtBackBonePort = 11000;
+const string dhtBackBoneIp = "127.0.0.1";
 const string dhtOverlayIdentifier = "chordTestBed";
 const string rootDirectory = ".";
 };
 
-int
-main(int argc, const char *argv[])
+namespace Dht
 {
-	as::io_service io_service;
-	unsigned short inputPort;
-	auto dhtPort = dhtBackBonePort;
 
-	#if (1) // Cmd line parsing region
-	po::options_description argumentsDescription{"Options"};
-	argumentsDescription.add_options()("help,h", "Print help messages")(
-		"port,p", po::value<unsigned short>(&inputPort),
-		"Node Communication port")("dht,d",
-					   po::value<unsigned short>(&dhtPort),
-					   "DHT Communication port");
-	po::variables_map parsedArguments;
-	try {
-		po::store(po::parse_command_line(argc, argv,
-						 argumentsDescription),
-			  parsedArguments);
+CChortAdapter::CChortAdapter(as::io_service &io_service, unsigned short port)
+    : Dht::DhtNode(io_service, port)
+{
+	/*!
+	 * Workaround for cChord library issue.
+	 * If following directory not exist then we see segmentation
+	 * fault on shutdown (2+ node case)
+	 */
+	auto dir(boost::filesystem::current_path());
+	dir /= ".chord";
+	bf::create_directory(dir);
+	dir /= "data";
+	bf::create_directory(dir);
 
-		if (parsedArguments.count("help")) {
-			std::cout << argumentsDescription << endl;
-			return 0;
-		}
+	auto dhtPort = Dht::utils::getFreePort(io_service, port);
 
-		po::notify(parsedArguments);
-	} catch (po::error &parserError) {
-		cerr << "Invalid arguments: " << parserError.what() << endl
-		     << endl;
-		std::cerr << argumentsDescription << std::endl;
-		return -1;
-	}
-	#endif
+	string backBone[] = {
+		dhtBackBoneIp,
+	};
 
-	as::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(
-		boost::bind(&boost::asio::io_service::stop, &io_service));
+	spNode.reset(P_SINGLETON->initChordNode(
+		dhtBackBoneIp, dhtPort, dhtOverlayIdentifier, rootDirectory));
+	spChord.reset(new Node(backBone[0], port));
 
-	unique_ptr<Dht::DhtNode> spDhtNode(
-		new Dht::CChortAdapter(io_service, dhtPort));
-	cout << "Node DHT id is " << spDhtNode->getDhtId() << endl;
-	cout << "Node IP is " << spDhtNode->getIp() << endl;
-	cout << "Node Port is " << spDhtNode->getPort() << endl;
+	spNode->join(spChord.get());
 
-	for (;;) {
-		cout << spDhtNode->printStatus();
+	this->setPort(spChord->getPort());
+	this->setDhtId(spChord->getId());
+	this->setIp(spChord->getIp());
+}
 
-		io_service.poll();
-		if (io_service.stopped()) {
-			break;
-		}
-		sleep(1);
-	}
+CChortAdapter::~CChortAdapter()
+{
+	spNode->shutDown();
+}
 
+std::string
+CChortAdapter::printStatus()
+{
+	return spNode->printStatus();
+}
+
+unsigned int
+CChortAdapter::getPeerList(boost::container::vector<PureNode> &peerNodes)
+{
+	//! @todo jradtke Not implemented
 	return 0;
 }
+
+void
+CChortAdapter::triggerAggregationUpdate()
+{
+	//! @todo jradtke Not implemented
+}
+
+} /* namespace Dht */

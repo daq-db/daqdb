@@ -30,17 +30,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "DhtNode.h"
+#include "DhtUtils.h"
+
+#include <iostream>
+
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <boost/bind.hpp>
+
+namespace as = boost::asio;
 
 namespace Dht
 {
-
-DhtNode::DhtNode(as::io_service& io_service, unsigned short port)
+namespace utils
 {
+
+unsigned short
+getFreePort(as::io_service &io_service, const unsigned short backbonePort)
+{
+	auto resultPort = backbonePort;
+
+	as::ip::tcp::acceptor acceptor(io_service);
+
+	boost::system::error_code checkPortErrorCode;
+
+	acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
+	acceptor.bind({as::ip::tcp::v4(), resultPort}, checkPortErrorCode);
+	acceptor.close();
+	if (checkPortErrorCode == as::error::address_in_use) {
+		acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
+		acceptor.bind({as::ip::tcp::v4(), 0}, checkPortErrorCode);
+		resultPort = acceptor.local_endpoint().port();
+		acceptor.close();
+	}
+
+	return resultPort;
 }
 
-DhtNode::~DhtNode()
-{
-}
-
-} /* namespace Dht */
+} /* namespace utils */
+} // namespace Dht

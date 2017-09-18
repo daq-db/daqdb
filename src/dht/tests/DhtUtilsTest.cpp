@@ -30,18 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DHT_CCHORTADAPTER_H_
-#define DHT_CCHORTADAPTER_H_
+#include "dhtTest.h"
+#include <boost/test/unit_test.hpp>
 
-namespace DragonDht
+BOOST_AUTO_TEST_SUITE(DhtUtilsTestModule)
+
+BOOST_AUTO_TEST_CASE(TestDhtCaseExampleSuccess)
 {
+	BOOST_TEST(1 == 1);
+}
 
-class CChortAdapter {
-public:
-	CChortAdapter();
-	virtual ~CChortAdapter();
-};
-
-} /* namespace DragonDht */
-
-#endif /* DHT_CCHORTADAPTER_H_ */
+BOOST_AUTO_TEST_SUITE_END()

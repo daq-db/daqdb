@@ -29,18 +29,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef DHT_DHTUTILS_H_
+#define DHT_DHTUTILS_H_
 
-#include "DhtNode.h"
+#include <boost/asio/io_service.hpp>
 
 namespace Dht
 {
-
-DhtNode::DhtNode(as::io_service& io_service, unsigned short port)
+namespace utils
 {
-}
 
-DhtNode::~DhtNode()
-{
-}
+unsigned short getFreePort(boost::asio::io_service &io_service,
+			   const unsigned short backbonePort);
 
-} /* namespace Dht */
+} /* namespace utils */
+} // namespace Dht
+
+#endif /* DHT_DHTUTILS_H_ */

@@ -30,19 +30,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "CChortAdapter.h"
+#include "dhtTest.h"
 
-namespace DragonDht
-{
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MODULE dht test module
 
-CChortAdapter::CChortAdapter()
+#include <boost/test/unit_test.hpp>
+
+BOOST_AUTO_TEST_SUITE(TestDhtExampleModule)
+
+BOOST_AUTO_TEST_CASE(TestDhtCaseExampleSuccess)
 {
-	// TODO Auto-generated constructor stub
+	BOOST_TEST(1 == 1);
 }
 
-CChortAdapter::~CChortAdapter()
-{
-	// TODO Auto-generated destructor stub
-}
-
-} /* namespace DragonDht */
+BOOST_AUTO_TEST_SUITE_END()

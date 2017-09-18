@@ -42,6 +42,9 @@ test: dragon
 	$(MAKE) -C tests
 	tests/dragonTest --color_output=yes --log_level=all
 
+test-all: test
+	$(MAKE) -C dht test
+
 clean:
 	$(MAKE) -C node clean
 	$(MAKE) -C tests clean

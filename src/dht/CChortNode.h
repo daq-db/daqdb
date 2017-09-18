@@ -30,17 +30,35 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef DHT_CCHORTADAPTER_H_
+#define DHT_CCHORTADAPTER_H_
+
 #include "DhtNode.h"
+#include <boost/asio/io_service.hpp>
+
+#include "ChordNode.h"
+
+namespace as = boost::asio;
 
 namespace Dht
 {
 
-DhtNode::DhtNode(as::io_service& io_service, unsigned short port)
-{
-}
+class CChortAdapter : public Dht::DhtNode {
+public:
+	CChortAdapter(as::io_service &io_service, unsigned short port);
+	virtual ~CChortAdapter();
 
-DhtNode::~DhtNode()
-{
-}
+	std::string printStatus();
+
+	//! dragon required API
+	unsigned int getPeerList(boost::container::vector<PureNode>& peerNodes);
+	void triggerAggregationUpdate();
+
+private:
+	unique_ptr<ChordNode> spNode;
+	unique_ptr<Node> spChord;
+};
 
 } /* namespace Dht */
+
+#endif /* DHT_CCHORTADAPTER_H_ */
