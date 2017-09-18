@@ -60,7 +60,7 @@ main(int argc, const char *argv[])
 {
 	as::io_service io_service;
 	unsigned short inputPort;
-	unsigned short dhtPort;
+	unsigned short dhtPort = dhtBackBonePort;
 
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()("help,h", "Print help messages")(
