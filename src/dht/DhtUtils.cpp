@@ -49,7 +49,7 @@ namespace utils
 unsigned short
 getFreePort(as::io_service &io_service, const unsigned short backbonePort)
 {
-	unsigned short resultPort = backbonePort;
+	auto resultPort = backbonePort;
 
 	as::ip::tcp::acceptor acceptor(io_service);
 

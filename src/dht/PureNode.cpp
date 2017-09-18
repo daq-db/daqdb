@@ -30,17 +30,53 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "DhtNode.h"
+#include "PureNode.h"
 
 namespace Dht
 {
 
-DhtNode::DhtNode(as::io_service& io_service, unsigned short port)
+PureNode::PureNode() : _port(0), _dhtId(0)
 {
 }
 
-DhtNode::~DhtNode()
+PureNode::~PureNode()
 {
+}
+
+unsigned int
+PureNode::getDhtId() const
+{
+	return _dhtId;
+}
+
+void
+PureNode::setDhtId(unsigned int dhtId)
+{
+	_dhtId = dhtId;
+}
+
+const std::string &
+PureNode::getIp() const
+{
+	return _ip;
+}
+
+void
+PureNode::setIp(const std::string &ip)
+{
+	_ip = ip;
+}
+
+unsigned short
+PureNode::getPort() const
+{
+	return _port;
+}
+
+void
+PureNode::setPort(unsigned short port)
+{
+	_port = port;
 }
 
 } /* namespace Dht */

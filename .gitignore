@@ -1,5 +1,6 @@
 dragon
 dragonTest
+dhtTest
 *.o
 *.a
 .cproject

@@ -30,28 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DHT_CCHORTADAPTER_H_
-#define DHT_CCHORTADAPTER_H_
+#include "dhtTest.h"
+#include <boost/test/unit_test.hpp>
 
-#include <boost/asio/io_service.hpp>
-#include "DhtNode.h"
+BOOST_AUTO_TEST_SUITE(DhtUtilsTestModule)
 
-#include "ChordNode.h"
-
-namespace as = boost::asio;
-
-namespace Dht
+BOOST_AUTO_TEST_CASE(TestDhtCaseExampleSuccess)
 {
+	BOOST_TEST(1 == 1);
+}
 
-class CChortAdapter : public Dht::DhtNode {
-public:
-	CChortAdapter(as::io_service& io_service, unsigned short port);
-	virtual ~CChortAdapter();
-private:
-	ChordNode *node;
-	Node *chord;
-};
-
-} /* namespace Dht */
-
-#endif /* DHT_CCHORTADAPTER_H_ */
+BOOST_AUTO_TEST_SUITE_END()

@@ -30,62 +30,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "CChortAdapter.h"
-#include "DhtUtils.h"
+#include "dhtTest.h"
 
-#include <iostream>
-#include <boost/filesystem.hpp>
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MODULE dht test module
 
-#include "ProtocolSingleton.h"
+#include <boost/test/unit_test.hpp>
 
-using namespace std;
+BOOST_AUTO_TEST_SUITE(TestDhtExampleModule)
 
-namespace
+BOOST_AUTO_TEST_CASE(TestDhtCaseExampleSuccess)
 {
-const string dhtBackBoneIp = "127.0.0.1";
-const string dhtOverlayIdentifier = "chordTestBed";
-const string rootDirectory = ".";
-};
-
-namespace Dht
-{
-
-CChortAdapter::CChortAdapter(as::io_service &io_service,
-			     unsigned short port)
-    : Dht::DhtNode(io_service, port)
-{
-	/*!
-	 * Workaround for cChord library issue.
-	 * If following directory not exist then we see segmentation
-	 * fault on shutdown (2+ node case)
-	 */
-	boost::filesystem::path dir(boost::filesystem::current_path());
-	dir /= ".chord";
-	boost::filesystem::create_directory(dir);
-	dir /= "data";
-	boost::filesystem::create_directory(dir);
-
-	unsigned short dhtPort = Dht::utils::getFreePort(io_service, port);
-
-	string backBone[] = {
-		dhtBackBoneIp,
-	};
-
-	node = P_SINGLETON->initChordNode(dhtBackBoneIp, dhtPort, dhtOverlayIdentifier, rootDirectory);
-
-	chord = new Node(backBone[0], port);
-
-	node->join(chord);
-
-	cout << "\n" << node->printStatus();
+	BOOST_TEST(1 == 1);
 }
 
-CChortAdapter::~CChortAdapter()
-{
-	node->shutDown();
-	delete node;
-	delete chord;
-
-}
-
-} /* namespace Dht */
+BOOST_AUTO_TEST_SUITE_END()
