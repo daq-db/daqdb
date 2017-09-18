@@ -1,6 +1,7 @@
 dragon
 dragonTest
 *.o
+*.a
 .cproject
 .project
 .settings

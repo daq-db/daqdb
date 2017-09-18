@@ -33,15 +33,25 @@
 #ifndef DHT_CCHORTADAPTER_H_
 #define DHT_CCHORTADAPTER_H_
 
-namespace DragonDht
+#include <boost/asio/io_service.hpp>
+#include "DhtNode.h"
+
+#include "ChordNode.h"
+
+namespace as = boost::asio;
+
+namespace Dht
 {
 
-class CChortAdapter {
+class CChortAdapter : public Dht::DhtNode {
 public:
-	CChortAdapter();
+	CChortAdapter(as::io_service& io_service, unsigned short port);
 	virtual ~CChortAdapter();
+private:
+	ChordNode *node;
+	Node *chord;
 };
 
-} /* namespace DragonDht */
+} /* namespace Dht */
 
 #endif /* DHT_CCHORTADAPTER_H_ */

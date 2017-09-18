@@ -33,15 +33,19 @@
 #ifndef DHT_DHTNODE_H_
 #define DHT_DHTNODE_H_
 
-namespace DragonDht
+#include <boost/asio/io_service.hpp>
+
+namespace as = boost::asio;
+
+namespace Dht
 {
 
 class DhtNode {
 public:
-	DhtNode();
+	DhtNode(as::io_service& io_service, unsigned short port);
 	virtual ~DhtNode();
 };
 
-} /* namespace DragonDht */
+} /* namespace Dht */
 
 #endif /* DHT_DHTNODE_H_ */

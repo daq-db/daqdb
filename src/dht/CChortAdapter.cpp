@@ -31,18 +31,61 @@
  */
 
 #include "CChortAdapter.h"
+#include "DhtUtils.h"
 
-namespace DragonDht
+#include <iostream>
+#include <boost/filesystem.hpp>
+
+#include "ProtocolSingleton.h"
+
+using namespace std;
+
+namespace
+{
+const string dhtBackBoneIp = "127.0.0.1";
+const string dhtOverlayIdentifier = "chordTestBed";
+const string rootDirectory = ".";
+};
+
+namespace Dht
 {
 
-CChortAdapter::CChortAdapter()
+CChortAdapter::CChortAdapter(as::io_service &io_service,
+			     unsigned short port)
+    : Dht::DhtNode(io_service, port)
 {
-	// TODO Auto-generated constructor stub
+	/*!
+	 * Workaround for cChord library issue.
+	 * If following directory not exist then we see segmentation
+	 * fault on shutdown (2+ node case)
+	 */
+	boost::filesystem::path dir(boost::filesystem::current_path());
+	dir /= ".chord";
+	boost::filesystem::create_directory(dir);
+	dir /= "data";
+	boost::filesystem::create_directory(dir);
+
+	unsigned short dhtPort = Dht::utils::getFreePort(io_service, port);
+
+	string backBone[] = {
+		dhtBackBoneIp,
+	};
+
+	node = P_SINGLETON->initChordNode(dhtBackBoneIp, dhtPort, dhtOverlayIdentifier, rootDirectory);
+
+	chord = new Node(backBone[0], port);
+
+	node->join(chord);
+
+	cout << "\n" << node->printStatus();
 }
 
 CChortAdapter::~CChortAdapter()
 {
-	// TODO Auto-generated destructor stub
+	node->shutDown();
+	delete node;
+	delete chord;
+
 }
 
-} /* namespace DragonDht */
+} /* namespace Dht */
