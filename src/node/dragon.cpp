@@ -95,9 +95,9 @@ main(int argc, const char *argv[])
 
 	unique_ptr<Dht::DhtNode> spDhtNode(
 		new Dht::CChortAdapter(io_service, dhtPort));
-	cout << "Node DHT id is" << spDhtNode->getDhtId() << endl;
-	cout << "Node IP is" << spDhtNode->getIp() << endl;
-	cout << "Node Port is" << spDhtNode->getPort() << endl;
+	cout << "Node DHT id is " << spDhtNode->getDhtId() << endl;
+	cout << "Node IP is " << spDhtNode->getIp() << endl;
+	cout << "Node Port is " << spDhtNode->getPort() << endl;
 
 	for (;;) {
 		cout << spDhtNode->printStatus();
