@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "CChortNode.h"
+#include "CChordNode.h"
 
 #include "DhtUtils.h"
 
@@ -52,7 +52,7 @@ const string rootDirectory = ".";
 namespace Dht
 {
 
-CChortAdapter::CChortAdapter(as::io_service &io_service, unsigned short port)
+CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port)
     : Dht::DhtNode(io_service, port)
 {
 	/*!
@@ -83,19 +83,19 @@ CChortAdapter::CChortAdapter(as::io_service &io_service, unsigned short port)
 	this->setIp(spChord->getIp());
 }
 
-CChortAdapter::~CChortAdapter()
+CChordAdapter::~CChordAdapter()
 {
 	spNode->shutDown();
 }
 
 std::string
-CChortAdapter::printStatus()
+CChordAdapter::printStatus()
 {
 	return spNode->printStatus();
 }
 
 unsigned int
-CChortAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
+CChordAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
 {
 	std::vector<Node *> nodeFingerTable;
 	spNode->getPeerList(nodeFingerTable);
@@ -108,7 +108,7 @@ CChortAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
 }
 
 void
-CChortAdapter::triggerAggregationUpdate()
+CChordAdapter::triggerAggregationUpdate()
 {
 	//! @todo jradtke Discussion needed how to implement this ...
 }

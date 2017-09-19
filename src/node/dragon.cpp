@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <chrono>
+#include <ctime>
 #include <iostream>
 
 #include <boost/program_options.hpp>
@@ -39,8 +41,8 @@
 #include <boost/bind.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <CChordNode.h>
 
-#include "../dht/CChortNode.h"
 #include "DhtNode.h"
 
 using namespace std;
@@ -94,28 +96,24 @@ main(int argc, const char *argv[])
 		boost::bind(&boost::asio::io_service::stop, &io_service));
 
 	unique_ptr<Dht::DhtNode> spDhtNode(
-		new Dht::CChortAdapter(io_service, dhtPort));
+		new Dht::CChordAdapter(io_service, dhtPort));
 	cout << "Node DHT id is " << spDhtNode->getDhtId() << endl;
 	cout << "Node IP is " << spDhtNode->getIp() << endl;
 	cout << "Node Port is " << spDhtNode->getPort() << endl;
 
+	std::chrono::time_point<std::chrono::system_clock> timestamp;
 	for (;;) {
-		boost::ptr_vector<Dht::PureNode> peerNodes;
-		auto peerCount = spDhtNode->getPeerList(peerNodes);
-		cout << "Number of peers: " << peerCount << endl;
-		if (peerCount > 0) {
-			for (auto i = peerNodes.begin(); i != peerNodes.end(); ++i) {
-				if (!boost::is_null(i)) {
-					cout << "Peer ID = " << i->getDhtId() << endl;
-				}
-			}
-		}
+		timestamp = std::chrono::system_clock::now();
+		auto currentTime =
+			std::chrono::system_clock::to_time_t(timestamp);
+		cout << "--- " << std::ctime(&currentTime)
+		     << spDhtNode->printStatus() << endl;
 
 		io_service.poll();
 		if (io_service.stopped()) {
 			break;
 		}
-		sleep(1);
+		sleep(2);
 	}
 
 	return 0;

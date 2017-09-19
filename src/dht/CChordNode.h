@@ -44,10 +44,10 @@ namespace as = boost::asio;
 namespace Dht
 {
 
-class CChortAdapter : public Dht::DhtNode {
+class CChordAdapter : public Dht::DhtNode {
 public:
-	CChortAdapter(as::io_service &io_service, unsigned short port);
-	virtual ~CChortAdapter();
+	CChordAdapter(as::io_service &io_service, unsigned short port);
+	virtual ~CChordAdapter();
 
 	std::string printStatus();
 

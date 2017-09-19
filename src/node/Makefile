@@ -68,7 +68,7 @@ $(DHT_LIB): $(DHT_IMPL_TARGET)
 	make -C $(DHT_FOLDER)
 
 $(TARGET): $(OBJ) | $(DEPS)
-	$(CXX) $(CFLAGS) $(DHT_IMPL_LNK_OPTIONS) $(INCLUDE) -o $@ $^ $(LIB)
+	$(CXX) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIB)
 
 clean:
 	$(RM) -f $(TARGET) *.o
