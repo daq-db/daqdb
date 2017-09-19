@@ -29,37 +29,47 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-LIBRARY_NAME=dht
+TARGET=dht
 
-include dht_impl.mk
+DHT_FOLDER = ../dht
+DHT_INCLUDE = -I$(DHT_FOLDER)
+DHT_LIB = $(DHT_FOLDER)/dht.a
+THIRD_PARTY_FOLDER = ../../3rd
+DHT_IMPL_TARGET = libmymed
+DHT_IMPL_FOLDER = $(THIRD_PARTY_FOLDER)/cChord
+DHT_IMPL_INCLUDE = -I$(DHT_IMPL_FOLDER)/engine/helper\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/crypto/\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/mongoose_http_server/callbacks\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/mongoose_http_server\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/thread\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/request\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/node\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/protocols/chord\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/protocols\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/transport/http\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/transport
+DHT_IMPL_LIB = -lpthread -lrt -ldl $(DHT_IMPL_FOLDER)/$(DHT_IMPL_TARGET).a
 
-INCLUDE = -I. $(DHT_IMPL_INCLUDE)
-
-CFLAGS += -std=c++11
-CFLAGS += -O0 -ggdb
-
+CFLAGS += -std=c++11 -O0 -ggdb
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.c=.o)
-LIB = -lboost_program_options -lboost_system -lboost_filesystem $(DHT_IMPL_LIB)
+
+INCLUDE = -I. $(DHT_IMPL_INCLUDE)
+LIB = -lboost_program_options -lboost_system -lboost_filesystem
 
 all: default
 
-default: $(LIBRARY_NAME)
+default: clean $(TARGET)
 
-$(LIBRARY_NAME): $(OBJ)
-	$(CXX) $(CFLAGS) $(DHT_IMPL_LNK_OPTIONS) $(INCLUDE) -c $^
-	rm -f $(LIBRARY_NAME).a
-	ar rcs $(LIBRARY_NAME).a *.o
-	ranlib $(LIBRARY_NAME).a
+$(TARGET): $(OBJ)
+	$(CXX) $(CFLAGS) $(LIB) $(INCLUDE) -c $^
+	rm -f $(TARGET).a
+	ar rcs $(TARGET).a *.o
 
 test:
-	$(MAKE) -C tests
-	tests/dhtTest --color_output=yes --log_level=all
+	$(MAKE) -C tests test
 
 clean:
-	rm -f $(LIBRARY_NAME).a
-	$(RM) -f $(TARGET) *.o
+	$(RM) -f $(TARGET).a *.o
 
-clean-all: clean
-
-.PHONY: clean clean-all default print
+.PHONY: clean default

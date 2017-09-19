@@ -35,6 +35,7 @@
 
 #include "DhtNode.h"
 #include <boost/asio/io_service.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "ChordNode.h"
 
@@ -43,15 +44,15 @@ namespace as = boost::asio;
 namespace Dht
 {
 
-class CChortAdapter : public Dht::DhtNode {
+class CChordAdapter : public Dht::DhtNode {
 public:
-	CChortAdapter(as::io_service &io_service, unsigned short port);
-	virtual ~CChortAdapter();
+	CChordAdapter(as::io_service &io_service, unsigned short port);
+	virtual ~CChordAdapter();
 
 	std::string printStatus();
 
 	//! dragon required API
-	unsigned int getPeerList(boost::container::vector<PureNode>& peerNodes);
+	unsigned int getPeerList(boost::ptr_vector<PureNode>& peerNodes);
 	void triggerAggregationUpdate();
 
 private:

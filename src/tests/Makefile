@@ -40,10 +40,13 @@ CFLAGS += -O0 -ggdb
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.c=.o)
 
-default: $(TARGET)
+default: clean $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+test: $(TARGET)
+	./$(TARGET) --color_output=yes --log_level=all
 
 clean:
 	$(RM) -f $(TARGET) *.o

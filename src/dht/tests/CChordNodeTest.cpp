@@ -30,81 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "CChortNode.h"
+#include "dhtTest.h"
+#include <boost/test/unit_test.hpp>
 
-#include "DhtUtils.h"
+BOOST_AUTO_TEST_SUITE(CChordNodeTesta)
 
-#include <boost/filesystem.hpp>
-#include <iostream>
-
-#include "ProtocolSingleton.h"
-
-namespace bf = boost::filesystem;
-using namespace std;
-
-namespace
+BOOST_AUTO_TEST_CASE(CreateSingleNode)
 {
-const string dhtBackBoneIp = "127.0.0.1";
-const string dhtOverlayIdentifier = "chordTestBed";
-const string rootDirectory = ".";
-};
-
-namespace Dht
-{
-
-CChortAdapter::CChortAdapter(as::io_service &io_service, unsigned short port)
-    : Dht::DhtNode(io_service, port)
-{
-	/*!
-	 * Workaround for cChord library issue.
-	 * If following directory not exist then we see segmentation
-	 * fault on shutdown (2+ node case)
-	 */
-	auto dir(boost::filesystem::current_path());
-	dir /= ".chord";
-	bf::create_directory(dir);
-	dir /= "data";
-	bf::create_directory(dir);
-
-	auto dhtPort = Dht::utils::getFreePort(io_service, port);
-
-	string backBone[] = {
-		dhtBackBoneIp,
-	};
-
-	spNode.reset(P_SINGLETON->initChordNode(
-		dhtBackBoneIp, dhtPort, dhtOverlayIdentifier, rootDirectory));
-	spChord.reset(new Node(backBone[0], port));
-
-	spNode->join(spChord.get());
-
-	this->setPort(spChord->getPort());
-	this->setDhtId(spChord->getId());
-	this->setIp(spChord->getIp());
 }
 
-CChortAdapter::~CChortAdapter()
-{
-	spNode->shutDown();
-}
-
-std::string
-CChortAdapter::printStatus()
-{
-	return spNode->printStatus();
-}
-
-unsigned int
-CChortAdapter::getPeerList(boost::container::vector<PureNode> &peerNodes)
-{
-	//! @todo jradtke Not implemented
-	return 0;
-}
-
-void
-CChortAdapter::triggerAggregationUpdate()
-{
-	//! @todo jradtke Not implemented
-}
-
-} /* namespace Dht */
+BOOST_AUTO_TEST_SUITE_END()

@@ -30,18 +30,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <iostream>
+
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/signal_set.hpp>
+
 #include "dhtTest.h"
+#include "CChordNode.h"
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE dht test module
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_SUITE(TestDhtExampleModule)
+namespace as = boost::asio;
 
-BOOST_AUTO_TEST_CASE(TestDhtCaseExampleSuccess)
+BOOST_AUTO_TEST_SUITE(DhtTest)
+
+BOOST_AUTO_TEST_CASE(CreateSingleNode)
 {
-	BOOST_TEST(1 == 1);
+	as::io_service io_service;
+	Dht::CChordAdapter* pDhtNode = new Dht::CChordAdapter(io_service, 0);
+
+	BOOST_TEST(pDhtNode->getDhtId() != 0);
+
+	delete pDhtNode;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

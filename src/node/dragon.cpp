@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <chrono>
+#include <ctime>
 #include <iostream>
 
 #include <boost/program_options.hpp>
@@ -37,10 +39,10 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/bind.hpp>
-
 #include <boost/filesystem.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+#include <CChordNode.h>
 
-#include "../dht/CChortNode.h"
 #include "DhtNode.h"
 
 using namespace std;
@@ -62,7 +64,7 @@ main(int argc, const char *argv[])
 	unsigned short inputPort;
 	auto dhtPort = dhtBackBonePort;
 
-	#if (1) // Cmd line parsing region
+#if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()("help,h", "Print help messages")(
 		"port,p", po::value<unsigned short>(&inputPort),
@@ -87,26 +89,31 @@ main(int argc, const char *argv[])
 		std::cerr << argumentsDescription << std::endl;
 		return -1;
 	}
-	#endif
+#endif
 
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(
 		boost::bind(&boost::asio::io_service::stop, &io_service));
 
 	unique_ptr<Dht::DhtNode> spDhtNode(
-		new Dht::CChortAdapter(io_service, dhtPort));
+		new Dht::CChordAdapter(io_service, dhtPort));
 	cout << "Node DHT id is " << spDhtNode->getDhtId() << endl;
 	cout << "Node IP is " << spDhtNode->getIp() << endl;
 	cout << "Node Port is " << spDhtNode->getPort() << endl;
 
+	std::chrono::time_point<std::chrono::system_clock> timestamp;
 	for (;;) {
-		cout << spDhtNode->printStatus();
+		timestamp = std::chrono::system_clock::now();
+		auto currentTime =
+			std::chrono::system_clock::to_time_t(timestamp);
+		cout << "--- " << std::ctime(&currentTime)
+		     << spDhtNode->printStatus() << endl;
 
 		io_service.poll();
 		if (io_service.stopped()) {
 			break;
 		}
-		sleep(1);
+		sleep(2);
 	}
 
 	return 0;

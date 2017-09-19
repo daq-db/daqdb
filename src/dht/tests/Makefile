@@ -31,19 +31,41 @@
 
 TARGET=dhtTest
 
-LIBS += -pthread
-LIBS += -lboost_unit_test_framework
+DHT_FOLDER = ..
+DHT_INCLUDE = -I$(DHT_FOLDER)
+DHT_LIB = $(DHT_FOLDER)/dht.a
+THIRD_PARTY_FOLDER = ../../../3rd
+DHT_IMPL_TARGET = libmymed
+DHT_IMPL_FOLDER = $(THIRD_PARTY_FOLDER)/cChord
+DHT_IMPL_INCLUDE = -I$(DHT_IMPL_FOLDER)/engine/helper\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/crypto/\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/mongoose_http_server/callbacks\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/mongoose_http_server\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/thread\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/request\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/node\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/protocols/chord\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/protocols\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/transport/http\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/transport
+DHT_IMPL_LIB = -lpthread -lrt -ldl $(DHT_IMPL_FOLDER)/$(DHT_IMPL_TARGET).a
 
-CFLAGS += -std=c++11
-CFLAGS += -O0 -ggdb
-
+CFLAGS += -std=c++11 -O0 -ggdb
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.c=.o)
 
-default: $(TARGET)
+INCLUDE = -I. -I.. $(DHT_IMPL_INCLUDE)
+LIBS += -pthread -lboost_unit_test_framework -lboost_filesystem -lboost_system $(DHT_LIB) $(DHT_IMPL_LIB)
+
+all: default
+
+default: clean $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CXX) $(CFLAGS) $(LDFLAGS) $(INCLUDE) -o $@ $^ $(LIBS)
+
+test: $(TARGET)
+	./$(TARGET) --color_output=yes --log_level=all
 
 clean:
 	$(RM) -f $(TARGET) *.o
