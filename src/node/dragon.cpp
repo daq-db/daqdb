@@ -37,8 +37,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/bind.hpp>
-
 #include <boost/filesystem.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "../dht/CChortNode.h"
 #include "DhtNode.h"
@@ -62,7 +62,7 @@ main(int argc, const char *argv[])
 	unsigned short inputPort;
 	auto dhtPort = dhtBackBonePort;
 
-	#if (1) // Cmd line parsing region
+#if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()("help,h", "Print help messages")(
 		"port,p", po::value<unsigned short>(&inputPort),
@@ -87,7 +87,7 @@ main(int argc, const char *argv[])
 		std::cerr << argumentsDescription << std::endl;
 		return -1;
 	}
-	#endif
+#endif
 
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(
@@ -100,7 +100,16 @@ main(int argc, const char *argv[])
 	cout << "Node Port is " << spDhtNode->getPort() << endl;
 
 	for (;;) {
-		cout << spDhtNode->printStatus();
+		boost::ptr_vector<Dht::PureNode> peerNodes;
+		auto peerCount = spDhtNode->getPeerList(peerNodes);
+		cout << "Number of peers: " << peerCount << endl;
+		if (peerCount > 0) {
+			for (auto i = peerNodes.begin(); i != peerNodes.end(); ++i) {
+				if (!boost::is_null(i)) {
+					cout << "Peer ID = " << i->getDhtId() << endl;
+				}
+			}
+		}
 
 		io_service.poll();
 		if (io_service.stopped()) {

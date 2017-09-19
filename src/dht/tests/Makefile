@@ -31,19 +31,21 @@
 
 TARGET=dhtTest
 
-LIBS += -pthread
-LIBS += -lboost_unit_test_framework
-
-CFLAGS += -std=c++11
-CFLAGS += -O0 -ggdb
-
+CFLAGS += -std=c++11 -O0 -ggdb
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.c=.o)
 
-default: $(TARGET)
+LIBS += -pthread -lboost_unit_test_framework
+
+all: default
+
+default: clean $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+test: $(TARGET)
+	./$(TARGET) --color_output=yes --log_level=all
 
 clean:
 	$(RM) -f $(TARGET) *.o

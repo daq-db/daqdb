@@ -30,26 +30,44 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 TARGET = dragon
+# dht_impl.mk specify 3rd party DHT implementation lib
+THIRD_PARTY_FOLDER = ../3rd
+DHT_IMPL_TARGET = libmymed
+DHT_IMPL_FOLDER = $(THIRD_PARTY_FOLDER)/cChord
+DHT_IMPL_INCLUDE = -I$(DHT_IMPL_FOLDER)/engine/helper\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/crypto/\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/mongoose_http_server/callbacks\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/mongoose_http_server\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/thread\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/request\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/node\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/protocols/chord\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/protocols\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/transport/http\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/transport
+DHT_IMPL_LIB = -lpthread -lrt -ldl $(DHT_IMPL_FOLDER)/$(DHT_IMPL_TARGET).a
 
 all: default
 
-default: $(TARGET)
+default: clean $(TARGET)
 
 dragon:
+	$(MAKE) -C dht
+	$(MAKE) -C $(DHT_IMPL_FOLDER)
 	$(MAKE) -C node
 
 test: dragon
-	$(MAKE) -C tests
-	tests/dragonTest --color_output=yes --log_level=all
+	$(MAKE) -C tests test
 
-test-all: test
+test-all: dragon
 	$(MAKE) -C dht test
+	$(MAKE) -C tests test
 
 clean:
 	$(MAKE) -C node clean
+	$(MAKE) -C dht clean
 	$(MAKE) -C tests clean
+	$(MAKE) -C $(DHT_IMPL_FOLDER) clean
 	
-clean-all: clean
-	$(MAKE) -C ../3rd/cChord clean
-	
-.PHONY: clean clean-all default print
+
+.PHONY: clean default

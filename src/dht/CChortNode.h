@@ -35,6 +35,7 @@
 
 #include "DhtNode.h"
 #include <boost/asio/io_service.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "ChordNode.h"
 

@@ -34,26 +34,36 @@ TARGET=dragon
 DHT_FOLDER = ../dht
 DHT_INCLUDE = -I$(DHT_FOLDER)
 DHT_LIB = $(DHT_FOLDER)/dht.a
-include $(DHT_FOLDER)/dht_impl.mk
+THIRD_PARTY_FOLDER = ../../3rd
+DHT_IMPL_TARGET = libmymed
+DHT_IMPL_FOLDER = $(THIRD_PARTY_FOLDER)/cChord
+DHT_IMPL_INCLUDE = -I$(DHT_IMPL_FOLDER)/engine/helper\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/crypto/\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/mongoose_http_server/callbacks\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/mongoose_http_server\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/thread\
+		-I$(DHT_IMPL_FOLDER)/engine/helper/request\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/node\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/protocols/chord\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/protocols\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/transport/http\
+		-I$(DHT_IMPL_FOLDER)/engine/p2p/transport
+DHT_IMPL_LIB = -lpthread -lrt -ldl $(DHT_IMPL_FOLDER)/$(DHT_IMPL_TARGET).a
 
-INCLUDE = -I. $(DHT_IMPL_INCLUDE) $(DHT_INCLUDE)
-
-DEPS = $(DHT_TARGET) $(DHT_LIB)
-
-CFLAGS += -std=c++11
-CFLAGS += -O0 -ggdb
-
+CFLAGS += -std=c++11 -O0 -ggdb
 SRC = dragon.cpp
 OBJ = $(SRC:.c=.o)
+
+INCLUDE = -I. $(DHT_IMPL_INCLUDE) $(DHT_INCLUDE)
+DEPS = $(DHT_TARGET) $(DHT_LIB)
 LIB = -lboost_program_options -lboost_system -lboost_filesystem $(DHT_LIB) $(DHT_IMPL_LIB)
 
 all: default
 
-default: $(TARGET)
+default: clean $(TARGET)
 
 $(DHT_IMPL_TARGET):
 	make -C $(DHT_IMPL_FOLDER)
-
 $(DHT_LIB): $(DHT_IMPL_TARGET)
 	make -C $(DHT_FOLDER)
 
@@ -61,10 +71,6 @@ $(TARGET): $(OBJ) | $(DEPS)
 	$(CXX) $(CFLAGS) $(DHT_IMPL_LNK_OPTIONS) $(INCLUDE) -o $@ $^ $(LIB)
 
 clean:
-	make -C $(DHT_FOLDER) clean
-	make -C $(DHT_IMPL_FOLDER) clean
 	$(RM) -f $(TARGET) *.o
 
-clean-all: clean
-
-.PHONY: clean clean-all default print
+.PHONY: clean default

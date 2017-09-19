@@ -97,16 +97,20 @@ CChortAdapter::printStatus()
 unsigned int
 CChortAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
 {
-	// spNode->
-	// peerNodes.push_back(new Dht::PureNode());
-
+	std::vector<Node *> nodeFingerTable;
+	spNode->getPeerList(nodeFingerTable);
+	for (auto pNode : nodeFingerTable) {
+		peerNodes.push_back(
+			new Dht::PureNode(pNode->getIp(), pNode->getId(),
+					  pNode->getPort()));
+	}
 	return peerNodes.size();
 }
 
 void
 CChortAdapter::triggerAggregationUpdate()
 {
-	//! @todo jradtke Not implemented
+	//! @todo jradtke Discussion needed how to implement this ...
 }
 
 } /* namespace Dht */

@@ -19,6 +19,8 @@ Installation
 cd 3rd/cChord
 git submodule init
 git submodule update
+git checkout master
+git pull
 ```
 
 **Building with make**
