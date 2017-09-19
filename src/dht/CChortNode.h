@@ -51,7 +51,7 @@ public:
 	std::string printStatus();
 
 	//! dragon required API
-	unsigned int getPeerList(boost::container::vector<PureNode>& peerNodes);
+	unsigned int getPeerList(boost::ptr_vector<PureNode>& peerNodes);
 	void triggerAggregationUpdate();
 
 private:

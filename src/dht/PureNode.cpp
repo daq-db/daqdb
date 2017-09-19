@@ -39,6 +39,11 @@ PureNode::PureNode() : _port(0), _dhtId(0)
 {
 }
 
+PureNode::PureNode(const std::string &ip, unsigned int dhtId,
+			unsigned short port) : _port(port), _dhtId(dhtId), _ip(ip)
+{
+}
+
 PureNode::~PureNode()
 {
 }
@@ -80,3 +85,4 @@ PureNode::setPort(unsigned short port)
 }
 
 } /* namespace Dht */
+

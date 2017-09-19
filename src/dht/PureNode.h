@@ -41,13 +41,27 @@ namespace Dht
 class PureNode {
 public:
 	PureNode();
+	PureNode(const std::string &ip, unsigned int dhtId, unsigned short port);
 	virtual ~PureNode();
 
+	/**
+	 * 	@return DHT ID for this node
+	 */
 	unsigned int getDhtId() const;
-	void setDhtId(unsigned int dhtId);
+
+	/**
+	 * @return IP address for this node
+	 */
 	const std::string &getIp() const;
-	void setIp(const std::string &ip);
+
+	/**
+	 * @return Port number for this node
+	 */
 	unsigned short getPort() const;
+
+protected:
+	void setIp(const std::string &ip);
+	void setDhtId(unsigned int dhtId);
 	void setPort(unsigned short port);
 
 private:

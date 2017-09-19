@@ -95,10 +95,12 @@ CChortAdapter::printStatus()
 }
 
 unsigned int
-CChortAdapter::getPeerList(boost::container::vector<PureNode> &peerNodes)
+CChortAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
 {
-	//! @todo jradtke Not implemented
-	return 0;
+	// spNode->
+	// peerNodes.push_back(new Dht::PureNode());
+
+	return peerNodes.size();
 }
 
 void

@@ -36,7 +36,7 @@
 #include "PureNode.h"
 
 #include <boost/asio/io_service.hpp>
-#include <boost/container/vector.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 namespace as = boost::asio;
 
@@ -62,7 +62,7 @@ public:
 	 * @return number of peer nodes
 	 */
 	virtual unsigned int
-		getPeerList(boost::container::vector<PureNode>& peerNodes) = 0;
+		getPeerList(boost::ptr_vector<PureNode>& peerNodes) = 0;
 
 	/**
 	 * Triggers dragon aggregation table update.
