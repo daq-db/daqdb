@@ -19,6 +19,7 @@ Installation
 cd ${fogKvpath}
 git submodule init
 git submodule update
+cd src/3rd/cChord
 git checkout master
 git pull
 ```
