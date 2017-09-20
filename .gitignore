@@ -3,6 +3,8 @@ dragonTest
 dhtTest
 *.o
 *.a
+build
 .cproject
 .project
 .settings
+.sconsign.dblite

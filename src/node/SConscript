@@ -1,0 +1,12 @@
+Import('env')
+
+env.Program('dragon', Glob('*.cpp'), 
+            LIBS=["pthread",
+                "boost_program_options",
+                "boost_system",
+                "boost_filesystem",
+                "rt",
+                "dl",
+                "dht",
+                File("#/src/3rd/cChord/libmymed.a")
+                ])

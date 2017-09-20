@@ -1,0 +1,5 @@
+Import('env')
+
+SConscript('#src/3rd/cChord/SConscript', exports='env')
+SConscript('dht/SConscript', exports='env')
+SConscript('node/SConscript', exports='env')
