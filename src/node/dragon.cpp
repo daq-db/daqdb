@@ -55,6 +55,7 @@ namespace
 const unsigned short dhtBackBonePort = 11000;
 const string dhtOverlayIdentifier = "chordTestBed";
 const string rootDirectory = ".";
+const unsigned short daemonSleepInterval = 1;
 };
 
 int
@@ -97,24 +98,24 @@ main(int argc, const char *argv[])
 
 	unique_ptr<Dht::DhtNode> spDhtNode(
 		new Dht::CChordAdapter(io_service, dhtPort));
-	cout << "Node DHT id is " << spDhtNode->getDhtId() << endl;
-	cout << "Node IP is " << spDhtNode->getIp() << endl;
-	cout << "Node Port is " << spDhtNode->getPort() << endl;
 
 	std::chrono::time_point<std::chrono::system_clock> timestamp;
 	for (;;) {
+
 		timestamp = std::chrono::system_clock::now();
 		auto currentTime =
 			std::chrono::system_clock::to_time_t(timestamp);
-		cout << "--- " << std::ctime(&currentTime)
-		     << spDhtNode->printStatus() << endl;
+
+		//! @todo Add here daemon tasks
+		cout << "." << flush;
 
 		io_service.poll();
 		if (io_service.stopped()) {
 			break;
 		}
-		sleep(2);
+		sleep(daemonSleepInterval);
 	}
+	//! @todo Add here daemon shutdown tasks
 
 	return 0;
 }
