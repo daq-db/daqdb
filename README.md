@@ -16,16 +16,15 @@ Installation
 ------------
 
 ```
-cd 3rd/cChord
+cd ${fogKvpath}
 git submodule init
 git submodule update
 git checkout master
 git pull
 ```
 
-**Building with make**
+**Building**
 
-You'll need `make` and `g++` installed.
 following libraries required:
 <ul>
 <li>boost</li>
@@ -33,9 +32,10 @@ following libraries required:
 <li>boost-test</li>
 </ul>
 
+Invoke scons with the following parameters:
 
 ```
-make                  # build everything
-make clean            # remove build files
-make test             # build and run unit tests
+scons                 # build everything
+scons -c              # remove build files
 ```
+By default, all software can be found in ${fogKvpath}/build folder.
