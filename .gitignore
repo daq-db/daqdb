@@ -3,6 +3,7 @@ dragonTest
 dhtTest
 *.o
 *.a
+*.pyc
 build
 .cproject
 .project
