@@ -34,20 +34,7 @@
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
-#define BOOST_TEST_MODULE dragon-poc test module
+#define BOOST_TEST_MODULE dragon test module
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_SUITE(TestExampleModule)
-
-BOOST_AUTO_TEST_CASE(TestCaseExampleSuccess)
-{
-	BOOST_TEST(1 == 1);
-}
-
-BOOST_AUTO_TEST_CASE(TestCaseExampleFail)
-{
-	BOOST_TEST(1 == 2);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
