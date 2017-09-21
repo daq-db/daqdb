@@ -30,11 +30,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <boost/test/unit_test.hpp>
+#include <DhtUtils.h>
 
-class DragonTestFixture {
-public:
-	DragonTestFixture()
-	{
-	}
-};
+namespace ut = boost::unit_test;
+
+BOOST_AUTO_TEST_SUITE(DhtUtilsTests)
+
+BOOST_AUTO_TEST_CASE(DhtUtilsTest_1, * ut::label ("Dht"))
+{
+	BOOST_TEST(1 == 1);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
