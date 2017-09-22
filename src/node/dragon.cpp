@@ -87,7 +87,7 @@ main(int argc, const char *argv[])
 	} catch (po::error &parserError) {
 		cerr << "Invalid arguments: " << parserError.what() << endl
 		     << endl;
-		std::cerr << argumentsDescription << std::endl;
+		cerr << argumentsDescription << endl;
 		return -1;
 	}
 #endif
@@ -99,12 +99,12 @@ main(int argc, const char *argv[])
 	unique_ptr<Dht::DhtNode> spDhtNode(
 		new Dht::CChordAdapter(io_service, dhtPort));
 
-	std::chrono::time_point<std::chrono::system_clock> timestamp;
+	chrono::time_point<chrono::system_clock> timestamp;
 	for (;;) {
 
-		timestamp = std::chrono::system_clock::now();
+		timestamp = chrono::system_clock::now();
 		auto currentTime =
-			std::chrono::system_clock::to_time_t(timestamp);
+			chrono::system_clock::to_time_t(timestamp);
 
 		//! @todo Add here daemon tasks
 		cout << "." << flush;
