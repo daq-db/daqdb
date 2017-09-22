@@ -13,6 +13,11 @@ testProgram = env.Program('dragonTest',
                 File("#/src/3rd/cChord/libmymed.a")
 ])
 
-test_alias = Alias('test', [testProgram], testProgram[0].path + ' --color_output=yes --log_level=all')
+logging_option = ' --color_output=yes'
+if env["VERBOSE"]:
+	logging_option += ' --log_level=all'
+
+test_alias = Alias('test', [testProgram], testProgram[0].path + logging_option)
+
 
 AlwaysBuild(test_alias)

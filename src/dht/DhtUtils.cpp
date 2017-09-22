@@ -50,15 +50,15 @@ unsigned short
 getFreePort(as::io_service &io_service, const unsigned short backbonePort)
 {
 	auto resultPort = backbonePort;
-
 	as::ip::tcp::acceptor acceptor(io_service);
-
 	boost::system::error_code checkPortErrorCode;
 
-	acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
-	acceptor.bind({as::ip::tcp::v4(), resultPort}, checkPortErrorCode);
-	acceptor.close();
-	if (checkPortErrorCode == as::error::address_in_use) {
+	if (backbonePort > 0) {
+		acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
+		acceptor.bind({as::ip::tcp::v4(), resultPort}, checkPortErrorCode);
+		acceptor.close();
+	}
+	if ((backbonePort == 0) || (checkPortErrorCode != 0)) {
 		acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
 		acceptor.bind({as::ip::tcp::v4(), 0}, checkPortErrorCode);
 		resultPort = acceptor.local_endpoint().port();
