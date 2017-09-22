@@ -39,5 +39,6 @@ Invoke scons with the following parameters:
 scons                 # build everything
 scons -c              # remove build files
 scons test            # execute unit tests
+scons test verbose=1  # execute unit tests, prints all test messages
 ```
 By default, all software can be found in ${fogKvpath}/build folder.
