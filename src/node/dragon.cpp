@@ -40,8 +40,8 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/bind.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/format.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include <CChordNode.h>
 
@@ -101,17 +101,25 @@ main(int argc, const char *argv[])
 
 	unique_ptr<Dht::DhtNode> spDhtNode(
 		new Dht::CChordAdapter(io_service, dhtPort));
-	cout << format("DHT is running on %1%:%2%\n") % spDhtNode->getIp() % spDhtNode->getPort();
+	cout << format("DHT node (id=%1%) is running on %2%:%3%\n") %
+			spDhtNode->getDhtId() % spDhtNode->getIp() %
+			spDhtNode->getPort();
+
+	cout << spDhtNode->printStatus();
 
 	chrono::time_point<chrono::system_clock> timestamp;
 	for (;;) {
 
 		timestamp = chrono::system_clock::now();
-		auto currentTime =
-			chrono::system_clock::to_time_t(timestamp);
+		auto currentTime = chrono::system_clock::to_time_t(timestamp);
 
 		//! @todo Add here daemon tasks
 		cout << "." << flush;
+
+		cout << format("DHT node (id=%1%) is running on %2%:%3%\n") %
+				spDhtNode->getDhtId() % spDhtNode->getIp() %
+				spDhtNode->getPort();
+		cout << spDhtNode->printStatus();
 
 		io_service.poll();
 		if (io_service.stopped()) {

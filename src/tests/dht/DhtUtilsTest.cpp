@@ -82,12 +82,12 @@ getFreePortNumber(as::io_service &io_service)
 }
 };
 
-BOOST_AUTO_TEST_SUITE(DhtUtilsTests)
+BOOST_AUTO_TEST_SUITE(DhtUtilsTests, *ut::label("Dht"))
 
 BOOST_AUTO_TEST_CASE(
-	DhtUtilsTest_GenRandomPort, *ut::label("Dht") *
-		ut::description("Test if Dht::utils::getFreePort give free "
-				"port as result when no default.\n"))
+	DhtUtilsTest_GenRandomPort,
+	*ut::description("Test if Dht::utils::getFreePort give free "
+			 "port as result when no default.\n"))
 {
 	as::io_service io_service;
 
@@ -99,10 +99,10 @@ BOOST_AUTO_TEST_CASE(
 }
 
 BOOST_AUTO_TEST_CASE(
-	DhtUtilsTest_GenRandomPort_DefaultIsUsed, *ut::label("Dht") *
-		ut::description("Test if Dht::utils::getFreePort give free "
-				"port as result when default is given but it "
-				"is already used."))
+	DhtUtilsTest_GenRandomPort_DefaultIsUsed,
+	*ut::description("Test if Dht::utils::getFreePort give free "
+			 "port as result when default is given but it "
+			 "is already used."))
 {
 	as::io_service io_service;
 
@@ -117,9 +117,8 @@ BOOST_AUTO_TEST_CASE(
 }
 
 BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultNotUsed,
-		     *ut::label("Dht") *
-			     ut::description("Test if Dht::utils::getFreePort "
-					     "give free port as result when"))
+		     *ut::description("Test if Dht::utils::getFreePort "
+				      "give free port as result when"))
 {
 	as::io_service io_service;
 
