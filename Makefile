@@ -1,8 +1,9 @@
-.PHONY: all clean install
-default:    all
-all:    
-    scons
+default: all
+
+all:
+	scons
+
 clean:
-    scons -c
-install:
-    scons install
+	scons -c
+
+.PHONY: all clean

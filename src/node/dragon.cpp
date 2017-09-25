@@ -41,11 +41,14 @@
 #include <boost/bind.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/format.hpp>
+
 #include <CChordNode.h>
 
 #include "DhtNode.h"
 
 using namespace std;
+using boost::format;
 
 namespace po = boost::program_options;
 namespace as = boost::asio;
@@ -98,6 +101,7 @@ main(int argc, const char *argv[])
 
 	unique_ptr<Dht::DhtNode> spDhtNode(
 		new Dht::CChordAdapter(io_service, dhtPort));
+	cout << format("DHT is running on %1%:%2%\n") % spDhtNode->getIp() % spDhtNode->getPort();
 
 	chrono::time_point<chrono::system_clock> timestamp;
 	for (;;) {
