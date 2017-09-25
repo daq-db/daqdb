@@ -78,9 +78,9 @@ CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port)
 
 	spNode->join(spChord.get());
 
-	this->setPort(spChord->getPort());
-	this->setDhtId(spChord->getId());
-	this->setIp(spChord->getIp());
+	this->setPort(spNode->getThisNode()->getPort());
+	this->setDhtId(spNode->getThisNode()->getId());
+	this->setIp(spNode->getThisNode()->getIp());
 }
 
 CChordAdapter::~CChordAdapter()
