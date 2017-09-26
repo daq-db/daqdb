@@ -46,6 +46,8 @@
 #include <CChordNode.h>
 
 #include "DhtNode.h"
+#include "DhtUtils.h"
+#include "ReqManager.h"
 
 using namespace std;
 using boost::format;
@@ -105,7 +107,12 @@ main(int argc, const char *argv[])
 			spDhtNode->getDhtId() % spDhtNode->getIp() %
 			spDhtNode->getPort();
 
-	cout << spDhtNode->printStatus();
+	auto requestPort = Dht::utils::getFreePort(io_service, 0);
+	unique_ptr<DragonNode::ReqManager> spReqManager(
+		new DragonNode::ReqManager(io_service, requestPort));
+	cout << format("Waiting for requests on port %1%. Press CTRL-C to "
+		       "exit.\n") %
+			requestPort;
 
 	chrono::time_point<chrono::system_clock> timestamp;
 	for (;;) {
@@ -115,11 +122,6 @@ main(int argc, const char *argv[])
 
 		//! @todo Add here daemon tasks
 		cout << "." << flush;
-
-		cout << format("DHT node (id=%1%) is running on %2%:%3%\n") %
-				spDhtNode->getDhtId() % spDhtNode->getIp() %
-				spDhtNode->getPort();
-		cout << spDhtNode->printStatus();
 
 		io_service.poll();
 		if (io_service.stopped()) {
