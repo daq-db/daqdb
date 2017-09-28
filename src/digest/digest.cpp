@@ -97,6 +97,7 @@ void test_boost(string const& s, char const* delims)
 	boost::split(output, s, boost::is_any_of(delims));
 }
 
+
 int main()
 {
 	string text("dupa1/test2/ala3/i4/dupadupa5/test6/asdsa7/sdf8/g9/ojojoj10");
