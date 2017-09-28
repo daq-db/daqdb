@@ -3,15 +3,15 @@ Import('env')
 testProgram = env.Program('dragonTest',
             source = [Glob('*.cpp'), Glob('dht/*.cpp')], 
             LIBS=["pthread",
+                "rt",
+                "dht",
+                File("#/src/3rd/cChord/libmymed.a"),
+                "boost_unit_test_framework",
+                "dl",
                 "boost_program_options",
                 "boost_system",
-                "boost_filesystem",
-                "boost_unit_test_framework",
-                "rt",
-                "dl",
-                "dht",
-                File("#/src/3rd/cChord/libmymed.a")
-])
+                "boost_filesystem"],
+	    LIBPATH=["#lib","#src/3rd/cChord","#build/src/dht"])
 
 logging_option = ' --color_output=yes'
 if env["VERBOSE"]:

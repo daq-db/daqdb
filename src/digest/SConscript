@@ -1,0 +1,3 @@
+Import('env')
+
+env.Program('digest', Glob('*.cpp'))
