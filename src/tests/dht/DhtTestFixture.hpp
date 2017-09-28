@@ -44,16 +44,17 @@ namespace as = boost::asio;
 class DhtTestFixture {
 public:
 	as::io_service io_service;
-	Dht::DhtNode* pDhtNode;
+	unique_ptr<Dht::CChordAdapter> spDhtNode;
+
 	unsigned short dhtPort = 0;
 
 	DhtTestFixture()
 	{
 		dhtPort = Dht::utils::getFreePort(io_service, 0);
-		pDhtNode = new Dht::CChordAdapter(io_service, dhtPort);
+		spDhtNode.reset(new Dht::CChordAdapter(io_service, dhtPort));
+		spDhtNode->setSkipShutDown(true);
 	}
 	~DhtTestFixture()
 	{
-		// @todo jradtke intentionaly not calling delete (there is a bug in cChort that broke ut)
 	}
 };

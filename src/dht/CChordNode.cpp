@@ -53,19 +53,8 @@ namespace Dht
 {
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port)
-    : Dht::DhtNode(io_service, port)
+    : Dht::DhtNode(io_service, port), skipShutDown(false)
 {
-	/*!
-	 * Workaround for cChord library issue.
-	 * If following directory not exist then we see segmentation
-	 * fault on shutdown (2+ node case)
-	 */
-	auto dir(boost::filesystem::current_path());
-	dir /= ".chord";
-	bf::create_directory(dir);
-	dir /= "data";
-	bf::create_directory(dir);
-
 	auto dhtPort = Dht::utils::getFreePort(io_service, port);
 
 	string backBone[] = {
@@ -85,7 +74,9 @@ CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port)
 
 CChordAdapter::~CChordAdapter()
 {
-	spNode->shutDown();
+	if (!skipShutDown) {
+		spNode->shutDown();
+	}
 }
 
 std::string

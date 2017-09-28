@@ -51,17 +51,16 @@ BOOST_FIXTURE_TEST_SUITE(DhtTests, DhtTestFixture)
 
 BOOST_AUTO_TEST_CASE(CChordNode_BasicTwoNodes, *ut::description(""))
 {
-	BOOST_CHECK_EQUAL(dhtPort, pDhtNode->getPort());
-	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtNode->getIp());
-	BOOST_CHECK_NE(pDhtNode->getDhtId(), 0);
+	BOOST_CHECK_EQUAL(dhtPort, spDhtNode->getPort());
+	BOOST_CHECK_EQUAL(dhtBackBoneIp, spDhtNode->getIp());
+	BOOST_CHECK_NE(spDhtNode->getDhtId(), 0);
 
-	Dht::DhtNode* pDhtNodePeer = new Dht::CChordAdapter(io_service, dhtPort);
+	unique_ptr<Dht::CChordAdapter> spDhtNodePeer(new Dht::CChordAdapter(io_service, dhtPort));
+	spDhtNodePeer->setSkipShutDown(true);
 
-	BOOST_CHECK_NE(dhtPort, pDhtNodePeer->getPort());
-	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtNodePeer->getIp());
-	BOOST_CHECK_NE(pDhtNodePeer->getDhtId(), 0);
-
-	// @todo jradtke intentionaly not calling delete on pDhtNodePeer (there is a bug in cChort that broke ut)
+	BOOST_CHECK_NE(dhtPort, spDhtNodePeer->getPort());
+	BOOST_CHECK_EQUAL(dhtBackBoneIp, spDhtNodePeer->getIp());
+	BOOST_CHECK_NE(spDhtNodePeer->getDhtId(), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

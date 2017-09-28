@@ -123,6 +123,8 @@ main(int argc, const char *argv[])
 		//! @todo Add here daemon tasks
 		cout << "." << flush;
 
+		cout << spDhtNode->printStatus();
+
 		io_service.poll();
 		if (io_service.stopped()) {
 			break;

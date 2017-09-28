@@ -55,9 +55,16 @@ public:
 	unsigned int getPeerList(boost::ptr_vector<PureNode>& peerNodes);
 	void triggerAggregationUpdate();
 
+	void
+	setSkipShutDown(bool skipShutDown)
+	{
+		this->skipShutDown = skipShutDown;
+	}
+
 private:
 	unique_ptr<ChordNode> spNode;
 	unique_ptr<Node> spChord;
+	bool skipShutDown;
 };
 
 } /* namespace Dht */
