@@ -46,9 +46,10 @@ namespace Dht
 
 class CChordAdapter : public Dht::DhtNode {
 public:
-	CChordAdapter(as::io_service &io_service, unsigned short port);
 	CChordAdapter(as::io_service &io_service, unsigned short port,
-		      bool skipShutDown);
+		      unsigned short dragonPort);
+	CChordAdapter(as::io_service &io_service, unsigned short port,
+		      unsigned short dragonPort, bool skipShutDown);
 	virtual ~CChordAdapter();
 
 	std::string printStatus();

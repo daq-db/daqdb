@@ -53,14 +53,15 @@ const string rootDirectory = ".";
 namespace Dht
 {
 
-CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port)
-    : CChordAdapter(io_service, port, false)
+CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
+			     unsigned short dragonPort)
+    : CChordAdapter(io_service, port, dragonPort, false)
 {
 }
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
-			     bool skipShutDown)
-    : Dht::DhtNode(io_service, port), skipShutDown(skipShutDown)
+			     unsigned short dragonPort, bool skipShutDown)
+    : Dht::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
 {
 	auto dhtPort = Dht::utils::getFreePort(io_service, port);
 
@@ -69,12 +70,13 @@ CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
 	};
 
 	spNode.reset(P_SINGLETON->initChordNode(
-		dhtBackBoneIp, dhtPort, dhtOverlayIdentifier, rootDirectory));
+		dhtBackBoneIp, dhtPort, dragonPort, dhtOverlayIdentifier, rootDirectory));
 	spChord.reset(new Node(backBone[0], port));
 
 	spNode->join(spChord.get());
 
 	this->setPort(spNode->getThisNode()->getPort());
+	this->setDragonPort(spNode->getThisNode()->getDragonPort());
 	this->setDhtId(spNode->getThisNode()->getId());
 	this->setIp(spNode->getThisNode()->getIp());
 }
@@ -100,7 +102,8 @@ CChordAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
 		if (!addedDhtNodes.count(pNodeToAdd->getId())) {
 			peerNodes.push_back(new Dht::PureNode(
 				pNodeToAdd->getIp(), pNodeToAdd->getId(),
-				pNodeToAdd->getPort()));
+				pNodeToAdd->getPort(),
+				pNodeToAdd->getDragonPort()));
 			addedDhtNodes.emplace(pNodeToAdd->getId());
 		}
 	};

@@ -35,7 +35,7 @@
 namespace Dht
 {
 
-DhtNode::DhtNode(as::io_service& io_service, unsigned short port)
+DhtNode::DhtNode(as::io_service& io_service, unsigned short port, unsigned short dragonPort)
 {
 }
 
