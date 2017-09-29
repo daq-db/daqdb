@@ -39,6 +39,12 @@ namespace Dht
 namespace utils
 {
 
+/*!
+ * Returns free network port
+ * @param io_service	boost io service
+ * @param backbonePort	prefered port, if not used then function should
+ * return it as a result
+ */
 unsigned short getFreePort(boost::asio::io_service &io_service,
 			   const unsigned short backbonePort);
 
