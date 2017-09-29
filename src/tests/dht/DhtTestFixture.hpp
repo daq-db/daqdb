@@ -51,8 +51,7 @@ public:
 	DhtTestFixture()
 	{
 		dhtPort = Dht::utils::getFreePort(io_service, 0);
-		spDhtNode.reset(new Dht::CChordAdapter(io_service, dhtPort));
-		spDhtNode->setSkipShutDown(true);
+		spDhtNode.reset(new Dht::CChordAdapter(io_service, dhtPort, true));
 	}
 	~DhtTestFixture()
 	{

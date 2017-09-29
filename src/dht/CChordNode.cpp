@@ -36,6 +36,7 @@
 
 #include <boost/filesystem.hpp>
 #include <iostream>
+#include <set>
 
 #include "ProtocolSingleton.h"
 
@@ -53,7 +54,13 @@ namespace Dht
 {
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port)
-    : Dht::DhtNode(io_service, port), skipShutDown(false)
+    : CChordAdapter(io_service, port, false)
+{
+}
+
+CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
+			     bool skipShutDown)
+    : Dht::DhtNode(io_service, port), skipShutDown(skipShutDown)
 {
 	auto dhtPort = Dht::utils::getFreePort(io_service, port);
 
@@ -88,14 +95,34 @@ CChordAdapter::printStatus()
 unsigned int
 CChordAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
 {
-	std::vector<Node *> nodeFingerTable;
+	std::set<unsigned int> addedDhtNodes;
+	auto addUniqueNode = [&addedDhtNodes, &peerNodes](Node *pNodeToAdd) {
+		if (!addedDhtNodes.count(pNodeToAdd->getId())) {
+			peerNodes.push_back(new Dht::PureNode(
+				pNodeToAdd->getIp(), pNodeToAdd->getId(),
+				pNodeToAdd->getPort()));
+			addedDhtNodes.emplace(pNodeToAdd->getId());
+		}
+	};
+	addedDhtNodes.emplace(this->getDhtId());
+
+	addUniqueNode(spNode->getPredecessor());
+	addUniqueNode(spNode->getSuccessor());
+
+	vector<Node *> nodeFingerTable;
 	spNode->getPeerList(nodeFingerTable);
 	for (auto pNode : nodeFingerTable) {
-		peerNodes.push_back(
-			new Dht::PureNode(pNode->getIp(), pNode->getId(),
-					  pNode->getPort()));
+		addUniqueNode(pNode);
 	}
 	return peerNodes.size();
+}
+
+void
+CChordAdapter::refresh()
+{
+	spNode->stabilize();
+	spNode->fixFingersTable();
+	spNode->checkPredecessor();
 }
 
 void

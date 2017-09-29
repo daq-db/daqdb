@@ -33,7 +33,9 @@
 #include "DhtTestFixture.hpp"
 #include <CChordNode.h>
 #include <DhtUtils.h>
+#include <set>
 
+#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
@@ -49,18 +51,77 @@ const unsigned short echoProtocolPort = 7; //! Echo Protocol
 
 BOOST_FIXTURE_TEST_SUITE(DhtTests, DhtTestFixture)
 
-BOOST_AUTO_TEST_CASE(CChordNode_BasicTwoNodes, *ut::description(""))
+BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes)
 {
 	BOOST_CHECK_EQUAL(dhtPort, spDhtNode->getPort());
 	BOOST_CHECK_EQUAL(dhtBackBoneIp, spDhtNode->getIp());
 	BOOST_CHECK_NE(spDhtNode->getDhtId(), 0);
 
-	unique_ptr<Dht::CChordAdapter> spDhtNodePeer(new Dht::CChordAdapter(io_service, dhtPort));
-	spDhtNodePeer->setSkipShutDown(true);
+	boost::ptr_vector<Dht::PureNode> peerNodes;
+	BOOST_CHECK_EQUAL(spDhtNode->getPeerList(peerNodes), 0);
 
-	BOOST_CHECK_NE(dhtPort, spDhtNodePeer->getPort());
-	BOOST_CHECK_EQUAL(dhtBackBoneIp, spDhtNodePeer->getIp());
-	BOOST_CHECK_NE(spDhtNodePeer->getDhtId(), 0);
+	/*!
+	 * Second Node ADDED
+	 */
+	unique_ptr<Dht::CChordAdapter> spDhtSecondNode(
+		new Dht::CChordAdapter(io_service, dhtPort, true));
+
+	spDhtNode->refresh();
+	spDhtSecondNode->refresh();
+
+	BOOST_CHECK_NE(dhtPort, spDhtSecondNode->getPort());
+	BOOST_CHECK_EQUAL(dhtBackBoneIp, spDhtSecondNode->getIp());
+	BOOST_CHECK_NE(spDhtSecondNode->getDhtId(), 0);
+
+	//! Test first node peers
+	BOOST_CHECK_EQUAL(spDhtNode->getPeerList(peerNodes), 1);
+	BOOST_CHECK_EQUAL(peerNodes[0].getDhtId(), spDhtSecondNode->getDhtId());
+
+	//! Test second node peers
+	boost::ptr_vector<Dht::PureNode> peerNodesSecond;
+	BOOST_CHECK_EQUAL(spDhtSecondNode->getPeerList(peerNodesSecond), 1);
+	BOOST_CHECK_EQUAL(peerNodesSecond[0].getDhtId(), spDhtNode->getDhtId());
+
+	/*!
+	 * Third Node ADDED
+	 */
+	unique_ptr<Dht::CChordAdapter> spDhtThirdNode(
+		new Dht::CChordAdapter(io_service, dhtPort, true));
+
+	BOOST_CHECK_NE(dhtPort, spDhtThirdNode->getPort());
+	BOOST_CHECK_EQUAL(dhtBackBoneIp, spDhtThirdNode->getIp());
+	BOOST_CHECK_NE(spDhtThirdNode->getDhtId(), 0);
+
+	set<unsigned int> allFoundNodes;
+	//! Some time is needed to propagate
+	spDhtThirdNode->refresh();
+
+	//! Test first node peers
+	peerNodes.clear();
+	spDhtNode->refresh();
+	BOOST_CHECK_GE(spDhtNode->getPeerList(peerNodes), 1);
+	for (auto node : peerNodes) {
+		allFoundNodes.emplace(node.getDhtId());
+	}
+
+	//! Test second node peers
+	peerNodesSecond.clear();
+	spDhtSecondNode->refresh();
+	BOOST_CHECK_GE(spDhtSecondNode->getPeerList(peerNodesSecond), 1);
+	for (auto node : peerNodesSecond) {
+		allFoundNodes.emplace(node.getDhtId());
+	}
+
+	//! Test third node peers
+	boost::ptr_vector<Dht::PureNode> peerNodesThird;
+	BOOST_CHECK_GE(spDhtThirdNode->getPeerList(peerNodesThird), 1);
+	for (auto node : peerNodesThird) {
+		allFoundNodes.emplace(node.getDhtId());
+	}
+
+	BOOST_CHECK_NE(allFoundNodes.count(spDhtNode->getDhtId()), 0);
+	BOOST_CHECK_NE(allFoundNodes.count(spDhtSecondNode->getDhtId()), 0);
+	BOOST_CHECK_NE(allFoundNodes.count(spDhtThirdNode->getDhtId()), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

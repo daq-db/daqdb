@@ -47,12 +47,15 @@ namespace Dht
 class CChordAdapter : public Dht::DhtNode {
 public:
 	CChordAdapter(as::io_service &io_service, unsigned short port);
+	CChordAdapter(as::io_service &io_service, unsigned short port,
+		      bool skipShutDown);
 	virtual ~CChordAdapter();
 
 	std::string printStatus();
+	void refresh();
 
 	//! dragon required API
-	unsigned int getPeerList(boost::ptr_vector<PureNode>& peerNodes);
+	unsigned int getPeerList(boost::ptr_vector<PureNode> &peerNodes);
 	void triggerAggregationUpdate();
 
 	void

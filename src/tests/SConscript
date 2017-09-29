@@ -10,8 +10,7 @@ testProgram = env.Program('dragonTest',
                 "dl",
                 "boost_program_options",
                 "boost_system",
-                "boost_filesystem"],
-            LIBPATH=["/usr/lib64", "#lib","#src/3rd/cChord","#build/src/dht"])
+                "boost_filesystem"])
 
 logging_option = ' --color_output=yes'
 if env["VERBOSE"]:
