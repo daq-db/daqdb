@@ -30,10 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "DhtTestFixture.hpp"
 #include <CChordNode.h>
 #include <DhtUtils.h>
+#include <set>
 
+#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
@@ -44,24 +45,79 @@ namespace
 {
 const string dhtBackBoneIp = "127.0.0.1";
 const unsigned short reservedPortsEnd = 1024;
-const unsigned short echoProtocolPort = 7; //! Echo Protocol
 }
 
-BOOST_FIXTURE_TEST_SUITE(DhtTests, DhtTestFixture)
+BOOST_AUTO_TEST_SUITE(DhtTests)
 
-BOOST_AUTO_TEST_CASE(CChordNode_BasicTwoNodes, *ut::description(""))
+BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes)
 {
-	BOOST_CHECK_EQUAL(dhtPort, pDhtNode->getPort());
-	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtNode->getIp());
-	BOOST_CHECK_NE(pDhtNode->getDhtId(), 0);
+	as::io_service io_service;
+	unsigned short dhtPort = 0;
 
-	Dht::DhtNode* pDhtNodePeer = new Dht::CChordAdapter(io_service, dhtPort);
+	Dht::CChordAdapter* pDhtFirstNode = new Dht::CChordAdapter(io_service, dhtPort, true);
+	dhtPort = pDhtFirstNode->getPort();
 
-	BOOST_CHECK_NE(dhtPort, pDhtNodePeer->getPort());
-	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtNodePeer->getIp());
-	BOOST_CHECK_NE(pDhtNodePeer->getDhtId(), 0);
+	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtFirstNode->getIp());
+	BOOST_CHECK_NE(pDhtFirstNode->getDhtId(), 0);
 
-	// @todo jradtke intentionaly not calling delete on pDhtNodePeer (there is a bug in cChort that broke ut)
+	boost::ptr_vector<Dht::PureNode> peerNodes;
+	BOOST_CHECK_EQUAL(pDhtFirstNode->getPeerList(peerNodes), 0);
+
+	/*!
+	 * Second Node ADDED
+	 */
+	Dht::CChordAdapter* pDhtSecondNode = new Dht::CChordAdapter(io_service, dhtPort, true);
+	sleep(1);
+
+	pDhtFirstNode->refresh();
+	pDhtSecondNode->refresh();
+
+	BOOST_CHECK_NE(dhtPort, pDhtSecondNode->getPort());
+	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtSecondNode->getIp());
+	BOOST_CHECK_NE(pDhtSecondNode->getDhtId(), 0);
+	BOOST_CHECK_EQUAL(pDhtFirstNode->getPeerList(peerNodes), 1);
+	BOOST_CHECK_EQUAL(peerNodes[0].getDhtId(), pDhtSecondNode->getDhtId());
+	boost::ptr_vector<Dht::PureNode> peerNodesSecond;
+	BOOST_CHECK_EQUAL(pDhtSecondNode->getPeerList(peerNodesSecond), 1);
+	BOOST_CHECK_EQUAL(peerNodesSecond[0].getDhtId(), pDhtFirstNode->getDhtId());
+
+	/*!
+	 * Third Node ADDED
+	 */
+	Dht::CChordAdapter* pDhtThirdNode =
+		new Dht::CChordAdapter(io_service, dhtPort, true);
+	sleep(1);
+
+	BOOST_CHECK_NE(dhtPort, pDhtThirdNode->getPort());
+	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtThirdNode->getIp());
+	BOOST_CHECK_NE(pDhtThirdNode->getDhtId(), 0);
+
+	set<unsigned int> allFoundNodes;
+	pDhtThirdNode->refresh();
+
+	peerNodes.clear();
+	pDhtFirstNode->refresh();
+	BOOST_CHECK_GE(pDhtFirstNode->getPeerList(peerNodes), 1);
+	for (auto node : peerNodes) {
+		allFoundNodes.emplace(node.getDhtId());
+	}
+	peerNodesSecond.clear();
+	pDhtSecondNode->refresh();
+	BOOST_CHECK_GE(pDhtSecondNode->getPeerList(peerNodesSecond), 1);
+	for (auto node : peerNodesSecond) {
+		allFoundNodes.emplace(node.getDhtId());
+	}
+	boost::ptr_vector<Dht::PureNode> peerNodesThird;
+	BOOST_CHECK_GE(pDhtThirdNode->getPeerList(peerNodesThird), 1);
+	for (auto node : peerNodesThird) {
+		allFoundNodes.emplace(node.getDhtId());
+	}
+
+	BOOST_CHECK_NE(allFoundNodes.count(pDhtFirstNode->getDhtId()), 0);
+	BOOST_CHECK_NE(allFoundNodes.count(pDhtSecondNode->getDhtId()), 0);
+	BOOST_CHECK_NE(allFoundNodes.count(pDhtThirdNode->getDhtId()), 0);
+
+	//! Intentionally left pDhtFirstNode, pDhtSecondNode and pDhtThirdNode - issue with cChord
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -40,7 +40,8 @@ PureNode::PureNode() : _port(0), _dhtId(0)
 }
 
 PureNode::PureNode(const std::string &ip, unsigned int dhtId,
-			unsigned short port) : _port(port), _dhtId(dhtId), _ip(ip)
+		   unsigned short port, unsigned short dragonPort)
+    : _port(port), _dragonPort(dragonPort), _dhtId(dhtId), _ip(ip)
 {
 }
 
@@ -84,5 +85,16 @@ PureNode::setPort(unsigned short port)
 	_port = port;
 }
 
-} /* namespace Dht */
+unsigned short
+PureNode::getDragonPort() const
+{
+	return _dragonPort;
+}
 
+void
+PureNode::setDragonPort(unsigned short port)
+{
+	_dragonPort = port;
+}
+
+} /* namespace Dht */

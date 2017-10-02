@@ -8,5 +8,4 @@ env.Program('dragon', Glob('*.cpp'),
                 "dl",
                 "boost_program_options",
                 "boost_system",
-                "boost_filesystem"
-])
+                "boost_filesystem"])

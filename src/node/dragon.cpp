@@ -36,6 +36,7 @@
 
 #include <boost/program_options.hpp>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/bind.hpp>
@@ -69,6 +70,7 @@ main(int argc, const char *argv[])
 	as::io_service io_service;
 	unsigned short inputPort;
 	auto dhtPort = dhtBackBonePort;
+	bool interactiveMode = false;
 
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
@@ -76,7 +78,8 @@ main(int argc, const char *argv[])
 		"port,p", po::value<unsigned short>(&inputPort),
 		"Node Communication port")("dht,d",
 					   po::value<unsigned short>(&dhtPort),
-					   "DHT Communication port");
+					   "DHT Communication port")(
+		"interactive,i", "Enable interactive mode");
 	po::variables_map parsedArguments;
 	try {
 		po::store(po::parse_command_line(argc, argv,
@@ -86,6 +89,9 @@ main(int argc, const char *argv[])
 		if (parsedArguments.count("help")) {
 			std::cout << argumentsDescription << endl;
 			return 0;
+		}
+		if (parsedArguments.count("interactive")) {
+			interactiveMode = true;
 		}
 
 		po::notify(parsedArguments);
@@ -101,35 +107,61 @@ main(int argc, const char *argv[])
 	signals.async_wait(
 		boost::bind(&boost::asio::io_service::stop, &io_service));
 
-	unique_ptr<Dht::DhtNode> spDhtNode(
-		new Dht::CChordAdapter(io_service, dhtPort));
-	cout << format("DHT node (id=%1%) is running on %2%:%3%\n") %
-			spDhtNode->getDhtId() % spDhtNode->getIp() %
-			spDhtNode->getPort();
-
 	auto requestPort = Dht::utils::getFreePort(io_service, 0);
+
 	unique_ptr<DragonNode::ReqManager> spReqManager(
 		new DragonNode::ReqManager(io_service, requestPort));
-	cout << format("Waiting for requests on port %1%. Press CTRL-C to "
-		       "exit.\n") %
-			requestPort;
+	unique_ptr<Dht::DhtNode> spDhtNode(
+		new Dht::CChordAdapter(io_service, dhtPort, requestPort));
 
-	chrono::time_point<chrono::system_clock> timestamp;
-	for (;;) {
+	if (!interactiveMode) {
+		io_service.run();
+	} else {
+#if (1) // interactive mode
+		cout << format("DHT node (id=%1%) is running on %2%:%3%\n") %
+				spDhtNode->getDhtId() % spDhtNode->getIp() %
+				spDhtNode->getPort();
+		cout << format("Waiting for requests on port %1%. Press CTRL-C "
+			       "to "
+			       "exit.\n") %
+				spDhtNode->getDragonPort();
 
-		timestamp = chrono::system_clock::now();
-		auto currentTime = chrono::system_clock::to_time_t(timestamp);
+		boost::ptr_vector<Dht::PureNode> peerNodes;
+		chrono::time_point<chrono::system_clock> timestamp;
+		for (;;) {
+			timestamp = chrono::system_clock::now();
+			auto currentTime =
+				chrono::system_clock::to_time_t(timestamp);
 
-		//! @todo Add here daemon tasks
-		cout << "." << flush;
+			auto peerCount = spDhtNode->getPeerList(peerNodes);
+			if (!peerCount) {
+				cout << format("%1% : no DHT peers\n") %
+						currentTime;
+			} else {
+				vector<string> peersID;
+				for (auto node : peerNodes) {
+					peersID.push_back(std::to_string(
+						node.getDhtId()));
+				}
+				cout << format("%1% : [%2%] DHT "
+					       "peers found, IDs [%3%]\n") %
+						currentTime % peerCount %
+						boost::algorithm::join(peersID,
+								       ",");
+				;
+				for (auto node : peerNodes) {
+				}
+			}
+			peerNodes.clear();
 
-		io_service.poll();
-		if (io_service.stopped()) {
-			break;
+			io_service.poll();
+			if (io_service.stopped()) {
+				break;
+			}
+			sleep(daemonSleepInterval);
 		}
-		sleep(daemonSleepInterval);
+#endif
 	}
-	//! @todo Add here daemon shutdown tasks
 
 	return 0;
 }

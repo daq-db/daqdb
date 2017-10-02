@@ -45,7 +45,7 @@ namespace Dht
 
 class DhtNode : public PureNode {
 public:
-	DhtNode(as::io_service &io_service, unsigned short port);
+	DhtNode(as::io_service &io_service, unsigned short port, unsigned short dragonPort);
 	virtual ~DhtNode();
 
 	/**

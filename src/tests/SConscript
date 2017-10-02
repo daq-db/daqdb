@@ -10,14 +10,12 @@ testProgram = env.Program('dragonTest',
                 "dl",
                 "boost_program_options",
                 "boost_system",
-                "boost_filesystem"],
-	    LIBPATH=["#lib","#src/3rd/cChord","#build/src/dht"])
+                "boost_filesystem"])
 
 logging_option = ' --color_output=yes'
 if env["VERBOSE"]:
 	logging_option += ' --log_level=all'
 
 test_alias = Alias('test', [testProgram], testProgram[0].path + logging_option)
-
 
 AlwaysBuild(test_alias)
