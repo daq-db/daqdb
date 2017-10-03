@@ -30,16 +30,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <boost/test/unit_test.hpp>
+#ifndef SRC_NODE_KVINTERFACE_H_
+#define SRC_NODE_KVINTERFACE_H_
 
-using namespace std;
+#include <pmemkv.h>
 
-namespace ut = boost::unit_test;
-
-BOOST_AUTO_TEST_SUITE(ReqManagerTests)
-
-BOOST_AUTO_TEST_CASE(ReqManager_BasicCommunication, *ut::description(""))
+namespace DragonNode
 {
-}
 
-BOOST_AUTO_TEST_SUITE_END()
+class KvInterface {
+public:
+	KvInterface();
+	virtual ~KvInterface();
+
+	/**
+		 * Copy value for key to buffer
+		 *
+		 * @param key item identifier
+		 * @param limit maximum bytes to copy to buffer
+		 * @param value value buffer as C-style string
+		 * @param valuebytes buffer bytes actually copied
+		 * @return KVStatus
+		 */
+	KVStatus Get(const string &key, const size_t limit, char *value,
+		     uint32_t *valuebytes);
+
+	/**
+	 * Append value for key to std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr item value will be appended to std::string
+	 * @return KVStatus
+	 */
+	KVStatus Get(const string &key, string *valuestr);
+
+	/**
+	 * Copy value for key from std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr value to copy in
+	 * @return KVStatus
+	 */
+	KVStatus Put(const string &key, const string &valuestr);
+
+	/**
+	 * Remove value for key
+	 *
+	 * @param key tem identifier
+	 * @return KVStatus
+	 */
+	KVStatus Remove(const string &key);
+};
+
+} /* namespace DragonNode */
+
+#endif /* SRC_NODE_KVINTERFACE_H_ */
