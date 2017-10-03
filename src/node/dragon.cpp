@@ -30,44 +30,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <chrono>
-#include <ctime>
 #include <iostream>
 
-#include <boost/program_options.hpp>
+#include "DragonSrv.h"
 
-#include <boost/algorithm/string/join.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
-#include <boost/bind.hpp>
-#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 #include <boost/format.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
-
-#include <CChordNode.h>
-
-#include "DhtNode.h"
-#include "DhtUtils.h"
-#include "ReqManager.h"
 
 using namespace std;
 using boost::format;
 
 namespace po = boost::program_options;
-namespace as = boost::asio;
 
 namespace
 {
 const unsigned short dhtBackBonePort = 11000;
-const string dhtOverlayIdentifier = "chordTestBed";
-const string rootDirectory = ".";
 const unsigned short daemonSleepInterval = 1;
 };
 
 int
 main(int argc, const char *argv[])
 {
-	as::io_service io_service;
 	unsigned short inputPort;
 	auto dhtPort = dhtBackBonePort;
 	bool interactiveMode = false;
@@ -103,59 +89,28 @@ main(int argc, const char *argv[])
 	}
 #endif
 
+	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(
-		boost::bind(&boost::asio::io_service::stop, &io_service));
-
-	auto requestPort = Dht::utils::getFreePort(io_service, 0);
-
-	unique_ptr<DragonNode::ReqManager> spReqManager(
-		new DragonNode::ReqManager(io_service, requestPort));
-	unique_ptr<Dht::DhtNode> spDhtNode(
-		new Dht::CChordAdapter(io_service, dhtPort, requestPort));
+	signals.async_wait(	boost::bind(&boost::asio::io_service::stop, &io_service));
+	unique_ptr<DragonNode::DragonSrv> spDragonSrv(
+		new DragonNode::DragonSrv(io_service));
 
 	if (!interactiveMode) {
-		io_service.run();
+		spDragonSrv->run();
 	} else {
 #if (1) // interactive mode
 		cout << format("DHT node (id=%1%) is running on %2%:%3%\n") %
-				spDhtNode->getDhtId() % spDhtNode->getIp() %
-				spDhtNode->getPort();
+				spDragonSrv->getDhtId() % spDragonSrv->getIp() %
+				spDragonSrv->getPort();
 		cout << format("Waiting for requests on port %1%. Press CTRL-C "
 			       "to "
 			       "exit.\n") %
-				spDhtNode->getDragonPort();
+				spDragonSrv->getDragonPort();
 
-		boost::ptr_vector<Dht::PureNode> peerNodes;
-		chrono::time_point<chrono::system_clock> timestamp;
 		for (;;) {
-			timestamp = chrono::system_clock::now();
-			auto currentTime =
-				chrono::system_clock::to_time_t(timestamp);
-
-			auto peerCount = spDhtNode->getPeerList(peerNodes);
-			if (!peerCount) {
-				cout << format("%1% : no DHT peers\n") %
-						currentTime;
-			} else {
-				vector<string> peersID;
-				for (auto node : peerNodes) {
-					peersID.push_back(std::to_string(
-						node.getDhtId()));
-				}
-				cout << format("%1% : [%2%] DHT "
-					       "peers found, IDs [%3%]\n") %
-						currentTime % peerCount %
-						boost::algorithm::join(peersID,
-								       ",");
-				;
-				for (auto node : peerNodes) {
-				}
-			}
-			peerNodes.clear();
-
-			io_service.poll();
-			if (io_service.stopped()) {
+			cout << spDragonSrv->getDhtPeerStatus();
+			spDragonSrv->poll();
+			if (spDragonSrv->stopped()) {
 				break;
 			}
 			sleep(daemonSleepInterval);

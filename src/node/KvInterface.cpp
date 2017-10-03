@@ -30,35 +30,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_REQMANAGER_H_
-#define SRC_NODE_REQMANAGER_H_
-
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-
-namespace as = boost::asio;
+#include "KvInterface.h"
 
 namespace DragonNode
 {
 
-class ReqManager {
-public:
-	ReqManager(as::io_service &io_service, short port);
-	virtual ~ReqManager();
+KvInterface::KvInterface()
+{
+}
 
-	void handle_receive_from(const boost::system::error_code &error,
-				 size_t bytes_recvd);
-	void handle_send_to(const boost::system::error_code &error,
-			    size_t bytes_sent);
+KvInterface::~KvInterface()
+{
+}
 
-private:
-	as::io_service &_io_service;
-	as::ip::udp::socket _socket;
-	as::ip::udp::endpoint _sender_endpoint;
-	enum { max_length = 1024 };
-	char _data[max_length];
-};
+KVStatus
+KvInterface::Get(const string &key, const size_t limit, char *value,
+		 uint32_t *valuebytes)
+{
+	return KVStatus::FAILED;
+}
 
-} /* namespace Node */
+KVStatus
+KvInterface::Get(const string &key, string *valuestr)
+{
+	return KVStatus::FAILED;
+}
 
-#endif /* SRC_NODE_REQMANAGER_H_ */
+KVStatus
+KvInterface::Put(const string &key, const string &valuestr)
+{
+	return KVStatus::FAILED;
+}
+
+KVStatus
+KvInterface::Remove(const string &key)
+{
+	return KVStatus::FAILED;
+}
+
+} /* namespace DragonNode */

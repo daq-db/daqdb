@@ -1,0 +1,9 @@
+Import('env')
+
+# pmemkv
+pmemkv_include = [ Dir('./pmemkv'),
+	Dir('./pmemkv/src'),
+	Dir('./pmemkv/src/engines')]
+env.Append(LIBPATH=[Dir('./pmemkv')])
+env.Append(CPPPATH = pmemkv_include)
+env.Make(source = None, target = [File('libpmemkv.so')], MakePath = Dir('./pmemkv'), MakeTargets = "configure sharedlib")
