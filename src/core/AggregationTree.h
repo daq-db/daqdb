@@ -33,6 +33,8 @@
 #ifndef SRC_CORE_AGGREGATIONTREE_H_
 #define SRC_CORE_AGGREGATIONTREE_H_
 
+#include <safe_btree.h>
+
 namespace DragonCore
 {
 

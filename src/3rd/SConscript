@@ -6,5 +6,8 @@ pmemkv_include = [ Dir('./pmemkv'),
 	Dir('./pmemkv/src/engines')]
 env.Append(LIBPATH=[Dir('./pmemkv')])
 env.Append(CPPPATH = pmemkv_include)
-buildCmd = env.Make(source = None, target = [File('libpmemkv.so')], MakePath = Dir('./pmemkv'), MakeTargets = "configure sharedlib")
-env.Clean(buildCmd, 'pmemkv/bin/libpmemkv.so')
+PmemKV = env.Make(source = None, target = [File('libpmemkv.so')], MakePath = Dir('./pmemkv'), MakeTargets = "configure sharedlib")
+env.Clean(PmemKV, 'pmemkv/bin/libpmemkv.so')
+
+# cpp-btree
+env.Append(CPPPATH = [Dir('./cpp-btree-1.0.1')])
