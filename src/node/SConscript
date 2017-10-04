@@ -1,6 +1,6 @@
 Import('env')
 
-env.Program('dragon', Glob('*.cpp'), 
+DragonTarget = env.Program('dragon', Glob('*.cpp'), 
             LIBS=["pthread",
                 "rt",
                 "dht",
@@ -9,3 +9,9 @@ env.Program('dragon', Glob('*.cpp'),
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem"])
+
+copyDragonTarget = Command(target = "#/dragon",
+        source = DragonTarget,
+        action = Copy("$TARGET", "$SOURCE"))
+env.Depends(copyDragonTarget, DragonTarget)
+env.Clean('#/dragon', 'dragon')

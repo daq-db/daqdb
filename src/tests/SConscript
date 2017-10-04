@@ -1,6 +1,6 @@
 Import('env')
 
-testProgram = env.Program('dragonTest',
+buildDragonTestTarget = env.Program('dragonTest',
             source = [Glob('*.cpp'), Glob('dht/*.cpp')], 
             LIBS=["pthread",
                 "rt",
@@ -11,11 +11,16 @@ testProgram = env.Program('dragonTest',
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem"])
+copyDragonTestTarget = Command(target = "#/dragonTest",
+        source = buildDragonTestTarget,
+        action = Copy("$TARGET", "$SOURCE"))
+env.Depends(copyDragonTestTarget, buildDragonTestTarget)
+env.Clean('#/dragonTest', 'dragonTest')
 
 logging_option = ' --color_output=yes'
 if env["VERBOSE"]:
 	logging_option += ' --log_level=all'
 
-test_alias = Alias('test', [testProgram], testProgram[0].path + logging_option)
+test_alias = Alias('test', [buildDragonTestTarget], buildDragonTestTarget[0].path + logging_option)
 
 AlwaysBuild(test_alias)
