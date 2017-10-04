@@ -9,3 +9,5 @@ build
 .project
 .settings
 .sconsign.dblite
+.sconf_temp
+config.log

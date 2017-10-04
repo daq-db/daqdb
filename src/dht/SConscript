@@ -1,6 +1,6 @@
 Import('env')
 
 env.AppendUnique(LIBPATH=[Dir('.')])
-env.Append(CPPPATH = [Dir('.')])
+env.Append(CPPPATH = [Dir('#src/dht')])
 
-env.Library('dht', Glob('*.cpp'))
+DhtLibTarget = env.Library('dht', Glob('*.cpp'))
