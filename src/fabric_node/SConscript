@@ -1,0 +1,14 @@
+Import('env')
+
+env.Program('fabric_node', Glob('*.cpp'), 
+            LIBS=["pthread",
+                "boost_program_options",
+                "boost_system",
+                "boost_filesystem",
+                "rt",
+                "dl",
+                "dht",
+		"fabricpp",
+		"fabric",
+                File("#/src/3rd/cChord/libmymed.a")
+                ])
