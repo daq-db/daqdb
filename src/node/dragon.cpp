@@ -60,12 +60,12 @@ main(int argc, const char *argv[])
 
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
-	argumentsDescription.add_options()("help,h", "Print help messages")(
-		"port,p", po::value<unsigned short>(&inputPort),
-		"Node Communication port")("dht,d",
-					   po::value<unsigned short>(&dhtPort),
-					   "DHT Communication port")(
-		"interactive,i", "Enable interactive mode");
+	argumentsDescription.add_options()
+			("help,h", "Print help messages")
+			("port,p", po::value<unsigned short>(&inputPort), "Node Communication port")
+			("dht,d", po::value<unsigned short>(&dhtPort), "DHT Communication port")
+			("interactive,i", "Enable interactive mode");
+
 	po::variables_map parsedArguments;
 	try {
 		po::store(po::parse_command_line(argc, argv,

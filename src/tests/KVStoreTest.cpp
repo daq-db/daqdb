@@ -30,85 +30,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_DRAGONSRV_H_
-#define SRC_NODE_DRAGONSRV_H_
+#include <boost/test/unit_test.hpp>
 
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
+using namespace std;
 
-#include "SocketReqManager.h"
-#include <CChordNode.h>
-#include <DhtNode.h>
-#include <DhtUtils.h>
+namespace ut = boost::unit_test;
 
-#include <pmemkv.h>
+BOOST_AUTO_TEST_SUITE(KVStoreTests)
 
-namespace as = boost::asio;
-
-namespace DragonNode
+BOOST_AUTO_TEST_CASE(KVStoreTests_PutGet, *ut::description(""))
 {
 
-class DragonSrv {
-public:
-	DragonSrv(as::io_service &io_service);
-	virtual ~DragonSrv();
+}
 
-	/**
-	 * Run the io_service object's event processing loop.
-	 */
-	void run();
-
-	/**
-	 * Run the io_service object's event processing loop to execute ready
-	 * handlers
-	 * @return The number of handlers that were executed.
-	 */
-	std::size_t poll();
-
-	/**
-	 * Determine whether the io_service object has been stopped.
-	 * @return true if io_service object has been stopped.
-	 */
-	bool stopped() const;
-
-	/**
-	 * 	@return DHT ID for this node
-	 */
-	unsigned int getDhtId() const;
-
-	/**
-	 * @return IP address for this node
-	 */
-	const std::string &getIp() const;
-
-	/**
-	 * @return Port number for this node
-	 */
-	unsigned short getPort() const;
-
-	/**
-	 * @return Port number for this node
-	 */
-	unsigned short getDragonPort() const;
-
-	/**
-	 * @return peer status string
-	 */
-	std::string getDhtPeerStatus() const;
-
-	const pmemkv::KVEngine*
-	getKvStore() const
-	{
-		return _spStore.get();
-	}
-
-private:
-	as::io_service &_io_service;
-	std::unique_ptr<DragonNode::SocketReqManager> _spReqManager;
-	std::unique_ptr<Dht::DhtNode> _spDhtNode;
-	std::unique_ptr<pmemkv::KVEngine> _spStore;
-};
-
-} /* namespace DragonNode */
-
-#endif /* SRC_NODE_DRAGONSRV_H_ */
+BOOST_AUTO_TEST_SUITE_END()

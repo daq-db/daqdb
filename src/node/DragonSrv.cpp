@@ -38,6 +38,7 @@
 #include <boost/format.hpp>
 
 #include "DragonSrv.h"
+#include <libpmemobj/pool_base.h>
 
 using namespace std;
 using boost::format;
@@ -46,6 +47,9 @@ namespace as = boost::asio;
 namespace
 {
 const unsigned short dhtBackBonePort = 11000;
+const string pmemKvEngine = "kvtree";
+const string pmemKvPath = "/repo/fog/FogKV-jradtke/shm/pmemkv";
+
 };
 
 namespace DragonNode
@@ -62,6 +66,8 @@ DragonSrv::DragonSrv(as::io_service &io_service) : _io_service(io_service)
 		new DragonNode::SocketReqManager(_io_service, requestPort));
 	this->_spDhtNode.reset(
 		new Dht::CChordAdapter(_io_service, dhtPort, requestPort));
+
+	this->_spStore.reset(pmemkv::KVEngine::Open(pmemKvEngine, pmemKvPath, PMEMOBJ_MIN_POOL));
 }
 
 DragonSrv::~DragonSrv()
