@@ -1,17 +1,22 @@
 Import('env')
 
+env.AppendUnique(LIBPATH=[Dir('.')])
 DragonTarget = env.Program('dragon', Glob('*.cpp'), 
             LIBS=["pthread",
                 "rt",
                 "dht",
+                "store",
                 File("#/src/3rd/cChord/libmymed.a"),
                 "dl",
                 "boost_program_options",
                 "boost_system",
-                "boost_filesystem"])
+                "boost_filesystem",
+                File("#/src/3rd/pmemkv/bin/libpmemkv.so")
+                ])
 
 copyDragonTarget = Command(target = "#/dragon",
         source = DragonTarget,
         action = Copy("$TARGET", "$SOURCE"))
+
 env.Depends(copyDragonTarget, DragonTarget)
 env.Clean('#/dragon', 'dragon')

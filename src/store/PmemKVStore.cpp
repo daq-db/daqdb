@@ -30,35 +30,63 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_SOCKETREQMANAGER_H_
-#define SRC_NODE_SOCKETREQMANAGER_H_
+using namespace std;
 
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include <iostream>
 
-namespace as = boost::asio;
+#include "PmemKVStore.h"
+
+namespace bf = boost::filesystem;
+
+namespace
+{
+const string pmemKvEngine = "kvtree";
+const string pmemKvBasePath = "/dev/shm/fogkv";
+};
 
 namespace DragonStore
 {
 
-class SocketReqManager {
-public:
-	SocketReqManager(as::io_service &io_service, short port);
-	virtual ~SocketReqManager();
+PmemKVStore::PmemKVStore(int nodeId) : kvStoreFile(pmemKvBasePath)
+{
+	kvStoreFile += to_string(nodeId);
 
-	void handle_receive_from(const boost::system::error_code &error,
-				 size_t bytes_recvd);
-	void handle_send_to(const boost::system::error_code &error,
-			    size_t bytes_sent);
+	this->_spStore.reset(pmemkv::KVEngine::Open(
+		pmemKvEngine, kvStoreFile.string(), PMEMOBJ_MIN_POOL));
+}
 
-private:
-	as::io_service &_io_service;
-	as::ip::udp::socket _socket;
-	as::ip::udp::endpoint _sender_endpoint;
-	enum { max_length = 1024 };
-	char _data[max_length];
-};
+PmemKVStore::~PmemKVStore()
+{
+	try {
+		bf::remove(kvStoreFile);
+	} catch (bf::filesystem_error &e) {
+		// @TODO jradtke: Do we need logger?
+	}
+}
 
-} /* namespace Node */
+KVStatus
+PmemKVStore::Get(int32_t limit, int32_t keybytes, int32_t *valuebytes,
+		 const char *key, char *value)
+{
+	return this->_spStore->Get(limit, keybytes, valuebytes, key, value);
+}
 
-#endif /* SRC_NODE_SOCKETREQMANAGER_H_ */
+KVStatus
+PmemKVStore::Get(const string &key, string *valuestr)
+{
+	return this->_spStore->Get(key, valuestr);
+}
+
+KVStatus
+PmemKVStore::Put(const string &key, const string &valuestr)
+{
+	return this->_spStore->Put(key, valuestr);
+}
+
+KVStatus
+PmemKVStore::Remove(const string &key)
+{
+	return this->_spStore->Remove(key);
+}
+
+} /* namespace DragonStore */

@@ -40,15 +40,16 @@
 #include <CChordNode.h>
 #include <DhtNode.h>
 #include <DhtUtils.h>
+#include <KVStore.h>
 
 namespace as = boost::asio;
 
-namespace DragonNode
+namespace DragonStore
 {
 
 class DragonSrv {
 public:
-	DragonSrv(as::io_service& io_service);
+	DragonSrv(as::io_service &io_service);
 	virtual ~DragonSrv();
 
 	/**
@@ -94,10 +95,18 @@ public:
 	 */
 	std::string getDhtPeerStatus() const;
 
+	DragonStore::KVStore *const
+	getKvStore()
+	{
+		return _spStore.get();
+	}
+
 private:
-	as::io_service& _io_service;
-	std::unique_ptr<DragonNode::SocketReqManager> _spReqManager;
+	as::io_service &_io_service;
+	std::unique_ptr<DragonStore::SocketReqManager> _spReqManager;
 	std::unique_ptr<Dht::DhtNode> _spDhtNode;
+
+	std::unique_ptr<DragonStore::KVStore> _spStore;
 };
 
 } /* namespace DragonNode */

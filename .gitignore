@@ -1,6 +1,7 @@
 dragon
 dragonTest
 dhtTest
+libpmemkv.so
 *.o
 *.a
 *.pyc
@@ -11,3 +12,4 @@ build
 .sconsign.dblite
 .sconf_temp
 config.log
+.pydevproject

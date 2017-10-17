@@ -30,35 +30,50 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_SOCKETREQMANAGER_H_
-#define SRC_NODE_SOCKETREQMANAGER_H_
+#ifndef SRC_STORE_PMEMKVSTORE_H_
+#define SRC_STORE_PMEMKVSTORE_H_
 
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include <boost/filesystem.hpp>
 
-namespace as = boost::asio;
+#include <pmemkv.h>
+
+#include "KVStore.h"
 
 namespace DragonStore
 {
 
-class SocketReqManager {
+class PmemKVStore : public KVStore {
 public:
-	SocketReqManager(as::io_service &io_service, short port);
-	virtual ~SocketReqManager();
+	PmemKVStore(int nodeId);
+	virtual ~PmemKVStore();
 
-	void handle_receive_from(const boost::system::error_code &error,
-				 size_t bytes_recvd);
-	void handle_send_to(const boost::system::error_code &error,
-			    size_t bytes_sent);
+	/*!
+		@copydoc KVStore::Get()
+	*/
+	virtual KVStatus Get(int32_t limit, int32_t keybytes,
+			     int32_t *valuebytes, const char *key,
+			     char *value);
+
+	/*!
+	 * @copydoc KVStore::Get()
+	 */
+	virtual KVStatus Get(const string &key, string *valuestr);
+
+	/*!
+	 * @copydoc KVStore::Put()
+	 */
+	virtual KVStatus Put(const string &key, const string &valuestr);
+
+	/*!
+	 * @copydoc KVStore::Remove()
+	 */
+	virtual KVStatus Remove(const string &key);
 
 private:
-	as::io_service &_io_service;
-	as::ip::udp::socket _socket;
-	as::ip::udp::endpoint _sender_endpoint;
-	enum { max_length = 1024 };
-	char _data[max_length];
+	boost::filesystem::path kvStoreFile;
+	std::unique_ptr<pmemkv::KVEngine> _spStore;
 };
 
-} /* namespace Node */
+} /* namespace DragonStore */
 
-#endif /* SRC_NODE_SOCKETREQMANAGER_H_ */
+#endif /* SRC_STORE_PMEMKVSTORE_H_ */

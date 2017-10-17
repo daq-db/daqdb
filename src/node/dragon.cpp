@@ -60,12 +60,12 @@ main(int argc, const char *argv[])
 
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
-	argumentsDescription.add_options()("help,h", "Print help messages")(
-		"port,p", po::value<unsigned short>(&inputPort),
-		"Node Communication port")("dht,d",
-					   po::value<unsigned short>(&dhtPort),
-					   "DHT Communication port")(
-		"interactive,i", "Enable interactive mode");
+	argumentsDescription.add_options()
+			("help,h", "Print help messages")
+			("port,p", po::value<unsigned short>(&inputPort), "Node Communication port")
+			("dht,d", po::value<unsigned short>(&dhtPort), "DHT Communication port")
+			("interactive,i", "Enable interactive mode");
+
 	po::variables_map parsedArguments;
 	try {
 		po::store(po::parse_command_line(argc, argv,
@@ -92,8 +92,8 @@ main(int argc, const char *argv[])
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(	boost::bind(&boost::asio::io_service::stop, &io_service));
-	unique_ptr<DragonNode::DragonSrv> spDragonSrv(
-		new DragonNode::DragonSrv(io_service));
+	unique_ptr<DragonStore::DragonSrv> spDragonSrv(
+		new DragonStore::DragonSrv(io_service));
 
 	if (!interactiveMode) {
 		spDragonSrv->run();
@@ -113,6 +113,7 @@ main(int argc, const char *argv[])
 			if (spDragonSrv->stopped()) {
 				break;
 			}
+
 			sleep(daemonSleepInterval);
 		}
 #endif

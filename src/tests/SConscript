@@ -3,7 +3,8 @@ Import('env')
 buildDragonTestTarget = env.Program('dragonTest',
             source = [Glob('*.cpp'),
                 Glob('dht/*.cpp'),
-                Glob('fabric/*.cpp')
+                Glob('fabric/*.cpp'),
+                Glob('store/*.cpp')
             ], 
             LIBS=["pthread",
                 "rt",
@@ -15,7 +16,10 @@ buildDragonTestTarget = env.Program('dragonTest',
                 "dl",
                 "boost_program_options",
                 "boost_system",
-                "boost_filesystem"])
+                "boost_filesystem",
+                File("#/src/3rd/pmemkv/bin/libpmemkv.so")
+                ])
+
 copyDragonTestTarget = Command(target = "#/dragonTest",
         source = buildDragonTestTarget,
         action = Copy("$TARGET", "$SOURCE"))

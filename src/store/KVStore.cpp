@@ -30,58 +30,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_KVINTERFACE_H_
-#define SRC_NODE_KVINTERFACE_H_
+#include "KVStore.h"
 
-#include <pmemkv.h>
-
-namespace DragonNode
+namespace DragonStore
 {
 
-class KvInterface {
-public:
-	KvInterface();
-	virtual ~KvInterface();
+KVStore::KVStore()
+{
+}
 
-	/**
-		 * Copy value for key to buffer
-		 *
-		 * @param key item identifier
-		 * @param limit maximum bytes to copy to buffer
-		 * @param value value buffer as C-style string
-		 * @param valuebytes buffer bytes actually copied
-		 * @return KVStatus
-		 */
-	KVStatus Get(const string &key, const size_t limit, char *value,
-		     uint32_t *valuebytes);
+KVStore::~KVStore()
+{
+}
 
-	/**
-	 * Append value for key to std::string
-	 *
-	 * @param key item identifier
-	 * @param valuestr item value will be appended to std::string
-	 * @return KVStatus
-	 */
-	KVStatus Get(const string &key, string *valuestr);
+KVStatus
+KVStore::Get(int32_t limit, int32_t keybytes, int32_t *valuebytes,
+	     const char *key, char *value)
+{
+	return KVStatus::FAILED;
+}
 
-	/**
-	 * Copy value for key from std::string
-	 *
-	 * @param key item identifier
-	 * @param valuestr value to copy in
-	 * @return KVStatus
-	 */
-	KVStatus Put(const string &key, const string &valuestr);
+KVStatus
+KVStore::Get(const string &key, string *valuestr)
+{
+	return KVStatus::FAILED;
+}
 
-	/**
-	 * Remove value for key
-	 *
-	 * @param key tem identifier
-	 * @return KVStatus
-	 */
-	KVStatus Remove(const string &key);
-};
+KVStatus
+KVStore::Put(const string &key, const string &valuestr)
+{
+	return KVStatus::FAILED;
+}
 
-} /* namespace DragonNode */
+KVStatus
+KVStore::Remove(const string &key)
+{
+	return KVStatus::FAILED;
+}
 
-#endif /* SRC_NODE_KVINTERFACE_H_ */
+} /* namespace DragonStore */

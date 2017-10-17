@@ -30,35 +30,49 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_SOCKETREQMANAGER_H_
-#define SRC_NODE_SOCKETREQMANAGER_H_
+#include <iostream>
+#include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
 
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include <libpmemobj/pool_base.h>
+#include <pmemkv.h>
 
-namespace as = boost::asio;
+using namespace std;
+using namespace pmemkv;
 
-namespace DragonStore
+namespace ut = boost::unit_test;
+
+namespace
 {
-
-class SocketReqManager {
-public:
-	SocketReqManager(as::io_service &io_service, short port);
-	virtual ~SocketReqManager();
-
-	void handle_receive_from(const boost::system::error_code &error,
-				 size_t bytes_recvd);
-	void handle_send_to(const boost::system::error_code &error,
-			    size_t bytes_sent);
-
-private:
-	as::io_service &_io_service;
-	as::ip::udp::socket _socket;
-	as::ip::udp::endpoint _sender_endpoint;
-	enum { max_length = 1024 };
-	char _data[max_length];
+const unsigned short dhtBackBonePort = 11000;
+const string pmemKvEngine = "kvtree";
+const string pmemKvPath = "/dev/shm/forkv_test_pmemkv";
 };
 
-} /* namespace Node */
+BOOST_AUTO_TEST_SUITE(KVStoreTests)
 
-#endif /* SRC_NODE_SOCKETREQMANAGER_H_ */
+BOOST_AUTO_TEST_CASE(KVStoreTests_PutGetRemove, *ut::description(""))
+{
+	std::unique_ptr<KVEngine> spPmemKV(KVEngine::Open(
+		pmemKvEngine, pmemKvPath, PMEMOBJ_MIN_POOL));
+
+	auto actionStatus = spPmemKV->Put("key1", "value1");
+
+	BOOST_TEST(actionStatus == OK, "Put item to pmemKV store");
+
+	string resultValue;
+	actionStatus = spPmemKV->Get("key1", &resultValue);
+
+	BOOST_TEST(actionStatus == KVStatus::OK, "Get item from pmemKV store");
+	BOOST_TEST(resultValue == "value1");
+
+	actionStatus = spPmemKV->Remove("key1");
+	BOOST_TEST(actionStatus == KVStatus::OK, "Remove item from pmemKV store");
+
+	actionStatus = spPmemKV->Get("key1", &resultValue);
+	BOOST_TEST(actionStatus == KVStatus::NOT_FOUND, "Check if item removed from pmemKV store");
+
+	boost::filesystem::remove(pmemKvPath);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

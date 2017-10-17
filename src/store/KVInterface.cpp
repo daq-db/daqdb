@@ -30,35 +30,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_SOCKETREQMANAGER_H_
-#define SRC_NODE_SOCKETREQMANAGER_H_
-
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-
-namespace as = boost::asio;
+#include "KVInterface.h"
 
 namespace DragonStore
 {
 
-class SocketReqManager {
-public:
-	SocketReqManager(as::io_service &io_service, short port);
-	virtual ~SocketReqManager();
+KVInterface::KVInterface()
+{
+}
 
-	void handle_receive_from(const boost::system::error_code &error,
-				 size_t bytes_recvd);
-	void handle_send_to(const boost::system::error_code &error,
-			    size_t bytes_sent);
+KVInterface::~KVInterface()
+{
+}
 
-private:
-	as::io_service &_io_service;
-	as::ip::udp::socket _socket;
-	as::ip::udp::endpoint _sender_endpoint;
-	enum { max_length = 1024 };
-	char _data[max_length];
-};
-
-} /* namespace Node */
-
-#endif /* SRC_NODE_SOCKETREQMANAGER_H_ */
+} /* namespace DragonNode */

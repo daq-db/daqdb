@@ -30,35 +30,60 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_SOCKETREQMANAGER_H_
-#define SRC_NODE_SOCKETREQMANAGER_H_
+#ifndef SRC_STORE_KVINTERFACE_H_
+#define SRC_STORE_KVINTERFACE_H_
 
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-
-namespace as = boost::asio;
+#include <pmemkv.h>
 
 namespace DragonStore
 {
 
-class SocketReqManager {
+class KVInterface {
 public:
-	SocketReqManager(as::io_service &io_service, short port);
-	virtual ~SocketReqManager();
+	KVInterface();
+	virtual ~KVInterface();
 
-	void handle_receive_from(const boost::system::error_code &error,
-				 size_t bytes_recvd);
-	void handle_send_to(const boost::system::error_code &error,
-			    size_t bytes_sent);
+	/*!
+	 * Copy value for key to buffer
+	 *
+	 * @param limit maximum bytes to copy to buffer
+	 * @param keybytes key buffer bytes actually copied
+	 * @param valuebytes value buffer bytes actually copied
+	 * @param key item identifier
+	 * @param value value buffer as C-style string
+	 * @return
+	 */
+	virtual KVStatus Get(int32_t limit, int32_t keybytes,
+			     int32_t *valuebytes, const char *key,
+			     char *value) = 0;
 
-private:
-	as::io_service &_io_service;
-	as::ip::udp::socket _socket;
-	as::ip::udp::endpoint _sender_endpoint;
-	enum { max_length = 1024 };
-	char _data[max_length];
+	/*!
+	 * Append value for key to std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr item value will be appended to std::string
+	 * @return KVStatus
+	 */
+	virtual KVStatus Get(const string &key, string *valuestr) = 0;
+
+	/*!
+	 * Copy value for key from std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr value to copy in
+	 * @return KVStatus
+	 */
+	virtual KVStatus Put(const string &key, const string &valuestr) = 0;
+
+	/*!
+	 * Remove value for key
+	 *
+	 * @param key tem identifier
+	 * @return KVStatus
+	 */
+	virtual KVStatus Remove(const string &key) = 0;
 };
 
-} /* namespace Node */
+} /* namespace DragonNode */
 
-#endif /* SRC_NODE_SOCKETREQMANAGER_H_ */
+#endif /* SRC_STORE_KVINTERFACE_H_ */
