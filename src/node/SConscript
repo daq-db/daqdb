@@ -5,14 +5,14 @@ DragonTarget = env.Program('dragon', Glob('*.cpp'),
             LIBS=["pthread",
                 "rt",
                 "dht",
+                "store",
                 File("#/src/3rd/cChord/libmymed.a"),
                 "dl",
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem",
                 File("#/src/3rd/pmemkv/bin/libpmemkv.so")
-                ],
-            LINKFLAGS='-Wl,-rpath=.')
+                ])
 
 copyDragonTarget = Command(target = "#/dragon",
         source = DragonTarget,

@@ -92,8 +92,8 @@ main(int argc, const char *argv[])
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(	boost::bind(&boost::asio::io_service::stop, &io_service));
-	unique_ptr<DragonNode::DragonSrv> spDragonSrv(
-		new DragonNode::DragonSrv(io_service));
+	unique_ptr<DragonStore::DragonSrv> spDragonSrv(
+		new DragonStore::DragonSrv(io_service));
 
 	if (!interactiveMode) {
 		spDragonSrv->run();
@@ -113,6 +113,7 @@ main(int argc, const char *argv[])
 			if (spDragonSrv->stopped()) {
 				break;
 			}
+
 			sleep(daemonSleepInterval);
 		}
 #endif

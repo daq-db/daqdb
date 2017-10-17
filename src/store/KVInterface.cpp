@@ -30,42 +30,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "KvInterface.h"
+#include "KVInterface.h"
 
-namespace DragonNode
+namespace DragonStore
 {
 
-KvInterface::KvInterface()
-{
-}
-
-KvInterface::~KvInterface()
+KVInterface::KVInterface()
 {
 }
 
-KVStatus
-KvInterface::Get(const string &key, const size_t limit, char *value,
-		 uint32_t *valuebytes)
+KVInterface::~KVInterface()
 {
-	return KVStatus::FAILED;
-}
-
-KVStatus
-KvInterface::Get(const string &key, string *valuestr)
-{
-	return KVStatus::FAILED;
-}
-
-KVStatus
-KvInterface::Put(const string &key, const string &valuestr)
-{
-	return KVStatus::FAILED;
-}
-
-KVStatus
-KvInterface::Remove(const string &key)
-{
-	return KVStatus::FAILED;
 }
 
 } /* namespace DragonNode */

@@ -38,7 +38,7 @@
 
 namespace as = boost::asio;
 
-namespace DragonNode
+namespace DragonStore
 {
 
 class SocketReqManager {

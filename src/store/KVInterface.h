@@ -30,58 +30,60 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_KVINTERFACE_H_
-#define SRC_NODE_KVINTERFACE_H_
+#ifndef SRC_STORE_KVINTERFACE_H_
+#define SRC_STORE_KVINTERFACE_H_
 
 #include <pmemkv.h>
 
-namespace DragonNode
+namespace DragonStore
 {
 
-class KvInterface {
+class KVInterface {
 public:
-	KvInterface();
-	virtual ~KvInterface();
+	KVInterface();
+	virtual ~KVInterface();
 
-	/**
-		 * Copy value for key to buffer
-		 *
-		 * @param key item identifier
-		 * @param limit maximum bytes to copy to buffer
-		 * @param value value buffer as C-style string
-		 * @param valuebytes buffer bytes actually copied
-		 * @return KVStatus
-		 */
-	KVStatus Get(const string &key, const size_t limit, char *value,
-		     uint32_t *valuebytes);
+	/*!
+	 * Copy value for key to buffer
+	 *
+	 * @param limit maximum bytes to copy to buffer
+	 * @param keybytes key buffer bytes actually copied
+	 * @param valuebytes value buffer bytes actually copied
+	 * @param key item identifier
+	 * @param value value buffer as C-style string
+	 * @return
+	 */
+	virtual KVStatus Get(int32_t limit, int32_t keybytes,
+			     int32_t *valuebytes, const char *key,
+			     char *value) = 0;
 
-	/**
+	/*!
 	 * Append value for key to std::string
 	 *
 	 * @param key item identifier
 	 * @param valuestr item value will be appended to std::string
 	 * @return KVStatus
 	 */
-	KVStatus Get(const string &key, string *valuestr);
+	virtual KVStatus Get(const string &key, string *valuestr) = 0;
 
-	/**
+	/*!
 	 * Copy value for key from std::string
 	 *
 	 * @param key item identifier
 	 * @param valuestr value to copy in
 	 * @return KVStatus
 	 */
-	KVStatus Put(const string &key, const string &valuestr);
+	virtual KVStatus Put(const string &key, const string &valuestr) = 0;
 
-	/**
+	/*!
 	 * Remove value for key
 	 *
 	 * @param key tem identifier
 	 * @return KVStatus
 	 */
-	KVStatus Remove(const string &key);
+	virtual KVStatus Remove(const string &key) = 0;
 };
 
 } /* namespace DragonNode */
 
-#endif /* SRC_NODE_KVINTERFACE_H_ */
+#endif /* SRC_STORE_KVINTERFACE_H_ */

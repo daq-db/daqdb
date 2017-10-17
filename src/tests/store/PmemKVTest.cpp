@@ -30,17 +30,49 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <iostream>
 #include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
+
+#include <libpmemobj/pool_base.h>
+#include <pmemkv.h>
 
 using namespace std;
+using namespace pmemkv;
 
 namespace ut = boost::unit_test;
 
+namespace
+{
+const unsigned short dhtBackBonePort = 11000;
+const string pmemKvEngine = "kvtree";
+const string pmemKvPath = "/dev/shm/forkv_test_pmemkv";
+};
+
 BOOST_AUTO_TEST_SUITE(KVStoreTests)
 
-BOOST_AUTO_TEST_CASE(KVStoreTests_PutGet, *ut::description(""))
+BOOST_AUTO_TEST_CASE(KVStoreTests_PutGetRemove, *ut::description(""))
 {
+	std::unique_ptr<KVEngine> spPmemKV(KVEngine::Open(
+		pmemKvEngine, pmemKvPath, PMEMOBJ_MIN_POOL));
 
+	auto actionStatus = spPmemKV->Put("key1", "value1");
+
+	BOOST_TEST(actionStatus == OK, "Put item to pmemKV store");
+
+	string resultValue;
+	actionStatus = spPmemKV->Get("key1", &resultValue);
+
+	BOOST_TEST(actionStatus == KVStatus::OK, "Get item from pmemKV store");
+	BOOST_TEST(resultValue == "value1");
+
+	actionStatus = spPmemKV->Remove("key1");
+	BOOST_TEST(actionStatus == KVStatus::OK, "Remove item from pmemKV store");
+
+	actionStatus = spPmemKV->Get("key1", &resultValue);
+	BOOST_TEST(actionStatus == KVStatus::NOT_FOUND, "Check if item removed from pmemKV store");
+
+	boost::filesystem::remove(pmemKvPath);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

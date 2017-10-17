@@ -1,6 +1,7 @@
 dragon
 dragonTest
 dhtTest
+libpmemkv.so
 *.o
 *.a
 *.pyc

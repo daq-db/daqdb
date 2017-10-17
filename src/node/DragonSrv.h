@@ -40,12 +40,11 @@
 #include <CChordNode.h>
 #include <DhtNode.h>
 #include <DhtUtils.h>
-
-#include <pmemkv.h>
+#include <KVStore.h>
 
 namespace as = boost::asio;
 
-namespace DragonNode
+namespace DragonStore
 {
 
 class DragonSrv {
@@ -96,17 +95,18 @@ public:
 	 */
 	std::string getDhtPeerStatus() const;
 
-	const pmemkv::KVEngine*
-	getKvStore() const
+	DragonStore::KVStore *const
+	getKvStore()
 	{
 		return _spStore.get();
 	}
 
 private:
 	as::io_service &_io_service;
-	std::unique_ptr<DragonNode::SocketReqManager> _spReqManager;
+	std::unique_ptr<DragonStore::SocketReqManager> _spReqManager;
 	std::unique_ptr<Dht::DhtNode> _spDhtNode;
-	std::unique_ptr<pmemkv::KVEngine> _spStore;
+
+	std::unique_ptr<DragonStore::KVStore> _spStore;
 };
 
 } /* namespace DragonNode */
