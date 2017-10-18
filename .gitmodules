@@ -4,3 +4,6 @@
 [submodule "src/3rd/pmemkv"]
 	path = src/3rd/pmemkv
 	url = https://github.com/pmem/pmemkv.git
+[submodule "src/3rd/linenoise"]
+	path = src/3rd/linenoise
+	url = https://github.com/antirez/linenoise.git

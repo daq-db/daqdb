@@ -11,7 +11,8 @@ DragonTarget = env.Program('dragon', Glob('*.cpp'),
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem",
-                File("#/src/3rd/pmemkv/bin/libpmemkv.so")
+                File("#/src/3rd/pmemkv/bin/libpmemkv.so"),
+                File("#/src/3rd/linenoise/liblinenoise.a"),
                 ])
 
 copyDragonTarget = Command(target = "#/dragon",

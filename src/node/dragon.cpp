@@ -32,24 +32,68 @@
 
 #include <iostream>
 
-#include "DragonSrv.h"
-
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/assign/list_of.hpp>
+
+#include <linenoise.h>
+
+#include "DragonSrv.h"
 
 using namespace std;
 using boost::format;
+using namespace boost::algorithm;
 
 namespace po = boost::program_options;
 
 namespace
 {
 const unsigned short dhtBackBonePort = 11000;
-const unsigned short daemonSleepInterval = 1;
+const unsigned int consoleHintColor = 35;
 };
+
+map<string,string> consoleCmd = boost::assign::map_list_of
+	("help","")
+	("get"," <key>")
+	("put"," <key> <value>")
+	("status","")
+	("remove"," <key>")
+	("quit","");
+
+void
+completion(const char *buf, linenoiseCompletions *lc)
+{
+	if (buf[0] == 'h') {
+		linenoiseAddCompletion(lc, "help");
+	} else if (buf[0] == 'q') {
+		linenoiseAddCompletion(lc, "quit");
+	} else if (buf[0] == 'g') {
+		linenoiseAddCompletion(lc, "get");
+	} else if (buf[0] == 'p') {
+		linenoiseAddCompletion(lc, "put");
+	} else if (buf[0] == 's') {
+		linenoiseAddCompletion(lc, "status");
+	} else if (buf[0] == 'r') {
+		linenoiseAddCompletion(lc, "remove");
+	}
+}
+
+char *
+hints(const char *buf, int *color, int *bold)
+{
+	*color = consoleHintColor;
+	char* result = nullptr;
+
+	if (consoleCmd.count(buf)) {
+		result = const_cast<char*>(consoleCmd[buf].c_str());
+	}
+
+	return result;
+}
 
 int
 main(int argc, const char *argv[])
@@ -99,6 +143,7 @@ main(int argc, const char *argv[])
 		spDragonSrv->run();
 	} else {
 #if (1) // interactive mode
+
 		cout << format("DHT node (id=%1%) is running on %2%:%3%\n") %
 				spDragonSrv->getDhtId() % spDragonSrv->getIp() %
 				spDragonSrv->getPort();
@@ -107,15 +152,35 @@ main(int argc, const char *argv[])
 			       "exit.\n") %
 				spDragonSrv->getDragonPort();
 
-		for (;;) {
-			cout << spDragonSrv->getDhtPeerStatus();
-			spDragonSrv->poll();
-			if (spDragonSrv->stopped()) {
-				break;
-			}
+		char *inLine = nullptr;
+		linenoiseSetCompletionCallback(completion);
+		linenoiseSetHintsCallback(hints);
 
-			sleep(daemonSleepInterval);
+		while ((inLine = linenoise("dragon> ")) != NULL) {
+			std::string strLine(inLine);
+			if (inLine[0] == '\0' || starts_with(strLine, "help")) {
+				cout << "Following commands supported:" << endl;
+				for (auto cmdEntry : consoleCmd) {
+					cout << "\t- " << cmdEntry.first << cmdEntry.second << endl;
+				}
+			} else if (starts_with(strLine, "g")) {
+			} else if (starts_with(strLine, "p")) {
+			} else if (starts_with(strLine, "r")) {
+			} else if (starts_with(strLine, "s")) {
+				cout << spDragonSrv->getDhtPeerStatus();
+			} else if (starts_with(strLine, "q")) {
+				free(inLine);
+				break;
+			} else {
+				cout << format("Unreconized command: %1%\n") % strLine;
+				if (spDragonSrv->stopped()) {
+					free(inLine);
+					break;
+				}
+			}
+			free(inLine);
 		}
+
 #endif
 	}
 
