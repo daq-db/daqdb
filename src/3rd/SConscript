@@ -6,7 +6,6 @@ pmemkv_include = [ Dir('./pmemkv'),
 	Dir('./pmemkv/src/engines')]
 env.Append(LIBPATH=[Dir('./pmemkv/bin')])
 env.Append(CPPPATH = pmemkv_include)
-
 PmemKV = env.Make(source = None, target = [File('pmemkv/bin/libpmemkv.so')], MakePath = Dir('./pmemkv'), MakeTargets = "configure sharedlib")
 env.Clean(PmemKV, 'pmemkv/bin/libpmemkv.so')
 copyPmemKv = Command(target = "#/libpmemkv.so",
@@ -16,3 +15,10 @@ env.Depends(copyPmemKv, PmemKV)
 
 # cpp-btree
 env.Append(CPPPATH = [Dir('./cpp-btree-1.0.1')])
+env.Append(LIBPATH=[Dir('./cpp-btree-1.0.1')])
+env.Library('./cpp-btree-1.0.1/cpp-btree-1.0.1', Glob('./cpp-btree-1.0.1/*.cc'))
+
+# linenoise
+env.Append(CPPPATH = [Dir('#src/3rd/linenoise')])
+env.Append(LIBPATH=[Dir('./linenoise')])
+env.Library('./linenoise/linenoise', Glob('./linenoise/*.c'))

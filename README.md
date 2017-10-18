@@ -5,6 +5,7 @@ Contents
 <ul>
 <li><a href="#overview">Overview</a></li>
 <li><a href="#installation">Installation</a></li>
+<li><a href="#execution">Execution</a></li>
 </ul>
 
 <a name="overview"></a>
@@ -44,3 +45,16 @@ scons test            # execute unit tests
 scons test verbose=1  # execute unit tests, prints all test messages
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
+
+<a name="execution"></a>
+Execution
+------------
+
+```
+./dragon -h
+Options:
+  -h [ --help ]         Print help messages
+  -p [ --port ] arg     Node Communication port
+  -d [ --dht ] arg      DHT Communication port
+  -i [ --interactive ]  Enable interactive mode
+```
