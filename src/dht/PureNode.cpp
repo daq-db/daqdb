@@ -35,7 +35,7 @@
 namespace Dragon
 {
 
-PureNode::PureNode() : _port(0), _dhtId(0)
+PureNode::PureNode() : _port(0), _dhtId(0), _dragonPort(0)
 {
 }
 

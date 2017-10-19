@@ -57,7 +57,8 @@ const string pmemKvBasePath = "/dev/shm/fogkv";
 namespace Dragon
 {
 
-DragonSrv::DragonSrv(as::io_service &io_service) : _io_service(io_service)
+DragonSrv::DragonSrv(as::io_service &io_service, const unsigned short nodeId)
+    : _io_service(io_service), _nodeId(nodeId)
 {
 	unsigned short inputPort;
 	auto dhtPort = dhtBackBonePort;
@@ -69,7 +70,13 @@ DragonSrv::DragonSrv(as::io_service &io_service) : _io_service(io_service)
 	this->_spDhtNode.reset(
 		new Dragon::CChordAdapter(_io_service, dhtPort, requestPort));
 
-	this->_spStore.reset(new Dragon::PmemKVStore(this->getDhtId()));
+	unsigned short dbNameSuffix = _nodeId;
+	auto isTemporaryDb = false;
+	if (_nodeId == 0) {
+		dbNameSuffix = this->getDhtId();
+		isTemporaryDb = true;
+	}
+	this->_spStore.reset(new Dragon::PmemKVStore(dbNameSuffix, isTemporaryDb));
 }
 
 DragonSrv::~DragonSrv()

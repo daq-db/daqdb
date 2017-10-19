@@ -44,6 +44,9 @@ namespace as = boost::asio;
 namespace Dragon
 {
 
+/*!
+ * Adapter for cChord classes.
+ */
 class CChordAdapter : public Dragon::DhtNode {
 public:
 	CChordAdapter(as::io_service &io_service, unsigned short port,
@@ -62,7 +65,7 @@ public:
 	 */
 	void refresh();
 
-	/**
+	/*!
 	 * Fill peerNodes vector with peer node list from DHT.
 	 * This is a subset of full list of nodes in system.
 	 *
@@ -71,7 +74,7 @@ public:
 	 */
 	unsigned int getPeerList(boost::ptr_vector<PureNode> &peerNodes);
 
-	/**
+	/*!
 	 * Triggers dragon aggregation table update.
 	 * @todo jradtke triggerAggregationUpdate not implemented
 	 */

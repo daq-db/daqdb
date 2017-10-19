@@ -58,3 +58,23 @@ Options:
   -d [ --dht ] arg      DHT Communication port
   -i [ --interactive ]  Enable interactive mode
 ```
+
+**Interactive mode**
+
+To enter interactive mode execute dragon with `--interactive` flag.
+
+```
+./dragon -i
+DHT node (id=107) is running on 127.0.0.1:11000
+Waiting for requests on port 40401. Press CTRL-C to exit.
+dragon> help
+Following commands supported:
+	- get <key>
+	- help
+	- put <key> <value>
+	- quit
+	- remove <key>
+	- status
+
+```
+

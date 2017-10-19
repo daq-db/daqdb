@@ -46,6 +46,12 @@ map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
 	"get", " <key>")("put", " <key> <value>")("status", "")(
 	"remove", " <key>")("quit", "");
 
+/*!
+ * Provides completion functionality to dragon shell.
+ *
+ * @param buf	completion prefix
+ * @param lc	callback functions manager
+ */
 void
 completion(const char *buf, linenoiseCompletions *lc)
 {
@@ -64,6 +70,14 @@ completion(const char *buf, linenoiseCompletions *lc)
 	}
 }
 
+/*!
+ * Provides hints for commands to dragon shell.
+ *
+ * @param buf	command
+ * @param color	hint color
+ * @param bold	indicate if hint should be bolded
+ * @return
+ */
 char *
 hints(const char *buf, int *color, int *bold)
 {
@@ -193,6 +207,7 @@ DragonCli::cmdRemove(std::string &strLine)
 void
 DragonCli::cmdStatus()
 {
+	//!	@todo jradtke Add more information to status
 	cout << _spDragonSrv->getDhtPeerStatus() << endl;
 }
 
