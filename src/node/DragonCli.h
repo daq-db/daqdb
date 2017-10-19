@@ -33,22 +33,32 @@
 #ifndef SRC_NODE_DRAGONCLI_H_
 #define SRC_NODE_DRAGONCLI_H_
 
+#include "DragonSrv.h"
 #include <iostream>
 #include <linenoise.h>
-#include "DragonSrv.h"
 
 namespace
 {
-const unsigned int consoleHintColor = 35;
+const unsigned int consoleHintColor = 35; // dark red
 };
 
 namespace Dragon
 {
 
+/*!
+ * Dragon shell interpreter.
+ * Created for test purposes - to allow performing quick testing of the node.
+ */
 class DragonCli {
 public:
 	DragonCli(std::shared_ptr<Dragon::DragonSrv> &spDragonSrv);
 	virtual ~DragonCli();
+
+	/*!
+	 * Waiting for user input, executes defined commands
+	 *
+	 * @return false if user choose "quit" command, otherwise true
+	 */
 	int operator()();
 
 private:

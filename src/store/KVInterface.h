@@ -38,6 +38,9 @@
 namespace Dragon
 {
 
+/*!
+ * Class defines KV Store API
+ */
 class KVInterface {
 public:
 	KVInterface();

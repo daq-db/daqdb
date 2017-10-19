@@ -38,6 +38,9 @@
 namespace Dragon
 {
 
+/*!
+ * Class that stores DHT stored/shared data.
+ */
 class PureNode {
 public:
 	PureNode();

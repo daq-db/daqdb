@@ -43,18 +43,21 @@ namespace as = boost::asio;
 namespace Dragon
 {
 
+/*!
+ * Class that defines interface for DHT
+ */
 class DhtNode : public PureNode {
 public:
 	DhtNode(as::io_service &io_service, unsigned short port, unsigned short dragonPort);
 	virtual ~DhtNode();
 
-	/**
-	 *
+	/*!
+	 * Prints DHT status.
 	 * @return
 	 */
 	virtual std::string printStatus() = 0;
 
-	/**
+	/*!
 	 * Fill peerNodes vector with peer node list from DHT.
 	 * This is a subset of full list of nodes in system.
 	 *
@@ -64,7 +67,7 @@ public:
 	virtual unsigned int
 		getPeerList(boost::ptr_vector<PureNode>& peerNodes) = 0;
 
-	/**
+	/*!
 	 * Triggers dragon aggregation table update.
 	 */
 	virtual void triggerAggregationUpdate() = 0;

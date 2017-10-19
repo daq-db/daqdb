@@ -41,26 +41,29 @@ namespace bf = boost::filesystem;
 namespace
 {
 const string pmemKvEngine = "kvtree";
-const string pmemKvBasePath = "/dev/shm/fogkv";
+const string pmemKvBasePath = "/dev/shm/fogkv"; //!< @todo jradtke This should be configurable
 };
 
 namespace Dragon
 {
 
-PmemKVStore::PmemKVStore(int nodeId) : kvStoreFile(pmemKvBasePath)
+PmemKVStore::PmemKVStore(int nodeId, const bool temporaryDb)
+    : _kvStoreFile(pmemKvBasePath), _temporaryDb(temporaryDb)
 {
-	kvStoreFile += to_string(nodeId);
+	_kvStoreFile += to_string(nodeId);
 
 	this->_spStore.reset(pmemkv::KVEngine::Open(
-		pmemKvEngine, kvStoreFile.string(), PMEMOBJ_MIN_POOL));
+		pmemKvEngine, _kvStoreFile.string(), PMEMOBJ_MIN_POOL));
 }
 
 PmemKVStore::~PmemKVStore()
 {
 	try {
-		bf::remove(kvStoreFile);
+		if (isTemporaryDb()) {
+			bf::remove(_kvStoreFile);
+		}
 	} catch (bf::filesystem_error &e) {
-		// @TODO jradtke: Do we need logger?
+		//! @todo jradtke Do we need logger?
 	}
 }
 

@@ -42,9 +42,12 @@
 namespace Dragon
 {
 
+/*!
+ * Adapter for pmemkv
+ */
 class PmemKVStore : public KVStore {
 public:
-	PmemKVStore(int nodeId);
+	PmemKVStore(int nodeId, const bool temporaryDb = false);
 	virtual ~PmemKVStore();
 
 	/*!
@@ -69,8 +72,15 @@ public:
 	 */
 	virtual KVStatus Remove(const string &key);
 
+	bool
+	isTemporaryDb() const
+	{
+		return _temporaryDb;
+	}
+
 private:
-	boost::filesystem::path kvStoreFile;
+	bool _temporaryDb;
+	boost::filesystem::path _kvStoreFile;
 	std::unique_ptr<pmemkv::KVEngine> _spStore;
 };
 
