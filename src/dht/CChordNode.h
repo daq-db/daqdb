@@ -41,10 +41,10 @@
 
 namespace as = boost::asio;
 
-namespace Dht
+namespace Dragon
 {
 
-class CChordAdapter : public Dht::DhtNode {
+class CChordAdapter : public Dragon::DhtNode {
 public:
 	CChordAdapter(as::io_service &io_service, unsigned short port,
 		      unsigned short dragonPort);

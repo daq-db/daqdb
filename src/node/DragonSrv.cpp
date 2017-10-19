@@ -54,7 +54,7 @@ const string pmemKvEngine = "kvtree";
 const string pmemKvBasePath = "/dev/shm/fogkv";
 };
 
-namespace DragonStore
+namespace Dragon
 {
 
 DragonSrv::DragonSrv(as::io_service &io_service) : _io_service(io_service)
@@ -63,13 +63,13 @@ DragonSrv::DragonSrv(as::io_service &io_service) : _io_service(io_service)
 	auto dhtPort = dhtBackBonePort;
 	bool interactiveMode = false;
 
-	auto requestPort = Dht::utils::getFreePort(_io_service, 0);
+	auto requestPort = Dragon::utils::getFreePort(_io_service, 0);
 	this->_spReqManager.reset(
-		new DragonStore::SocketReqManager(_io_service, requestPort));
+		new Dragon::SocketReqManager(_io_service, requestPort));
 	this->_spDhtNode.reset(
-		new Dht::CChordAdapter(_io_service, dhtPort, requestPort));
+		new Dragon::CChordAdapter(_io_service, dhtPort, requestPort));
 
-	this->_spStore.reset(new DragonStore::PmemKVStore(this->getDhtId()));
+	this->_spStore.reset(new Dragon::PmemKVStore(this->getDhtId()));
 }
 
 DragonSrv::~DragonSrv()
@@ -122,7 +122,7 @@ std::string
 DragonSrv::getDhtPeerStatus() const
 {
 	stringstream result;
-	boost::ptr_vector<Dht::PureNode> peerNodes;
+	boost::ptr_vector<Dragon::PureNode> peerNodes;
 	chrono::time_point<chrono::system_clock> timestamp;
 
 	timestamp = chrono::system_clock::now();

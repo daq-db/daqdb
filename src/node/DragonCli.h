@@ -30,54 +30,36 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_DHT_PURENODE_H_
-#define SRC_DHT_PURENODE_H_
+#ifndef SRC_NODE_DRAGONCLI_H_
+#define SRC_NODE_DRAGONCLI_H_
 
 #include <iostream>
+#include <linenoise.h>
+#include "DragonSrv.h"
+
+namespace
+{
+const unsigned int consoleHintColor = 35;
+};
 
 namespace Dragon
 {
 
-class PureNode {
+class DragonCli {
 public:
-	PureNode();
-	PureNode(const std::string &ip, unsigned int dhtId, unsigned short port,
-		 unsigned short dragonPort);
-	virtual ~PureNode();
-
-	/**
-	 * 	@return DHT ID for this node
-	 */
-	unsigned int getDhtId() const;
-
-	/**
-	 * @return IP address for this node
-	 */
-	const std::string &getIp() const;
-
-	/**
-	 * @return Port number for this node
-	 */
-	unsigned short getPort() const;
-
-	/**
-	 * @return Port number for this node
-	 */
-	unsigned short getDragonPort() const;
-
-protected:
-	void setIp(const std::string &ip);
-	void setDhtId(unsigned int dhtId);
-	void setPort(unsigned short port);
-	void setDragonPort(unsigned short port);
+	DragonCli(std::shared_ptr<Dragon::DragonSrv> &spDragonSrv);
+	virtual ~DragonCli();
+	int operator()();
 
 private:
-	std::string _ip;
-	unsigned int _dhtId;
-	unsigned short _port;
-	unsigned short _dragonPort;
+	void cmdGet(std::string &strLine);
+	void cmdPut(std::string &strLine);
+	void cmdRemove(std::string &strLine);
+	void cmdStatus();
+
+	std::shared_ptr<Dragon::DragonSrv> _spDragonSrv;
 };
 
-} /* namespace Dht */
+} /* namespace Dragon */
 
-#endif /* SRC_DHT_PURENODE_H_ */
+#endif /* SRC_NODE_DRAGONCLI_H_ */

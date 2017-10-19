@@ -35,7 +35,7 @@
 
 #include <safe_btree.h>
 
-namespace DragonCore
+namespace Dragon
 {
 
 class AggregationTree {

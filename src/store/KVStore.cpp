@@ -32,7 +32,7 @@
 
 #include "KVStore.h"
 
-namespace DragonStore
+namespace Dragon
 {
 
 KVStore::KVStore()

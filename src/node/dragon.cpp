@@ -38,11 +38,9 @@
 #include <boost/format.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/assign/list_of.hpp>
-
-#include <linenoise.h>
 
 #include "DragonSrv.h"
+#include "DragonCli.h"
 
 using namespace std;
 using boost::format;
@@ -53,47 +51,7 @@ namespace po = boost::program_options;
 namespace
 {
 const unsigned short dhtBackBonePort = 11000;
-const unsigned int consoleHintColor = 35;
 };
-
-map<string,string> consoleCmd = boost::assign::map_list_of
-	("help","")
-	("get"," <key>")
-	("put"," <key> <value>")
-	("status","")
-	("remove"," <key>")
-	("quit","");
-
-void
-completion(const char *buf, linenoiseCompletions *lc)
-{
-	if (buf[0] == 'h') {
-		linenoiseAddCompletion(lc, "help");
-	} else if (buf[0] == 'q') {
-		linenoiseAddCompletion(lc, "quit");
-	} else if (buf[0] == 'g') {
-		linenoiseAddCompletion(lc, "get");
-	} else if (buf[0] == 'p') {
-		linenoiseAddCompletion(lc, "put");
-	} else if (buf[0] == 's') {
-		linenoiseAddCompletion(lc, "status");
-	} else if (buf[0] == 'r') {
-		linenoiseAddCompletion(lc, "remove");
-	}
-}
-
-char *
-hints(const char *buf, int *color, int *bold)
-{
-	*color = consoleHintColor;
-	char* result = nullptr;
-
-	if (consoleCmd.count(buf)) {
-		result = const_cast<char*>(consoleCmd[buf].c_str());
-	}
-
-	return result;
-}
 
 int
 main(int argc, const char *argv[])
@@ -136,8 +94,8 @@ main(int argc, const char *argv[])
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(	boost::bind(&boost::asio::io_service::stop, &io_service));
-	unique_ptr<DragonStore::DragonSrv> spDragonSrv(
-		new DragonStore::DragonSrv(io_service));
+	shared_ptr<Dragon::DragonSrv> spDragonSrv(
+		new Dragon::DragonSrv(io_service));
 
 	if (!interactiveMode) {
 		spDragonSrv->run();
@@ -152,33 +110,11 @@ main(int argc, const char *argv[])
 			       "exit.\n") %
 				spDragonSrv->getDragonPort();
 
-		char *inLine = nullptr;
-		linenoiseSetCompletionCallback(completion);
-		linenoiseSetHintsCallback(hints);
-
-		while ((inLine = linenoise("dragon> ")) != NULL) {
-			std::string strLine(inLine);
-			if (inLine[0] == '\0' || starts_with(strLine, "help")) {
-				cout << "Following commands supported:" << endl;
-				for (auto cmdEntry : consoleCmd) {
-					cout << "\t- " << cmdEntry.first << cmdEntry.second << endl;
-				}
-			} else if (starts_with(strLine, "g")) {
-			} else if (starts_with(strLine, "p")) {
-			} else if (starts_with(strLine, "r")) {
-			} else if (starts_with(strLine, "s")) {
-				cout << spDragonSrv->getDhtPeerStatus();
-			} else if (starts_with(strLine, "q")) {
-				free(inLine);
+		Dragon::DragonCli dragonCli(spDragonSrv);
+		while (dragonCli()) {
+			if (spDragonSrv->stopped()) {
 				break;
-			} else {
-				cout << format("Unreconized command: %1%\n") % strLine;
-				if (spDragonSrv->stopped()) {
-					free(inLine);
-					break;
-				}
 			}
-			free(inLine);
 		}
 
 #endif
