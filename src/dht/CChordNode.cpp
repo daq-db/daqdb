@@ -50,7 +50,7 @@ const string dhtOverlayIdentifier = "chordTestBed";
 const string rootDirectory = ".";
 };
 
-namespace Dht
+namespace Dragon
 {
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
@@ -61,9 +61,9 @@ CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
 			     unsigned short dragonPort, bool skipShutDown)
-    : Dht::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
+    : Dragon::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
 {
-	auto dhtPort = Dht::utils::getFreePort(io_service, port);
+	auto dhtPort = Dragon::utils::getFreePort(io_service, port);
 
 	string backBone[] = {
 		dhtBackBoneIp,
@@ -100,7 +100,7 @@ CChordAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
 	std::set<unsigned int> addedDhtNodes;
 	auto addUniqueNode = [&addedDhtNodes, &peerNodes](Node *pNodeToAdd) {
 		if (!addedDhtNodes.count(pNodeToAdd->getId())) {
-			peerNodes.push_back(new Dht::PureNode(
+			peerNodes.push_back(new Dragon::PureNode(
 				pNodeToAdd->getIp(), pNodeToAdd->getId(),
 				pNodeToAdd->getPort(),
 				pNodeToAdd->getDragonPort()));

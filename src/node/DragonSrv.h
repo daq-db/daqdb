@@ -44,7 +44,7 @@
 
 namespace as = boost::asio;
 
-namespace DragonStore
+namespace Dragon
 {
 
 class DragonSrv {
@@ -95,7 +95,7 @@ public:
 	 */
 	std::string getDhtPeerStatus() const;
 
-	DragonStore::KVStore *const
+	Dragon::KVStore *const
 	getKvStore()
 	{
 		return _spStore.get();
@@ -103,10 +103,10 @@ public:
 
 private:
 	as::io_service &_io_service;
-	std::unique_ptr<DragonStore::SocketReqManager> _spReqManager;
-	std::unique_ptr<Dht::DhtNode> _spDhtNode;
+	std::unique_ptr<Dragon::SocketReqManager> _spReqManager;
+	std::unique_ptr<Dragon::DhtNode> _spDhtNode;
 
-	std::unique_ptr<DragonStore::KVStore> _spStore;
+	std::unique_ptr<Dragon::KVStore> _spStore;
 };
 
 } /* namespace DragonNode */

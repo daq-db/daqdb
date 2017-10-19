@@ -41,7 +41,7 @@
 
 namespace as = boost::asio;
 
-namespace Dht
+namespace Dragon
 {
 namespace utils
 {

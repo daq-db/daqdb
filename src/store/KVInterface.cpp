@@ -32,7 +32,7 @@
 
 #include "KVInterface.h"
 
-namespace DragonStore
+namespace Dragon
 {
 
 KVInterface::KVInterface()

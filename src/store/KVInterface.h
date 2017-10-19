@@ -35,7 +35,7 @@
 
 #include <pmemkv.h>
 
-namespace DragonStore
+namespace Dragon
 {
 
 class KVInterface {

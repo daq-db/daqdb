@@ -44,7 +44,7 @@ const string pmemKvEngine = "kvtree";
 const string pmemKvBasePath = "/dev/shm/fogkv";
 };
 
-namespace DragonStore
+namespace Dragon
 {
 
 PmemKVStore::PmemKVStore(int nodeId) : kvStoreFile(pmemKvBasePath)

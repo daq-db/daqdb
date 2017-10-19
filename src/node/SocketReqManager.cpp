@@ -34,7 +34,7 @@
 
 #include <iostream>
 
-namespace DragonStore
+namespace Dragon
 {
 
 SocketReqManager::SocketReqManager(boost::asio::io_service &io_service,

@@ -32,7 +32,7 @@
 
 #include "AggregationTree.h"
 
-namespace DragonCore
+namespace Dragon
 {
 
 AggregationTree::AggregationTree()

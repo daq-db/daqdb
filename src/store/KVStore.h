@@ -35,7 +35,7 @@
 
 #include "KVInterface.h"
 
-namespace DragonStore
+namespace Dragon
 {
 
 class KVStore : public KVInterface {

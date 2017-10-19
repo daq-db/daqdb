@@ -32,7 +32,7 @@
 
 #include "PureNode.h"
 
-namespace Dht
+namespace Dragon
 {
 
 PureNode::PureNode() : _port(0), _dhtId(0)

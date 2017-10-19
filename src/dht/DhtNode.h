@@ -40,7 +40,7 @@
 
 namespace as = boost::asio;
 
-namespace Dht
+namespace Dragon
 {
 
 class DhtNode : public PureNode {

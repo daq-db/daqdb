@@ -32,7 +32,7 @@
 
 #include "DhtNode.h"
 
-namespace Dht
+namespace Dragon
 {
 
 DhtNode::DhtNode(as::io_service& io_service, unsigned short port, unsigned short dragonPort)

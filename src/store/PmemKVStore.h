@@ -39,7 +39,7 @@
 
 #include "KVStore.h"
 
-namespace DragonStore
+namespace Dragon
 {
 
 class PmemKVStore : public KVStore {
