@@ -33,7 +33,8 @@ following libraries are required:
 <li>boost-test</li>
 <li>fabricpp</li>
 <li>fabric</li>
-
+<li>log4cxx</li>
+<li>log4cxx-devel</li>
 </ul>
 
 Invoke scons with the following parameters:
@@ -53,10 +54,13 @@ Execution
 ```
 ./dragon -h
 Options:
-  -h [ --help ]         Print help messages
-  -p [ --port ] arg     Node Communication port
-  -d [ --dht ] arg      DHT Communication port
-  -i [ --interactive ]  Enable interactive mode
+  -h [ --help ]            Print help messages
+  -p [ --port ] arg        Node Communication port
+  -d [ --dht ] arg         DHT Communication port
+  -n [ --nodeid ] arg (=0) Node ID used to match database file. If not set DB 
+                           file will be removed when node stopped.
+  -i [ --interactive ]     Enable interactive mode
+  -l [ --log ]             Enable logging
 ```
 
 **Interactive mode**
