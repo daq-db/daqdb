@@ -42,16 +42,20 @@
 #include "DragonSrv.h"
 #include "DragonCli.h"
 
+#include "debug.h"
+
 using namespace std;
 using boost::format;
 using namespace boost::algorithm;
 
 namespace po = boost::program_options;
 
+LoggerPtr loggerDragon(Logger::getLogger( "dragon"));
+
 namespace
 {
 const unsigned short dhtBackBonePort = 11000;
-};
+}
 
 int
 main(int argc, const char *argv[])
@@ -60,7 +64,13 @@ main(int argc, const char *argv[])
 	unsigned short nodeId = 0;
 	auto dhtPort = dhtBackBonePort;
 	bool interactiveMode = false;
-	bool enableLogger = false;
+
+	log4cxx::ConsoleAppender *consoleAppender =
+		new log4cxx::ConsoleAppender(
+			log4cxx::LayoutPtr(new log4cxx::SimpleLayout()));
+	log4cxx::BasicConfigurator::configure(
+		log4cxx::AppenderPtr(consoleAppender));
+	log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
 
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
@@ -86,7 +96,7 @@ main(int argc, const char *argv[])
 			interactiveMode = true;
 		}
 		if (parsedArguments.count("log")) {
-			enableLogger = true;
+			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getDebug());
 		}
 
 		po::notify(parsedArguments);
@@ -104,19 +114,17 @@ main(int argc, const char *argv[])
 	shared_ptr<Dragon::DragonSrv> spDragonSrv(
 		new Dragon::DragonSrv(io_service, nodeId));
 
+	LOG4CXX_INFO(loggerDragon,
+		     format("DHT node (id=%1%) is running on %2%:%3%") %
+			     spDragonSrv->getDhtId() % spDragonSrv->getIp() %
+			     spDragonSrv->getPort());
+	LOG4CXX_INFO(loggerDragon, format("Waiting for requests on port %1%.") %
+			     spDragonSrv->getDragonPort());
+
 	if (!interactiveMode) {
 		spDragonSrv->run();
 	} else {
 #if (1) // interactive mode
-
-		cout << format("DHT node (id=%1%) is running on %2%:%3%\n") %
-				spDragonSrv->getDhtId() % spDragonSrv->getIp() %
-				spDragonSrv->getPort();
-		cout << format("Waiting for requests on port %1%. Press CTRL-C "
-			       "to "
-			       "exit.\n") %
-				spDragonSrv->getDragonPort();
-
 		Dragon::DragonCli dragonCli(spDragonSrv);
 		while (dragonCli()) {
 			if (spDragonSrv->stopped()) {
@@ -126,6 +134,11 @@ main(int argc, const char *argv[])
 
 #endif
 	}
+
+	LOG4CXX_INFO(loggerDragon,
+		     format("Closing DHT node (id=%1%) on %2%:%3%") %
+			     spDragonSrv->getDhtId() % spDragonSrv->getIp() %
+			     spDragonSrv->getPort());
 
 	return 0;
 }

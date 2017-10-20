@@ -37,6 +37,8 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/format.hpp>
 
+#include "debug.h"
+
 #include "DragonSrv.h"
 #include <PmemKVStore.h>
 
@@ -76,7 +78,12 @@ DragonSrv::DragonSrv(as::io_service &io_service, const unsigned short nodeId)
 		dbNameSuffix = this->getDhtId();
 		isTemporaryDb = true;
 	}
-	this->_spStore.reset(new Dragon::PmemKVStore(dbNameSuffix, isTemporaryDb));
+
+	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
+		     format("New PmemKVStore (dbNameSuffix=%1%)") %
+			     dbNameSuffix);
+	this->_spStore.reset(
+		new Dragon::PmemKVStore(dbNameSuffix, isTemporaryDb));
 }
 
 DragonSrv::~DragonSrv()
