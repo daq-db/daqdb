@@ -63,7 +63,7 @@ CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
 			     unsigned short dragonPort, bool skipShutDown)
     : Dragon::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
 {
-	auto dhtPort = Dragon::utils::getFreePort(io_service, port);
+	auto dhtPort = Dragon::utils::getFreePort(io_service, port, true);
 
 	string backBone[] = {
 		dhtBackBoneIp,

@@ -43,10 +43,12 @@ namespace utils
  * Returns free network port
  * @param io_service	boost io service
  * @param backbonePort	prefered port, if not used then function should
+ * @param reuseAddr	allow to reuse an address that is already in use
  * return it as a result
  */
 unsigned short getFreePort(boost::asio::io_service &io_service,
-			   const unsigned short backbonePort);
+			   const unsigned short backbonePort,
+			   bool reuseAddr = false);
 
 } /* namespace utils */
 } // namespace Dht
