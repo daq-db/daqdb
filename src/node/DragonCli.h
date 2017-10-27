@@ -66,6 +66,7 @@ private:
 	void cmdPut(std::string &strLine);
 	void cmdRemove(std::string &strLine);
 	void cmdStatus();
+	void cmdNodeStatus(std::string &strLine);
 
 	std::shared_ptr<Dragon::DragonSrv> _spDragonSrv;
 };

@@ -52,12 +52,13 @@ BOOST_AUTO_TEST_SUITE(DhtTests)
 /**
  * @todo test disabled due cChord instability
  */
-BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, * ut::disabled())
+BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, *ut::disabled())
 {
 	as::io_service io_service;
 	unsigned short dhtPort = 0;
 
-	Dragon::CChordAdapter* pDhtFirstNode = new Dragon::CChordAdapter(io_service, dhtPort, true);
+	Dragon::CChordAdapter *pDhtFirstNode =
+		new Dragon::CChordAdapter(io_service, dhtPort, 0, true);
 	dhtPort = pDhtFirstNode->getPort();
 
 	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtFirstNode->getIp());
@@ -69,7 +70,8 @@ BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, * ut::disabled())
 	/*!
 	 * Second Node ADDED
 	 */
-	Dragon::CChordAdapter* pDhtSecondNode = new Dragon::CChordAdapter(io_service, dhtPort, true);
+	Dragon::CChordAdapter *pDhtSecondNode =
+		new Dragon::CChordAdapter(io_service, dhtPort, 0, true);
 	sleep(1);
 
 	pDhtFirstNode->refresh();
@@ -82,13 +84,14 @@ BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, * ut::disabled())
 	BOOST_CHECK_EQUAL(peerNodes[0].getDhtId(), pDhtSecondNode->getDhtId());
 	boost::ptr_vector<Dragon::PureNode> peerNodesSecond;
 	BOOST_CHECK_EQUAL(pDhtSecondNode->getPeerList(peerNodesSecond), 1);
-	BOOST_CHECK_EQUAL(peerNodesSecond[0].getDhtId(), pDhtFirstNode->getDhtId());
+	BOOST_CHECK_EQUAL(peerNodesSecond[0].getDhtId(),
+			  pDhtFirstNode->getDhtId());
 
 	/*!
 	 * Third Node ADDED
 	 */
-	Dragon::CChordAdapter* pDhtThirdNode =
-		new Dragon::CChordAdapter(io_service, dhtPort, true);
+	Dragon::CChordAdapter *pDhtThirdNode =
+		new Dragon::CChordAdapter(io_service, dhtPort, 0, true);
 	sleep(1);
 
 	BOOST_CHECK_NE(dhtPort, pDhtThirdNode->getPort());
@@ -120,7 +123,8 @@ BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, * ut::disabled())
 	BOOST_CHECK_NE(allFoundNodes.count(pDhtSecondNode->getDhtId()), 0);
 	BOOST_CHECK_NE(allFoundNodes.count(pDhtThirdNode->getDhtId()), 0);
 
-	//! Intentionally left pDhtFirstNode, pDhtSecondNode and pDhtThirdNode - issue with cChord
+	//! Intentionally left pDhtFirstNode, pDhtSecondNode and pDhtThirdNode -
+	//! issue with cChord
 }
 
 BOOST_AUTO_TEST_SUITE_END()

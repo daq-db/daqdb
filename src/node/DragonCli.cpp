@@ -44,7 +44,7 @@ using boost::format;
 
 map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
 	"get", " <key>")("put", " <key> <value>")("status", "")(
-	"remove", " <key>")("quit", "");
+	"remove", " <key>")("quit", "")("node", " <id>");
 
 /*!
  * Provides completion functionality to dragon shell.
@@ -65,6 +65,8 @@ completion(const char *buf, linenoiseCompletions *lc)
 		linenoiseAddCompletion(lc, "put");
 	} else if (buf[0] == 's') {
 		linenoiseAddCompletion(lc, "status");
+	} else if (buf[0] == 'n') {
+		linenoiseAddCompletion(lc, "node");
 	} else if (buf[0] == 'r') {
 		linenoiseAddCompletion(lc, "remove");
 	}
@@ -132,6 +134,8 @@ DragonCli::operator()()
 		this->cmdRemove(strLine);
 	} else if (starts_with(strLine, "s")) {
 		this->cmdStatus();
+	} else if (starts_with(strLine, "n")) {
+		this->cmdNodeStatus(strLine);
 	} else if (starts_with(strLine, "q")) {
 		return false;
 	} else {
@@ -209,6 +213,21 @@ DragonCli::cmdStatus()
 {
 	//!	@todo jradtke Add more information to status
 	cout << _spDragonSrv->getDhtPeerStatus() << endl;
+}
+
+void
+DragonCli::cmdNodeStatus(std::string &strLine)
+{
+	vector<string> arguments;
+	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
+
+	if (arguments.size() != 2) {
+		cout << "Error: expects one argument" << endl;
+	} else {
+		auto nodeId = arguments[1];
+		_spDragonSrv->getDhtPeerStatus();
+
+	}
 }
 
 } /* namespace Dragon */

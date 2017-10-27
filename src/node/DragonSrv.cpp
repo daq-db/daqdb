@@ -70,7 +70,7 @@ DragonSrv::DragonSrv(as::io_service &io_service, const unsigned short nodeId)
 	this->_spReqManager.reset(
 		new Dragon::SocketReqManager(_io_service, requestPort));
 	this->_spDhtNode.reset(
-		new Dragon::CChordAdapter(_io_service, dhtPort, requestPort));
+		new Dragon::CChordAdapter(_io_service, dhtPort, requestPort, _nodeId));
 
 	unsigned short dbNameSuffix = _nodeId;
 	auto isTemporaryDb = false;
