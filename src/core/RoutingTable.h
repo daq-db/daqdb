@@ -30,72 +30,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DHT_CCHORTADAPTER_H_
-#define DHT_CCHORTADAPTER_H_
+#ifndef SRC_CORE_ROUTINGTABLE_H_
+#define SRC_CORE_ROUTINGTABLE_H_
 
-#include "DhtNode.h"
-#include <boost/asio/io_service.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
-
-#include "ChordNode.h"
-
-namespace as = boost::asio;
+#include "RoutingTableItem.h"
+#include <vector>
 
 namespace Dragon
 {
 
-/*!
- * Adapter for cChord classes.
- */
-class CChordAdapter : public Dragon::DhtNode {
+class RoutingTable {
 public:
-	CChordAdapter(as::io_service &io_service, unsigned short port,
-		      unsigned short dragonPort, int id);
-	CChordAdapter(as::io_service &io_service, unsigned short port,
-		      unsigned short dragonPort, int id, bool skipShutDown);
-	virtual ~CChordAdapter();
-
-	/*!
-	 * @return Status of the Node - format determined by 3rd party lib
-	 */
-	std::string printStatus();
-
-	/*!
-	 * Refresh internal DHT data (fingertable, succ, pred)
-	 */
-	void refresh();
-
-	/*!
-	 * Fill peerNodes vector with peer node list from DHT.
-	 * This is a subset of full list of nodes in system.
-	 *
-	 * @param peerNodes vector to insert peer nodes
-	 * @return number of peer nodes
-	 */
-	unsigned int getPeerList(boost::ptr_vector<PureNode> &peerNodes);
-
-	/*!
-	 * Triggers dragon aggregation table update.
-	 * @todo jradtke triggerAggregationUpdate not implemented
-	 */
-	void triggerAggregationUpdate();
-
-	/*!
-	 * Workaround on cChord bug for unit tests
-	 * @param skipShutDown
-	 */
-	void
-	setSkipShutDown(bool skipShutDown)
-	{
-		this->skipShutDown = skipShutDown;
-	}
+	RoutingTable();
+	virtual ~RoutingTable();
 
 private:
-	unique_ptr<ChordNode> spNode;
-	unique_ptr<Node> spChord;
-	bool skipShutDown;
+	std::vector<std::unique_ptr<Dragon::RoutingTableItem>> _RTable;
+
 };
 
-} /* namespace Dht */
+} /* namespace Dragon */
 
-#endif /* DHT_CCHORTADAPTER_H_ */
+#endif /* SRC_CORE_ROUTINGTABLE_H_ */

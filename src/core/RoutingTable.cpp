@@ -30,17 +30,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AggregationTree.h"
+#include "RoutingTable.h"
 
 namespace Dragon
 {
 
-AggregationTree::AggregationTree()
+RoutingTable::RoutingTable()
 {
 }
 
-AggregationTree::~AggregationTree()
+RoutingTable::~RoutingTable()
 {
 }
 
-} /* namespace DragonCore */
+} /* namespace Dragon */

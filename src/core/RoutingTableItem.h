@@ -30,20 +30,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CORE_AGGREGATIONTREE_H_
-#define SRC_CORE_AGGREGATIONTREE_H_
+#ifndef SRC_CORE_ROUTINGTABLEITEM_H_
+#define SRC_CORE_ROUTINGTABLEITEM_H_
 
-#include <safe_btree.h>
+#define DIGEST_LENGTH 256
+
+#include <PureNode.h>
+#include <bitset>
+#include <memory>
 
 namespace Dragon
 {
 
-class AggregationTree {
+class RoutingTableItem {
 public:
-	AggregationTree();
-	virtual ~AggregationTree();
+	RoutingTableItem();
+	RoutingTableItem(const RoutingTableItem &) = delete;
+	RoutingTableItem(RoutingTableItem &&);
+
+	virtual ~RoutingTableItem();
+
+private:
+	std::bitset<DIGEST_LENGTH> _bitvector;
+	std::unique_ptr<Dragon::PureNode> _spSiblingNode;
 };
 
-} /* namespace DragonCore */
+} /* namespace Dragon */
 
-#endif /* SRC_CORE_AGGREGATIONTREE_H_ */
+#endif /* SRC_CORE_ROUTINGTABLEITEM_H_ */

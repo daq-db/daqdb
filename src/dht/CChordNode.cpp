@@ -54,13 +54,13 @@ namespace Dragon
 {
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
-			     unsigned short dragonPort)
-    : CChordAdapter(io_service, port, dragonPort, false)
+			     unsigned short dragonPort, int id)
+    : CChordAdapter(io_service, port, dragonPort, id, false)
 {
 }
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
-			     unsigned short dragonPort, bool skipShutDown)
+			     unsigned short dragonPort, int id, bool skipShutDown)
     : Dragon::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
 {
 	auto dhtPort = Dragon::utils::getFreePort(io_service, port, true);
@@ -70,7 +70,8 @@ CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
 	};
 
 	spNode.reset(P_SINGLETON->initChordNode(
-		dhtBackBoneIp, dhtPort, dragonPort, dhtOverlayIdentifier, rootDirectory));
+		id, dhtBackBoneIp, dhtPort, dragonPort, dhtOverlayIdentifier,
+		rootDirectory));
 	spChord.reset(new Node(backBone[0], port));
 
 	spNode->join(spChord.get());
