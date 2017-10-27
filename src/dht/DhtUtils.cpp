@@ -47,7 +47,7 @@ namespace utils
 {
 
 unsigned short
-getFreePort(as::io_service &io_service, const unsigned short backbonePort)
+getFreePort(as::io_service &io_service, const unsigned short backbonePort, bool reuseAddr)
 {
 	auto resultPort = backbonePort;
 	as::ip::tcp::acceptor acceptor(io_service);
@@ -55,6 +55,12 @@ getFreePort(as::io_service &io_service, const unsigned short backbonePort)
 
 	if (backbonePort) {
 		acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
+
+		if (reuseAddr) {
+			boost::asio::socket_base::reuse_address option(true);
+			acceptor.set_option(option);
+		}
+
 		acceptor.bind({as::ip::tcp::v4(), resultPort}, checkPortErrorCode);
 		acceptor.close();
 	}
