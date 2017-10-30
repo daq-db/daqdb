@@ -11,3 +11,5 @@ SConscript('fabric_node/SConscript', exports='env')
 SConscript('node/SConscript', exports='env')
 SConscript('tests/SConscript', exports='env')
 SConscript('digest/SConscript', exports='env')
+
+SConscript('benchmark/SConscript', exports='env')
