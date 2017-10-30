@@ -1,0 +1,20 @@
+Import('env')
+
+env.AppendUnique(LIBPATH=[Dir('.')])
+env.Append(CPPPATH = [Dir('.')])
+
+benchTarget = env.Program('benchmark', Glob('*.cpp'), 
+            LIBS=["pthread",
+                "log4cxx",
+                "boost_program_options",
+                "boost_system",
+                "boost_filesystem",
+                "boost_thread"
+                ])
+
+copyBenchTarget = Command(target = "#/benchmark",
+        source = benchTarget,
+        action = Copy("$TARGET", "$SOURCE"))
+
+env.Depends(copyBenchTarget, benchTarget)
+env.Clean('#/benchmark', 'benchmark')
