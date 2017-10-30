@@ -35,6 +35,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+
 #include <iostream>
 #include <map>
 
@@ -224,9 +226,26 @@ DragonCli::cmdNodeStatus(std::string &strLine)
 	if (arguments.size() != 2) {
 		cout << "Error: expects one argument" << endl;
 	} else {
-		auto nodeId = arguments[1];
+		auto nodeIdArg = arguments[1];
+		unsigned int nodeId = 0;
+		try {
+			nodeId = boost::lexical_cast<unsigned int>(nodeIdArg);
+		} catch (boost::bad_lexical_cast const &) {
+			std::cout << "Error: input string was not valid"
+				  << std::endl;
+		}
+
 		_spDragonSrv->getDhtPeerStatus();
 
+		if (nodeId == _spDragonSrv->getDhtId()) {
+			cout << format("Node status:\n\t "
+				       "dht_id=%1%\n\tdht_ip:port=%2%:%3%"
+				       "\n\texternal_port=%4%") %
+					_spDragonSrv->getDhtId() %
+					_spDragonSrv->getIp() %
+					_spDragonSrv->getPort() %
+					_spDragonSrv->getDragonPort();
+		}
 	}
 }
 
