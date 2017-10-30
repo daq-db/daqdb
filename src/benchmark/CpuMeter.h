@@ -35,18 +35,12 @@
 
 #include <boost/timer/timer.hpp>
 #include <tuple>
+#include <vector>
+
+using namespace boost::timer;
 
 namespace Dragon
 {
-
-typedef boost::int_least64_t nanosecond_type;
-
-struct CpuMeterResult {
-	float usage;
-	nanosecond_type wall;
-	nanosecond_type user;
-	nanosecond_type system;
-};
 
 class CpuMeter {
 public:
@@ -55,10 +49,13 @@ public:
 
 	void start();
 	void stop();
-	void reset();
 
-	CpuMeterResult getCpuUsage();
-	CpuMeterResult getCpuUsageFromProcStat();
+	std::tuple<float, cpu_times> getCpuUsage();
+	std::vector<long long> getGlobalCpuUsage();
+
+	std::string format();
+private:
+	cpu_timer _timer;
 };
 
 } /* namespace Dragon */

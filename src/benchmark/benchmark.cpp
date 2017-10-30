@@ -32,19 +32,21 @@
 
 #include <iostream>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
-#include <boost/program_options.hpp>
 #include <boost/format.hpp>
+#include <boost/program_options.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include <boost/algorithm/string.hpp>
 
-#include <log4cxx/logger.h>
-#include <log4cxx/xml/domconfigurator.h>
 #include <log4cxx/basicconfigurator.h>
-#include <log4cxx/helpers/exception.h>
 #include <log4cxx/consoleappender.h>
+#include <log4cxx/helpers/exception.h>
+#include <log4cxx/logger.h>
 #include <log4cxx/simplelayout.h>
+#include <log4cxx/xml/domconfigurator.h>
+
+#include "CpuMeter.h"
 
 using namespace log4cxx;
 using namespace log4cxx::xml;
@@ -57,13 +59,11 @@ using namespace boost::algorithm;
 namespace po = boost::program_options;
 namespace as = boost::asio;
 
-LoggerPtr benchDragon(Logger::getLogger( "benchmark"));
+LoggerPtr benchDragon(Logger::getLogger("benchmark"));
 
 int
 main(int argc, const char *argv[])
 {
-	bool interactiveMode = false;
-
 	log4cxx::ConsoleAppender *consoleAppender =
 		new log4cxx::ConsoleAppender(
 			log4cxx::LayoutPtr(new log4cxx::SimpleLayout()));
@@ -81,19 +81,14 @@ main(int argc, const char *argv[])
 		po::store(po::parse_command_line(argc, argv,
 						 argumentsDescription),
 			  parsedArguments);
-
 		if (parsedArguments.count("help")) {
 			std::cout << argumentsDescription << endl;
 			return 0;
-		}
-		if (parsedArguments.count("interactive")) {
-			interactiveMode = true;
 		}
 		if (parsedArguments.count("log")) {
 			log4cxx::Logger::getRootLogger()->setLevel(
 				log4cxx::Level::getDebug());
 		}
-
 		po::notify(parsedArguments);
 	} catch (po::error &parserError) {
 		cerr << "Invalid arguments: " << parserError.what() << endl
@@ -105,10 +100,11 @@ main(int argc, const char *argv[])
 
 	LOG4CXX_INFO(benchDragon, "Start benchmark process");
 
+	Dragon::CpuMeter cpuMeter;
+
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(
-		bind(&boost::asio::io_service::stop, &io_service));
+	signals.async_wait(bind(&boost::asio::io_service::stop, &io_service));
 
 	for (;;) {
 		io_service.poll();
@@ -118,6 +114,7 @@ main(int argc, const char *argv[])
 		sleep(1);
 	}
 
+	LOG4CXX_INFO(benchDragon, cpuMeter.format());
 	LOG4CXX_INFO(benchDragon, "Closing benchmark process");
 
 	return 0;
