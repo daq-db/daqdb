@@ -37,6 +37,8 @@
 #include <tuple>
 #include <vector>
 
+#include <csv/writer.hpp>
+
 using namespace boost::timer;
 
 namespace Dragon
@@ -77,10 +79,13 @@ public:
 	void stop();
 
 	std::tuple<unsigned short, cpu_times> getCpuUsage();
-
 	std::string format();
+
+	void logCpuUsage();
+
 private:
 	cpu_timer _timer;
+	std::string _csvFileName;
 };
 
 } /* namespace Dragon */

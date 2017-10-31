@@ -34,51 +34,78 @@
 #include <iostream>
 #include <cmath>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/format.hpp>
+
 #include "CpuMeter.h"
 #include "debug.h"
 
-namespace Dragon
-{
+namespace Dragon {
 
-CpuMeter::CpuMeter()
-{
+CpuMeter::CpuMeter() {
+
+	boost::posix_time::ptime time_t_epoch(boost::gregorian::date(1970,1,1));
+	boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+	boost::posix_time::time_duration timeDiff = now - time_t_epoch;
+
+	std::stringstream filenameStream;
+	filenameStream << "results_" << timeDiff.total_milliseconds() << ".csv";
+	_csvFileName = filenameStream.str();
+
+	std::ofstream file;
+	file.open(_csvFileName);
+
+	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), boost::format("Create CSV file [%1%]") % _csvFileName);
+
+	Csv::Writer writer(file, ';');
+	Csv::Row header;
+
+	header.push_back("timestamp");
+	header.push_back("cpu_usage");
+	writer.insert(header);
+	file.close();
 }
 
-CpuMeter::~CpuMeter()
-{
+CpuMeter::~CpuMeter() {
 }
 
-void
-CpuMeter::start()
-{
+void CpuMeter::start() {
 	_timer.start();
 }
 
-void
-CpuMeter::stop()
-{
+void CpuMeter::stop() {
 	_timer.stop();
 }
 
-std::tuple<unsigned short, cpu_times>
-CpuMeter::getCpuUsage()
-{
+std::tuple<unsigned short, cpu_times> CpuMeter::getCpuUsage() {
 	cpu_times resultTimes = _timer.elapsed();
 	double cpuUsage = 100;
 
 	auto idleTime = resultTimes.wall - (resultTimes.user + resultTimes.system);
 	if (idleTime > 0) {
-		cpuUsage = (double(resultTimes.user) + resultTimes.system) / resultTimes.wall;
+		cpuUsage = (double(resultTimes.user) + resultTimes.system)
+				/ resultTimes.wall;
 		cpuUsage *= 100;
 	}
 
-	return std::make_tuple(static_cast<unsigned short>(std::round(cpuUsage)), resultTimes);
+	return std::make_tuple(static_cast<unsigned short>(std::round(cpuUsage)),
+			resultTimes);
 }
 
-std::string
-CpuMeter::format()
-{
+std::string CpuMeter::format() {
 	return _timer.format();
+}
+
+void CpuMeter::logCpuUsage() {
+	std::ofstream file;
+	file.open(_csvFileName, std::ios::out | std::ios::app);
+	Csv::Writer writer(file, ';');
+	Csv::Row row;
+
+	row.push_back("1");
+	row.push_back("test");
+	writer.insert(row);
+	file.close();
 }
 
 } /* namespace Dragon */

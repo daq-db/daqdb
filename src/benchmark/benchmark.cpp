@@ -45,9 +45,9 @@ using namespace std;
 namespace po = boost::program_options;
 namespace as = boost::asio;
 
-LoggerPtr benchDragon(Logger::getLogger("benchmark"));
-
 int main(int argc, const char *argv[]) {
+	LoggerPtr benchDragon(Logger::getLogger("benchmark"));
+
 	log4cxx::ConsoleAppender *consoleAppender = new log4cxx::ConsoleAppender(
 			log4cxx::LayoutPtr(new log4cxx::SimpleLayout()));
 	log4cxx::BasicConfigurator::configure(
@@ -85,6 +85,8 @@ int main(int argc, const char *argv[]) {
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(bind(&boost::asio::io_service::stop, &io_service));
 
+	Dragon::CpuMeter cpuMeter;
+
 	for (;;) {
 		io_service.poll();
 		if (io_service.stopped()) {
@@ -92,6 +94,9 @@ int main(int argc, const char *argv[]) {
 		}
 		sleep(1);
 	}
+	cout << endl;
+
+	cpuMeter.logCpuUsage();
 
 	LOG4CXX_INFO(benchDragon, "Closing benchmark process");
 

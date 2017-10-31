@@ -28,3 +28,8 @@ env.Library('./linenoise/linenoise', Glob('./linenoise/*.c'))
 env.Append(CPPPATH = [Dir('#src/3rd/cpu-stat/src')])
 env.Append(LIBPATH=[Dir('./cpu-stat')])
 env.Library('./cpu-stat/cpu-stat', Glob('./cpu-stat/src/*.cpp'))
+
+# csvpp
+env.Append(CPPPATH = [Dir('#src/3rd/csvpp/src')])
+env.Append(LIBPATH=[Dir('./csvpp/src/csv')])
+env.Library('./csvpp/csvpp', Glob('./csvpp/src/*.cpp'))
