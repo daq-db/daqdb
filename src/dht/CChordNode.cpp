@@ -72,7 +72,7 @@ CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
 	spNode.reset(P_SINGLETON->initChordNode(
 		id, dhtBackBoneIp, dhtPort, dragonPort, dhtOverlayIdentifier,
 		rootDirectory));
-	spChord.reset(new Node(backBone[0], port));
+	spChord.reset(new Node(backBone[0], id, port, dragonPort));
 
 	spNode->join(spChord.get());
 
