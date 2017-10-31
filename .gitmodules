@@ -7,3 +7,6 @@
 [submodule "src/3rd/linenoise"]
 	path = src/3rd/linenoise
 	url = https://github.com/antirez/linenoise.git
+[submodule "src/3rd/cpu-stat"]
+	path = src/3rd/cpu-stat
+	url = https://github.com/vivaladav/cpu-stat

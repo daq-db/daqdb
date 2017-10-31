@@ -10,7 +10,9 @@ benchTarget = env.Program('benchmark', Glob('*.cpp'),
                 "boost_system",
                 "boost_filesystem",
                 "boost_thread",
-                "boost_timer"
+                "boost_timer",
+                "boost_regex",
+                File("#/src/3rd/cpu-stat/libcpu-stat.a")
                 ])
 
 copyBenchTarget = Command(target = "#/benchmark",

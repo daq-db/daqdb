@@ -41,7 +41,33 @@ using namespace boost::timer;
 
 namespace Dragon
 {
+/**
+	Example usage:
 
+	Dragon::CpuMeter cpuMeter;
+
+ 	double result = 0;
+	float cpuUsage = 0;
+	cpu_times cpuTimes;
+
+	std::tie(cpuUsage, cpuTimes) = cpuMeter.getCpuUsage();
+	LOG4CXX_INFO(benchDragon,
+			boost::format(
+					"Process CPU usage = %1%%%, wall=%2%, system=%3%, user=%4%")
+					% cpuUsage % cpuTimes.wall % cpuTimes.system
+					% cpuTimes.user);
+
+	...
+
+	cout << endl;
+	std::tie(cpuUsage, cpuTimes) = cpuMeter.getCpuUsage();
+	LOG4CXX_INFO(benchDragon,
+			boost::format(
+					"Process CPU usage = %1%%%, wall=%2%, system=%3%, user=%4%")
+					% cpuUsage % cpuTimes.wall % cpuTimes.system
+					% cpuTimes.user);
+
+ */
 class CpuMeter {
 public:
 	CpuMeter();
@@ -50,8 +76,7 @@ public:
 	void start();
 	void stop();
 
-	std::tuple<float, cpu_times> getCpuUsage();
-	std::vector<long long> getGlobalCpuUsage();
+	std::tuple<unsigned short, cpu_times> getCpuUsage();
 
 	std::string format();
 private:

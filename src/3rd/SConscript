@@ -23,3 +23,8 @@ env.Append(LIBPATH=[Dir('./cpp-btree-1.0.1')])
 env.Append(CPPPATH = [Dir('#src/3rd/linenoise')])
 env.Append(LIBPATH=[Dir('./linenoise')])
 env.Library('./linenoise/linenoise', Glob('./linenoise/*.c'))
+
+# cpu-stat
+env.Append(CPPPATH = [Dir('#src/3rd/cpu-stat/src')])
+env.Append(LIBPATH=[Dir('./cpu-stat')])
+env.Library('./cpu-stat/cpu-stat', Glob('./cpu-stat/src/*.cpp'))

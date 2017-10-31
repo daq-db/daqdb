@@ -32,75 +32,54 @@
 
 #include <iostream>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
-#include <log4cxx/basicconfigurator.h>
-#include <log4cxx/consoleappender.h>
-#include <log4cxx/helpers/exception.h>
-#include <log4cxx/logger.h>
-#include <log4cxx/simplelayout.h>
-#include <log4cxx/xml/domconfigurator.h>
-
+#include "debug.h"
 #include "CpuMeter.h"
 
-using namespace log4cxx;
-using namespace log4cxx::xml;
-using namespace log4cxx::helpers;
-
 using namespace std;
-using boost::format;
-using namespace boost::algorithm;
 
 namespace po = boost::program_options;
 namespace as = boost::asio;
 
 LoggerPtr benchDragon(Logger::getLogger("benchmark"));
 
-int
-main(int argc, const char *argv[])
-{
-	log4cxx::ConsoleAppender *consoleAppender =
-		new log4cxx::ConsoleAppender(
+int main(int argc, const char *argv[]) {
+	log4cxx::ConsoleAppender *consoleAppender = new log4cxx::ConsoleAppender(
 			log4cxx::LayoutPtr(new log4cxx::SimpleLayout()));
 	log4cxx::BasicConfigurator::configure(
-		log4cxx::AppenderPtr(consoleAppender));
+			log4cxx::AppenderPtr(consoleAppender));
 	log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
 
 #if (1) // Cmd line parsing region
-	po::options_description argumentsDescription{"Options"};
-	argumentsDescription.add_options()("help,h", "Print help messages")(
-		"log,l", "Enable logging");
+	po::options_description argumentsDescription { "Options" };
+	argumentsDescription.add_options()("help,h", "Print help messages")("log,l",
+			"Enable logging");
 
 	po::variables_map parsedArguments;
 	try {
-		po::store(po::parse_command_line(argc, argv,
-						 argumentsDescription),
-			  parsedArguments);
+		po::store(po::parse_command_line(argc, argv, argumentsDescription),
+				parsedArguments);
 		if (parsedArguments.count("help")) {
 			std::cout << argumentsDescription << endl;
 			return 0;
 		}
 		if (parsedArguments.count("log")) {
 			log4cxx::Logger::getRootLogger()->setLevel(
-				log4cxx::Level::getDebug());
+					log4cxx::Level::getDebug());
 		}
 		po::notify(parsedArguments);
 	} catch (po::error &parserError) {
-		cerr << "Invalid arguments: " << parserError.what() << endl
-		     << endl;
+		cerr << "Invalid arguments: " << parserError.what() << endl << endl;
 		cerr << argumentsDescription << endl;
 		return -1;
 	}
 #endif
 
 	LOG4CXX_INFO(benchDragon, "Start benchmark process");
-
-	Dragon::CpuMeter cpuMeter;
 
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
@@ -114,7 +93,6 @@ main(int argc, const char *argv[])
 		sleep(1);
 	}
 
-	LOG4CXX_INFO(benchDragon, cpuMeter.format());
 	LOG4CXX_INFO(benchDragon, "Closing benchmark process");
 
 	return 0;
