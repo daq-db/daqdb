@@ -33,21 +33,63 @@
 #include <FabricInfo.h>
 
 #include <sstream>
+#include <string.h>
+
+#define FIVERSION FI_VERSION(1, 4)
 
 namespace Fabric {
 
 FabricInfo::FabricInfo() :
-	mInfo(nullptr)
+	mInfo(nullptr),
+	mHints(nullptr)
 {
 }
 
 FabricInfo::FabricInfo(struct fi_info *info) :
-	mInfo(info)
+	mInfo(info),
+	mHints(nullptr)
 {
+}
+
+FabricInfo::FabricInfo(const FabricAttributes &attr, const std::string &node, const std::string &serv, bool listener)
+{
+	mHints = fi_allocinfo();
+	if (mHints == nullptr)
+		throw std::string("cannot allocate fi_info");
+
+	mHints->ep_attr->type = FI_EP_MSG;
+	mHints->domain_attr->mr_mode = FI_MR_BASIC;
+	mHints->domain_attr->threading = FI_THREAD_SAFE;
+	mHints->caps = FI_MSG | FI_RMA;
+	mHints->mode = FI_CONTEXT | FI_LOCAL_MR | FI_RX_CQ_DATA;
+	mHints->tx_attr->msg_order = FI_ORDER_RAW | FI_ORDER_SAW;
+	mHints->addr_format = FI_SOCKADDR;
+
+	if (attr.mProv != "") {
+		mHints->fabric_attr->prov_name = strdup(attr.mProv.c_str());
+		if (mHints->fabric_attr->prov_name == nullptr)
+			throw std::string("cannot allocate buffer "
+					"for provider name");
+	}
+
+	int ret;
+
+	uint64_t flags = 0;
+
+	if (listener)
+		flags |= FI_SOURCE;
+
+	ret = fi_getinfo(FIVERSION, node.c_str(), serv.c_str(),
+			flags, mHints, &mInfo);
+	if (ret)
+		throw std::string("cannot get fabric interface information");
+
 }
 
 FabricInfo::~FabricInfo()
 {
+	if (mHints)
+		fi_freeinfo(mHints);
 	fi_freeinfo(mInfo);
 }
 

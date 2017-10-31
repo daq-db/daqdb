@@ -29,39 +29,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
+#ifndef MAIN_NODE_H
+#define MAIN_NODE_H
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#include "Node.h"
+#include "RingBuffer.h"
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <string>
+#include <FabricNode.h>
 
-namespace Fabric {
-
-class Fabric {
+class MainNode : public Node {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	using WriteHandler = std::function<void (std::shared_ptr<RingBuffer>)>;
 
-	FabricAttributes attr() { return mAttr; }
+	MainNode(const std::string &node, const std::string &serv, size_t wrBuffSize);
+	virtual ~MainNode();
 
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
+	void start();
+	void onWrite(WriteHandler handler);
 protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+
+	void onConnectionRequestHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onConnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onDisconnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
+	void onMsgWrite(Fabric::FabricConnection &conn, MsgOp *msg);
+
+	std::shared_ptr<RingBuffer> mRemoteWrBuff;
+	std::shared_ptr<Fabric::FabricMR> mRemoteWrBuffMR;
+	WriteHandler mWriteHandler;
 };
 
-}
-
-#endif // FABRIC_HPP
+#endif // MAIN_NODE_H

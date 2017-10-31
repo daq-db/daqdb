@@ -19,7 +19,9 @@ benchTarget = env.Program('benchmark', sources,
                 "boost_date_time",
                 File("#/src/3rd/pmemkv/bin/libpmemkv.so"),
                 File("#/src/3rd/cpu-stat/libcpu-stat.a"),
-                File("#/src/3rd/csvpp/libcsvpp.a")
+                File("#/src/3rd/csvpp/libcsvpp.a"),
+		"fabricpp",
+		"fabric"
                 ])
 
 copyBenchTarget = Command(target = "#/benchmark",
