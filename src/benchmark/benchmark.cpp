@@ -71,8 +71,9 @@ int main(int argc, const char *argv[]) {
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription { "Options" };
 	argumentsDescription.add_options()("help,h", "Print help messages")("log,l",
-			"Enable logging");
+			"Enable logging")("csv,c","Enable creation of CSV file");
 
+	bool enableCSV = false;
 	po::variables_map parsedArguments;
 	try {
 		po::store(po::parse_command_line(argc, argv, argumentsDescription),
@@ -84,6 +85,9 @@ int main(int argc, const char *argv[]) {
 		if (parsedArguments.count("log")) {
 			log4cxx::Logger::getRootLogger()->setLevel(
 					log4cxx::Level::getDebug());
+		}
+		if (parsedArguments.count("csv")) {
+			enableCSV = true;
 		}
 		po::notify(parsedArguments);
 	} catch (po::error &parserError) {
@@ -99,7 +103,7 @@ int main(int argc, const char *argv[]) {
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(bind(&boost::asio::io_service::stop, &io_service));
 
-	Dragon::CpuMeter cpuMeter;
+	Dragon::CpuMeter cpuMeter(enableCSV);
 
 	boost::asio::deadline_timer cpuLogTimer(io_service, boost::posix_time::seconds(5));
 	cpuLogTimer.async_wait(

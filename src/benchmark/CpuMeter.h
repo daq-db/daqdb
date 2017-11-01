@@ -49,7 +49,7 @@ namespace Dragon
 
 class CpuMeter {
 public:
-	CpuMeter();
+	CpuMeter(bool enableCSV);
 	virtual ~CpuMeter();
 
 	void start();
@@ -61,6 +61,7 @@ public:
 	void logCpuUsage();
 
 private:
+	bool _csvEnabled;
 	cpu_timer _timer;
 	std::unique_ptr<CPUSnapshot> _spLastSnapshot;
 	std::string _csvFileName;
