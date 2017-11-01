@@ -34,6 +34,8 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/bind.hpp>
+#include <boost/asio.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 
@@ -44,6 +46,18 @@ using namespace std;
 
 namespace po = boost::program_options;
 namespace as = boost::asio;
+
+/*!
+ *
+ */
+void logCpuUsage(const boost::system::error_code&,
+		boost::asio::deadline_timer* cpuLogTimer, Dragon::CpuMeter* cpuMeter) {
+	cpuMeter->logCpuUsage();
+
+	cpuLogTimer->expires_at(cpuLogTimer->expires_at() + boost::posix_time::seconds(5));
+	cpuLogTimer->async_wait(
+			boost::bind(logCpuUsage, boost::asio::placeholders::error, cpuLogTimer, cpuMeter));
+}
 
 int main(int argc, const char *argv[]) {
 	LoggerPtr benchDragon(Logger::getLogger("benchmark"));
@@ -87,16 +101,18 @@ int main(int argc, const char *argv[]) {
 
 	Dragon::CpuMeter cpuMeter;
 
+	boost::asio::deadline_timer cpuLogTimer(io_service, boost::posix_time::seconds(5));
+	cpuLogTimer.async_wait(
+			boost::bind(logCpuUsage, boost::asio::placeholders::error, &cpuLogTimer, &cpuMeter));
+
 	for (;;) {
 		io_service.poll();
 		if (io_service.stopped()) {
 			break;
 		}
-		sleep(1);
+		// sleep(1);
 	}
 	cout << endl;
-
-	cpuMeter.logCpuUsage();
 
 	LOG4CXX_INFO(benchDragon, "Closing benchmark process");
 

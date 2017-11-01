@@ -12,6 +12,7 @@ benchTarget = env.Program('benchmark', Glob('*.cpp'),
                 "boost_thread",
                 "boost_timer",
                 "boost_regex",
+                "boost_date_time",
                 File("#/src/3rd/cpu-stat/libcpu-stat.a"),
                 File("#/src/3rd/csvpp/libcsvpp.a")
                 ])

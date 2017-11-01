@@ -36,6 +36,9 @@
 #include <boost/timer/timer.hpp>
 #include <tuple>
 #include <vector>
+#include <string>
+
+#include <CPUSnapshot.h>
 
 #include <csv/writer.hpp>
 
@@ -43,33 +46,7 @@ using namespace boost::timer;
 
 namespace Dragon
 {
-/**
-	Example usage:
 
-	Dragon::CpuMeter cpuMeter;
-
- 	double result = 0;
-	float cpuUsage = 0;
-	cpu_times cpuTimes;
-
-	std::tie(cpuUsage, cpuTimes) = cpuMeter.getCpuUsage();
-	LOG4CXX_INFO(benchDragon,
-			boost::format(
-					"Process CPU usage = %1%%%, wall=%2%, system=%3%, user=%4%")
-					% cpuUsage % cpuTimes.wall % cpuTimes.system
-					% cpuTimes.user);
-
-	...
-
-	cout << endl;
-	std::tie(cpuUsage, cpuTimes) = cpuMeter.getCpuUsage();
-	LOG4CXX_INFO(benchDragon,
-			boost::format(
-					"Process CPU usage = %1%%%, wall=%2%, system=%3%, user=%4%")
-					% cpuUsage % cpuTimes.wall % cpuTimes.system
-					% cpuTimes.user);
-
- */
 class CpuMeter {
 public:
 	CpuMeter();
@@ -85,6 +62,7 @@ public:
 
 private:
 	cpu_timer _timer;
+	std::unique_ptr<CPUSnapshot> _spLastSnapshot;
 	std::string _csvFileName;
 };
 

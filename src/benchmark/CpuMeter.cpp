@@ -44,8 +44,9 @@ namespace Dragon {
 
 CpuMeter::CpuMeter() {
 
-	boost::posix_time::ptime time_t_epoch(boost::gregorian::date(1970,1,1));
-	boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+	boost::posix_time::ptime time_t_epoch(boost::gregorian::date(1970, 1, 1));
+	boost::posix_time::ptime now =
+			boost::posix_time::second_clock::local_time();
 	boost::posix_time::time_duration timeDiff = now - time_t_epoch;
 
 	std::stringstream filenameStream;
@@ -55,15 +56,26 @@ CpuMeter::CpuMeter() {
 	std::ofstream file;
 	file.open(_csvFileName);
 
-	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), boost::format("Create CSV file [%1%]") % _csvFileName);
+	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
+			boost::format("Create CSV file [%1%]") % _csvFileName);
 
 	Csv::Writer writer(file, ';');
 	Csv::Row header;
 
 	header.push_back("timestamp");
 	header.push_back("cpu_usage");
+	header.push_back("cpu_active_time");
+	header.push_back("cpu_idle_time");
+	header.push_back("cpu_totat_time");
+	header.push_back("proc_cpu_usage");
+	header.push_back("proc_cpu_time_system");
+	header.push_back("proc_cpu_time_user");
+	header.push_back("proc_cpu_time_wall");
+
 	writer.insert(header);
 	file.close();
+
+	_spLastSnapshot.reset(new CPUSnapshot());
 }
 
 CpuMeter::~CpuMeter() {
@@ -102,10 +114,53 @@ void CpuMeter::logCpuUsage() {
 	Csv::Writer writer(file, ';');
 	Csv::Row row;
 
-	row.push_back("1");
-	row.push_back("test");
+	boost::posix_time::ptime now =
+			boost::posix_time::second_clock::local_time();
+
+	auto timestamp = boost::posix_time::to_iso_extended_string(now);
+	row.push_back(timestamp);
+
+	CPUSnapshot* newCpuSnapshot = new CPUSnapshot();
+	auto activeTime = static_cast<unsigned int>(std::rint(
+			newCpuSnapshot->GetActiveTimeTotal()
+					- _spLastSnapshot->GetActiveTimeTotal()));
+	auto idleTime = static_cast<unsigned int>(std::rint(
+			newCpuSnapshot->GetIdleTimeTotal()
+					- _spLastSnapshot->GetIdleTimeTotal()));
+	auto totalTime = static_cast<unsigned int>(std::rint(
+			newCpuSnapshot->GetTotalTimeTotal()
+					- _spLastSnapshot->GetTotalTimeTotal()));
+	auto totalCpuUsage = 100.f * activeTime / totalTime;
+
+	row.push_back(std::to_string(totalCpuUsage));
+	row.push_back(std::to_string(activeTime));
+	row.push_back(std::to_string(idleTime));
+	row.push_back(std::to_string(totalTime));
+
+	unsigned short cpuUsage = 0;
+	cpu_times cpuTimes;
+	std::tie(cpuUsage, cpuTimes) = getCpuUsage();
+	row.push_back(std::to_string(cpuUsage));
+	row.push_back(std::to_string(cpuTimes.system));
+	row.push_back(std::to_string(cpuTimes.user));
+	row.push_back(std::to_string(cpuTimes.wall));
+
 	writer.insert(row);
 	file.close();
+
+	LOG4CXX_DEBUG(log4cxx::Logger::getRootLogger(),
+			boost::format(
+					"%5%: Process CPU usage = %1%%%, system=%3%, user=%4%, wall=%2%")
+					% cpuUsage % cpuTimes.wall % cpuTimes.system
+					% cpuTimes.user % timestamp);
+	LOG4CXX_DEBUG(log4cxx::Logger::getRootLogger(),
+			boost::format(
+					"%5%: System CPU usage = %1%%%, active=%2%, idle=%3%, wall=%4%")
+					% totalCpuUsage % activeTime % idleTime % totalTime % timestamp);
+
+	_timer.start();
+	_spLastSnapshot.release();
+	_spLastSnapshot.reset(newCpuSnapshot);
 }
 
 } /* namespace Dragon */
