@@ -42,6 +42,8 @@
 #include "debug.h"
 #include "CpuMeter.h"
 
+#include "workers/AepWorker.h"
+
 using namespace std;
 
 namespace po = boost::program_options;
@@ -109,14 +111,17 @@ int main(int argc, const char *argv[]) {
 	cpuLogTimer.async_wait(
 			boost::bind(logCpuUsage, boost::asio::placeholders::error, &cpuLogTimer, &cpuMeter));
 
+	Dragon::AepWorker aepWorker;
+
 	for (;;) {
 		io_service.poll();
 		if (io_service.stopped()) {
 			break;
 		}
-		// sleep(1);
+		sleep(1);
 	}
 	cout << endl;
+
 
 	LOG4CXX_INFO(benchDragon, "Closing benchmark process");
 

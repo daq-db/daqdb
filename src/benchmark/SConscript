@@ -3,9 +3,13 @@ Import('env')
 env.AppendUnique(LIBPATH=[Dir('.')])
 env.Append(CPPPATH = [Dir('.')])
 
-benchTarget = env.Program('benchmark', Glob('*.cpp'), 
+sources = Glob('*.cpp')
+sources.extend(Glob('workers/*.cpp'))
+
+benchTarget = env.Program('benchmark', sources, 
             LIBS=["pthread",
                 "log4cxx",
+                "store",
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem",
@@ -13,6 +17,7 @@ benchTarget = env.Program('benchmark', Glob('*.cpp'),
                 "boost_timer",
                 "boost_regex",
                 "boost_date_time",
+                File("#/src/3rd/pmemkv/bin/libpmemkv.so"),
                 File("#/src/3rd/cpu-stat/libcpu-stat.a"),
                 File("#/src/3rd/csvpp/libcsvpp.a")
                 ])
