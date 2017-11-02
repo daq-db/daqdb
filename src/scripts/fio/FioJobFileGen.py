@@ -36,7 +36,7 @@ FilenameHowTo = ["#when executing on a file system you must specify size",
                  "#ex. raw device",
                  "#filename=/dev/sda"]
 
-CommonSettings = ["runtime=60",
+CommonSettings = ["runtime=10",
                   "time_based",
                   "#ramp_time=30",
                   "#refill_buffers",
