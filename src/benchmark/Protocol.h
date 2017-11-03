@@ -39,6 +39,7 @@
 enum MsgType {
 	MSG_NONE,
 	MSG_PARAMS,
+	MSG_READY,
 	MSG_WRITE,
 	MSG_WRITE_RESP,
 	MSG_READ,
@@ -52,15 +53,20 @@ static inline std::string MsgTypeToString(MsgType type)
 		return "MSG_NONE";
 	case MSG_PARAMS:
 		return "MSG_PARAMS";
+	case MSG_READY:
+		return "MSG_READY";
 	case MSG_WRITE:
 		return "MSG_WRITE";
 	case MSG_WRITE_RESP:
 		return "MSG_WRITE_RESP";
+	case MSG_READ:
+		return "MSG_READ";
+	case MSG_READ_RESP:
+		return "MSG_READ_RESP";
 	default:
 		return "UNKNOWN";
 	}
 }
-
 
 struct MsgHdr {
 	std::string toString()
@@ -118,6 +124,26 @@ struct MsgOp {
 	MsgHdr Hdr;
 	uint64_t Size;
 };
+
+static inline std::string MsgToString(MsgHdr *hdrp)
+{
+	switch(hdrp->Type) {
+	case MSG_NONE:
+		return "MSG_NONE";
+	case MSG_PARAMS:
+		return ((MsgParams *)hdrp)->toString();
+	case MSG_READY:
+		return ((MsgHdr *)hdrp)->toString();
+	case MSG_WRITE:
+	case MSG_WRITE_RESP:
+	case MSG_READ:
+	case MSG_READ_RESP:
+		return ((MsgOp *)hdrp)->toString();
+	default:
+		return "UNKNOWN";
+	}
+}
+
 
 #endif // PROTOCOL_H
 

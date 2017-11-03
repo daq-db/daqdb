@@ -41,23 +41,35 @@
 class MainNode : public Node {
 public:
 	using WriteHandler = std::function<void (std::shared_ptr<RingBuffer>)>;
+	using ReadHandler = std::function<void (std::shared_ptr<RingBuffer>, size_t)>;
 
 	MainNode(const std::string &node, const std::string &serv, size_t wrBuffSize);
 	virtual ~MainNode();
 
 	void start();
 	void onWrite(WriteHandler handler);
+	void onRead(ReadHandler handler);
 protected:
-
+	void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
 	void onConnectionRequestHandler(std::shared_ptr<Fabric::FabricConnection> conn);
 	void onConnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
 	void onDisconnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
-	void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
+	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
 	void onMsgWrite(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	bool flushWrBuff(size_t offset, size_t len);
 
-	std::shared_ptr<RingBuffer> mRemoteWrBuff;
-	std::shared_ptr<Fabric::FabricMR> mRemoteWrBuffMR;
+	std::shared_ptr<Fabric::FabricConnection> mConn;
+
+	std::shared_ptr<RingBuffer> mWrBuff;
+	std::shared_ptr<Fabric::FabricMR> mWrBuffMR;
 	WriteHandler mWriteHandler;
+
+	std::shared_ptr<RingBuffer> mRdBuff;
+	std::shared_ptr<Fabric::FabricMR> mRdBuffMR;
+	MsgBuffDesc mRdBuffDesc;
+	ReadHandler mReadHandler;
 };
 
 #endif // MAIN_NODE_H

@@ -45,6 +45,13 @@ public:
 
 	virtual void start() = 0;
 protected:
+	virtual void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
+	virtual void onMsgWrite(Fabric::FabricConnection &conn, MsgOp *msg);
+	virtual void onMsgWriteResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	virtual void onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg);
+	virtual void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	virtual void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
+	virtual void onMsgReady(Fabric::FabricConnection &conn);
 
 	std::shared_ptr<Fabric::FabricNode> mNode;
 	uint8_t mTxMsgBuff[MSG_BUFF_SIZE];

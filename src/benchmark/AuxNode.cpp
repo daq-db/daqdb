@@ -36,11 +36,13 @@
 using namespace Fabric;
 using namespace std::placeholders;
 
-AuxNode::AuxNode(const std::string &node, const std::string &serv, const std::string &remoteNode, const std::string &remoteServ) :
-	Node(node, serv),
-	mReady(false)
+AuxNode::AuxNode(const std::string &node, const std::string &serv, const std::string &remoteNode, const std::string &remoteServ, size_t wrBuffSize) :
+	Node(node, serv)
 {
 	mConn = mNode->connection(remoteNode, remoteServ);
+
+	mRdBuff = std::make_shared<RingBuffer>(wrBuffSize);
+	mRdBuffMR = mNode->registerMR(mRdBuff->get(), mRdBuff->size(), REMOTE_WRITE);
 }
 
 AuxNode::~AuxNode()
@@ -52,54 +54,52 @@ void AuxNode::start()
 	mConn->onRecv(std::bind(&AuxNode::onRecvHandler, this, _1, _2, _3));
 
 	mConn->postRecv(mRxMR);
-	/* XXX async ? */
-	mNode->connect(mConn);
-	
-	waitReady();
+
+	mNode->connectAsync(mConn);
+}
+
+void AuxNode::onReady(std::function<void ()> handler)
+{
+	mReadyHandler = handler;
 }
 
 void AuxNode::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, size_t len)
 {
-	union {
-		MsgHdr Hdr;
-		MsgParams Params;
-		MsgOp WriteResp;
-		uint8_t buff[MSG_BUFF_SIZE];
-	} msg;
-
-	memcpy(msg.buff, mr->getPtr(), len);
-
-	conn.postRecv(mr);
-
-	std::string msgStr;
-	switch (msg.Hdr.Type) {
-	case MSG_PARAMS:
-	{
-		msgStr = msg.Params.toString();
-		onMsgParams(&msg.Params);
-		break;
-	}
-	case MSG_WRITE_RESP:
-	{
-		msgStr = msg.WriteResp.toString();
-		onMsgWriteResp(&msg.WriteResp);
-		break;
-	}
-	}
-
-	LOG4CXX_INFO(benchDragon, "Received message from " + conn.getPeerStr() + " " + msgStr);
+	Node::onRecvHandler(conn, mr, len);
 }
 
-void AuxNode::onMsgParams(MsgParams *msg)
+void AuxNode::onMsgReady(Fabric::FabricConnection &conn)
+{
+	notifyReady();
+}
+
+void AuxNode::onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	mRdBuff->notifyWrite(msg->Size);
+}
+
+void AuxNode::onMsgParams(FabricConnection &conn, MsgParams *msg)
 {
 	mRemoteWrBuffDesc = msg->WriteBuff;
 	mWrBuff = std::make_shared<RingBuffer>(mRemoteWrBuffDesc.Size, std::bind(&AuxNode::flushWrBuff, this, _1, _2));
 	mWrBuffMR = mNode->registerMR(mWrBuff->get(), mWrBuff->size(), WRITE);
 
-	notifyReady();
+	sendParams();
 }
 
-void AuxNode::onMsgWriteResp(MsgOp *msg)
+void AuxNode::sendParams()
+{
+	MsgParams *msg = static_cast<MsgParams *>(mTxMR->getPtr());
+	msg->Hdr.Type = MSG_PARAMS;
+	msg->Hdr.Size = sizeof(MsgParams);
+	msg->WriteBuff.Size = mRdBuffMR->getSize();
+	msg->WriteBuff.Addr = (uint64_t)(mRdBuffMR->getPtr());
+	msg->WriteBuff.Key = mRdBuffMR->getRKey();
+
+	mConn->send(mTxMR, msg->Hdr.Size);
+}
+
+void AuxNode::onMsgWriteResp(FabricConnection &conn, MsgOp *msg)
 {
 	mWrBuff->notifyRead(msg->Size);
 }
@@ -111,7 +111,7 @@ bool AuxNode::flushWrBuff(size_t offset, size_t len)
 
 void AuxNode::write(const uint8_t *ptr, size_t len)
 {
-	size_t offset = mWrBuff->write(ptr, len);
+	mWrBuff->write(ptr, len);
 
 	MsgOp *msg = static_cast<MsgOp *>(mTxMR->getPtr());
 	msg->Hdr.Type = MSG_WRITE;
@@ -121,16 +121,30 @@ void AuxNode::write(const uint8_t *ptr, size_t len)
 	mConn->send(mTxMR, msg->Hdr.Size);
 }
 
-void AuxNode::waitReady()
+void AuxNode::read(uint8_t *ptr, size_t len)
 {
-	std::unique_lock<std::mutex> l(mReadyLock);
-	mReadyCond.wait(l, [&] { return mReady; });
+	MsgOp *msg = static_cast<MsgOp *>(mTxMR->getPtr());
+	msg->Hdr.Type = MSG_READ;
+	msg->Hdr.Size = sizeof(MsgOp);
+	msg->Size = len;
+
+	mConn->send(mTxMR, msg->Hdr.Size);
+
+	size_t rd = 0;
+	mRdBuff->read(len, [&] (const uint8_t *buff, size_t l) -> ssize_t {
+		memcpy(&ptr[rd], buff, l);
+		rd += l;
+	});
+
+	msg->Hdr.Type = MSG_READ_RESP;
+	msg->Hdr.Size = sizeof(MsgOp);
+	msg->Size = len;
+
+	mConn->send(mTxMR, msg->Hdr.Size);
 }
 
 void AuxNode::notifyReady()
 {
-	std::unique_lock<std::mutex> l(mReadyLock);
-	mReady = true;
-	l.unlock();
-	mReadyCond.notify_one();
+	if(mReadyHandler)
+		mReadyHandler();
 }

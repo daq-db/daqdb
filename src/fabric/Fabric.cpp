@@ -68,6 +68,9 @@ Fabric::Fabric(const FabricAttributes &attr, const std::string &node,
 
 Fabric::~Fabric()
 {
+	fi_close(&mEq->fid);
+	fi_close(&mDomain->fid);
+	fi_close(&mFabric->fid);
 }
 
 struct fi_info *Fabric::info()

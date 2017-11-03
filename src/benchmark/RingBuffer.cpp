@@ -91,6 +91,9 @@ size_t RingBuffer::write(const uint8_t *ptr, size_t len)
 
 	mEnd = (mEnd + len) % mSize;
 
+	l.unlock();
+	mCond.notify_one();
+
 	return ret;
 }
 
@@ -98,6 +101,9 @@ void RingBuffer::read(size_t len, RingBufferRead read)
 {
 	size_t rd = 0;
 	std::unique_lock<std::mutex> l(mMtx);
+	mCond.wait(l, [&] {
+		return occupied_unlocked() >= len;
+	});
 
 	while (rd < len) {
 		size_t lend = mSize - mBegin;
@@ -125,6 +131,9 @@ void RingBuffer::notifyWrite(size_t len)
 	});
 
 	mEnd = (mEnd + len) % mSize;
+
+	l.unlock();
+	mCond.notify_one();
 }
 
 void RingBuffer::notifyRead(size_t len)

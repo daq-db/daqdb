@@ -44,27 +44,35 @@
 class AuxNode : public Node {
 public:
 	AuxNode(const std::string &node, const std::string &serv,
-		const std::string &remoteNode, const std::string &remoteServ);
+		const std::string &remoteNode, const std::string &remoteServ,
+		size_t wrBuffSize);
 	virtual ~AuxNode();
 
 	void write(const uint8_t *ptr, size_t len);
+	void read(uint8_t *ptr, size_t len);
 	void start();
+	void onReady(std::function<void ()> handler);
 protected:
-	std::shared_ptr<Fabric::FabricConnection> mConn;
-	void onMsgParams(MsgParams *msg);
-	void onMsgWriteResp(MsgOp *msg);
 	void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
+	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
+	void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgWriteResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgReady(Fabric::FabricConnection &conn);
+
+	void sendParams();
+	bool flushWrBuff(size_t offset, size_t len);
+	void notifyReady();
+
+	std::shared_ptr<Fabric::FabricConnection> mConn;
 
 	std::shared_ptr<RingBuffer> mWrBuff;
 	std::shared_ptr<Fabric::FabricMR> mWrBuffMR;
 	MsgBuffDesc mRemoteWrBuffDesc;
-	bool flushWrBuff(size_t offset, size_t len);
 
-	void waitReady();
-	void notifyReady();
-	bool mReady;
-	std::mutex mReadyLock;
-	std::condition_variable mReadyCond;
+	std::shared_ptr<RingBuffer> mRdBuff;
+	std::shared_ptr<Fabric::FabricMR> mRdBuffMR;
+
+	std::function<void ()> mReadyHandler;
 };
 
 #endif // AUX_NODE_H
