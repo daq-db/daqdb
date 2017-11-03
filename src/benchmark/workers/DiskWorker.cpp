@@ -10,12 +10,9 @@
 namespace Dragon {
 
 DiskWorker::DiskWorker() {
-	// TODO Auto-generated constructor stub
-
 }
 
 DiskWorker::~DiskWorker() {
-	// TODO Auto-generated destructor stub
 }
 
 } /* namespace Dragon */

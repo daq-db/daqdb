@@ -45,15 +45,15 @@ def get_read_stats(in_data):
     result_iops = 0
 
     for stat in stats:
-        if 'bw' in stat:
+        if 'BW' in stat:
             result_bw_str = stat.split('=')[1]
-        elif 'iops' in stat:
+        elif 'IOPS' in stat:
             result_iops = int(stat.split('=')[1])
 
-    if 'KB' in result_bw_str:
+    if 'KiB' in result_bw_str:
         result_bw = float(result_bw_str[:result_bw_str.find('K')])
         result_bw *= 1024
-    elif 'MB' in result_bw_str:
+    elif 'MiB' in result_bw_str:
         result_bw = float(result_bw_str[:result_bw_str.find('M')])
         result_bw *= 1024 * 1024
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     for fio_config in fio_config_files:
         with open(fio_config['full_path'], "r") as fio_result_file:
             for line in fio_result_file:
-                if 'read :' in line:
+                if 'read:' in line:
                     bw, iops = get_read_stats(line)
                     fio_config['bw'] = bw
                     fio_config['iops'] = iops

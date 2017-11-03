@@ -102,7 +102,7 @@ if __name__ == "__main__":
         base_config_name = os.path.splitext(fio_config['filename'])[0]
         log_filename = "%s.log" % base_config_name
         execute_config_output = os.path.join(tmp_directory, log_filename)
-        subprocess.Popen(['fio', '--output', execute_config_output, execute_config]).wait()
+        subprocess.Popen(['./FioJobFiles/fio', '--output', execute_config_output, execute_config]).wait()
 
         result_folder = os.path.join(result_directory, base_config_name)
         os.mkdir(result_folder)
