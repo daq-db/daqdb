@@ -44,4 +44,6 @@ using namespace log4cxx;
 using namespace log4cxx::xml;
 using namespace log4cxx::helpers;
 
+extern LoggerPtr benchDragon;
+
 #endif /* SRC_BENCHMARK_DEBUG_H_ */

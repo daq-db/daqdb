@@ -29,39 +29,95 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
+#ifndef PROTOCOL_H
+#define PROTOCOL_H
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#include <stdint.h>
+#include <string>
+#include <sstream>
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
-
-namespace Fabric {
-
-class Fabric {
-public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
-
-	FabricAttributes attr() { return mAttr; }
-
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+enum MsgType {
+	MSG_NONE,
+	MSG_PARAMS,
+	MSG_WRITE,
+	MSG_WRITE_RESP,
+	MSG_READ,
+	MSG_READ_RESP,
 };
 
+static inline std::string MsgTypeToString(MsgType type)
+{
+	switch(type) {
+	case MSG_NONE:
+		return "MSG_NONE";
+	case MSG_PARAMS:
+		return "MSG_PARAMS";
+	case MSG_WRITE:
+		return "MSG_WRITE";
+	case MSG_WRITE_RESP:
+		return "MSG_WRITE_RESP";
+	default:
+		return "UNKNOWN";
+	}
 }
 
-#endif // FABRIC_HPP
+
+struct MsgHdr {
+	std::string toString()
+	{
+		std::stringstream ss;
+		ss << "{Type: " << MsgTypeToString((MsgType)Type);
+		ss << ", Len: " << Size;
+		ss << "}";
+		return ss.str();
+	}
+
+	uint64_t Type;
+	uint64_t Size;
+};
+
+struct MsgBuffDesc {
+	std::string toString()
+	{ 
+		std::stringstream ss;
+		ss << "{Size: " << Size;
+		ss << ", Addr: 0x" << std::hex << Addr;
+		ss << ", Key: 0x" << std::hex << Key;
+		ss << "}";
+		return ss.str();
+	}
+
+	uint64_t Size;
+	uint64_t Addr;
+	uint64_t Key;
+};
+
+struct MsgParams {
+	std::string toString()
+	{
+		std::stringstream ss;
+		ss << "{Hdr: " << Hdr.toString();
+		ss << ", WriteBuff: " <<  WriteBuff.toString();
+		ss << "}";
+		return ss.str();
+	}
+
+	MsgHdr Hdr;
+	MsgBuffDesc WriteBuff;
+};
+
+struct MsgOp {
+	std::string toString()
+	{
+		std::stringstream ss;
+		ss << "{Hdr: " << Hdr.toString();
+		ss << ", Size: " << Size;
+		return ss.str();
+	}
+
+	MsgHdr Hdr;
+	uint64_t Size;
+};
+
+#endif // PROTOCOL_H
+

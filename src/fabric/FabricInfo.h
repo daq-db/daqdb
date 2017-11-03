@@ -37,6 +37,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <rdma/fabric.h>
+#include <rdma/fi_domain.h>
+
+#include <FabricAttributes.h>
 
 namespace Fabric {
 
@@ -47,6 +50,7 @@ public:
 public:
 	FabricInfo();
 	FabricInfo(struct fi_info *info);
+	FabricInfo(const FabricAttributes &attr, const std::string &node, const std::string &serv, bool listener);
 	virtual ~FabricInfo();
 
 	std::string getPeerStr();
@@ -55,6 +59,7 @@ public:
 	struct fi_info *info();
 protected:
 	struct fi_info *mInfo;
+	struct fi_info *mHints;
 };
 
 }

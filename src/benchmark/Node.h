@@ -29,39 +29,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
+#ifndef NODE_H
+#define NODE_H
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#include <string>
+#include <FabricNode.h>
+#include "Protocol.h"
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#define MSG_BUFF_SIZE 4096
 
-namespace Fabric {
-
-class Fabric {
+class Node {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	Node(const std::string &node, const std::string &serv);
+	virtual ~Node();
 
-	FabricAttributes attr() { return mAttr; }
-
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
+	virtual void start() = 0;
 protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+
+	std::shared_ptr<Fabric::FabricNode> mNode;
+	uint8_t mTxMsgBuff[MSG_BUFF_SIZE];
+	uint8_t mRxMsgBuff[MSG_BUFF_SIZE];
+	std::shared_ptr<Fabric::FabricMR> mTxMR;
+	std::shared_ptr<Fabric::FabricMR> mRxMR;
 };
 
-}
+#endif // NODE_H
 
-#endif // FABRIC_HPP

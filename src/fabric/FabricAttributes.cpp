@@ -35,8 +35,7 @@
 namespace Fabric {
 
 FabricAttributes::FabricAttributes() :
-	mProv(""),
-	mBufferSize(4096)
+	mProv("")
 {
 }
 
@@ -47,11 +46,6 @@ FabricAttributes::~FabricAttributes()
 void FabricAttributes::setProvider(const std::string &prov)
 {
 	mProv = prov;
-}
-
-void FabricAttributes::setBufferSize(size_t size)
-{
-	mBufferSize = size;
 }
 
 }

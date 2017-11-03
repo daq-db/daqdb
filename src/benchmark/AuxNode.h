@@ -29,39 +29,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
+#ifndef AUX_NODE_H
+#define AUX_NODE_H
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#include "Node.h"
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <string>
+#include <mutex>
+#include <condition_variable>
+#include <FabricNode.h>
 
-namespace Fabric {
+#include "RingBuffer.h"
 
-class Fabric {
+class AuxNode : public Node {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	AuxNode(const std::string &node, const std::string &serv,
+		const std::string &remoteNode, const std::string &remoteServ);
+	virtual ~AuxNode();
 
-	FabricAttributes attr() { return mAttr; }
-
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
+	void write(const uint8_t *ptr, size_t len);
+	void start();
 protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+	std::shared_ptr<Fabric::FabricConnection> mConn;
+	void onMsgParams(MsgParams *msg);
+	void onMsgWriteResp(MsgOp *msg);
+	void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
+
+	std::shared_ptr<RingBuffer> mWrBuff;
+	std::shared_ptr<Fabric::FabricMR> mWrBuffMR;
+	MsgBuffDesc mRemoteWrBuffDesc;
+	bool flushWrBuff(size_t offset, size_t len);
+
+	void waitReady();
+	void notifyReady();
+	bool mReady;
+	std::mutex mReadyLock;
+	std::condition_variable mReadyCond;
 };
 
-}
-
-#endif // FABRIC_HPP
+#endif // AUX_NODE_H

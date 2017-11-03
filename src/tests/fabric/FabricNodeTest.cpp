@@ -77,7 +77,7 @@ newNode(const Fabric::FabricAttributes &attr, const std::string &addr, const std
 	Node *node = new Node();
 	node->node = new Fabric::FabricNode(attr, addr, serv);
 
-	node->node->onConnectionRequest([=] (Fabric::FabricConnection &conn) -> void {
+	node->node->onConnectionRequest([=] (std::shared_ptr<Fabric::FabricConnection> conn) -> void {
 		std::unique_lock<std::mutex> lock(node->lock);
 
 		BOOST_CHECK_EQUAL(node->onConnectionRequest, false);
@@ -90,7 +90,7 @@ newNode(const Fabric::FabricAttributes &attr, const std::string &addr, const std
 	});
 
 
-	node->node->onConnected([=] (Fabric::FabricConnection &conn) -> void {
+	node->node->onConnected([=] (std::shared_ptr<Fabric::FabricConnection> conn) -> void {
 		std::unique_lock<std::mutex> lock(node->lock);
 
 		BOOST_CHECK_EQUAL(node->onConnected, false);
@@ -124,7 +124,8 @@ BOOST_AUTO_TEST_CASE(FabricNodeConnect)
 	node1->node->listen();
 	node2->node->listen();
 
-	Fabric::FabricConnection &conn = node2->node->connect("127.0.0.1", "1234");
+	std::shared_ptr<Fabric::FabricConnection> conn = node2->node->connection("127.0.0.1", "1234");
+	node2->node->connect(conn);
 
 	node1->wait([&] { return node1->onConnected; });
 	node2->wait([&] { return node2->onConnected; });

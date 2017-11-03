@@ -42,10 +42,8 @@ public:
 	virtual ~FabricAttributes();
 
 	void setProvider(const std::string &node);
-	void setBufferSize(size_t size);
 
 	std::string mProv;
-	size_t mBufferSize;
 };
 
 }
