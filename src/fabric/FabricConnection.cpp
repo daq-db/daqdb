@@ -34,6 +34,7 @@
 #include <FabricInfo.h>
 #include <rdma/fi_rma.h>
 #include <string.h>
+#include <iostream>
 
 namespace Fabric {
 
@@ -190,19 +191,24 @@ void FabricConnection::send(std::shared_ptr<FabricMR> mr, size_t len)
 	size_t l = len ? len : mr->getSize();
 	int ret = fi_send(mEp, mr->getPtr(), l, mr->getLKey(), 0, mr.get());
 	if (ret)
-		throw std::string("fi_send failed");
+		std::cerr << std::string("fi_send failed");
 
 	struct fi_cq_msg_entry entry;
-	ssize_t sret = fi_cq_sread(mTxCq, &entry,
-			1, NULL, -1);
+	entry.op_context = (void *)0xdeadbeef;
+	ssize_t sret;
+	do {
+		sret = fi_cq_sread(mTxCq, &entry,
+				1, NULL, -1);
+	} while (sret == -FI_EAGAIN);
+
 	if (sret < 0)
-		throw std::string("fi_cq_sread failed");
+		std::cerr << std::string("fi_cq_sread failed");
 
 	if (!(entry.flags & FI_SEND))
-		throw std::string("invalid event received");
+		std::cerr << std::string("invalid event received");
 
 	if (entry.op_context != mr.get())
-		throw std::string("invalid context received");
+		std::cerr << std::string("invalid context received ") << entry.op_context << "!=" << mr.get();
 }
 
 void FabricConnection::write(std::shared_ptr<FabricMR> mr, size_t offset, size_t len, uint64_t raddr, uint64_t rkey)

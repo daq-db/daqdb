@@ -32,6 +32,7 @@
 
 #include "Node.h"
 #include "debug.h"
+#include <string.h>
 
 using namespace Fabric;
 
@@ -44,4 +45,74 @@ Node::Node(const std::string &node, const std::string &serv) :
 
 Node::~Node()
 {
+}
+
+void Node::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, size_t len)
+{
+	union {
+		MsgHdr Hdr;
+		MsgParams Params;
+		MsgOp Write;
+		MsgOp WriteResp;
+		MsgOp Read;
+		MsgOp ReadResp;
+		uint8_t buff[MSG_BUFF_SIZE];
+	} msg;
+
+	memcpy(msg.buff, mr->getPtr(), len);
+	conn.postRecv(mr);
+
+	LOG4CXX_INFO(benchDragon, "Received message from " + conn.getPeerStr() + " " + MsgToString(&msg.Hdr));
+
+	switch (msg.Hdr.Type)
+	{
+	case MSG_WRITE:
+		onMsgWrite(conn, &msg.Write);
+		break;
+	case MSG_WRITE_RESP:
+		onMsgWriteResp(conn, &msg.WriteResp);
+		break;
+	case MSG_READ:
+		onMsgRead(conn, &msg.Read);
+		break;
+	case MSG_READ_RESP:
+		onMsgReadResp(conn, &msg.ReadResp);
+		break;
+	case MSG_PARAMS:
+		onMsgParams(conn, &msg.Params);
+		break;
+	case MSG_READY:
+		onMsgReady(conn);
+		break;
+	}
+}
+
+void Node::onMsgWrite(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgWrite function not implemented");
+}
+
+void Node::onMsgWriteResp(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgWriteResp function not implemented");
+}
+
+void Node::onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgRead function not implemented");
+}
+
+void Node::onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgReadResp function not implemented");
+}
+
+void Node::onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgParams function not implemented");
+}
+
+void Node::onMsgReady(Fabric::FabricConnection &conn)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgReady function not implemented");
 }

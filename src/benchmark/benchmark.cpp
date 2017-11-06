@@ -73,7 +73,7 @@ int main(int argc, const char *argv[]) {
 	std::string addr;
 	std::string remoteAddr;
 	bool isMainNode = true;
-	unsigned long long buffSize;
+	size_t buffSize;
 
 	log4cxx::ConsoleAppender *consoleAppender = new log4cxx::ConsoleAppender(
 			log4cxx::LayoutPtr(new log4cxx::SimpleLayout()));
@@ -89,7 +89,7 @@ int main(int argc, const char *argv[]) {
 		("addr,a", po::value<std::string>(&addr)->default_value("127.0.0.1"), "Address")
 		("rport,r", po::value<unsigned short>(&remotePort)->default_value(1234), "Port number")
 		("node,n", po::value<std::string>(&remoteAddr)->default_value("127.0.0.1"), "Address")
-		("buff-size", po::value<unsigned long long>(&buffSize)->default_value(16 * 1024 * 1024), "Ring buffer size")
+		("buff-size", po::value<size_t>(&buffSize)->default_value(16 * 1024 * 1024), "Ring buffer size")
 		("aux,x", "Auxiliary node")
 		("main,m", "Main node")
 		("log,l", "Enable logging")
@@ -145,24 +145,52 @@ int main(int argc, const char *argv[]) {
 
 	unique_ptr<AuxNode> auxNode;
 	unique_ptr<MainNode> mainNode;
+#define HELLO
 
+#ifdef HELLO
+	boost::asio::deadline_timer io_timer(io_service, boost::posix_time::seconds(1));
+	int count = 0;
+	std::function<void (const boost::system::error_code&)> io_timer_handler = [&] (const boost::system::error_code&) -> void {
+		std::string hello("MSG " + std::to_string(count++));
+		auxNode->write((uint8_t *)hello.c_str(), hello.size());
+
+		uint8_t buff[4096];
+		auxNode->read(buff, hello.size());
+		std::string h((const char *)buff, hello.size());
+
+		LOG4CXX_INFO(benchDragon, "READ: " + h);
+		io_timer.async_wait(io_timer_handler);
+	};
+
+	std::string data;
+#endif
 	if (isMainNode) {
 		mainNode = std::unique_ptr<MainNode>(new MainNode(addr, std::to_string(port), buffSize));
-		mainNode->onWrite([&] (std::shared_ptr<RingBuffer> buff) -> void {
-			buff->read(buff->occupied(), [&] (const uint8_t *buff, size_t l) -> ssize_t {
 #ifdef HELLO
-				LOG4CXX_INFO(benchDragon, "Data: " + std::string((const char *)buff, l));
-#endif
+		mainNode->onWrite([&] (std::shared_ptr<RingBuffer> buff) -> void {
+			data = "";
+			buff->read(buff->occupied(), [&] (const uint8_t *buff, size_t l) -> ssize_t {
+				data += std::string((const char *)buff, l);
 			});
+			LOG4CXX_INFO(benchDragon, "onWrite: " + data);
 		});
+
+		mainNode->onRead([&] (std::shared_ptr<RingBuffer> buff, size_t len) -> void {
+			buff->write((const uint8_t *)data.c_str(), data.size());
+			LOG4CXX_INFO(benchDragon, "onRead: " + data);
+		});
+
+#endif
 		mainNode->start();
 	} else {
-		auxNode = std::unique_ptr<AuxNode>(new AuxNode(addr, std::to_string(port), remoteAddr, std::to_string(remotePort)));
-		auxNode->start();
+		auxNode = std::unique_ptr<AuxNode>(new AuxNode(addr, std::to_string(port),
+				remoteAddr, std::to_string(remotePort), buffSize));
+		auxNode->onReady([&] () -> void {
 #ifdef HELLO
-		std::string hello("Hello!");
-		auxNode->write((uint8_t *)hello.c_str(), hello.size());
+			io_timer.async_wait(io_timer_handler);
 #endif
+		});
+		auxNode->start();
 	}
 
 	LOG4CXX_INFO(benchDragon, "Start benchmark process");

@@ -44,8 +44,8 @@ MainNode::MainNode(const std::string &node, const std::string &serv, size_t wrBu
 	mNode->onConnected(std::bind(&MainNode::onConnectedHandler, this, std::placeholders::_1));
 	mNode->onDisconnected(std::bind(&MainNode::onDisconnectedHandler, this, std::placeholders::_1));
 
-	mRemoteWrBuff = std::make_shared<RingBuffer>(wrBuffSize, RingBuffer::RingBufferFlush());
-	mRemoteWrBuffMR = mNode->registerMR(static_cast<void *>(mRemoteWrBuff->get()), wrBuffSize, REMOTE_WRITE);
+	mWrBuff = std::make_shared<RingBuffer>(wrBuffSize);
+	mWrBuffMR = mNode->registerMR(static_cast<void *>(mWrBuff->get()), wrBuffSize, REMOTE_WRITE);
 }
 
 MainNode::~MainNode()
@@ -63,6 +63,8 @@ void MainNode::onConnectionRequestHandler(std::shared_ptr<FabricConnection> conn
 
 	conn->onRecv(std::bind(&MainNode::onRecvHandler, this, _1, _2, _3));
 	conn->postRecv(mRxMR);
+
+	mConn = conn;
 }
 
 void MainNode::onConnectedHandler(std::shared_ptr<FabricConnection> conn)
@@ -72,62 +74,86 @@ void MainNode::onConnectedHandler(std::shared_ptr<FabricConnection> conn)
 	MsgParams *msg = static_cast<MsgParams *>(mTxMR->getPtr());
 	msg->Hdr.Type = MSG_PARAMS;
 	msg->Hdr.Size = sizeof(*msg);
-	msg->WriteBuff.Size = mRemoteWrBuffMR->getSize();
-	msg->WriteBuff.Addr = (uint64_t)(mRemoteWrBuffMR->getPtr());
-	msg->WriteBuff.Key = mRemoteWrBuffMR->getRKey();
+	msg->WriteBuff.Size = mWrBuffMR->getSize();
+	msg->WriteBuff.Addr = (uint64_t)(mWrBuffMR->getPtr());
+	msg->WriteBuff.Key = mWrBuffMR->getRKey();
 
 	conn->send(mTxMR, msg->Hdr.Size);
 }
+
 
 void MainNode::onDisconnectedHandler(std::shared_ptr<FabricConnection> conn)
 {
 	LOG4CXX_INFO(benchDragon, "Disconnected with " + conn->getPeerStr());
 }
 
-void MainNode::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, size_t len)
+void MainNode::onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len)
 {
-	union {
-		MsgHdr Hdr;
-		MsgOp Write;
-		uint8_t buff[MSG_BUFF_SIZE];
-	} msg;
+	Node::onRecvHandler(conn, mr, len);
+}
 
-	memcpy(msg.buff, mr->getPtr(), len);
-	conn.postRecv(mr);
+void MainNode::onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg)
+{
+	mRdBuffDesc = msg->WriteBuff;
+	mRdBuff = std::make_shared<RingBuffer>(mRdBuffDesc.Size, std::bind(&MainNode::flushWrBuff, this, _1, _2));
+	mRdBuffMR = mNode->registerMR(mRdBuff->get(), mRdBuff->size(), WRITE);
 
-	std::string msgStr;
-	switch (msg.Hdr.Type)
-	{
-	case MSG_WRITE:
-		msgStr = msg.Write.toString();
-		onMsgWrite(conn, &msg.Write);
-		break;
-	}
+	MsgHdr *res = static_cast<MsgHdr *>(mTxMR->getPtr());
+	res->Type = MSG_READY;
+	res->Size = sizeof(MsgHdr);
 
-	LOG4CXX_INFO(benchDragon, "Received message from " + conn.getPeerStr() + " " + msgStr);
+	conn.send(mTxMR, res->Size);
 }
 
 void MainNode::onMsgWrite(FabricConnection &conn, MsgOp *msg)
 {
-	mRemoteWrBuff->notifyWrite(msg->Size);
-	size_t occupied = mRemoteWrBuff->occupied();
+	mWrBuff->notifyWrite(msg->Size);
+	size_t occupied = mWrBuff->occupied();
 
-	if (!mWriteHandler)
-		return;
+	mWriteHandler(mWrBuff);
 
-	mWriteHandler(mRemoteWrBuff);
-
-	if (occupied > mRemoteWrBuff->occupied()) {
+	if (occupied > mWrBuff->occupied()) {
 		MsgOp *res = static_cast<MsgOp *>(mTxMR->getPtr());
 		res->Hdr.Type = MSG_WRITE_RESP;
 		res->Hdr.Size = sizeof(MsgOp);
-		res->Size = occupied - mRemoteWrBuff->occupied();
+		res->Size = occupied - mWrBuff->occupied();
 
 		conn.send(mTxMR, res->Hdr.Size);
 	}
 }
 
+void MainNode::onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	size_t occupied = mRdBuff->occupied();
+
+	mReadHandler(mRdBuff, msg->Size);
+
+	if (mRdBuff->occupied() > occupied) {
+		MsgOp *res = static_cast<MsgOp *>(mTxMR->getPtr());
+		res->Hdr.Type = MSG_READ_RESP;
+		res->Hdr.Size = sizeof(MsgOp);
+		res->Size = mRdBuff->occupied() - occupied;
+
+		conn.send(mTxMR, res->Hdr.Size);
+	}
+}
+
+void MainNode::onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	mRdBuff->notifyRead(msg->Size);
+}
+
 void MainNode::onWrite(WriteHandler handler)
 {
 	mWriteHandler = handler;
+}
+
+void MainNode::onRead(ReadHandler handler)
+{
+	mReadHandler = handler;
+}
+
+bool MainNode::flushWrBuff(size_t offset, size_t len)
+{
+	mConn->write(mRdBuffMR, offset, len, mRdBuffDesc.Addr, mRdBuffDesc.Key);
 }

@@ -41,7 +41,7 @@ public:
 	using RingBufferFlush = std::function<bool (size_t, size_t)>;
 	using RingBufferRead = std::function<ssize_t (const uint8_t *, size_t len)>;
 public:
-	RingBuffer(size_t size, RingBufferFlush flush);
+	RingBuffer(size_t size, RingBufferFlush flush = RingBufferFlush());
 	virtual ~RingBuffer();
 
 	uint8_t *get();
