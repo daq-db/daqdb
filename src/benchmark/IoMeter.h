@@ -30,31 +30,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_BENCHMARK_WORKERS_AEPWORKER_H_
-#define SRC_BENCHMARK_WORKERS_AEPWORKER_H_
+#ifndef SRC_BENCHMARK_IOMETER_H_
+#define SRC_BENCHMARK_IOMETER_H_
 
-#include <memory>
-
-#include <KVStore.h>
-#include "../IoMeter.h"
+#include <tuple>
+#include "boost/date_time/posix_time/posix_time.hpp"
 
 namespace Dragon {
 
-class AepWorker {
+class IoMeter {
 public:
-	AepWorker();
-	virtual ~AepWorker();
+	IoMeter();
+	virtual ~IoMeter();
 
-	KVStatus Put(const string &key, const string &valuestr);
-	KVStatus Get(const string &key, string *valuestr);
 	std::tuple<float, float> getIoStat();
 
+	unsigned long long _io_count_read = 0;
+	unsigned long long _io_count_write = 0;
+
 private:
-	IoMeter _ioMeter;
-	std::unique_ptr<Dragon::KVStore> _spStore;
+	boost::posix_time::ptime _snapshot_time;
 
 };
 
 } /* namespace Dragon */
 
-#endif /* SRC_BENCHMARK_WORKERS_AEPWORKER_H_ */
+#endif /* SRC_BENCHMARK_IOMETER_H_ */

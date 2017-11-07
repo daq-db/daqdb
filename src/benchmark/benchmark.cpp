@@ -41,8 +41,12 @@
 
 #include "debug.h"
 #include "CpuMeter.h"
+#include "IoMeter.h"
 
 #include "workers/AepWorker.h"
+#include "workers/DiskWorker.h"
+#include "SimFogKV.h"
+
 #include "AuxNode.h"
 #include "MainNode.h"
 
@@ -51,7 +55,6 @@ using namespace Fabric;
 
 namespace po = boost::program_options;
 namespace as = boost::asio;
-
 
 LoggerPtr benchDragon(Logger::getLogger("benchmark"));
 
@@ -62,9 +65,11 @@ void logCpuUsage(const boost::system::error_code&,
 		boost::asio::deadline_timer* cpuLogTimer, Dragon::CpuMeter* cpuMeter) {
 	cpuMeter->logCpuUsage();
 
-	cpuLogTimer->expires_at(cpuLogTimer->expires_at() + boost::posix_time::seconds(5));
+	cpuLogTimer->expires_at(
+			cpuLogTimer->expires_at() + boost::posix_time::seconds(5));
 	cpuLogTimer->async_wait(
-			boost::bind(logCpuUsage, boost::asio::placeholders::error, cpuLogTimer, cpuMeter));
+			boost::bind(logCpuUsage, boost::asio::placeholders::error,
+					cpuLogTimer, cpuMeter));
 }
 
 int main(int argc, const char *argv[]) {
@@ -72,6 +77,10 @@ int main(int argc, const char *argv[]) {
 	unsigned short remotePort;
 	std::string addr;
 	std::string remoteAddr;
+
+	std::string diskPath;
+	unsigned int diskBuffSize;
+
 	bool isMainNode = true;
 	size_t buffSize;
 
@@ -82,18 +91,24 @@ int main(int argc, const char *argv[]) {
 	log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
 
 #if (1) // Cmd line parsing region
-	po::options_description argumentsDescription{"Options"};
-	argumentsDescription.add_options()
-		("help,h", "Print help messages")
-		("port,p", po::value<unsigned short>(&port)->default_value(1234), "Port number")
-		("addr,a", po::value<std::string>(&addr)->default_value("127.0.0.1"), "Address")
-		("rport,r", po::value<unsigned short>(&remotePort)->default_value(1234), "Port number")
-		("node,n", po::value<std::string>(&remoteAddr)->default_value("127.0.0.1"), "Address")
-		("buff-size", po::value<size_t>(&buffSize)->default_value(16 * 1024 * 1024), "Ring buffer size")
-		("aux,x", "Auxiliary node")
-		("main,m", "Main node")
-		("log,l", "Enable logging")
-		("csv,c","Enable creation of CSV file");
+	po::options_description argumentsDescription { "Options" };
+	argumentsDescription.add_options()("help,h", "Print help messages")(
+			"port,p", po::value<unsigned short>(&port)->default_value(1234),
+			"Port number")("addr,a",
+			po::value<std::string>(&addr)->default_value("127.0.0.1"),
+			"Address")("rport,r",
+			po::value<unsigned short>(&remotePort)->default_value(1234),
+			"Port number")("node,n",
+			po::value<std::string>(&remoteAddr)->default_value("127.0.0.1"),
+			"Address")("buff-size",
+			po::value<size_t>(&buffSize)->default_value(16 * 1024 * 1024),
+			"Ring buffer size")("aux,x", "Auxiliary node")("main,m",
+			"Main node")("log,l", "Enable logging")("csv,c",
+			"Enable creation of CSV file")("disk,d",
+			po::value<std::string>(&diskPath)->default_value("/mnt/test_file"),
+			"Path to value's DB file")("buff,b",
+			po::value<unsigned int>(&diskBuffSize)->default_value(4 * 1024),
+			"value's DB element size");
 
 	bool enableCSV = false;
 	po::variables_map parsedArguments;
@@ -129,7 +144,9 @@ int main(int argc, const char *argv[]) {
 
 	LOG4CXX_INFO(benchDragon, "Address: " + addr);
 	LOG4CXX_INFO(benchDragon, "Port   : " + std::to_string(port));
-	LOG4CXX_INFO(benchDragon, "Node   : " + (isMainNode ? std::string("Main") : std::string("Aux")));
+	LOG4CXX_INFO(benchDragon,
+			"Node   : "
+					+ (isMainNode ? std::string("Main") : std::string("Aux")));
 
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
@@ -137,11 +154,11 @@ int main(int argc, const char *argv[]) {
 
 	Dragon::CpuMeter cpuMeter(enableCSV);
 
-	boost::asio::deadline_timer cpuLogTimer(io_service, boost::posix_time::seconds(5));
+	boost::asio::deadline_timer cpuLogTimer(io_service,
+			boost::posix_time::seconds(5));
 	cpuLogTimer.async_wait(
-			boost::bind(logCpuUsage, boost::asio::placeholders::error, &cpuLogTimer, &cpuMeter));
-
-	Dragon::AepWorker aepWorker;
+			boost::bind(logCpuUsage, boost::asio::placeholders::error,
+					&cpuLogTimer, &cpuMeter));
 
 	unique_ptr<AuxNode> auxNode;
 	unique_ptr<MainNode> mainNode;
@@ -195,17 +212,38 @@ int main(int argc, const char *argv[]) {
 
 	LOG4CXX_INFO(benchDragon, "Start benchmark process");
 
+	Dragon::SimFogKV simFog(diskPath, diskBuffSize);
+	vector<char> buffer;
+	buffer.assign(diskBuffSize, 'a');
+
 	for (;;) {
 		io_service.poll();
 		if (io_service.stopped()) {
 			break;
 		}
+
+		/*! example use
+
+		for (int index = 0; index < 1000; ++index) {
+			auto actionStatus = simFog.Put(std::to_string(index), buffer);
+		}
+		for (int index = 0; index < 1000; ++index) {
+			string valuestr;
+			auto actionStatus = simFog.Get(std::to_string(index), buffer);
+		}
+
+		float readStat = 0;
+		float writeStat = 0;
+		tie(readStat, writeStat) = simFog.getIoStat();
+		if (readStat > 0)
+		LOG4CXX_INFO(benchDragon,
+			boost::format("Read[%1% op/s], Write[%2% op/s]") % readStat % writeStat);
+
+		*/
+
 		sleep(1);
 	}
 	cout << endl;
-
-
-	LOG4CXX_INFO(benchDragon, "Closing benchmark process");
 
 	return 0;
 }

@@ -32,13 +32,52 @@
 
 #include "SimFogKV.h"
 
+#include <log4cxx/basicconfigurator.h>
+#include <log4cxx/consoleappender.h>
+#include <log4cxx/helpers/exception.h>
+#include <log4cxx/logger.h>
+#include <log4cxx/simplelayout.h>
+#include <log4cxx/xml/domconfigurator.h>
+
+#include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+
+using namespace log4cxx;
+using namespace log4cxx::xml;
+using namespace log4cxx::helpers;
+
 namespace Dragon {
 
-SimFogKV::SimFogKV() {
-
+SimFogKV::SimFogKV(const std::string &diskPath, const unsigned int elementSize) : _diskWorker(diskPath, elementSize){
 }
 
 SimFogKV::~SimFogKV() {
+}
+
+KVStatus SimFogKV::Put(const std::string& key, const std::vector<char> &value) {
+
+	KVStatus status;
+	unsigned long int startLba;
+	std::tie(status, startLba) = _diskWorker.Add(value);
+
+	auto actionStatus = _aepWorker.Put(key, std::to_string(startLba));
+
+	return KVStatus::OK;
+}
+
+KVStatus SimFogKV::Get(const std::string& key, std::vector<char> &value) {
+
+	string valuestr;
+	auto actionStatus = _aepWorker.Get(key, &valuestr);
+
+	auto status = _diskWorker.Read(boost::lexical_cast<unsigned long int>(valuestr), value);
+
+	return KVStatus::OK;
+}
+
+std::tuple<float, float> SimFogKV::getIoStat() {
+
+	return _aepWorker.getIoStat();
 }
 
 } /* namespace Dragon */

@@ -1,7 +1,7 @@
 Import('env')
 
-env.AppendUnique(LIBPATH=[Dir('.')])
-env.Append(CPPPATH = [Dir('.')])
+env.AppendUnique(LIBPATH=[Dir('.'), Dir('./workers')])
+env.Append(CPPPATH = [Dir('.'), Dir('./workers')])
 
 sources = Glob('*.cpp')
 sources.extend(Glob('workers/*.cpp'))
@@ -20,8 +20,8 @@ benchTarget = env.Program('benchmark', sources,
                 File("#/src/3rd/pmemkv/bin/libpmemkv.so"),
                 File("#/src/3rd/cpu-stat/libcpu-stat.a"),
                 File("#/src/3rd/csvpp/libcsvpp.a"),
-		"fabricpp",
-		"fabric"
+                "fabricpp",
+                "fabric"
                 ])
 
 copyBenchTarget = Command(target = "#/benchmark",

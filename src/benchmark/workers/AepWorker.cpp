@@ -51,10 +51,25 @@ AepWorker::AepWorker() {
 
 	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "New PmemKVStore created");
 	this->_spStore.reset(
-		new Dragon::PmemKVStore(0, isTemporaryDb));
+		new Dragon::PmemKVStore(1, isTemporaryDb));
 }
 
 AepWorker::~AepWorker() {
 }
 
+KVStatus AepWorker::Put(const string& key, const string& valuestr) {
+	_ioMeter._io_count_write++;
+	return _spStore->Put(key, valuestr);
+}
+
+KVStatus AepWorker::Get(const string& key, string* valuestr) {
+	_ioMeter._io_count_read++;
+	return _spStore->Get(key, valuestr);
+}
+
+std::tuple<float, float> AepWorker::getIoStat() {
+	return _ioMeter.getIoStat();
+}
+
 } /* namespace Dragon */
+

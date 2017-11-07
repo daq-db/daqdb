@@ -48,7 +48,7 @@ def get_read_stats(in_data):
         if 'BW' in stat:
             result_bw_str = stat.split('=')[1]
         elif 'IOPS' in stat:
-            result_iops = int(stat.split('=')[1])
+            result_iops_str = stat.split('=')[1]
 
     if 'KiB' in result_bw_str:
         result_bw = float(result_bw_str[:result_bw_str.find('K')])
@@ -57,8 +57,20 @@ def get_read_stats(in_data):
         result_bw = float(result_bw_str[:result_bw_str.find('M')])
         result_bw *= 1024 * 1024
 
+    if 'k' in result_iops_str:
+        result_iops = float(result_iops_str[:result_iops_str.find('k')])
+        result_iops *= 1000
+
     return result_bw, result_iops
 
+def get_latency_ms(in_data):
+    """
+    Retrieve data from fio 'lat' stat line
+    example (lat (usec): min=113, max=3318, avg=151.96, stdev=26.04)
+    :param in_data: line to parse
+    :return: average latency
+    """
+    return get_latency(in_data) * 1000
 
 def get_latency(in_data):
     """
@@ -122,33 +134,43 @@ if __name__ == "__main__":
 
     for fio_config in fio_config_files:
         with open(fio_config['full_path'], "r") as fio_result_file:
+            fio_config['bwr'] = 0
+            fio_config['bww'] = 0
+            fio_config['lat'] = 0
             for line in fio_result_file:
+
                 if 'read:' in line:
                     bw, iops = get_read_stats(line)
-                    fio_config['bw'] = bw
+                    fio_config['bwr'] = bw
+                    fio_config['iops'] = iops
+                if 'write:' in line:
+                    bw, iops = get_read_stats(line)
+                    fio_config['bww'] = bw
                     fio_config['iops'] = iops
                 elif 'lat (usec): min' in line:
                     fio_config['lat'] = get_latency(line)
+                elif 'lat (msec): min' in line:
+                    fio_config['lat'] = get_latency_ms(line)
                 elif 'cpu' in line:
                     fio_config['cpu'] = get_cpu(line)
 
     print '-' * 80
     sorted_by_cpu = sorted(fio_config_files, key=lambda cpu: cpu['cpu'], reverse=True)
     for fio_config in sorted_by_cpu:
-        print 'cpu = [%s]: %s - bw[%s]; iops[%s]; lat[%s]' % (
-            fio_config['cpu'], fio_config['filename'], bitmath.Byte(bytes=fio_config['bw']).best_prefix(), fio_config['iops'], fio_config['lat'])
+        print 'cpu = [%s]: %s - bwr[%s]; bww[%s]; iops[%s]; lat[%s]' % (
+            fio_config['cpu'], fio_config['filename'], bitmath.Byte(bytes=fio_config['bwr']).best_prefix(), bitmath.Byte(bytes=fio_config['bww']).best_prefix(), fio_config['iops'], fio_config['lat'])
 
     print '-' * 80
     sorted_by_lat = sorted(fio_config_files, key=lambda lat: lat['lat'])
     for fio_config in sorted_by_lat:
-        print 'latency = [%s us]: %s - bw[%s]; iops[%s]; cpu[%s]' % (
-            fio_config['lat'], fio_config['filename'], fio_config['bw'], fio_config['iops'],
+        print 'latency = [%s us]: %s - bwr[%s]; bww[%s]; iops[%s]; cpu[%s]' % (
+            fio_config['lat'], fio_config['filename'], fio_config['bwr'], fio_config['bww'], fio_config['iops'],
             fio_config['cpu'])
 
     print '-' * 80
-    sorted_by_bw = sorted(fio_config_files, key=lambda bw: bw['bw'], reverse=True)
+    sorted_by_bw = sorted(fio_config_files, key=lambda bw: bw['bwr'], reverse=True)
     for fio_config in sorted_by_bw:
-        print 'bw = [%s]: %s - iops[%s]; lat[%s], cpu[%s]' % (
-            bitmath.Byte(bytes=fio_config['bw']).best_prefix(), fio_config['filename'], fio_config['iops'], fio_config['lat'],
+        print 'bwr = [%s]: %s - iops[%s]; lat[%s], cpu[%s]' % (
+            bitmath.Byte(bytes=fio_config['bwr']).best_prefix(), fio_config['filename'], fio_config['iops'], fio_config['lat'],
             fio_config['cpu'])
                 

@@ -33,12 +33,29 @@
 #ifndef SRC_BENCHMARK_WORKERS_DISKWORKER_H_
 #define SRC_BENCHMARK_WORKERS_DISKWORKER_H_
 
+#include <tuple>
+#include <KVStore.h>
+#include "../IoMeter.h"
+
 namespace Dragon {
 
 class DiskWorker {
 public:
-	DiskWorker();
+	DiskWorker(const std::string &diskPath, const unsigned int elementSize);
 	virtual ~DiskWorker();
+
+	std::tuple<KVStatus, unsigned int> Add(const std::vector<char> &value);
+	KVStatus Update(const unsigned int lba, const std::vector<char> &value);
+	KVStatus Read(const unsigned int lba, std::vector<char> &value);
+	std::tuple<float, float> getIoStat();
+
+private:
+	IoMeter _ioMeter;
+
+	unsigned long int _valueBlockSize;
+	std::string _deviceName;
+
+	off_t GetFileLength();
 };
 
 } /* namespace Dragon */

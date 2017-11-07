@@ -33,12 +33,25 @@
 #ifndef SRC_BENCHMARK_SIMFOGKV_H_
 #define SRC_BENCHMARK_SIMFOGKV_H_
 
+#include <string>
+#include "workers/AepWorker.h"
+#include "workers/DiskWorker.h"
+
 namespace Dragon {
 
 class SimFogKV {
 public:
-	SimFogKV();
+	SimFogKV(const std::string &diskPath, const unsigned int elementSize);
 	virtual ~SimFogKV();
+
+	KVStatus Put(const std::string &key, const std::vector<char> &value);
+	KVStatus Get(const std::string &key, std::vector<char> &value);
+	std::tuple<float, float> getIoStat();
+
+private:
+	Dragon::AepWorker _aepWorker;
+	Dragon::DiskWorker _diskWorker;
+
 };
 
 } /* namespace Dragon */

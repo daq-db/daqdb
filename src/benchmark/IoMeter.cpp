@@ -29,32 +29,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef SRC_BENCHMARK_WORKERS_AEPWORKER_H_
-#define SRC_BENCHMARK_WORKERS_AEPWORKER_H_
-
-#include <memory>
-
-#include <KVStore.h>
-#include "../IoMeter.h"
+#include "IoMeter.h"
 
 namespace Dragon {
 
-class AepWorker {
-public:
-	AepWorker();
-	virtual ~AepWorker();
+IoMeter::IoMeter() {
+	_snapshot_time = boost::posix_time::second_clock::local_time();
+}
 
-	KVStatus Put(const string &key, const string &valuestr);
-	KVStatus Get(const string &key, string *valuestr);
-	std::tuple<float, float> getIoStat();
+IoMeter::~IoMeter() {
+}
 
-private:
-	IoMeter _ioMeter;
-	std::unique_ptr<Dragon::KVStore> _spStore;
+std::tuple<float, float> IoMeter::getIoStat() {
+	auto now = boost::posix_time::microsec_clock::local_time();
 
-};
+	boost::posix_time::time_duration diff = now - _snapshot_time;
+
+	float readStat = 0;
+	float writeStat = 0;
+
+	if (diff.total_seconds()) {
+		readStat = (1000.f * _io_count_read / diff.total_milliseconds());
+		writeStat = (1000.f * _io_count_write / diff.total_milliseconds());
+
+		_io_count_read = 0;
+		_io_count_write = 0;
+		_snapshot_time = boost::posix_time::microsec_clock::local_time();
+	}
+
+	return std::make_tuple(readStat, writeStat);
+}
 
 } /* namespace Dragon */
-
-#endif /* SRC_BENCHMARK_WORKERS_AEPWORKER_H_ */
