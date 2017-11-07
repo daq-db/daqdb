@@ -54,7 +54,6 @@ public:
 	void write(const uint8_t *ptr, size_t len);
 	void read(uint8_t *ptr, size_t len);
 	void start();
-	void onReady(std::function<void ()> handler);
 protected:
 	void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
 	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
@@ -67,6 +66,11 @@ protected:
 	void sendParams();
 	bool flushWrBuff(size_t offset, size_t len);
 	void notifyReady();
+	void waitReady();
+
+	std::mutex mReadyLock;
+	bool mReady;
+	std::condition_variable mReadyCond;
 
 	std::shared_ptr<Fabric::FabricConnection> mConn;
 
