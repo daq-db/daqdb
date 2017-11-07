@@ -162,7 +162,6 @@ int main(int argc, const char *argv[]) {
 			boost::bind(logCpuUsage, boost::asio::placeholders::error,
 					&cpuLogTimer, &cpuMeter, &simFog));
 
-	std::string value(diskBuffSize, 'a');
 	vector<char> buffer;
 	buffer.assign(diskBuffSize, 'a');
 
@@ -173,17 +172,12 @@ int main(int argc, const char *argv[]) {
 	if (isMainNode) {
 		mainNode = std::unique_ptr<MainNode>(new MainNode(addr, std::to_string(port), buffSize));
 
-		mainNode->onPut([&] (const std::string &key, const std::string &value) -> void {
-	//		LOG4CXX_INFO(benchDragon, "onPut: {key: " + key + ", value: " + value + "}");
-			std::vector<char> buffer(value.begin(), value.end());
-			auto actionStatus = simFog.Put(key, buffer);
+		mainNode->onPut([&] (const std::string &key, const std::vector<char> &value) -> void {
+			auto actionStatus = simFog.Put(key, value);
 		});
 
-		mainNode->onGet ([&] (const std::string &key, std::string &value) -> void {
-			std::vector<char> buffer;
-			auto actionStatus = simFog.Get(key, buffer);
-			value.append(buffer.begin(), buffer.end());
-	//		LOG4CXX_INFO(benchDragon, "onGet: {key: " + key + ", value: " + value + "}");
+		mainNode->onGet ([&] (const std::string &key, std::vector<char> &value) -> void {
+			auto actionStatus = simFog.Get(key, value);
 		});
 
 		mainNode->start();
@@ -205,12 +199,13 @@ int main(int argc, const char *argv[]) {
 
 		if (!isMainNode) {
 			for (int index = 0; index < 100; ++index) {
-				auxNode->put(std::to_string(index), value);
+				auxNode->put(std::to_string(index), buffer);
 			}
+#if 0
 			for (int index = 0; index < 100; ++index) {
-				string valuestr;
-				auxNode->get(std::to_string(index), valuestr);
+				auxNode->get(std::to_string(index), buffer);
 			}
+#endif
 
 		}
 	}

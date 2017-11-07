@@ -107,12 +107,12 @@ void RingBuffer::read(size_t len, RingBufferRead read)
 
 	while (rd < len) {
 		size_t lend = mSize - mBegin;
-		size_t l = len < lend ? len : lend;
+		size_t l = len - rd;
+		l = l < lend ? l : lend;
 
-		if (read(&mBuff[mBegin], l) < 0)
-			break;
-		else
-			rd += l;
+		read(&mBuff[mBegin], l);
+
+		rd += l;
 
 		mBegin = (mBegin + l) % mSize;
 	}

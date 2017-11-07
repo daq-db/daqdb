@@ -49,8 +49,8 @@ public:
 		size_t wrBuffSize);
 	virtual ~AuxNode();
 
-	void put(const std::string &key, const std::string &value);
-	void get(const std::string &key, std::string &value);
+	void put(const std::string &key, const std::vector<char> &value);
+	void get(const std::string &key, std::vector<char> &value);
 	void write(const uint8_t *ptr, size_t len);
 	void read(uint8_t *ptr, size_t len);
 	void start();

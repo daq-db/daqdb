@@ -141,21 +141,21 @@ void AuxNode::read(uint8_t *ptr, size_t len)
 	mConn->send(mTxMR, msg->Hdr.Size);
 }
 
-void AuxNode::put(const std::string &key, const std::string &value)
+void AuxNode::put(const std::string &key, const std::vector<char> &value)
 {
 	mWrBuff->write((uint8_t *)key.c_str(), key.length());
-	mWrBuff->write((uint8_t *)value.c_str(), value.length());
+	mWrBuff->write((uint8_t *)&value[0], value.size());
 
 	MsgPut *msg = static_cast<MsgPut *>(mTxMR->getPtr());
 	msg->Hdr.Type = MSG_PUT;
 	msg->Hdr.Size = sizeof(*msg);
 	msg->KeySize = key.length();
-	msg->ValSize = value.length();
+	msg->ValSize = value.size();
 
 	mConn->send(mTxMR, msg->Hdr.Size);
 }
 
-void AuxNode::get(const std::string &key, std::string &value)
+void AuxNode::get(const std::string &key, std::vector<char> &value)
 {
 	mWrBuff->write((uint8_t *)key.c_str(), key.length());
 
@@ -170,9 +170,11 @@ void AuxNode::get(const std::string &key, std::string &value)
 
 	size_t valSize = waitGet();
 
-	value = "";
+	value.resize(valSize);
+	size_t c = 0;
 	mRdBuff->read(valSize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
-		value.append((const char *)buff, l);
+		memcpy(&value[c], buff, l);
+		c += l;
 	});
 	
 	MsgGetResp *res = static_cast<MsgGetResp *>(mTxMR->getPtr());
