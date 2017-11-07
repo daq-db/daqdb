@@ -48,7 +48,7 @@ std::tuple<float, float> IoMeter::getIoStat() {
 	float readStat = 0;
 	float writeStat = 0;
 
-	if (diff.total_seconds()) {
+	if (diff.total_milliseconds() > 100) {
 		readStat = (1000.f * _io_count_read / diff.total_milliseconds());
 		writeStat = (1000.f * _io_count_write / diff.total_milliseconds());
 

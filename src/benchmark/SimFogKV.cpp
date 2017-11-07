@@ -99,5 +99,9 @@ void SimFogKV::setIOLimit(const unsigned int limitGet,
 	_limit_put = limitPut;
 }
 
+void SimFogKV::TestSimpleGetPut(const unsigned int numOfGetOperations,
+		const unsigned int numOfPutOperations) {
+}
+
 } /* namespace Dragon */
 

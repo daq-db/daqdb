@@ -51,6 +51,8 @@ public:
 	KVStatus Get(const std::string &key, std::vector<char> &value);
 	std::tuple<float, float> getIoStat();
 
+	void TestSimpleGetPut(const unsigned int numOfGetOperations, const unsigned int numOfPutOperations);
+
 private:
 	Dragon::AepWorker _aepWorker;
 	Dragon::DiskWorker _diskWorker;
