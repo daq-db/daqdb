@@ -107,7 +107,7 @@ void RingBuffer::read(size_t len, RingBufferRead read)
 
 	while (rd < len) {
 		size_t lend = mSize - mBegin;
-		size_t l = lend < occupied_unlocked() ? lend < len ? lend : len : occupied_unlocked();
+		size_t l = len < lend ? len : lend;
 
 		if (read(&mBuff[mBegin], l) < 0)
 			break;

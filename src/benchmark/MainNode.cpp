@@ -122,6 +122,61 @@ void MainNode::onMsgWrite(FabricConnection &conn, MsgOp *msg)
 	}
 }
 
+void MainNode::onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg)
+{
+	mWrBuff->notifyWrite(msg->KeySize + msg->ValSize);
+	std::string key;
+	key.reserve(msg->KeySize);
+
+	std::string value;
+	value.reserve(msg->ValSize);
+
+	mWrBuff->read(msg->KeySize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
+		key.append((const char *)buff, l);
+	});
+
+	mWrBuff->read(msg->ValSize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
+		value.append((const char *)buff, l);
+	});
+
+	mPutHandler(key, value);
+
+	MsgOp *res = static_cast<MsgOp *>(mTxMR->getPtr());
+	res->Hdr.Type = MSG_PUT_RESP;
+	res->Hdr.Size = sizeof(MsgOp);
+	res->Size = msg->KeySize + msg->ValSize;
+
+	conn.send(mTxMR, res->Hdr.Size);
+}
+
+void MainNode::onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg)
+{
+	mWrBuff->notifyWrite(msg->KeySize);
+	std::string key;
+	key.reserve(msg->KeySize);
+	mWrBuff->read(msg->KeySize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
+		key.append((const char *)buff, l);
+	});
+
+	std::string value;
+	mGetHandler(key, value);
+
+	mRdBuff->write((uint8_t *)value.c_str(), value.length());
+
+	MsgGetResp *res = static_cast<MsgGetResp *>(mTxMR->getPtr());
+	res->Hdr.Type = MSG_GET_RESP;
+	res->Hdr.Size = sizeof(MsgGetResp);
+	res->KeySize = msg->KeySize;
+	res->ValSize = value.length();
+
+	conn.send(mTxMR, res->Hdr.Size);
+}
+
+void MainNode::onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg)
+{
+	mRdBuff->notifyRead(msg->ValSize);
+}
+
 void MainNode::onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg)
 {
 	size_t occupied = mRdBuff->occupied();
@@ -156,4 +211,14 @@ void MainNode::onRead(ReadHandler handler)
 bool MainNode::flushWrBuff(size_t offset, size_t len)
 {
 	mConn->write(mRdBuffMR, offset, len, mRdBuffDesc.Addr, mRdBuffDesc.Key);
+}
+
+void MainNode::onPut(PutHandler handler)
+{
+	mPutHandler = handler;
+}
+
+void MainNode::onGet(GetHandler handler)
+{
+	mGetHandler = handler;
 }

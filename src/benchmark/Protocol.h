@@ -44,6 +44,10 @@ enum MsgType {
 	MSG_WRITE_RESP,
 	MSG_READ,
 	MSG_READ_RESP,
+	MSG_PUT,
+	MSG_PUT_RESP,
+	MSG_GET,
+	MSG_GET_RESP,
 };
 
 static inline std::string MsgTypeToString(MsgType type)
@@ -63,6 +67,14 @@ static inline std::string MsgTypeToString(MsgType type)
 		return "MSG_READ";
 	case MSG_READ_RESP:
 		return "MSG_READ_RESP";
+	case MSG_PUT:
+		return "MSG_PUT";
+	case MSG_PUT_RESP:
+		return "MSG_PUT_RESP";
+	case MSG_GET:
+		return "MSG_GET";
+	case MSG_GET_RESP:
+		return "MSG_GET_RESP";
 	default:
 		return "UNKNOWN";
 	}
@@ -118,11 +130,57 @@ struct MsgOp {
 		std::stringstream ss;
 		ss << "{Hdr: " << Hdr.toString();
 		ss << ", Size: " << Size;
+		ss << "}";
 		return ss.str();
 	}
 
 	MsgHdr Hdr;
 	uint64_t Size;
+};
+
+struct MsgPut {
+	std::string toString()
+	{
+		std::stringstream ss;
+		ss << "{Hdr: " << Hdr.toString();
+		ss << ", KeySize: " << KeySize;
+		ss << ", ValSize: " << ValSize;
+		ss << "}";
+		return ss.str();
+	}
+
+	MsgHdr Hdr;
+	uint64_t KeySize;
+	uint64_t ValSize;
+};
+
+struct MsgGet {
+	std::string toString()
+	{
+		std::stringstream ss;
+		ss << "{Hdr: " << Hdr.toString();
+		ss << ", KeySize: " << KeySize;
+		ss << "}";
+		return ss.str();
+	}
+
+	MsgHdr Hdr;
+	uint64_t KeySize;
+};
+
+struct MsgGetResp {
+	std::string toString()
+	{
+		std::stringstream ss;
+		ss << "{Hdr: " << Hdr.toString();
+		ss << ", ValSize: " << ValSize;
+		ss << "}";
+		return ss.str();
+	}
+
+	MsgHdr Hdr;
+	uint64_t KeySize;
+	uint64_t ValSize;
 };
 
 static inline std::string MsgToString(MsgHdr *hdrp)
@@ -139,6 +197,14 @@ static inline std::string MsgToString(MsgHdr *hdrp)
 	case MSG_READ:
 	case MSG_READ_RESP:
 		return ((MsgOp *)hdrp)->toString();
+	case MSG_PUT:
+		return ((MsgPut *)hdrp)->toString();
+	case MSG_PUT_RESP:
+		return ((MsgOp *)hdrp)->toString();
+	case MSG_GET:
+		return ((MsgGet *)hdrp)->toString();
+	case MSG_GET_RESP:
+		return ((MsgGetResp *)hdrp)->toString();
 	default:
 		return "UNKNOWN";
 	}

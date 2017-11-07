@@ -164,28 +164,39 @@ int main(int argc, const char *argv[]) {
 
 	unique_ptr<AuxNode> auxNode;
 	unique_ptr<MainNode> mainNode;
-#define HELLO
 
-#ifdef HELLO
 	boost::asio::deadline_timer io_timer(io_service, boost::posix_time::seconds(1));
 	int count = 0;
+	std::string value;
 	std::function<void (const boost::system::error_code&)> io_timer_handler = [&] (const boost::system::error_code&) -> void {
-		std::string hello("MSG " + std::to_string(count++));
-		auxNode->write((uint8_t *)hello.c_str(), hello.size());
+		std::string key("KEY" + std::to_string(count));
+		std::string val("VAL" + std::to_string(count));
+		count++;
+		auxNode->put(key, val);
 
-		uint8_t buff[4096];
-		auxNode->read(buff, hello.size());
-		std::string h((const char *)buff, hello.size());
+		auxNode->get(key, value);
+		LOG4CXX_INFO(benchDragon, "GET: " + key + " -> " + value);
 
-		LOG4CXX_INFO(benchDragon, "READ: " + h);
 		io_timer.async_wait(io_timer_handler);
 	};
 
 	std::string data;
-#endif
+	std::map<std::string, std::string> map;
+
 	if (isMainNode) {
 		mainNode = std::unique_ptr<MainNode>(new MainNode(addr, std::to_string(port), buffSize));
-#ifdef HELLO
+
+		mainNode->onPut([&] (const std::string &key, const std::string &value) -> void {
+			LOG4CXX_INFO(benchDragon, "onPut: {key: " + key + ", value: " + value + "}");
+			map[key] = value;
+		});
+
+		mainNode->onGet ([&] (const std::string &key, std::string &value) -> void {
+			value = map[key];
+			LOG4CXX_INFO(benchDragon, "onGet: {key: " + key + ", value: " + value + "}");
+		});
+
+
 		mainNode->onWrite([&] (std::shared_ptr<RingBuffer> buff) -> void {
 			data = "";
 			buff->read(buff->occupied(), [&] (const uint8_t *buff, size_t l) -> ssize_t {
@@ -199,15 +210,12 @@ int main(int argc, const char *argv[]) {
 			LOG4CXX_INFO(benchDragon, "onRead: " + data);
 		});
 
-#endif
 		mainNode->start();
 	} else {
 		auxNode = std::unique_ptr<AuxNode>(new AuxNode(addr, std::to_string(port),
 				remoteAddr, std::to_string(remotePort), buffSize));
 		auxNode->onReady([&] () -> void {
-#ifdef HELLO
 			io_timer.async_wait(io_timer_handler);
-#endif
 		});
 		auxNode->start();
 	}

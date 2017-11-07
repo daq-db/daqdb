@@ -143,8 +143,93 @@ void AuxNode::read(uint8_t *ptr, size_t len)
 	mConn->send(mTxMR, msg->Hdr.Size);
 }
 
+void AuxNode::put(const std::string &key, const std::string &value)
+{
+	mWrBuff->write((uint8_t *)key.c_str(), key.length());
+	mWrBuff->write((uint8_t *)value.c_str(), value.length());
+
+	MsgPut *msg = static_cast<MsgPut *>(mTxMR->getPtr());
+	msg->Hdr.Type = MSG_PUT;
+	msg->Hdr.Size = sizeof(*msg);
+	msg->KeySize = key.length();
+	msg->ValSize = value.length();
+
+	mConn->send(mTxMR, msg->Hdr.Size);
+}
+
+void AuxNode::get(const std::string &key, std::string &value)
+{
+	mWrBuff->write((uint8_t *)key.c_str(), key.length());
+
+	MsgGet *msg = static_cast<MsgGet *>(mTxMR->getPtr());
+	msg->Hdr.Type = MSG_GET;
+	msg->Hdr.Size = sizeof(*msg);
+	msg->KeySize = key.length();
+
+	clrGet();
+
+	mConn->send(mTxMR, msg->Hdr.Size);
+
+	size_t valSize = waitGet();
+
+	value = "";
+	mRdBuff->read(valSize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
+		value.append((const char *)buff, l);
+	});
+	
+	MsgGetResp *res = static_cast<MsgGetResp *>(mTxMR->getPtr());
+	res->Hdr.Type = MSG_GET_RESP;
+	res->Hdr.Size = sizeof(*msg);
+	res->KeySize = msg->KeySize;
+	res->ValSize = valSize;
+
+	mConn->send(mTxMR, res->Hdr.Size);
+}
+
+void AuxNode::onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg)
+{
+	std::string key;
+	key.reserve(msg->KeySize);
+
+	std::string value;
+	value.reserve(msg->ValSize);
+
+	mWrBuff->notifyRead(msg->KeySize);
+
+	mRdBuff->notifyWrite(msg->ValSize);
+
+	notifyGet(msg->ValSize);
+}
+
 void AuxNode::notifyReady()
 {
 	if(mReadyHandler)
 		mReadyHandler();
+}
+
+void AuxNode::onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	mWrBuff->notifyRead(msg->Size);
+}
+
+size_t AuxNode::waitGet()
+{
+	std::unique_lock<std::mutex> l(mGetLock);
+	mGetCond.wait(l, [&] { return mValSize > 0; });
+
+	return mValSize;
+}
+
+void AuxNode::notifyGet(size_t valSize)
+{
+	std::unique_lock<std::mutex> l(mGetLock);
+	mValSize = valSize;
+	l.unlock();
+	mGetCond.notify_one();
+}
+
+void AuxNode::clrGet()
+{
+	std::unique_lock<std::mutex> l(mGetLock);
+	mValSize = 0;
 }
