@@ -219,8 +219,13 @@ void FabricConnection::write(std::shared_ptr<FabricMR> mr, size_t offset, size_t
 		throw std::string("fi_write failed");
 
 	struct fi_cq_msg_entry entry;
-	ssize_t sret = fi_cq_sread(mTxCq, &entry,
-			1, NULL, -1);
+	entry.op_context = (void *)0xdeadbeef;
+	ssize_t sret;
+	do {
+		sret = fi_cq_sread(mTxCq, &entry,
+				1, NULL, -1);
+	} while (sret == -FI_EAGAIN);
+
 	if (sret < 0)
 		throw std::string("fi_cq_sread failed");
 

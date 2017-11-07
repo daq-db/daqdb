@@ -43,11 +43,14 @@
 
 class AuxNode : public Node {
 public:
+	using GetHandler = std::function<void (const std::string &, const std::string &)>;
 	AuxNode(const std::string &node, const std::string &serv,
 		const std::string &remoteNode, const std::string &remoteServ,
 		size_t wrBuffSize);
 	virtual ~AuxNode();
 
+	void put(const std::string &key, const std::string &value);
+	void get(const std::string &key, std::string &value);
 	void write(const uint8_t *ptr, size_t len);
 	void read(uint8_t *ptr, size_t len);
 	void start();
@@ -57,6 +60,8 @@ protected:
 	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
 	void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
 	void onMsgWriteResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
 	void onMsgReady(Fabric::FabricConnection &conn);
 
 	void sendParams();
@@ -73,6 +78,15 @@ protected:
 	std::shared_ptr<Fabric::FabricMR> mRdBuffMR;
 
 	std::function<void ()> mReadyHandler;
+
+
+	void clrGet();
+	size_t waitGet();
+	void notifyGet(size_t valSize);
+
+	size_t mValSize;
+	std::mutex mGetLock;
+	std::condition_variable mGetCond;
 };
 
 #endif // AUX_NODE_H

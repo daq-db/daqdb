@@ -52,6 +52,10 @@ protected:
 	virtual void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
 	virtual void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
 	virtual void onMsgReady(Fabric::FabricConnection &conn);
+	virtual void onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg);
+	virtual void onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	virtual void onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg);
+	virtual void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
 
 	std::shared_ptr<Fabric::FabricNode> mNode;
 	uint8_t mTxMsgBuff[MSG_BUFF_SIZE];

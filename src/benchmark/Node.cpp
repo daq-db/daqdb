@@ -56,6 +56,10 @@ void Node::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, s
 		MsgOp WriteResp;
 		MsgOp Read;
 		MsgOp ReadResp;
+		MsgPut Put;
+		MsgOp PutResp;
+		MsgGet Get;
+		MsgGetResp GetResp;
 		uint8_t buff[MSG_BUFF_SIZE];
 	} msg;
 
@@ -83,6 +87,18 @@ void Node::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, s
 		break;
 	case MSG_READY:
 		onMsgReady(conn);
+		break;
+	case MSG_PUT:
+		onMsgPut(conn, &msg.Put);
+		break;
+	case MSG_PUT_RESP:
+		onMsgPutResp(conn, &msg.PutResp);
+		break;
+	case MSG_GET:
+		onMsgGet(conn, &msg.Get);
+		break;
+	case MSG_GET_RESP:
+		onMsgGetResp(conn, &msg.GetResp);
 		break;
 	}
 }
@@ -115,4 +131,24 @@ void Node::onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg)
 void Node::onMsgReady(Fabric::FabricConnection &conn)
 {
 	LOG4CXX_INFO(benchDragon, "onMsgReady function not implemented");
+}
+
+void Node::onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgPut function not implemented");
+}
+
+void Node::onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgPutResp function not implemented");
+}
+
+void Node::onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgGet function not implemented");
+}
+
+void Node::onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg)
+{
+	LOG4CXX_INFO(benchDragon, "onMsgGetResp function not implemented");
 }
