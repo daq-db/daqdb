@@ -42,6 +42,8 @@
 
 #include <csv/writer.hpp>
 
+#include "SimFogKV.h"
+
 using namespace boost::timer;
 
 namespace Dragon
@@ -56,9 +58,10 @@ public:
 	void stop();
 
 	std::tuple<unsigned short, cpu_times> getCpuUsage();
+
 	std::string format();
 
-	void logCpuUsage();
+	void logCpuUsage(Dragon::SimFogKV* simFog);
 
 private:
 	bool _csvEnabled;

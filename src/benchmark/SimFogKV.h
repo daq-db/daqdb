@@ -41,8 +41,11 @@ namespace Dragon {
 
 class SimFogKV {
 public:
-	SimFogKV(const std::string &diskPath, const unsigned int elementSize);
+	SimFogKV(const std::string &diskPath, const unsigned int elementSize,
+			const unsigned int limitGet = 0, const unsigned int limitPut = 0);
 	virtual ~SimFogKV();
+
+	void setIOLimit(const unsigned int limitGet, const unsigned int limitPut);
 
 	KVStatus Put(const std::string &key, const std::vector<char> &value);
 	KVStatus Get(const std::string &key, std::vector<char> &value);
@@ -51,7 +54,8 @@ public:
 private:
 	Dragon::AepWorker _aepWorker;
 	Dragon::DiskWorker _diskWorker;
-
+	unsigned int _limit_get;
+	unsigned int _limit_put;
 };
 
 } /* namespace Dragon */

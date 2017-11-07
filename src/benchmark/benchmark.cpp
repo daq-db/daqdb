@@ -62,14 +62,15 @@ LoggerPtr benchDragon(Logger::getLogger("benchmark"));
  *
  */
 void logCpuUsage(const boost::system::error_code&,
-		boost::asio::deadline_timer* cpuLogTimer, Dragon::CpuMeter* cpuMeter) {
-	cpuMeter->logCpuUsage();
+		boost::asio::deadline_timer* cpuLogTimer, Dragon::CpuMeter* cpuMeter, Dragon::SimFogKV* simFog) {
+
+	cpuMeter->logCpuUsage(simFog);
 
 	cpuLogTimer->expires_at(
-			cpuLogTimer->expires_at() + boost::posix_time::seconds(5));
+			cpuLogTimer->expires_at() + boost::posix_time::seconds(1));
 	cpuLogTimer->async_wait(
 			boost::bind(logCpuUsage, boost::asio::placeholders::error,
-					cpuLogTimer, cpuMeter));
+					cpuLogTimer, cpuMeter, simFog));
 }
 
 int main(int argc, const char *argv[]) {
@@ -153,12 +154,13 @@ int main(int argc, const char *argv[]) {
 	signals.async_wait(bind(&boost::asio::io_service::stop, &io_service));
 
 	Dragon::CpuMeter cpuMeter(enableCSV);
+	Dragon::SimFogKV simFog(diskPath, diskBuffSize);
 
 	boost::asio::deadline_timer cpuLogTimer(io_service,
-			boost::posix_time::seconds(5));
+			boost::posix_time::seconds(1));
 	cpuLogTimer.async_wait(
 			boost::bind(logCpuUsage, boost::asio::placeholders::error,
-					&cpuLogTimer, &cpuMeter));
+					&cpuLogTimer, &cpuMeter, &simFog));
 
 	unique_ptr<AuxNode> auxNode;
 	unique_ptr<MainNode> mainNode;
@@ -212,7 +214,6 @@ int main(int argc, const char *argv[]) {
 
 	LOG4CXX_INFO(benchDragon, "Start benchmark process");
 
-	Dragon::SimFogKV simFog(diskPath, diskBuffSize);
 	vector<char> buffer;
 	buffer.assign(diskBuffSize, 'a');
 
@@ -238,7 +239,6 @@ int main(int argc, const char *argv[]) {
 		if (readStat > 0)
 		LOG4CXX_INFO(benchDragon,
 			boost::format("Read[%1% op/s], Write[%2% op/s]") % readStat % writeStat);
-
 		*/
 
 		sleep(1);

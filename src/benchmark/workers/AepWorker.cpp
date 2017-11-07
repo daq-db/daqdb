@@ -71,5 +71,12 @@ std::tuple<float, float> AepWorker::getIoStat() {
 	return _ioMeter.getIoStat();
 }
 
-} /* namespace Dragon */
+unsigned long int AepWorker::getReadCounter() {
+	return _ioMeter._io_count_read;
+}
 
+unsigned long int AepWorker::getWriteCounter() {
+	return _ioMeter._io_count_write;
+}
+
+} /* namespace Dragon */

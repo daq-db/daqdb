@@ -48,7 +48,10 @@ using namespace log4cxx::helpers;
 
 namespace Dragon {
 
-SimFogKV::SimFogKV(const std::string &diskPath, const unsigned int elementSize) : _diskWorker(diskPath, elementSize){
+SimFogKV::SimFogKV(const std::string &diskPath, const unsigned int elementSize,
+		const unsigned int limitGet, const unsigned int limitPut) :
+		_diskWorker(diskPath, elementSize), _limit_get(limitGet), _limit_put(
+				limitPut) {
 }
 
 SimFogKV::~SimFogKV() {
@@ -58,6 +61,11 @@ KVStatus SimFogKV::Put(const std::string& key, const std::vector<char> &value) {
 
 	KVStatus status;
 	unsigned long int startLba;
+
+	if ((_limit_put > 0) && (_aepWorker.getWriteCounter() > _limit_put)) {
+		return KVStatus::FAILED;
+	}
+
 	std::tie(status, startLba) = _diskWorker.Add(value);
 
 	auto actionStatus = _aepWorker.Put(key, std::to_string(startLba));
@@ -67,10 +75,15 @@ KVStatus SimFogKV::Put(const std::string& key, const std::vector<char> &value) {
 
 KVStatus SimFogKV::Get(const std::string& key, std::vector<char> &value) {
 
+	if ((_limit_get > 0) && (_aepWorker.getReadCounter() > _limit_get)) {
+		return KVStatus::FAILED;
+	}
+
 	string valuestr;
 	auto actionStatus = _aepWorker.Get(key, &valuestr);
 
-	auto status = _diskWorker.Read(boost::lexical_cast<unsigned long int>(valuestr), value);
+	auto status = _diskWorker.Read(
+			boost::lexical_cast<unsigned long int>(valuestr), value);
 
 	return KVStatus::OK;
 }
@@ -80,4 +93,11 @@ std::tuple<float, float> SimFogKV::getIoStat() {
 	return _aepWorker.getIoStat();
 }
 
+void SimFogKV::setIOLimit(const unsigned int limitGet,
+		const unsigned int limitPut) {
+	_limit_get = limitGet;
+	_limit_put = limitPut;
+}
+
 } /* namespace Dragon */
+

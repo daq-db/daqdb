@@ -75,6 +75,9 @@ CpuMeter::CpuMeter(bool enableCSV) :
 		header.push_back("proc_cpu_time_user");
 		header.push_back("proc_cpu_time_wall");
 
+		header.push_back("io_put_items_per_sec");
+		header.push_back("io_get_items_per_sec");
+
 		writer.insert(header);
 		file.close();
 	} else {
@@ -114,7 +117,7 @@ std::string CpuMeter::format() {
 	return _timer.format();
 }
 
-void CpuMeter::logCpuUsage() {
+void CpuMeter::logCpuUsage(Dragon::SimFogKV* simFog) {
 
 	boost::posix_time::ptime now =
 			boost::posix_time::second_clock::local_time();
@@ -132,6 +135,11 @@ void CpuMeter::logCpuUsage() {
 			newCpuSnapshot->GetTotalTimeTotal()
 					- _spLastSnapshot->GetTotalTimeTotal()));
 	auto totalCpuUsage = 100.f * activeTime / totalTime;
+
+
+	float readStat = 0;
+	float writeStat = 0;
+	std::tie(readStat, writeStat) = simFog->getIoStat();
 
 	unsigned short cpuUsage = 0;
 	cpu_times cpuTimes;
@@ -153,6 +161,9 @@ void CpuMeter::logCpuUsage() {
 		row.push_back(std::to_string(cpuTimes.system));
 		row.push_back(std::to_string(cpuTimes.user));
 		row.push_back(std::to_string(cpuTimes.wall));
+
+		row.push_back(std::to_string(readStat));
+		row.push_back(std::to_string(writeStat));
 
 		writer.insert(row);
 		file.close();
