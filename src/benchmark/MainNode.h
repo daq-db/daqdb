@@ -42,11 +42,15 @@ class MainNode : public Node {
 public:
 	using WriteHandler = std::function<void (std::shared_ptr<RingBuffer>)>;
 	using ReadHandler = std::function<void (std::shared_ptr<RingBuffer>, size_t)>;
+	using PutHandler = std::function<void (const std::string &key, const std::string &value)>;
+	using GetHandler = std::function<void (const std::string &key, std::string &value)>;
 
 	MainNode(const std::string &node, const std::string &serv, size_t wrBuffSize);
 	virtual ~MainNode();
 
 	void start();
+	void onPut(PutHandler handler);
+	void onGet(GetHandler handler);
 	void onWrite(WriteHandler handler);
 	void onRead(ReadHandler handler);
 protected:
@@ -58,6 +62,9 @@ protected:
 	void onMsgWrite(Fabric::FabricConnection &conn, MsgOp *msg);
 	void onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg);
 	void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg);
+	void onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg);
+	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
 	bool flushWrBuff(size_t offset, size_t len);
 
 	std::shared_ptr<Fabric::FabricConnection> mConn;
@@ -70,6 +77,9 @@ protected:
 	std::shared_ptr<Fabric::FabricMR> mRdBuffMR;
 	MsgBuffDesc mRdBuffDesc;
 	ReadHandler mReadHandler;
+
+	PutHandler mPutHandler;
+	GetHandler mGetHandler;
 };
 
 #endif // MAIN_NODE_H
