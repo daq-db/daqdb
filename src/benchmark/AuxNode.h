@@ -39,26 +39,22 @@
 #include <condition_variable>
 #include <FabricNode.h>
 
-#include "RingBuffer.h"
-
 class AuxNode : public Node {
 public:
 	using GetHandler = std::function<void (const std::string &, const std::string &)>;
 	AuxNode(const std::string &node, const std::string &serv,
 		const std::string &remoteNode, const std::string &remoteServ,
-		size_t wrBuffSize);
+		size_t buffSize, size_t txBuffCount, size_t rxBuffCount, bool logMsg);
 	virtual ~AuxNode();
 
 	void put(const std::string &key, const std::vector<char> &value);
 	void get(const std::string &key, std::vector<char> &value);
-	void write(const uint8_t *ptr, size_t len);
-	void read(uint8_t *ptr, size_t len);
 	void start();
+
 protected:
-	void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
+	void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
 	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
-	void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
-	void onMsgWriteResp(Fabric::FabricConnection &conn, MsgOp *msg);
 	void onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg);
 	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
 	void onMsgReady(Fabric::FabricConnection &conn);
@@ -72,17 +68,7 @@ protected:
 	bool mReady;
 	std::condition_variable mReadyCond;
 
-	std::shared_ptr<Fabric::FabricConnection> mConn;
-
-	std::shared_ptr<RingBuffer> mWrBuff;
-	std::shared_ptr<Fabric::FabricMR> mWrBuffMR;
-	MsgBuffDesc mRemoteWrBuffDesc;
-
-	std::shared_ptr<RingBuffer> mRdBuff;
-	std::shared_ptr<Fabric::FabricMR> mRdBuffMR;
-
 	std::function<void ()> mReadyHandler;
-
 
 	void clrGet();
 	size_t waitGet();

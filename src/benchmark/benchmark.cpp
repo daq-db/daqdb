@@ -38,6 +38,7 @@
 #include <boost/asio.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
+#include <chrono>
 
 #include "debug.h"
 #include "CpuMeter.h"
@@ -62,15 +63,20 @@ LoggerPtr benchDragon(Logger::getLogger("benchmark"));
  *
  */
 void logCpuUsage(const boost::system::error_code&,
-		boost::asio::deadline_timer* cpuLogTimer, Dragon::CpuMeter* cpuMeter, Dragon::SimFogKV* simFog) {
+		boost::asio::deadline_timer* cpuLogTimer, Dragon::CpuMeter* cpuMeter, Dragon::SimFogKV* simFog, Node* node) {
 
-	cpuMeter->logCpuUsage(simFog);
+//	cpuMeter->logCpuUsage(simFog);
+
+	double txU = node->getAvgTxBuffUsage(true) * 100.0;
+	double rxU = node->getAvgRxBuffUsage(true) * 100.0;
+	double txMsgU = node->getAvgTxMsgUsage(true) * 100.0;
+	LOG4CXX_INFO(benchDragon, "TX: " + std::to_string(txU) + " RX: " + std::to_string(rxU) + " TX MSG: " + std::to_string(txMsgU));
 
 	cpuLogTimer->expires_at(
 			cpuLogTimer->expires_at() + boost::posix_time::seconds(1));
 	cpuLogTimer->async_wait(
 			boost::bind(logCpuUsage, boost::asio::placeholders::error,
-					cpuLogTimer, cpuMeter, simFog));
+					cpuLogTimer, cpuMeter, simFog, node));
 }
 
 int main(int argc, const char *argv[]) {
@@ -83,6 +89,14 @@ int main(int argc, const char *argv[]) {
 	unsigned int diskBuffSize;
 
 	bool isMainNode = true;
+	bool noStorage = false;
+	bool cpuUsage = false;
+	bool logMsg = false;
+	size_t txBuffCount;
+	size_t rxBuffCount;
+	unsigned int put_iter;
+	unsigned int get_iter;
+	unsigned int iter;
 	size_t buffSize;
 
 	log4cxx::ConsoleAppender *consoleAppender = new log4cxx::ConsoleAppender(
@@ -109,7 +123,15 @@ int main(int argc, const char *argv[]) {
 			po::value<std::string>(&diskPath)->default_value("/mnt/test_file"),
 			"Path to value's DB file")("buff,b",
 			po::value<unsigned int>(&diskBuffSize)->default_value(4 * 1024),
-			"value's DB element size");
+			"value's DB element size")
+			("no-storage", "Do not use storage")
+			("cpu-usage", "Show cpu usage")
+			("put-iter", po::value<unsigned int>(&put_iter)->default_value(10000), "Number of PUT iterations")
+			("get-iter", po::value<unsigned int>(&get_iter)->default_value(10000), "Number of GET iterations")
+			("iter", po::value<unsigned int>(&iter)->default_value(10000), "Number of iterations")
+			("log-msg", "Log messages")
+			("rx-buff-count", po::value<size_t>(&rxBuffCount)->default_value(16), "Number of Rx buffers")
+			("tx-buff-count", po::value<size_t>(&txBuffCount)->default_value(16), "Number of Tx buffers");
 
 	bool enableCSV = false;
 	po::variables_map parsedArguments;
@@ -135,6 +157,15 @@ int main(int argc, const char *argv[]) {
 		if (parsedArguments.count("aux"))
 			isMainNode = false;
 
+		if (parsedArguments.count("no-storage"))
+			noStorage = true;
+
+		if (parsedArguments.count("cpu-usage"))
+			cpuUsage = true;
+
+		if (parsedArguments.count("log-msg"))
+			logMsg = true;
+
 		po::notify(parsedArguments);
 	} catch (po::error &parserError) {
 		cerr << "Invalid arguments: " << parserError.what() << endl << endl;
@@ -158,9 +189,6 @@ int main(int argc, const char *argv[]) {
 
 	boost::asio::deadline_timer cpuLogTimer(io_service,
 			boost::posix_time::seconds(1));
-	cpuLogTimer.async_wait(
-			boost::bind(logCpuUsage, boost::asio::placeholders::error,
-					&cpuLogTimer, &cpuMeter, &simFog));
 
 	vector<char> buffer;
 	buffer.assign(diskBuffSize, 'a');
@@ -170,22 +198,36 @@ int main(int argc, const char *argv[]) {
 
 	int count = 0;
 	if (isMainNode) {
-		mainNode = std::unique_ptr<MainNode>(new MainNode(addr, std::to_string(port), buffSize));
+		mainNode = std::unique_ptr<MainNode>(new MainNode(addr, std::to_string(port), buffSize,
+				txBuffCount, rxBuffCount, logMsg));
 
 		mainNode->onPut([&] (const std::string &key, const std::vector<char> &value) -> void {
+			if (noStorage)
+				return;
 			auto actionStatus = simFog.Put(key, value);
 		});
 
 		mainNode->onGet ([&] (const std::string &key, std::vector<char> &value) -> void {
+			if (noStorage) {
+				value.resize(diskBuffSize);
+				return;
+			}
 			auto actionStatus = simFog.Get(key, value);
 		});
 
 		mainNode->start();
 	} else {
 		auxNode = std::unique_ptr<AuxNode>(new AuxNode(addr, std::to_string(port),
-				remoteAddr, std::to_string(remotePort), buffSize));
+				remoteAddr, std::to_string(remotePort),
+				buffSize, txBuffCount, rxBuffCount, logMsg));
 
 		auxNode->start();
+	}
+
+	if (cpuUsage) {
+		cpuLogTimer.async_wait(
+				boost::bind(logCpuUsage, boost::asio::placeholders::error,
+						&cpuLogTimer, &cpuMeter, &simFog, mainNode.get()));
 	}
 
 	LOG4CXX_INFO(benchDragon, "Start benchmark process");
@@ -196,19 +238,65 @@ int main(int argc, const char *argv[]) {
 			break;
 		}
 
+		if (iter == 0)
+			break;
+		else
+			iter--;
 
 		if (!isMainNode) {
-			for (int index = 0; index < 100; ++index) {
-				auxNode->put(std::to_string(index), buffer);
-			}
-#if 0
-			for (int index = 0; index < 100; ++index) {
-				auxNode->get(std::to_string(index), buffer);
-			}
-#endif
+			if (put_iter)
+			{
+				std::chrono::high_resolution_clock::time_point t1 =
+					std::chrono::high_resolution_clock::now();
 
+				for (int index = 0; index < put_iter; ++index) {
+					auxNode->put(std::to_string(index), buffer);
+				}
+
+				std::chrono::high_resolution_clock::time_point t2 =
+					std::chrono::high_resolution_clock::now();
+
+				std::chrono::duration<double> time = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+				double lat = time.count() / put_iter;
+				double iops = 1.0 / lat;
+				double txU = auxNode->getAvgTxBuffUsage(true) * 100.0;
+				double rxU = auxNode->getAvgRxBuffUsage(true) * 100.0;
+				double txMsgU = auxNode->getAvgTxMsgUsage(true) * 100.0;
+
+				LOG4CXX_INFO(benchDragon, "PUT LAT: " +  std::to_string(lat*1000000.0) + " us IOPS: " + std::to_string(iops) + " 1/s " +
+					"TX: " + std::to_string(txU) + "% RX: " + std::to_string(rxU) +
+				       " TX MSG: " + std::to_string(txMsgU)	
+				);
+			}
+
+			if (get_iter)
+			{
+				std::chrono::high_resolution_clock::time_point t1 =
+					std::chrono::high_resolution_clock::now();
+
+				for (int index = 0; index < get_iter; ++index) {
+					auxNode->get(std::to_string(index), buffer);
+				}
+
+				std::chrono::high_resolution_clock::time_point t2 =
+					std::chrono::high_resolution_clock::now();
+
+				std::chrono::duration<double> time = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+				double lat = time.count() / get_iter;
+				double iops = 1.0 / lat;
+				double txU = auxNode->getAvgTxBuffUsage(true) * 100.0;
+				double rxU = auxNode->getAvgRxBuffUsage(true) * 100.0;
+
+				LOG4CXX_INFO(benchDragon, "GET LAT: " +  std::to_string(lat*1000000.0) + " us IOPS: " + std::to_string(iops) + " 1/s " +
+					"TX: " + std::to_string(txU) + "% RX: " + std::to_string(rxU) 
+				);
+			}
+
+		} else {
+			sleep(1);
 		}
 	}
+
 	cout << endl;
 
 	return 0;

@@ -33,29 +33,45 @@
 #include "Node.h"
 #include "debug.h"
 #include <string.h>
+#include <assert.h>
+#include <chrono>
 
 using namespace Fabric;
 
-Node::Node(const std::string &node, const std::string &serv) :
-	mNode(new FabricNode(node, serv))
+Node::Node(const std::string &node, const std::string &serv, size_t buffSize, size_t txBuffCount, size_t rxBuffCount, bool logMsg) :
+	mNode(new FabricNode(node, serv)),
+	mTxMsgBuff(txBuffCount),
+	mRxMsgBuff(rxBuffCount),
+	mTxMR(txBuffCount),
+	mRxMR(rxBuffCount),
+	mLogMsg(logMsg)
 {
-	mTxMR = mNode->registerMR(static_cast<void *>(mTxMsgBuff), MSG_BUFF_SIZE, SEND);
-	mRxMR = mNode->registerMR(static_cast<void *>(mRxMsgBuff), MSG_BUFF_SIZE, RECV); 
+	mRxBuff = std::make_shared<RingBuffer>(buffSize);
+	mRxBuffMR = mNode->registerMR(mRxBuff->get(), mRxBuff->size(), REMOTE_WRITE);
+
+	for (int i = 0; i < mTxMsgBuff.size(); i++) {
+		mTxMR[i] = mNode->registerMR(static_cast<void *>(mTxMsgBuff[i]), MSG_BUFF_SIZE, SEND);
+		mTxMRs.push_back(mTxMR[i].get());
+	}
+	for (int i = 0; i < mRxMsgBuff.size(); i++) {
+		mRxMR[i] = mNode->registerMR(static_cast<void *>(mRxMsgBuff[i]), MSG_BUFF_SIZE, RECV); 
+	}
 }
 
 Node::~Node()
 {
 }
 
-void Node::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, size_t len)
+void Node::onSendHandler(FabricConnection &conn, FabricMR *mr, size_t len)
+{
+	notifyTxBuff(mr);
+}
+
+void Node::onRecvHandler(FabricConnection &conn, FabricMR *mr, size_t len)
 {
 	union {
 		MsgHdr Hdr;
 		MsgParams Params;
-		MsgOp Write;
-		MsgOp WriteResp;
-		MsgOp Read;
-		MsgOp ReadResp;
 		MsgPut Put;
 		MsgOp PutResp;
 		MsgGet Get;
@@ -66,22 +82,11 @@ void Node::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, s
 	memcpy(msg.buff, mr->getPtr(), len);
 	conn.postRecv(mr);
 
-	LOG4CXX_INFO(benchDragon, "Received message from " + conn.getPeerStr() + " " + MsgToString(&msg.Hdr));
+	if (mLogMsg)
+		LOG4CXX_INFO(benchDragon, "RECV: " + MsgToString(&msg.Hdr));
 
 	switch (msg.Hdr.Type)
 	{
-	case MSG_WRITE:
-		onMsgWrite(conn, &msg.Write);
-		break;
-	case MSG_WRITE_RESP:
-		onMsgWriteResp(conn, &msg.WriteResp);
-		break;
-	case MSG_READ:
-		onMsgRead(conn, &msg.Read);
-		break;
-	case MSG_READ_RESP:
-		onMsgReadResp(conn, &msg.ReadResp);
-		break;
 	case MSG_PARAMS:
 		onMsgParams(conn, &msg.Params);
 		break;
@@ -101,26 +106,6 @@ void Node::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, s
 		onMsgGetResp(conn, &msg.GetResp);
 		break;
 	}
-}
-
-void Node::onMsgWrite(Fabric::FabricConnection &conn, MsgOp *msg)
-{
-	LOG4CXX_INFO(benchDragon, "onMsgWrite function not implemented");
-}
-
-void Node::onMsgWriteResp(Fabric::FabricConnection &conn, MsgOp *msg)
-{
-	LOG4CXX_INFO(benchDragon, "onMsgWriteResp function not implemented");
-}
-
-void Node::onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg)
-{
-	LOG4CXX_INFO(benchDragon, "onMsgRead function not implemented");
-}
-
-void Node::onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg)
-{
-	LOG4CXX_INFO(benchDragon, "onMsgReadResp function not implemented");
 }
 
 void Node::onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg)
@@ -151,4 +136,128 @@ void Node::onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg)
 void Node::onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg)
 {
 	LOG4CXX_INFO(benchDragon, "onMsgGetResp function not implemented");
+}
+
+void Node::postRecv()
+{
+	for (int i = 0; i < mRxMR.size(); i++)
+		mConn->postRecv(mRxMR[i].get());
+}
+
+FabricMR *Node::getTxBuff()
+{
+	bool noTxBuff = false;
+	std::chrono::high_resolution_clock::time_point t1 =
+		std::chrono::high_resolution_clock::now();
+	std::unique_lock<std::mutex> l(mTxMRsLock);
+	mTxMRsCond.wait(l, [&]{
+		if (mTxMRs.size() == 0)
+			noTxBuff = true;
+		return mTxMRs.size() > 0;
+	});
+
+	std::chrono::high_resolution_clock::time_point t2 =
+		std::chrono::high_resolution_clock::now();
+
+
+	mTxMsgUsageSum += mTxMRs.size();
+	mTxMsgUsageCnt++;
+
+	FabricMR *mr = mTxMRs.back();
+	mTxMRs.pop_back();
+	
+	l.unlock();
+
+	if (noTxBuff) {
+		std::chrono::duration<double> time = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+		if (time.count() > 0.1)
+			LOG4CXX_INFO(benchDragon, "waiting for tx buff took " + std::to_string(time.count()) + " seconds");
+	}
+
+	return mr;
+}
+
+void Node::notifyTxBuff(Fabric::FabricMR *mr)
+{
+	std::unique_lock<std::mutex> l(mTxMRsLock);
+	mTxMRs.push_back(mr);
+	l.unlock();
+	mTxMRsCond.notify_all();
+}
+
+void Node::postSend(MsgHdr *hdrp)
+{
+	FabricMR *mr = getTxBuff();
+	memcpy(mr->getPtr(), hdrp, hdrp->Size);
+
+	if (mLogMsg)
+		LOG4CXX_INFO(benchDragon, "SEND: " + MsgToString(hdrp));
+
+
+	mConn->send(mr, hdrp->Size);
+
+}
+
+double Node::getAvgTxBuffUsage(bool reset)
+{
+	if (mTxUsageCnt == 0)
+		return 0;
+
+	double avg = (double)mTxUsageSum / (double)mTxUsageCnt / (double)mTxBuff->size();
+
+	if (reset) {
+		mTxUsageSum = 0;
+		mTxUsageCnt = 0;
+	}
+
+	return avg;
+}
+
+double Node::getAvgRxBuffUsage(bool reset)
+{
+	if (mRxUsageCnt == 0)
+		return 0;
+
+	double avg = (double)mRxUsageSum / (double)mRxUsageCnt / (double)mRxBuff->size();
+
+	if (reset) {
+		mTxUsageSum = 0;
+		mTxUsageCnt = 0;
+	}
+
+	return avg;
+}
+
+double Node::getAvgTxMsgUsage(bool reset)
+{
+	std::unique_lock<std::mutex> l(mTxMRsLock);
+
+	if (mTxMsgUsageCnt == 0)
+		return 0;
+
+	double avg = 1.0 - (double)mTxMsgUsageSum / (double)mTxMsgUsageCnt / (double)mTxMR.size();
+
+	if (reset) {
+		mTxMsgUsageSum = 0;
+		mTxMsgUsageCnt = 0;
+	}
+
+	return avg;
+}
+
+void Node::txBuffStat()
+{
+	auto o = mTxBuff->occupied();
+	assert(o <= mTxBuff->size());
+	mTxUsageSum += o;
+	mTxUsageCnt++;
+}
+
+void Node::rxBuffStat()
+{
+	auto o = mRxBuff->occupied();
+	assert(o <= mRxBuff->size());
+
+	mRxUsageSum += o;
+	mRxUsageCnt++;
 }

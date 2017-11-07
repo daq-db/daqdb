@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
 			curNode->onConnectionRequest([&] (std::shared_ptr<FabricConnection> conn) -> void {
 				std::cout << "Connection request " << conn->getNameStr() << " -> " << conn->getPeerStr() << std::endl;
-				conn->onRecv([&] (FabricConnection &c, std::shared_ptr<FabricMR> mr, size_t len) -> void {
+				conn->onRecv([&] (FabricConnection &c, FabricMR *mr, size_t len) -> void {
 					std::string str(static_cast<char *>(mr->getPtr()), len);
 					std::cout << cnt++ << " Received " << str << std::endl;
 				});

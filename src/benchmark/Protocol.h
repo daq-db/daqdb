@@ -40,10 +40,6 @@ enum MsgType {
 	MSG_NONE,
 	MSG_PARAMS,
 	MSG_READY,
-	MSG_WRITE,
-	MSG_WRITE_RESP,
-	MSG_READ,
-	MSG_READ_RESP,
 	MSG_PUT,
 	MSG_PUT_RESP,
 	MSG_GET,
@@ -59,14 +55,6 @@ static inline std::string MsgTypeToString(MsgType type)
 		return "MSG_PARAMS";
 	case MSG_READY:
 		return "MSG_READY";
-	case MSG_WRITE:
-		return "MSG_WRITE";
-	case MSG_WRITE_RESP:
-		return "MSG_WRITE_RESP";
-	case MSG_READ:
-		return "MSG_READ";
-	case MSG_READ_RESP:
-		return "MSG_READ_RESP";
 	case MSG_PUT:
 		return "MSG_PUT";
 	case MSG_PUT_RESP:
@@ -81,6 +69,13 @@ static inline std::string MsgTypeToString(MsgType type)
 }
 
 struct MsgHdr {
+	MsgHdr() = default;
+
+	MsgHdr(MsgType type, size_t size) :
+		Type((uint64_t)type),
+		Size(static_cast<uint64_t>(size))
+	{}
+
 	std::string toString()
 	{
 		std::stringstream ss;
@@ -95,6 +90,14 @@ struct MsgHdr {
 };
 
 struct MsgBuffDesc {
+	MsgBuffDesc() = default;
+
+	MsgBuffDesc(size_t size, uint64_t addr, uint64_t key) :
+		Size(static_cast<uint64_t>(size)),
+		Addr(addr),
+		Key(key)
+	{}
+
 	std::string toString()
 	{ 
 		std::stringstream ss;
@@ -111,6 +114,13 @@ struct MsgBuffDesc {
 };
 
 struct MsgParams {
+	MsgParams() = default;
+
+	MsgParams(MsgBuffDesc writeBuff) :
+		Hdr(MSG_PARAMS, sizeof(MsgParams)),
+		WriteBuff(writeBuff)
+	{}
+
 	std::string toString()
 	{
 		std::stringstream ss;
@@ -125,6 +135,13 @@ struct MsgParams {
 };
 
 struct MsgOp {
+	MsgOp() = default;
+
+	MsgOp(MsgType type, size_t size) :
+		Hdr(type, sizeof(MsgOp)),
+		Size(static_cast<uint64_t>(size))
+	{}
+
 	std::string toString()
 	{
 		std::stringstream ss;
@@ -139,6 +156,14 @@ struct MsgOp {
 };
 
 struct MsgPut {
+	MsgPut() = default;
+
+	MsgPut(size_t keySize, size_t valSize) :
+		Hdr(MSG_PUT, sizeof(MsgPut)),
+		KeySize(keySize),
+		ValSize(valSize)
+	{}
+
 	std::string toString()
 	{
 		std::stringstream ss;
@@ -155,6 +180,13 @@ struct MsgPut {
 };
 
 struct MsgGet {
+	MsgGet() = default;
+
+	MsgGet(size_t keySize) :
+		Hdr(MSG_GET, sizeof(MsgGet)),
+		KeySize(keySize)
+	{}
+
 	std::string toString()
 	{
 		std::stringstream ss;
@@ -169,6 +201,14 @@ struct MsgGet {
 };
 
 struct MsgGetResp {
+	MsgGetResp() = default;
+
+	MsgGetResp(size_t keySize, size_t valSize) :
+		Hdr(MSG_GET_RESP, sizeof(MsgGetResp)),
+		KeySize(keySize),
+		ValSize(valSize)
+	{}
+
 	std::string toString()
 	{
 		std::stringstream ss;
@@ -192,11 +232,6 @@ static inline std::string MsgToString(MsgHdr *hdrp)
 		return ((MsgParams *)hdrp)->toString();
 	case MSG_READY:
 		return ((MsgHdr *)hdrp)->toString();
-	case MSG_WRITE:
-	case MSG_WRITE_RESP:
-	case MSG_READ:
-	case MSG_READ_RESP:
-		return ((MsgOp *)hdrp)->toString();
 	case MSG_PUT:
 		return ((MsgPut *)hdrp)->toString();
 	case MSG_PUT_RESP:
