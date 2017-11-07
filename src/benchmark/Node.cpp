@@ -66,7 +66,7 @@ void Node::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, s
 	memcpy(msg.buff, mr->getPtr(), len);
 	conn.postRecv(mr);
 
-//	LOG4CXX_INFO(benchDragon, "Received message from " + conn.getPeerStr() + " " + MsgToString(&msg.Hdr));
+	LOG4CXX_INFO(benchDragon, "Received message from " + conn.getPeerStr() + " " + MsgToString(&msg.Hdr));
 
 	switch (msg.Hdr.Type)
 	{

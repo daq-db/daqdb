@@ -128,15 +128,16 @@ void MainNode::onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg)
 	std::string key;
 	key.reserve(msg->KeySize);
 
-	std::string value;
-	value.reserve(msg->ValSize);
+	std::vector<char> value(msg->ValSize);
 
 	mWrBuff->read(msg->KeySize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
 		key.append((const char *)buff, l);
 	});
 
+	size_t c = 0;
 	mWrBuff->read(msg->ValSize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
-		value.append((const char *)buff, l);
+		memcpy(&value[0], buff, l);
+		c += l;
 	});
 
 	mPutHandler(key, value);
@@ -158,16 +159,16 @@ void MainNode::onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg)
 		key.append((const char *)buff, l);
 	});
 
-	std::string value;
+	std::vector<char> value;
 	mGetHandler(key, value);
 
-	mRdBuff->write((uint8_t *)value.c_str(), value.length());
+	mRdBuff->write((uint8_t *)&value[0], value.size());
 
 	MsgGetResp *res = static_cast<MsgGetResp *>(mTxMR->getPtr());
 	res->Hdr.Type = MSG_GET_RESP;
 	res->Hdr.Size = sizeof(MsgGetResp);
 	res->KeySize = msg->KeySize;
-	res->ValSize = value.length();
+	res->ValSize = value.size();
 
 	conn.send(mTxMR, res->Hdr.Size);
 }

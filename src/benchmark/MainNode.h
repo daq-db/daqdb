@@ -42,8 +42,8 @@ class MainNode : public Node {
 public:
 	using WriteHandler = std::function<void (std::shared_ptr<RingBuffer>)>;
 	using ReadHandler = std::function<void (std::shared_ptr<RingBuffer>, size_t)>;
-	using PutHandler = std::function<void (const std::string &key, const std::string &value)>;
-	using GetHandler = std::function<void (const std::string &key, std::string &value)>;
+	using PutHandler = std::function<void (const std::string &key, const std::vector<char> &value)>;
+	using GetHandler = std::function<void (const std::string &key, std::vector<char> &value)>;
 
 	MainNode(const std::string &node, const std::string &serv, size_t wrBuffSize);
 	virtual ~MainNode();
