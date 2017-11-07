@@ -56,12 +56,10 @@ void AuxNode::start()
 	mConn->postRecv(mRxMR);
 
 	mNode->connectAsync(mConn);
+
+	waitReady();
 }
 
-void AuxNode::onReady(std::function<void ()> handler)
-{
-	mReadyHandler = handler;
-}
 
 void AuxNode::onRecvHandler(FabricConnection &conn, std::shared_ptr<FabricMR> mr, size_t len)
 {
@@ -201,12 +199,6 @@ void AuxNode::onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg)
 	notifyGet(msg->ValSize);
 }
 
-void AuxNode::notifyReady()
-{
-	if(mReadyHandler)
-		mReadyHandler();
-}
-
 void AuxNode::onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg)
 {
 	mWrBuff->notifyRead(msg->Size);
@@ -232,4 +224,18 @@ void AuxNode::clrGet()
 {
 	std::unique_lock<std::mutex> l(mGetLock);
 	mValSize = 0;
+}
+
+void AuxNode::notifyReady()
+{
+	std::unique_lock<std::mutex> l(mReadyLock);
+	mReady = true;
+	l.unlock();
+	mReadyCond.notify_one();
+}
+
+void AuxNode::waitReady()
+{
+	std::unique_lock<std::mutex> l(mReadyLock);
+	mReadyCond.wait(l, [&] { return mReady; });
 }
