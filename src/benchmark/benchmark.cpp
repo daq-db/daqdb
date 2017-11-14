@@ -187,6 +187,7 @@ int main(int argc, const char *argv[]) {
 
 		auxNode->start();
 	}
+	std:unique_ptr<AuxNode>(new AuxNode())
 
 	LOG4CXX_INFO(benchDragon, "Start benchmark process");
 

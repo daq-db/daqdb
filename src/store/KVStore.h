@@ -41,6 +41,13 @@ namespace Dragon
 /*!
  * Class that defines KV store interface
  */
+
+class Memory {
+	virtual KVStatus Getbuf();
+	
+}
+
+
 class KVStore : public KVInterface {
 public:
 	KVStore();
@@ -49,42 +56,20 @@ public:
 	/*!
 	 * Copy value for key to buffer
 	 *
-	 * @param limit maximum bytes to copy to buffer
+	 * @param key
 	 * @param keybytes key buffer bytes actually copied
 	 * @param valuebytes value buffer bytes actually copied
 	 * @param key item identifier
 	 * @param value value buffer as C-style string
 	 * @return
 	 */
-	virtual KVStatus Get(int32_t limit, int32_t keybytes,
-			     int32_t *valuebytes, const char *key,
-			     char *value);
+	virtual KVStatus GetLock(int *key, char **value, callback, arg);
+	
+	virtual KVStatus Put(int *key, char *value, callback, arg);
 
-	/**
-	 * Append value for key to std::string
-	 *
-	 * @param key item identifier
-	 * @param valuestr item value will be appended to std::string
-	 * @return KVStatus
-	 */
-	virtual KVStatus Get(const string &key, string *valuestr);
+	virtual KVStatus Commit(int *key, char *value, callback, arg);
 
-	/**
-	 * Copy value for key from std::string
-	 *
-	 * @param key item identifier
-	 * @param valuestr value to copy in
-	 * @return KVStatus
-	 */
-	virtual KVStatus Put(const string &key, const string &valuestr);
-
-	/**
-	 * Remove value for key
-	 *
-	 * @param key tem identifier
-	 * @return KVStatus
-	 */
-	virtual KVStatus Remove(const string &key);
+	virtual KVStatus Remove(int key);
 };
 
 } /* namespace DragonStore */
