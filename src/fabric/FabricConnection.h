@@ -33,9 +33,12 @@
 #define FABRIC_CONNECTION_HPP
 
 #include <Fabric.h>
+#include <FabricMR.h>
 #include <functional>
 #include <vector>
 #include <thread>
+#include <mutex>
+#include <map>
 
 #include <rdma/fi_endpoint.h>
 #include <rdma/fi_cm.h>
@@ -45,15 +48,18 @@ namespace Fabric {
 
 class FabricConnection {
 	using FabricConnectionDataEventHandler = 
-		std::function<void (const std::vector<uint8_t> &)>;
+		std::function<void (FabricConnection &conn, std::shared_ptr<FabricMR> mr, size_t len)>;
 public:
 	FabricConnection(Fabric &fabric, struct fi_info *info);
-	FabricConnection(Fabric &fabric);
+	FabricConnection(Fabric &fabric, const std::string &node, const std::string &serv);
 	virtual ~FabricConnection();
 
-	void connect(const std::string &node, const std::string &serv);
+	void connectAsync();
 	void send(const std::string &msg);
 
+	void postRecv(std::shared_ptr<FabricMR> mr);
+	void send(std::shared_ptr<FabricMR> mr, size_t len = 0);
+	void write(std::shared_ptr<FabricMR> mr, size_t offset, size_t len, uint64_t raddr, uint64_t rkey);
 
 	void onRecv(FabricConnectionDataEventHandler handler) { mRecvHandler = handler; }
 
@@ -63,7 +69,7 @@ public:
 	struct fid_ep *endpoint() { return mEp; }
 protected:
 	Fabric &mFabric;
-	struct fi_info *mInfo;
+	FabricInfo mInfo;
 
 	struct fid_ep *mEp;
 	struct fi_cq_attr mCqAttr;
@@ -71,18 +77,15 @@ protected:
 	struct fid_cq *mRxCq;
 
 	void createCq();
-	void initMem();
-	void postRecv();
-	uint8_t *mTxBuff;
-	uint8_t *mRxBuff;
-	size_t mBuffSize;
-	struct fid_mr *mTxMr;
-	struct fid_mr *mRxMr;
 
 	std::thread mRxThread;
 	bool mRxThreadRun;
+	void rxThreadFunc();
 
 	FabricConnectionDataEventHandler mRecvHandler;
+
+	std::mutex mRecvPostedLock;
+	std::map<FabricMR *, std::shared_ptr<FabricMR> > mRecvPosted;
 };
 
 }

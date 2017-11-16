@@ -29,39 +29,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
+#ifndef FABRIC_MEM_REGION_H
+#define FABRIC_MEM_REGION_H
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
-
-#include <rdma/fabric.h>
+#include <stdint.h>
 #include <rdma/fi_domain.h>
+#include <Fabric.h>
 
-namespace Fabric {
+namespace Fabric
+{
 
-class Fabric {
+enum FabricMRPerm {
+	SEND = FI_SEND,
+	RECV = FI_RECV,
+	READ = FI_READ,
+	WRITE = FI_WRITE,
+	REMOTE_READ = FI_REMOTE_READ,
+	REMOTE_WRITE = FI_REMOTE_WRITE,
+};
+
+class FabricMR {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	FabricMR(Fabric &fabric, void *ptr, size_t size, uint64_t perm);
+	virtual ~FabricMR();
 
-	FabricAttributes attr() { return mAttr; }
-
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
+	void *getLKey();
+	uint64_t getRKey();
+	void *getPtr();
+	size_t getSize();
 protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+
+	struct fid_mr *mMr;
+	void *mPtr;
+	size_t mSize;
 };
 
 }
 
-#endif // FABRIC_HPP
+#endif // FABRIC_MEM_REGION_H

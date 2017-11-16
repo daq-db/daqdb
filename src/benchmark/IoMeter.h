@@ -29,39 +29,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#ifndef SRC_BENCHMARK_IOMETER_H_
+#define SRC_BENCHMARK_IOMETER_H_
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <tuple>
+#include "boost/date_time/posix_time/posix_time.hpp"
 
-namespace Fabric {
+namespace Dragon {
 
-class Fabric {
+class IoMeter {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	IoMeter();
+	virtual ~IoMeter();
 
-	FabricAttributes attr() { return mAttr; }
+	std::tuple<float, float> getIoStat();
 
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+	unsigned long long _io_count_read = 0;
+	unsigned long long _io_count_write = 0;
+
+private:
+	boost::posix_time::ptime _snapshot_time;
+
 };
 
-}
+} /* namespace Dragon */
 
-#endif // FABRIC_HPP
+#endif /* SRC_BENCHMARK_IOMETER_H_ */

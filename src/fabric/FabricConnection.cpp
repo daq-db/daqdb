@@ -32,18 +32,34 @@
 
 #include <FabricConnection.h>
 #include <FabricInfo.h>
-
+#include <rdma/fi_rma.h>
 #include <string.h>
+#include <iostream>
 
 namespace Fabric {
 
-FabricConnection::FabricConnection(Fabric &fabric) :
+FabricConnection::FabricConnection(Fabric &fabric, const std::string &node, const std::string &serv) :
 	mFabric(fabric),
-	mInfo(NULL),
+	mInfo(mFabric.attr(), node, serv, false),
 	mEp(NULL),
 	mTxCq(NULL),
 	mRxCq(NULL)
 {
+	int ret;
+
+	ret = fi_endpoint(mFabric.domain(), mInfo.info(), &mEp, NULL);
+	if (ret)
+		throw std::string("fi_endpoint() failed");
+	
+	createCq();
+
+	ret = fi_ep_bind(mEp, &mFabric.eq()->fid, 0);
+	if (ret)
+		throw std::string("fi_ep_bind(ep, eq) failed");
+
+	ret = fi_enable(mEp);
+	if (ret)
+		throw std::string("fi_enable() failed");
 }
 
 FabricConnection::FabricConnection(Fabric &fabric, struct fi_info *info) :
@@ -59,7 +75,6 @@ FabricConnection::FabricConnection(Fabric &fabric, struct fi_info *info) :
 		throw std::string("fi_endpoint() failed");
 
 	createCq();
-	initMem();
 
 	ret = fi_ep_bind(mEp, &mFabric.eq()->fid, 0);
 	if (ret)
@@ -68,8 +83,6 @@ FabricConnection::FabricConnection(Fabric &fabric, struct fi_info *info) :
 	ret = fi_enable(mEp);
 	if (ret)
 		throw std::string("fi_enable() failed");
-
-	postRecv();
 
 	ret = fi_accept(mEp, NULL, 0);
 	if (ret)
@@ -82,8 +95,12 @@ FabricConnection::~FabricConnection()
 		fi_close(&mEp->fid);
 	if (mTxCq)
 		fi_close(&mTxCq->fid);
-	if (mRxCq)
+	if (mRxCq) {
+		mRxThreadRun = false;
+		mRxThread.join();
+
 		fi_close(&mRxCq->fid);
+	}
 }
 
 void FabricConnection::createCq()
@@ -115,113 +132,108 @@ void FabricConnection::createCq()
 		throw std::string("fi_ep_bind(ep, eq) failed");
 
 	mRxThreadRun = true;
-	mRxThread = std::thread([&] () -> void {
-		try {
-		struct fi_cq_msg_entry entry;
-		while (mRxThreadRun) {
-			ssize_t sret = fi_cq_sread(mRxCq, &entry,
-					1, NULL, 100);
-			if (sret == -FI_EAGAIN)
-				continue;
+	mRxThread = std::thread(&FabricConnection::rxThreadFunc, this);
+}
 
-			if (!(entry.flags & FI_RECV))
-				throw std::string("invalid event received");
+void FabricConnection::rxThreadFunc()
+{
+	struct fi_cq_msg_entry entry;
+	while (mRxThreadRun) {
+		ssize_t sret = fi_cq_sread(mRxCq, &entry,
+				1, NULL, 100);
+		if (sret == -FI_EAGAIN)
+			continue;
 
-			if (mRecvHandler) {
-				uint64_t *len = (uint64_t *)mRxBuff;
-				std::vector<uint8_t> msg(*len);
-				memcpy(msg.data(), (uint8_t *)(len + 1), *len);
-				postRecv();
-				mRecvHandler(msg);
-			}
+		if (!(entry.flags & FI_RECV))
+			throw std::string("invalid event received");
+
+		std::shared_ptr<FabricMR> mr;
+		{
+			std::unique_lock<std::mutex> l(mRecvPostedLock);
+
+			auto m = mRecvPosted.find(static_cast<FabricMR *>(entry.op_context));
+			if (m == mRecvPosted.end())
+				throw std::string("invalid context received");
+			
+			mr = m->second;
+
+			mRecvPosted.erase(m);
 		}
-		} catch (std::string &str) {
-			printf("ERR: %s\n", str.c_str());
-		}
 
-	});
-
-}
-
-void FabricConnection::initMem()
-{
-	mBuffSize = mFabric.attr().mBufferSize;
-	mTxBuff = new uint8_t[mBuffSize];
-	mRxBuff = new uint8_t[mBuffSize];
-
-	int ret;
-
-	ret = fi_mr_reg(mFabric.domain(), mTxBuff, mBuffSize, FI_SEND, 0, 0, 0, &mTxMr, NULL);
-	if (ret)
-		throw std::string("fi_mr_reg() failed");
-
-	ret = fi_mr_reg(mFabric.domain(), mRxBuff, mBuffSize, FI_RECV, 0, 0, 0, &mRxMr, NULL);
-	if (ret)
-		throw std::string("fi_mr_reg() failed");
-
-}
-
-void FabricConnection::postRecv()
-{
-	ssize_t sret;
-
-	sret = fi_recv(mEp, mRxBuff, mBuffSize, fi_mr_desc(mRxMr), 0, NULL);
-	if (sret < 0)
-		throw std::string("fi_recv() failed");
-}
-
-void FabricConnection::connect(const std::string &node, const std::string &serv)
-{
-	int ret;
-
-	ret = fi_endpoint(mFabric.domain(), mFabric.info(), &mEp, NULL);
-	if (ret)
-		throw std::string("fi_endpoint() failed");
-	
-	createCq();
-	initMem();
-
-	ret = fi_ep_bind(mEp, &mFabric.eq()->fid, 0);
-	if (ret)
-		throw std::string("fi_ep_bind(ep, eq) failed");
-
-	ret = fi_enable(mEp);
-	if (ret)
-		throw std::string("fi_enable() failed");
-
-	postRecv();
-
-	{
-		//TODO Just to resolve the addr
-		Fabric info(mFabric.attr(), node, serv, false);
-		ret = fi_connect(mEp, info.info()->dest_addr , NULL, 0);
-		if (ret)
-			throw std::string("fi_connect() failed");
+		mRecvHandler(*this, mr, entry.len);
 	}
+}
+
+void FabricConnection::connectAsync()
+{
+	int ret = fi_connect(mEp, mInfo.info()->dest_addr , NULL, 0);
+	if (ret)
+		throw std::string("fi_connect() failed");
 }
 
 void FabricConnection::send(const std::string &msg)
 {
-	if (msg.length() > mBuffSize)
-		throw std::string("invalid message size");
+	throw std::string("not implemented");
+}
 
-	ssize_t sret;
+void FabricConnection::postRecv(std::shared_ptr<FabricMR> mr)
+{
+	int ret = fi_recv(mEp, mr->getPtr(), mr->getSize(), mr->getLKey(), 0, mr.get());
+	if (ret)
+		throw std::string("fi_recv failed");
 
-	uint64_t *len = (uint64_t *)mTxBuff;
-	*len = msg.length();
+	std::unique_lock<std::mutex> l(mRecvPostedLock);
+	mRecvPosted[mr.get()] = mr;
+}
 
-	uint8_t *data = (uint8_t *)(len + 1);
-	memcpy(data, msg.data(), msg.length());
-
-	sret = fi_send(mEp, mTxBuff, sizeof(uint64_t) + msg.length(),
-			fi_mr_desc(mTxMr), 0, NULL);
-	if (sret < 0)
-		throw std::string("fi_send() failed");
+void FabricConnection::send(std::shared_ptr<FabricMR> mr, size_t len)
+{
+	size_t l = len ? len : mr->getSize();
+	int ret = fi_send(mEp, mr->getPtr(), l, mr->getLKey(), 0, mr.get());
+	if (ret)
+		std::cerr << std::string("fi_send failed");
 
 	struct fi_cq_msg_entry entry;
-	sret = fi_cq_sread(mTxCq, &entry, 1, NULL, -1);
+	entry.op_context = (void *)0xdeadbeef;
+	ssize_t sret;
+	do {
+		sret = fi_cq_sread(mTxCq, &entry,
+				1, NULL, -1);
+	} while (sret == -FI_EAGAIN);
+
 	if (sret < 0)
-		throw std::string("fi_cq_sread() failed");
+		std::cerr << std::string("fi_cq_sread failed");
+
+	if (!(entry.flags & FI_SEND))
+		std::cerr << std::string("invalid event received");
+
+	if (entry.op_context != mr.get())
+		std::cerr << std::string("invalid context received ") << entry.op_context << "!=" << mr.get();
+}
+
+void FabricConnection::write(std::shared_ptr<FabricMR> mr, size_t offset, size_t len, uint64_t raddr, uint64_t rkey)
+{
+	void *ptr = &static_cast<uint8_t *>(mr->getPtr())[offset];
+	int ret = fi_write(mEp, ptr, len, mr->getLKey(), 0, raddr + offset, rkey, mr.get());
+	if (ret)
+		throw std::string("fi_write failed");
+
+	struct fi_cq_msg_entry entry;
+	entry.op_context = (void *)0xdeadbeef;
+	ssize_t sret;
+	do {
+		sret = fi_cq_sread(mTxCq, &entry,
+				1, NULL, -1);
+	} while (sret == -FI_EAGAIN);
+
+	if (sret < 0)
+		throw std::string("fi_cq_sread failed");
+
+	if (!(entry.flags & FI_WRITE))
+		throw std::string("invalid event received");
+
+	if (entry.op_context != mr.get())
+		throw std::string("invalid context received");
 
 }
 

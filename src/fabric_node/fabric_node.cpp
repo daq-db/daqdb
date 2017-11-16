@@ -14,11 +14,10 @@ int main(int argc, char *argv[])
 
 	FabricAttributes attr;
 	attr.setProvider("sockets");
-	attr.setBufferSize(4096);
 
 
 	std::vector<FabricNode *> nodes;
-	std::vector<FabricConnection *> connections;
+	std::vector<std::shared_ptr<FabricConnection>> connections;
 	int cnt = 0;
 
 	FabricNode *curNode = nullptr;
@@ -30,23 +29,23 @@ int main(int argc, char *argv[])
 		if (op == "node") {
 			curNode = new FabricNode(attr, addr, serv);
 
-			curNode->onConnectionRequest([&] (FabricConnection &conn) -> void {
-				std::cout << "Connection request " << conn.getNameStr() << " -> " << conn.getPeerStr() << std::endl;
-				conn.onRecv([&] (const std::vector<uint8_t> &msg) -> void {
-					std::string str(msg.begin(), msg.end());
+			curNode->onConnectionRequest([&] (std::shared_ptr<FabricConnection> conn) -> void {
+				std::cout << "Connection request " << conn->getNameStr() << " -> " << conn->getPeerStr() << std::endl;
+				conn->onRecv([&] (FabricConnection &c, std::shared_ptr<FabricMR> mr, size_t len) -> void {
+					std::string str(static_cast<char *>(mr->getPtr()), len);
 					std::cout << cnt++ << " Received " << str << std::endl;
 				});
 			});
 
-			curNode->onConnected([&] (FabricConnection &conn) -> void {
-				std::cout << "Connected          " << conn.getNameStr() << " -> " << conn.getPeerStr() << std::endl;
+			curNode->onConnected([&] (std::shared_ptr<FabricConnection> conn) -> void {
+				std::cout << "Connected          " << conn->getNameStr() << " -> " << conn->getPeerStr() << std::endl;
 				for (int i = 0; i < 100; i++) {
-					conn.send("Hello!");
+					conn->send("Hello!");
 				}
 			});
 
-			curNode->onDisconnected([&] (FabricConnection &conn) -> void {
-				std::cout << "Disconnected       " << conn.getNameStr() << " -> " << conn.getPeerStr() << std::endl;
+			curNode->onDisconnected([&] (std::shared_ptr<FabricConnection> conn) -> void {
+				std::cout << "Disconnected       " << conn->getNameStr() << " -> " << conn->getPeerStr() << std::endl;
 			});
 
 			curNode->listen();
@@ -56,16 +55,18 @@ int main(int argc, char *argv[])
 			if (curNode == nullptr)
 				throw std::string("please create new node first");
 
-			FabricConnection &conn = curNode->connect(addr, serv);
+			std::shared_ptr<FabricConnection> conn = curNode->connection(addr, serv);
+			curNode->connect(conn);
 
-			connections.push_back(&conn);
+			connections.push_back(conn);
 		} else if (op == "connectAsync") {
 			if (curNode == nullptr)
 				throw std::string("please create new node first");
 
-			FabricConnection &conn = curNode->connectAsync(addr, serv);
+			std::shared_ptr<FabricConnection> conn = curNode->connection(addr, serv);
+			curNode->connectAsync(conn);
 
-			connections.push_back(&conn);
+			connections.push_back(conn);
 		} else {
 			throw std::string("invalid operation");
 		}

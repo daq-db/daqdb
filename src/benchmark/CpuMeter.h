@@ -29,39 +29,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#ifndef SRC_BENCHMARK_CPUMETER_H_
+#define SRC_BENCHMARK_CPUMETER_H_
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <boost/timer/timer.hpp>
+#include <tuple>
+#include <vector>
+#include <string>
 
-namespace Fabric {
+#include <CPUSnapshot.h>
 
-class Fabric {
+#include <csv/writer.hpp>
+
+#include "SimFogKV.h"
+
+using namespace boost::timer;
+
+namespace Dragon
+{
+
+class CpuMeter {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	CpuMeter(bool enableCSV);
+	virtual ~CpuMeter();
 
-	FabricAttributes attr() { return mAttr; }
+	void start();
+	void stop();
 
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+	std::tuple<unsigned short, cpu_times> getCpuUsage();
+
+	std::string format();
+
+	void logCpuUsage(Dragon::SimFogKV* simFog);
+
+private:
+	bool _csvEnabled;
+	cpu_timer _timer;
+	std::unique_ptr<CPUSnapshot> _spLastSnapshot;
+	std::string _csvFileName;
 };
 
-}
+} /* namespace Dragon */
 
-#endif // FABRIC_HPP
+#endif /* SRC_BENCHMARK_CPUMETER_H_ */

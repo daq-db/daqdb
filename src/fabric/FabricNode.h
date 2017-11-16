@@ -33,12 +33,14 @@
 #define FABRIC_NODE_HPP
 
 #include <FabricConnection.h>
+#include <FabricMR.h>
 
 #include <functional>
 #include <string>
 #include <mutex>
 #include <thread>
 #include <map>
+#include <list>
 #include <condition_variable>
 
 namespace Fabric {
@@ -46,36 +48,43 @@ namespace Fabric {
 class FabricNode {
 public:
 	using FabricConnectionEventHandler =
-		std::function<void (FabricConnection &)>;
+		std::function<void (std::shared_ptr<FabricConnection>)>;
 public:
 	FabricNode(const FabricAttributes &attr, const std::string &node = "localhost", const std::string &serv = "1234");
+	FabricNode(const std::string &node = "localhost", const std::string &serv = "1234");
 	virtual ~FabricNode();
 
 	void listen();
 	void stop();
 
-	FabricConnection &connect(const std::string &addr, const std::string &serv);
-	FabricConnection &connectAsync(const std::string &addr, const std::string &serv);
-	void connectWait(FabricConnection &conn);
+	std::shared_ptr<FabricConnection> connection(const std::string &node, const std::string &serv);
+	void connect(std::shared_ptr<FabricConnection> conn);
+	void connectAsync(std::shared_ptr<FabricConnection> conn);
+	void connectWait(std::shared_ptr<FabricConnection> conn);
 
 	void onConnectionRequest(FabricConnectionEventHandler handler);
 	void onConnected(FabricConnectionEventHandler handler);
 	void onDisconnected(FabricConnectionEventHandler handler);
+
+	std::shared_ptr<FabricMR> registerMR(void *ptr, size_t size, uint64_t perm);
 protected:
+
 	FabricAttributes mAttr;
 	Fabric mFabric;
 
 	FabricConnectionEventHandler mConnReqHandler;
 	FabricConnectionEventHandler mConnectedHandler;
 	FabricConnectionEventHandler mDisconnectedHandler;
-	std::map<struct fid_ep *, FabricConnection *> mConnected;
-	std::map<struct fid_ep *, FabricConnection *> mConnecting;
+	std::map<struct fid_ep *, std::shared_ptr<FabricConnection> > mConnected;
+	std::map<struct fid_ep *, std::shared_ptr<FabricConnection> > mConnecting;
+	std::list<std::shared_ptr<FabricMR> > mMRs;
 	std::mutex mConnLock;
 	std::condition_variable mConnCond;
 	struct fid_pep *mPep;
 
 	std::thread mEqThread;
 	bool mEqThreadRun;
+	void eqThreadFunc();
 };
 
 }

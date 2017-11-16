@@ -1,6 +1,7 @@
-dragon
-dragonTest
-dhtTest
+/dragon
+/dragonTest
+/benchmark
+/dhtTest
 libpmemkv.so
 *.o
 *.a
@@ -13,3 +14,5 @@ build
 .sconf_temp
 config.log
 .pydevproject
+*.csv
+.*.swp

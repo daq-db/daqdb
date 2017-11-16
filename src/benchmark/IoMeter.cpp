@@ -29,39 +29,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
+#include "IoMeter.h"
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+namespace Dragon {
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
-
-namespace Fabric {
-
-class Fabric {
-public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
-
-	FabricAttributes attr() { return mAttr; }
-
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
-};
-
+IoMeter::IoMeter() {
+	_snapshot_time = boost::posix_time::second_clock::local_time();
 }
 
-#endif // FABRIC_HPP
+IoMeter::~IoMeter() {
+}
+
+std::tuple<float, float> IoMeter::getIoStat() {
+	auto now = boost::posix_time::microsec_clock::local_time();
+
+	boost::posix_time::time_duration diff = now - _snapshot_time;
+
+	float readStat = 0;
+	float writeStat = 0;
+
+	if (diff.total_milliseconds() > 100) {
+		readStat = (1000.f * _io_count_read / diff.total_milliseconds());
+		writeStat = (1000.f * _io_count_write / diff.total_milliseconds());
+
+		_io_count_read = 0;
+		_io_count_write = 0;
+		_snapshot_time = boost::posix_time::microsec_clock::local_time();
+	}
+
+	return std::make_tuple(readStat, writeStat);
+}
+
+} /* namespace Dragon */

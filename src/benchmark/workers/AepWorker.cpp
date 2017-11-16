@@ -29,39 +29,54 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#include "AepWorker.h"
+#include <PmemKVStore.h>
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <log4cxx/basicconfigurator.h>
+#include <log4cxx/consoleappender.h>
+#include <log4cxx/helpers/exception.h>
+#include <log4cxx/logger.h>
+#include <log4cxx/simplelayout.h>
+#include <log4cxx/xml/domconfigurator.h>
 
-namespace Fabric {
+using namespace log4cxx;
+using namespace log4cxx::xml;
+using namespace log4cxx::helpers;
 
-class Fabric {
-public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+namespace Dragon {
 
-	FabricAttributes attr() { return mAttr; }
+AepWorker::AepWorker() {
+	auto isTemporaryDb = true;
 
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
-};
-
+	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "New PmemKVStore created");
+	this->_spStore.reset(
+		new Dragon::PmemKVStore(1, isTemporaryDb));
 }
 
-#endif // FABRIC_HPP
+AepWorker::~AepWorker() {
+}
+
+KVStatus AepWorker::Put(const string& key, const string& valuestr) {
+	_ioMeter._io_count_write++;
+	return _spStore->Put(key, valuestr);
+}
+
+KVStatus AepWorker::Get(const string& key, string* valuestr) {
+	_ioMeter._io_count_read++;
+	return _spStore->Get(key, valuestr);
+}
+
+std::tuple<float, float> AepWorker::getIoStat() {
+	return _ioMeter.getIoStat();
+}
+
+unsigned long int AepWorker::getReadCounter() {
+	return _ioMeter._io_count_read;
+}
+
+unsigned long int AepWorker::getWriteCounter() {
+	return _ioMeter._io_count_write;
+}
+
+} /* namespace Dragon */

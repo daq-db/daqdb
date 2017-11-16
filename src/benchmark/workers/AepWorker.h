@@ -29,39 +29,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#ifndef SRC_BENCHMARK_WORKERS_AEPWORKER_H_
+#define SRC_BENCHMARK_WORKERS_AEPWORKER_H_
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <memory>
 
-namespace Fabric {
+#include <KVStore.h>
+#include "../IoMeter.h"
 
-class Fabric {
+namespace Dragon {
+
+class AepWorker {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	AepWorker();
+	virtual ~AepWorker();
 
-	FabricAttributes attr() { return mAttr; }
+	KVStatus Put(const string &key, const string &valuestr);
+	KVStatus Get(const string &key, string *valuestr);
+	unsigned long int getReadCounter();
+	unsigned long int getWriteCounter();
 
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+	std::tuple<float, float> getIoStat();
+
+private:
+	IoMeter _ioMeter;
+	std::unique_ptr<Dragon::KVStore> _spStore;
+
 };
 
-}
+} /* namespace Dragon */
 
-#endif // FABRIC_HPP
+#endif /* SRC_BENCHMARK_WORKERS_AEPWORKER_H_ */

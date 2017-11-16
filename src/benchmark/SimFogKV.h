@@ -29,39 +29,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#ifndef SRC_BENCHMARK_SIMFOGKV_H_
+#define SRC_BENCHMARK_SIMFOGKV_H_
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <string>
+#include "workers/AepWorker.h"
+#include "workers/DiskWorker.h"
 
-namespace Fabric {
+namespace Dragon {
 
-class Fabric {
+class SimFogKV {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	SimFogKV(const std::string &diskPath, const unsigned int elementSize,
+			const unsigned int limitGet = 0, const unsigned int limitPut = 0);
+	virtual ~SimFogKV();
 
-	FabricAttributes attr() { return mAttr; }
+	void setIOLimit(const unsigned int limitGet, const unsigned int limitPut);
 
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+	KVStatus Put(const std::string &key, const std::vector<char> &value);
+	KVStatus Get(const std::string &key, std::vector<char> &value);
+	std::tuple<float, float> getIoStat();
+
+	void TestSimpleGetPut(const unsigned int numOfGetOperations, const unsigned int numOfPutOperations);
+
+private:
+	Dragon::AepWorker _aepWorker;
+	Dragon::DiskWorker _diskWorker;
+	unsigned int _limit_get;
+	unsigned int _limit_put;
 };
 
-}
+} /* namespace Dragon */
 
-#endif // FABRIC_HPP
+#endif /* SRC_BENCHMARK_SIMFOGKV_H_ */

@@ -29,39 +29,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
+#ifndef RING_BUFFER_H
+#define RING_BUFFER_H
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
-
-namespace Fabric {
-
-class Fabric {
+class RingBuffer {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	using RingBufferFlush = std::function<bool (size_t, size_t)>;
+	using RingBufferRead = std::function<ssize_t (const uint8_t *, size_t len)>;
+public:
+	RingBuffer(size_t size, RingBufferFlush flush = RingBufferFlush());
+	virtual ~RingBuffer();
 
-	FabricAttributes attr() { return mAttr; }
-
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
+	uint8_t *get();
+	size_t write(const uint8_t *ptr, size_t len);
+	void read(size_t len, RingBufferRead read);
+	void notifyRead(size_t len);
+	void notifyWrite(size_t len);
+	size_t size();
+	size_t occupied();
+	size_t space();
 protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+	size_t occupied_unlocked();
+	size_t space_unlocked();
+	std::mutex mMtx;
+	std::condition_variable mCond;
+	uint8_t *mBuff;
+	size_t mSize;
+	size_t mBegin;
+	size_t mEnd;
+	RingBufferFlush mFlush;
 };
 
-}
-
-#endif // FABRIC_HPP
+#endif // RING_BUFFER_H

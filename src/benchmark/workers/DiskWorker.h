@@ -29,39 +29,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#ifndef SRC_BENCHMARK_WORKERS_DISKWORKER_H_
+#define SRC_BENCHMARK_WORKERS_DISKWORKER_H_
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <tuple>
+#include <KVStore.h>
+#include "../IoMeter.h"
 
-namespace Fabric {
+namespace Dragon {
 
-class Fabric {
+class DiskWorker {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	DiskWorker(const std::string &diskPath, const unsigned int elementSize);
+	virtual ~DiskWorker();
 
-	FabricAttributes attr() { return mAttr; }
+	std::tuple<KVStatus, unsigned int> Add(const std::vector<char> &value);
+	KVStatus Update(const unsigned int lba, const std::vector<char> &value);
+	KVStatus Read(const unsigned int lba, std::vector<char> &value);
+	std::tuple<float, float> getIoStat();
 
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+private:
+	IoMeter _ioMeter;
+
+	unsigned long int _valueBlockSize;
+	std::string _deviceName;
+
+	off_t GetFileLength();
 };
 
-}
+} /* namespace Dragon */
 
-#endif // FABRIC_HPP
+#endif /* SRC_BENCHMARK_WORKERS_DISKWORKER_H_ */

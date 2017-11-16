@@ -29,39 +29,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
-
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
-
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#ifndef FABRIC_CONNECTION_HPP
+#define FABRIC_CONNECTION_HPP
 
 namespace Fabric {
 
-class Fabric {
-public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
-
-	FabricAttributes attr() { return mAttr; }
-
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
-};
-
 }
 
-#endif // FABRIC_HPP
+#endif // FABRIC_CONNECTION_HPP
