@@ -6,7 +6,10 @@ pmemkv_include = [ Dir('./pmemkv'),
 	Dir('./pmemkv/src/engines')]
 env.Append(LIBPATH=[Dir('./pmemkv/bin')])
 env.Append(CPPPATH = pmemkv_include)
-PmemKV = env.Make(source = None, target = [File('pmemkv/bin/libpmemkv.so')], MakePath = Dir('./pmemkv'), MakeTargets = "configure sharedlib")
+
+PmemKV = env.Command('pmemkv/bin/libpmemkv.so', "", 'cd %s && make configure sharedlib' % Dir('#src/3rd/pmemkv').abspath)
+
+# PmemKV = env.Make(source = None, target = [File('pmemkv/bin/libpmemkv.so')], MakePath = Dir('./pmemkv'), MakeTargets = "configure sharedlib")
 env.Clean(PmemKV, 'pmemkv/bin/libpmemkv.so')
 copyPmemKv = Command(target = "#/libpmemkv.so",
         source = PmemKV,
