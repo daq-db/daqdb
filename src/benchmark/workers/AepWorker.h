@@ -38,7 +38,7 @@
 #include <KVStore.h>
 #include "../IoMeter.h"
 
-namespace Dragon {
+namespace FogKV {
 
 class AepWorker {
 public:
@@ -54,7 +54,7 @@ public:
 
 private:
 	IoMeter _ioMeter;
-	std::unique_ptr<Dragon::KVStore> _spStore;
+	std::unique_ptr<FogKV::KVStore> _spStore;
 
 };
 

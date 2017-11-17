@@ -27,7 +27,7 @@ using namespace log4cxx;
 using namespace log4cxx::xml;
 using namespace log4cxx::helpers;
 
-namespace Dragon {
+namespace FogKV {
 
 DiskWorker::DiskWorker(const std::string &diskPath,
 		const unsigned int elementSize) :

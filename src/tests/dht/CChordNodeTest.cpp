@@ -57,21 +57,21 @@ BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, *ut::disabled())
 	as::io_service io_service;
 	unsigned short dhtPort = 0;
 
-	Dragon::CChordAdapter *pDhtFirstNode =
-		new Dragon::CChordAdapter(io_service, dhtPort, 0, true);
+	FogKV::CChordAdapter *pDhtFirstNode =
+		new FogKV::CChordAdapter(io_service, dhtPort, 0, true);
 	dhtPort = pDhtFirstNode->getPort();
 
 	BOOST_CHECK_EQUAL(dhtBackBoneIp, pDhtFirstNode->getIp());
 	BOOST_CHECK_NE(pDhtFirstNode->getDhtId(), 0);
 
-	boost::ptr_vector<Dragon::PureNode> peerNodes;
+	boost::ptr_vector<FogKV::PureNode> peerNodes;
 	BOOST_CHECK_EQUAL(pDhtFirstNode->getPeerList(peerNodes), 0);
 
 	/*!
 	 * Second Node ADDED
 	 */
-	Dragon::CChordAdapter *pDhtSecondNode =
-		new Dragon::CChordAdapter(io_service, dhtPort, 0, true);
+	FogKV::CChordAdapter *pDhtSecondNode =
+		new FogKV::CChordAdapter(io_service, dhtPort, 0, true);
 	sleep(1);
 
 	pDhtFirstNode->refresh();
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, *ut::disabled())
 	BOOST_CHECK_NE(pDhtSecondNode->getDhtId(), 0);
 	BOOST_CHECK_EQUAL(pDhtFirstNode->getPeerList(peerNodes), 1);
 	BOOST_CHECK_EQUAL(peerNodes[0].getDhtId(), pDhtSecondNode->getDhtId());
-	boost::ptr_vector<Dragon::PureNode> peerNodesSecond;
+	boost::ptr_vector<FogKV::PureNode> peerNodesSecond;
 	BOOST_CHECK_EQUAL(pDhtSecondNode->getPeerList(peerNodesSecond), 1);
 	BOOST_CHECK_EQUAL(peerNodesSecond[0].getDhtId(),
 			  pDhtFirstNode->getDhtId());
@@ -90,8 +90,8 @@ BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, *ut::disabled())
 	/*!
 	 * Third Node ADDED
 	 */
-	Dragon::CChordAdapter *pDhtThirdNode =
-		new Dragon::CChordAdapter(io_service, dhtPort, 0, true);
+	FogKV::CChordAdapter *pDhtThirdNode =
+		new FogKV::CChordAdapter(io_service, dhtPort, 0, true);
 	sleep(1);
 
 	BOOST_CHECK_NE(dhtPort, pDhtThirdNode->getPort());
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(CChordNode_getPeerNodes, *ut::disabled())
 	for (auto node : peerNodesSecond) {
 		allFoundNodes.emplace(node.getDhtId());
 	}
-	boost::ptr_vector<Dragon::PureNode> peerNodesThird;
+	boost::ptr_vector<FogKV::PureNode> peerNodesThird;
 	BOOST_CHECK_GE(pDhtThirdNode->getPeerList(peerNodesThird), 1);
 	for (auto node : peerNodesThird) {
 		allFoundNodes.emplace(node.getDhtId());

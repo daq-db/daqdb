@@ -32,7 +32,7 @@
 
 #include "RoutingTable.h"
 
-namespace Dragon
+namespace FogKV
 {
 
 RoutingTable::RoutingTable()

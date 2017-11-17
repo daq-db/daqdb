@@ -38,7 +38,7 @@
 
 namespace as = boost::asio;
 
-namespace Dragon
+namespace FogKV
 {
 
 class SocketReqManager {

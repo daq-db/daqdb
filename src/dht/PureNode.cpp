@@ -32,7 +32,7 @@
 
 #include "PureNode.h"
 
-namespace Dragon
+namespace FogKV
 {
 
 PureNode::PureNode() : _port(0), _dhtId(0), _dragonPort(0)

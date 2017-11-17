@@ -37,7 +37,7 @@
 #include <KVStore.h>
 #include "../IoMeter.h"
 
-namespace Dragon {
+namespace FogKV {
 
 class DiskWorker {
 public:

@@ -39,7 +39,7 @@
 
 #include "KVStore.h"
 
-namespace Dragon
+namespace FogKV
 {
 
 /*!

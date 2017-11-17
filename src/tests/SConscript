@@ -11,13 +11,13 @@ buildDragonTestTarget = env.Program('dragonTest',
                 "dht",
                 "fabricpp",
                 "fabric",
-                File("#/src/3rd/cChord/libmymed.a"),
+                File("#third-party/cChord/libmymed.a"),
                 "boost_unit_test_framework",
                 "dl",
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem",
-                File("#/src/3rd/pmemkv/bin/libpmemkv.so")
+                File("#third-party/pmemkv/bin/libpmemkv.so")
                 ])
 
 copyDragonTestTarget = Command(target = "#/dragonTest",

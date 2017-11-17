@@ -56,7 +56,7 @@ const string pmemKvEngine = "kvtree";
 const string pmemKvBasePath = "/dev/shm/fogkv";
 };
 
-namespace Dragon
+namespace FogKV
 {
 
 DragonSrv::DragonSrv(as::io_service &io_service, const unsigned short nodeId)
@@ -66,11 +66,11 @@ DragonSrv::DragonSrv(as::io_service &io_service, const unsigned short nodeId)
 	auto dhtPort = dhtBackBonePort;
 	bool interactiveMode = false;
 
-	auto requestPort = Dragon::utils::getFreePort(_io_service, 0);
+	auto requestPort = FogKV::utils::getFreePort(_io_service, 0);
 	this->_spReqManager.reset(
-		new Dragon::SocketReqManager(_io_service, requestPort));
+		new FogKV::SocketReqManager(_io_service, requestPort));
 	this->_spDhtNode.reset(
-		new Dragon::CChordAdapter(_io_service, dhtPort, requestPort, _nodeId));
+		new FogKV::CChordAdapter(_io_service, dhtPort, requestPort, _nodeId));
 
 	unsigned short dbNameSuffix = _nodeId;
 	auto isTemporaryDb = false;
@@ -83,7 +83,7 @@ DragonSrv::DragonSrv(as::io_service &io_service, const unsigned short nodeId)
 		     format("New PmemKVStore (dbNameSuffix=%1%)") %
 			     dbNameSuffix);
 	this->_spStore.reset(
-		new Dragon::PmemKVStore(dbNameSuffix, isTemporaryDb));
+		new FogKV::PmemKVStore(dbNameSuffix, isTemporaryDb));
 }
 
 DragonSrv::~DragonSrv()
@@ -136,7 +136,7 @@ std::string
 DragonSrv::getDhtPeerStatus() const
 {
 	stringstream result;
-	boost::ptr_vector<Dragon::PureNode> peerNodes;
+	boost::ptr_vector<FogKV::PureNode> peerNodes;
 	chrono::time_point<chrono::system_clock> timestamp;
 
 	timestamp = chrono::system_clock::now();
