@@ -50,7 +50,7 @@ const string dhtOverlayIdentifier = "chordTestBed";
 const string rootDirectory = ".";
 };
 
-namespace Dragon
+namespace FogKV
 {
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
@@ -61,9 +61,9 @@ CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
 
 CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
 			     unsigned short dragonPort, int id, bool skipShutDown)
-    : Dragon::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
+    : FogKV::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
 {
-	auto dhtPort = Dragon::utils::getFreePort(io_service, port, true);
+	auto dhtPort = FogKV::utils::getFreePort(io_service, port, true);
 
 	string backBone[] = {
 		dhtBackBoneIp,
@@ -101,7 +101,7 @@ CChordAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
 	std::set<unsigned int> addedDhtNodes;
 	auto addUniqueNode = [&addedDhtNodes, &peerNodes](Node *pNodeToAdd) {
 		if (!addedDhtNodes.count(pNodeToAdd->getId())) {
-			peerNodes.push_back(new Dragon::PureNode(
+			peerNodes.push_back(new FogKV::PureNode(
 				pNodeToAdd->getIp(), pNodeToAdd->getId(),
 				pNodeToAdd->getPort(),
 				pNodeToAdd->getDragonPort()));

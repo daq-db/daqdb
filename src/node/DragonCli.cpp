@@ -95,10 +95,10 @@ hints(const char *buf, int *color, int *bold)
 	return result;
 }
 
-namespace Dragon
+namespace FogKV
 {
 
-DragonCli::DragonCli(std::shared_ptr<Dragon::DragonSrv> &spDragonSrv) : _spDragonSrv(spDragonSrv)
+DragonCli::DragonCli(std::shared_ptr<FogKV::DragonSrv> &spDragonSrv) : _spDragonSrv(spDragonSrv)
 {
 	linenoiseSetCompletionCallback(completion);
 	linenoiseSetHintsCallback(hints);

@@ -34,7 +34,7 @@
 
 #include <iostream>
 
-namespace Dragon
+namespace FogKV
 {
 
 SocketReqManager::SocketReqManager(boost::asio::io_service &io_service,

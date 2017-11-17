@@ -44,7 +44,7 @@
 
 namespace as = boost::asio;
 
-namespace Dragon
+namespace FogKV
 {
 
 /*!
@@ -105,7 +105,7 @@ public:
 	 */
 	std::string getDhtPeerStatus() const;
 
-	Dragon::KVStore *const
+	FogKV::KVStore *const
 	getKvStore()
 	{
 		return _spStore.get();
@@ -114,10 +114,10 @@ public:
 private:
 	unsigned short _nodeId;
 	as::io_service &_io_service;
-	std::unique_ptr<Dragon::SocketReqManager> _spReqManager;
-	std::unique_ptr<Dragon::DhtNode> _spDhtNode;
+	std::unique_ptr<FogKV::SocketReqManager> _spReqManager;
+	std::unique_ptr<FogKV::DhtNode> _spDhtNode;
 
-	std::unique_ptr<Dragon::KVStore> _spStore;
+	std::unique_ptr<FogKV::KVStore> _spStore;
 };
 
 } /* namespace DragonNode */

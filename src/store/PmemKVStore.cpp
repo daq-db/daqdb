@@ -44,7 +44,7 @@ const string pmemKvEngine = "kvtree";
 const string pmemKvBasePath = "/dev/shm/fogkv"; //!< @todo jradtke This should be configurable
 };
 
-namespace Dragon
+namespace FogKV
 {
 
 PmemKVStore::PmemKVStore(int nodeId, const bool temporaryDb)

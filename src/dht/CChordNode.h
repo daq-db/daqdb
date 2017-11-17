@@ -41,13 +41,13 @@
 
 namespace as = boost::asio;
 
-namespace Dragon
+namespace FogKV
 {
 
 /*!
  * Adapter for cChord classes.
  */
-class CChordAdapter : public Dragon::DhtNode {
+class CChordAdapter : public FogKV::DhtNode {
 public:
 	CChordAdapter(as::io_service &io_service, unsigned short port,
 		      unsigned short dragonPort, int id);

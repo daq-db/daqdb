@@ -37,7 +37,7 @@
 #include "workers/AepWorker.h"
 #include "workers/DiskWorker.h"
 
-namespace Dragon {
+namespace FogKV {
 
 class SimFogKV {
 public:
@@ -54,8 +54,8 @@ public:
 	void TestSimpleGetPut(const unsigned int numOfGetOperations, const unsigned int numOfPutOperations);
 
 private:
-	Dragon::AepWorker _aepWorker;
-	Dragon::DiskWorker _diskWorker;
+	FogKV::AepWorker _aepWorker;
+	FogKV::DiskWorker _diskWorker;
 	unsigned int _limit_get;
 	unsigned int _limit_put;
 };

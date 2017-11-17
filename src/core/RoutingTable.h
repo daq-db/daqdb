@@ -36,7 +36,7 @@
 #include "RoutingTableItem.h"
 #include <vector>
 
-namespace Dragon
+namespace FogKV
 {
 
 class RoutingTable {
@@ -45,7 +45,7 @@ public:
 	virtual ~RoutingTable();
 
 private:
-	std::vector<std::unique_ptr<Dragon::RoutingTableItem>> _RTable;
+	std::vector<std::unique_ptr<FogKV::RoutingTableItem>> _RTable;
 
 };
 

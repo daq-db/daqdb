@@ -32,7 +32,7 @@
 
 #include "KVInterface.h"
 
-namespace Dragon
+namespace FogKV
 {
 
 KVInterface::KVInterface()

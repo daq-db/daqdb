@@ -46,7 +46,7 @@
 
 using namespace boost::timer;
 
-namespace Dragon
+namespace FogKV
 {
 
 class CpuMeter {
@@ -61,7 +61,7 @@ public:
 
 	std::string format();
 
-	void logCpuUsage(Dragon::SimFogKV* simFog);
+	void logCpuUsage(FogKV::SimFogKV* simFog);
 
 private:
 	bool _csvEnabled;

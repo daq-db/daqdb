@@ -111,8 +111,8 @@ main(int argc, const char *argv[])
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(	boost::bind(&boost::asio::io_service::stop, &io_service));
-	shared_ptr<Dragon::DragonSrv> spDragonSrv(
-		new Dragon::DragonSrv(io_service, nodeId));
+	shared_ptr<FogKV::DragonSrv> spDragonSrv(
+		new FogKV::DragonSrv(io_service, nodeId));
 
 	LOG4CXX_INFO(loggerDragon,
 		     format("DHT node (id=%1%) is running on %2%:%3%") %
@@ -125,7 +125,7 @@ main(int argc, const char *argv[])
 		spDragonSrv->run();
 	} else {
 #if (1) // interactive mode
-		Dragon::DragonCli dragonCli(spDragonSrv);
+		FogKV::DragonCli dragonCli(spDragonSrv);
 		while (dragonCli()) {
 			if (spDragonSrv->stopped()) {
 				break;

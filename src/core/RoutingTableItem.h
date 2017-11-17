@@ -39,7 +39,7 @@
 #include <bitset>
 #include <memory>
 
-namespace Dragon
+namespace FogKV
 {
 
 class RoutingTableItem {
@@ -52,7 +52,7 @@ public:
 
 private:
 	std::bitset<DIGEST_LENGTH> _bitvector;
-	std::unique_ptr<Dragon::PureNode> _spSiblingNode;
+	std::unique_ptr<FogKV::PureNode> _spSiblingNode;
 };
 
 } /* namespace Dragon */

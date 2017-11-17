@@ -44,14 +44,14 @@ using namespace log4cxx;
 using namespace log4cxx::xml;
 using namespace log4cxx::helpers;
 
-namespace Dragon {
+namespace FogKV {
 
 AepWorker::AepWorker() {
 	auto isTemporaryDb = true;
 
 	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "New PmemKVStore created");
 	this->_spStore.reset(
-		new Dragon::PmemKVStore(1, isTemporaryDb));
+		new FogKV::PmemKVStore(1, isTemporaryDb));
 }
 
 AepWorker::~AepWorker() {

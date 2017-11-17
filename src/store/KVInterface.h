@@ -35,7 +35,7 @@
 
 #include <pmemkv.h>
 
-namespace Dragon
+namespace FogKV
 {
 
 /*!

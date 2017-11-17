@@ -1,15 +1,15 @@
 [submodule "3rd/cChord"]
-	path = src/3rd/cChord
+	path = third-party/cChord
 	url = https://github.com/FogKV/cChord.git
 [submodule "src/3rd/pmemkv"]
-	path = src/3rd/pmemkv
+	path = third-party/pmemkv
 	url = https://github.com/pmem/pmemkv.git
 [submodule "src/3rd/linenoise"]
-	path = src/3rd/linenoise
+	path = third-party/linenoise
 	url = https://github.com/antirez/linenoise.git
 [submodule "src/3rd/cpu-stat"]
-	path = src/3rd/cpu-stat
+	path = third-party/cpu-stat
 	url = https://github.com/vivaladav/cpu-stat
 [submodule "src/3rd/csvpp"]
-	path = src/3rd/csvpp
+	path = third-party/csvpp
 	url = https://github.com/Plaristote/csvpp.git

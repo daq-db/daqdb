@@ -63,7 +63,7 @@ LoggerPtr benchDragon(Logger::getLogger("benchmark"));
  *
  */
 void logCpuUsage(const boost::system::error_code&,
-		boost::asio::deadline_timer* cpuLogTimer, Dragon::CpuMeter* cpuMeter, Dragon::SimFogKV* simFog, Node* node) {
+		boost::asio::deadline_timer* cpuLogTimer, FogKV::CpuMeter* cpuMeter, FogKV::SimFogKV* simFog, Node* node) {
 
 //	cpuMeter->logCpuUsage(simFog);
 
@@ -184,8 +184,8 @@ int main(int argc, const char *argv[]) {
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(bind(&boost::asio::io_service::stop, &io_service));
 
-	Dragon::CpuMeter cpuMeter(enableCSV);
-	Dragon::SimFogKV simFog(diskPath, diskBuffSize);
+	FogKV::CpuMeter cpuMeter(enableCSV);
+	FogKV::SimFogKV simFog(diskPath, diskBuffSize);
 
 	boost::asio::deadline_timer cpuLogTimer(io_service,
 			boost::posix_time::seconds(1));

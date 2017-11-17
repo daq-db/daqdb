@@ -8,7 +8,8 @@ env.Program('fabric_node', Glob('*.cpp'),
                 "rt",
                 "dl",
                 "dht",
-		"fabricpp",
-		"fabric",
-                File("#/src/3rd/cChord/libmymed.a")
+                "fabricpp",
+                "fabric",
+                "pthread",
+                File("#third-party/cChord/libmymed.a")
                 ])

@@ -42,7 +42,7 @@ namespace
 const unsigned int consoleHintColor = 35; // dark red
 };
 
-namespace Dragon
+namespace FogKV
 {
 
 /*!
@@ -51,7 +51,7 @@ namespace Dragon
  */
 class DragonCli {
 public:
-	DragonCli(std::shared_ptr<Dragon::DragonSrv> &spDragonSrv);
+	DragonCli(std::shared_ptr<FogKV::DragonSrv> &spDragonSrv);
 	virtual ~DragonCli();
 
 	/*!
@@ -68,7 +68,7 @@ private:
 	void cmdStatus();
 	void cmdNodeStatus(std::string &strLine);
 
-	std::shared_ptr<Dragon::DragonSrv> _spDragonSrv;
+	std::shared_ptr<FogKV::DragonSrv> _spDragonSrv;
 };
 
 } /* namespace Dragon */

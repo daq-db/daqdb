@@ -31,7 +31,7 @@
  */
 #include "IoMeter.h"
 
-namespace Dragon {
+namespace FogKV {
 
 IoMeter::IoMeter() {
 	_snapshot_time = boost::posix_time::second_clock::local_time();

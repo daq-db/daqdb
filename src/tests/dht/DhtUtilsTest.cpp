@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(
 {
 	as::io_service io_service;
 
-	auto resultPort = Dragon::utils::getFreePort(io_service, 0);
+	auto resultPort = FogKV::utils::getFreePort(io_service, 0);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
 	BOOST_TEST(isPortFree(io_service, resultPort),
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(
 
 	auto portThatIsOpened = echoProtocolPort;
 
-	auto resultPort = Dragon::utils::getFreePort(io_service, portThatIsOpened);
+	auto resultPort = FogKV::utils::getFreePort(io_service, portThatIsOpened);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
 	BOOST_TEST(isPortFree(io_service, resultPort),
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultNotUsed,
 
 	auto freePort = getFreePortNumber(io_service);
 
-	auto resultPort = Dragon::utils::getFreePort(io_service, freePort);
+	auto resultPort = FogKV::utils::getFreePort(io_service, freePort);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
 	BOOST_TEST(isPortFree(io_service, resultPort),
