@@ -20,16 +20,11 @@ buildDragonTestTarget = env.Program('dragonTest',
                 File("#third-party/pmemkv/bin/libpmemkv.so")
                 ])
 
-copyDragonTestTarget = Command(target = "#/dragonTest",
-        source = buildDragonTestTarget,
-        action = Copy("$TARGET", "$SOURCE"))
-env.Depends(copyDragonTestTarget, buildDragonTestTarget)
-env.Clean('#/dragonTest', 'dragonTest')
-
 logging_option = ' --color_output=yes'
 if env["VERBOSE"]:
 	logging_option += ' --log_level=all'
 
+env.Command(source = File("#third-party/pmemkv/bin/libpmemkv.so"), target = "./", action = Copy("$TARGET", "$SOURCE"))
 test_alias = Alias('test', [buildDragonTestTarget], buildDragonTestTarget[0].path + logging_option)
 
 AlwaysBuild(test_alias)

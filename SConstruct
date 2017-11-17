@@ -7,13 +7,15 @@ env.Append(VERBOSE=ARGUMENTS.get('verbose', 0))
 env.Append(LIBPATH=['/usr/lib64', '/usr/lib/x86_64-linux-gnu', '#third-party/cChord', '#build/src/dht', '#third-party/pmemkv/bin'])
 env.Append(LINKFLAGS='-Wl,-rpath=.')  # loads shared library from the binary directory
 
-SConscript('#third-party/SConscript', exports='env')
+SConscript('third-party/SConscript', exports='env')
 VariantDir('build', 'src', duplicate=0) # to not trash src folder
 SConscript('build/SConscript', exports=['env', ])
+SConscript('examples/node/SConscript', exports=['env', ])
+SConscript('tests/SConscript', exports=['env', ])
 
 # copy products to bin directory
-instDragon = env.Install('bin', 'dragon')
-instDragonTest = env.Install('bin', 'dragonTest')
+instDragon = env.Install('bin', 'examples/node/dragon')
+instDragonTest = env.Install('bin', 'tests/dragonTest')
 env.Alias('install', [instDragon, instDragonTest])
 Depends('install', 'build')
 

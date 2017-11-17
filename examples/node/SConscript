@@ -16,10 +16,3 @@ DragonTarget = env.Program('dragon', Glob('*.cpp'),
                 File("#third-party/pmemkv/bin/libpmemkv.so"),
                 File("#third-party/linenoise/liblinenoise.a"),
                 ])
-
-copyDragonTarget = Command(target = "#/dragon",
-        source = DragonTarget,
-        action = Copy("$TARGET", "$SOURCE"))
-
-env.Depends(copyDragonTarget, DragonTarget)
-env.Clean('#/dragon', 'dragon')
