@@ -32,6 +32,7 @@
 #include "RingBuffer.h"
 
 #include <string.h>
+#include <assert.h>
 
 RingBuffer::RingBuffer(size_t size, RingBufferFlush flush)
 {
@@ -74,6 +75,7 @@ size_t RingBuffer::write(const uint8_t *ptr, size_t len)
 {
 	std::unique_lock<std::mutex> l(mMtx);
 	mCond.wait(l, [&] {
+		assert(space_unlocked() >= len);
 		return space_unlocked() >= len;
 	});
 
@@ -102,6 +104,7 @@ void RingBuffer::read(size_t len, RingBufferRead read)
 	size_t rd = 0;
 	std::unique_lock<std::mutex> l(mMtx);
 	mCond.wait(l, [&] {
+		assert(occupied_unlocked() >= len);
 		return occupied_unlocked() >= len;
 	});
 

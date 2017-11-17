@@ -33,23 +33,28 @@
 #define NODE_H
 
 #include <string>
+#include <atomic>
 #include <FabricNode.h>
 #include "Protocol.h"
 
-#define MSG_BUFF_SIZE 4096
+#include "RingBuffer.h"
+
+#define MSG_BUFF_SIZE 64
 
 class Node {
 public:
-	Node(const std::string &node, const std::string &serv);
+	Node(const std::string &node, const std::string &serv,
+		size_t buffSize, size_t txBuffCount, size_t rxBuffCount, bool logMsg);
 	virtual ~Node();
 
 	virtual void start() = 0;
+
+	double getAvgTxBuffUsage(bool reset = false);
+	double getAvgRxBuffUsage(bool reset = false);
+	double getAvgTxMsgUsage(bool reset = false);
 protected:
-	virtual void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
-	virtual void onMsgWrite(Fabric::FabricConnection &conn, MsgOp *msg);
-	virtual void onMsgWriteResp(Fabric::FabricConnection &conn, MsgOp *msg);
-	virtual void onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg);
-	virtual void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	virtual void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	virtual void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
 	virtual void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
 	virtual void onMsgReady(Fabric::FabricConnection &conn);
 	virtual void onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg);
@@ -57,11 +62,44 @@ protected:
 	virtual void onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg);
 	virtual void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
 
+	virtual void postRecv();
+	virtual void postSend(MsgHdr *hdrp);
+
+	template <class T>
+	void postSend(T &msg) { postSend(&msg.Hdr); }
+
+	Fabric::FabricMR *getTxBuff();
+	void notifyTxBuff(Fabric::FabricMR *mr);
+
+	std::mutex mTxMRsLock;
+	std::condition_variable mTxMRsCond;
+	std::vector<Fabric::FabricMR *> mTxMRs;
+
 	std::shared_ptr<Fabric::FabricNode> mNode;
-	uint8_t mTxMsgBuff[MSG_BUFF_SIZE];
-	uint8_t mRxMsgBuff[MSG_BUFF_SIZE];
-	std::shared_ptr<Fabric::FabricMR> mTxMR;
-	std::shared_ptr<Fabric::FabricMR> mRxMR;
+	std::shared_ptr<Fabric::FabricConnection> mConn;
+	std::vector<uint8_t [MSG_BUFF_SIZE]> mTxMsgBuff;
+	std::vector<uint8_t [MSG_BUFF_SIZE]> mRxMsgBuff;
+	std::vector<std::shared_ptr<Fabric::FabricMR>> mTxMR;
+	std::vector<std::shared_ptr<Fabric::FabricMR>> mRxMR;
+	bool mLogMsg;
+
+	std::shared_ptr<RingBuffer> mTxBuff;
+	std::shared_ptr<Fabric::FabricMR> mTxBuffMR;
+	MsgBuffDesc mTxBuffDesc;
+
+	std::shared_ptr<RingBuffer> mRxBuff;
+	std::shared_ptr<Fabric::FabricMR> mRxBuffMR;
+
+	std::atomic<unsigned long long> mTxMsgUsageSum;
+	std::atomic<unsigned long long> mTxMsgUsageCnt;
+
+	std::atomic<unsigned long long> mTxUsageSum;
+	std::atomic<unsigned long long> mTxUsageCnt;
+	void txBuffStat();
+
+	std::atomic<unsigned long long> mRxUsageSum;
+	std::atomic<unsigned long long> mRxUsageCnt;
+	void rxBuffStat();
 };
 
 #endif // NODE_H

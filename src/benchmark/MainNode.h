@@ -45,38 +45,25 @@ public:
 	using PutHandler = std::function<void (const std::string &key, const std::vector<char> &value)>;
 	using GetHandler = std::function<void (const std::string &key, std::vector<char> &value)>;
 
-	MainNode(const std::string &node, const std::string &serv, size_t wrBuffSize);
+	MainNode(const std::string &node, const std::string &serv,
+		size_t wrBuffSize, size_t txBuffCount,
+		size_t rxBuffCount, bool logMsg);
 	virtual ~MainNode();
 
 	void start();
 	void onPut(PutHandler handler);
 	void onGet(GetHandler handler);
-	void onWrite(WriteHandler handler);
-	void onRead(ReadHandler handler);
 protected:
-	void onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len);
+	void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
 	void onConnectionRequestHandler(std::shared_ptr<Fabric::FabricConnection> conn);
 	void onConnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
 	void onDisconnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
 	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
-	void onMsgWrite(Fabric::FabricConnection &conn, MsgOp *msg);
-	void onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg);
-	void onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg);
 	void onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg);
 	void onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg);
 	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
 	bool flushWrBuff(size_t offset, size_t len);
-
-	std::shared_ptr<Fabric::FabricConnection> mConn;
-
-	std::shared_ptr<RingBuffer> mWrBuff;
-	std::shared_ptr<Fabric::FabricMR> mWrBuffMR;
-	WriteHandler mWriteHandler;
-
-	std::shared_ptr<RingBuffer> mRdBuff;
-	std::shared_ptr<Fabric::FabricMR> mRdBuffMR;
-	MsgBuffDesc mRdBuffDesc;
-	ReadHandler mReadHandler;
 
 	PutHandler mPutHandler;
 	GetHandler mGetHandler;

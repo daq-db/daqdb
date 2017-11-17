@@ -37,19 +37,21 @@
 using namespace Fabric;
 using namespace std::placeholders;
 
-MainNode::MainNode(const std::string &node, const std::string &serv, size_t wrBuffSize) :
-	Node(node, serv)
+MainNode::MainNode(const std::string &node, const std::string &serv,
+	size_t buffSize, size_t txBuffCount, size_t rxBuffCount, bool logMsg) :
+	Node(node, serv, buffSize, txBuffCount, rxBuffCount, logMsg)
 {
 	mNode->onConnectionRequest(std::bind(&MainNode::onConnectionRequestHandler, this, std::placeholders::_1));
 	mNode->onConnected(std::bind(&MainNode::onConnectedHandler, this, std::placeholders::_1));
 	mNode->onDisconnected(std::bind(&MainNode::onDisconnectedHandler, this, std::placeholders::_1));
-
-	mWrBuff = std::make_shared<RingBuffer>(wrBuffSize);
-	mWrBuffMR = mNode->registerMR(static_cast<void *>(mWrBuff->get()), wrBuffSize, REMOTE_WRITE);
 }
 
 MainNode::~MainNode()
 {
+	if (mConn != nullptr) {
+		mNode->disconnect(mConn);
+		mConn = nullptr;
+	}
 }
 
 void MainNode::start()
@@ -62,156 +64,110 @@ void MainNode::onConnectionRequestHandler(std::shared_ptr<FabricConnection> conn
 	LOG4CXX_INFO(benchDragon, "Connection request from " + conn->getPeerStr());
 
 	conn->onRecv(std::bind(&MainNode::onRecvHandler, this, _1, _2, _3));
-	conn->postRecv(mRxMR);
+	conn->onSend(std::bind(&MainNode::onSendHandler, this, _1, _2, _3));
 
 	mConn = conn;
+
+	postRecv();
 }
 
 void MainNode::onConnectedHandler(std::shared_ptr<FabricConnection> conn)
 {
 	LOG4CXX_INFO(benchDragon, "Connected with " + conn->getPeerStr());
 
-	MsgParams *msg = static_cast<MsgParams *>(mTxMR->getPtr());
-	msg->Hdr.Type = MSG_PARAMS;
-	msg->Hdr.Size = sizeof(*msg);
-	msg->WriteBuff.Size = mWrBuffMR->getSize();
-	msg->WriteBuff.Addr = (uint64_t)(mWrBuffMR->getPtr());
-	msg->WriteBuff.Key = mWrBuffMR->getRKey();
+	MsgBuffDesc buffDesc(
+		mRxBuffMR->getSize(),
+		(uint64_t)(mRxBuffMR->getPtr()),
+		mRxBuffMR->getRKey()
+	);
 
-	conn->send(mTxMR, msg->Hdr.Size);
+	MsgParams msgParams(buffDesc);
+	postSend(msgParams);
 }
 
 
 void MainNode::onDisconnectedHandler(std::shared_ptr<FabricConnection> conn)
 {
 	LOG4CXX_INFO(benchDragon, "Disconnected with " + conn->getPeerStr());
+	exit(0);
 }
 
-void MainNode::onRecvHandler(Fabric::FabricConnection &conn, std::shared_ptr<Fabric::FabricMR> mr, size_t len)
+void MainNode::onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len)
 {
 	Node::onRecvHandler(conn, mr, len);
 }
 
-void MainNode::onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg)
+void MainNode::onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len)
 {
-	mRdBuffDesc = msg->WriteBuff;
-	mRdBuff = std::make_shared<RingBuffer>(mRdBuffDesc.Size, std::bind(&MainNode::flushWrBuff, this, _1, _2));
-	mRdBuffMR = mNode->registerMR(mRdBuff->get(), mRdBuff->size(), WRITE);
-
-	MsgHdr *res = static_cast<MsgHdr *>(mTxMR->getPtr());
-	res->Type = MSG_READY;
-	res->Size = sizeof(MsgHdr);
-
-	conn.send(mTxMR, res->Size);
+	if (mr != mTxBuffMR.get())
+		Node::onSendHandler(conn, mr, len);
 }
 
-void MainNode::onMsgWrite(FabricConnection &conn, MsgOp *msg)
+void MainNode::onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg)
 {
-	mWrBuff->notifyWrite(msg->Size);
-	size_t occupied = mWrBuff->occupied();
+	mTxBuffDesc = msg->WriteBuff;
+	mTxBuff = std::make_shared<RingBuffer>(mTxBuffDesc.Size, std::bind(&MainNode::flushWrBuff, this, _1, _2));
+	mTxBuffMR = mNode->registerMR(mTxBuff->get(), mTxBuff->size(), WRITE);
 
-	mWriteHandler(mWrBuff);
-
-	if (occupied > mWrBuff->occupied()) {
-		MsgOp *res = static_cast<MsgOp *>(mTxMR->getPtr());
-		res->Hdr.Type = MSG_WRITE_RESP;
-		res->Hdr.Size = sizeof(MsgOp);
-		res->Size = occupied - mWrBuff->occupied();
-
-		conn.send(mTxMR, res->Hdr.Size);
-	}
+	MsgHdr msgReady(MSG_READY, sizeof(MsgHdr));
+	postSend(&msgReady);
 }
 
 void MainNode::onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg)
 {
-	mWrBuff->notifyWrite(msg->KeySize + msg->ValSize);
+	rxBuffStat();
+	mRxBuff->notifyWrite(msg->KeySize + msg->ValSize);
 	std::string key;
 	key.reserve(msg->KeySize);
 
 	std::vector<char> value(msg->ValSize);
 
-	mWrBuff->read(msg->KeySize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
+	mRxBuff->read(msg->KeySize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
 		key.append((const char *)buff, l);
 	});
 
 	size_t c = 0;
-	mWrBuff->read(msg->ValSize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
+	mRxBuff->read(msg->ValSize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
 		memcpy(&value[0], buff, l);
 		c += l;
 	});
 
 	mPutHandler(key, value);
 
-	MsgOp *res = static_cast<MsgOp *>(mTxMR->getPtr());
-	res->Hdr.Type = MSG_PUT_RESP;
-	res->Hdr.Size = sizeof(MsgOp);
-	res->Size = msg->KeySize + msg->ValSize;
-
-	conn.send(mTxMR, res->Hdr.Size);
+	MsgOp msgPutResp(MSG_PUT_RESP, msg->KeySize + msg->ValSize);
+	postSend(msgPutResp);
 }
 
 void MainNode::onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg)
 {
-	mWrBuff->notifyWrite(msg->KeySize);
+	rxBuffStat();
+	mRxBuff->notifyWrite(msg->KeySize);
 	std::string key;
 	key.reserve(msg->KeySize);
-	mWrBuff->read(msg->KeySize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
+
+	mRxBuff->read(msg->KeySize, [&] (const uint8_t *buff, size_t l) -> ssize_t {
 		key.append((const char *)buff, l);
 	});
 
 	std::vector<char> value;
 	mGetHandler(key, value);
 
-	mRdBuff->write((uint8_t *)&value[0], value.size());
+	txBuffStat();
+	mTxBuff->write((uint8_t *)&value[0], value.size());
 
-	MsgGetResp *res = static_cast<MsgGetResp *>(mTxMR->getPtr());
-	res->Hdr.Type = MSG_GET_RESP;
-	res->Hdr.Size = sizeof(MsgGetResp);
-	res->KeySize = msg->KeySize;
-	res->ValSize = value.size();
-
-	conn.send(mTxMR, res->Hdr.Size);
+	MsgGetResp msgGetResp(msg->KeySize, value.size());
+	postSend(msgGetResp);
 }
 
 void MainNode::onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg)
 {
-	mRdBuff->notifyRead(msg->ValSize);
-}
-
-void MainNode::onMsgRead(Fabric::FabricConnection &conn, MsgOp *msg)
-{
-	size_t occupied = mRdBuff->occupied();
-
-	mReadHandler(mRdBuff, msg->Size);
-
-	if (mRdBuff->occupied() > occupied) {
-		MsgOp *res = static_cast<MsgOp *>(mTxMR->getPtr());
-		res->Hdr.Type = MSG_READ_RESP;
-		res->Hdr.Size = sizeof(MsgOp);
-		res->Size = mRdBuff->occupied() - occupied;
-
-		conn.send(mTxMR, res->Hdr.Size);
-	}
-}
-
-void MainNode::onMsgReadResp(Fabric::FabricConnection &conn, MsgOp *msg)
-{
-	mRdBuff->notifyRead(msg->Size);
-}
-
-void MainNode::onWrite(WriteHandler handler)
-{
-	mWriteHandler = handler;
-}
-
-void MainNode::onRead(ReadHandler handler)
-{
-	mReadHandler = handler;
+	txBuffStat();
+	mTxBuff->notifyRead(msg->ValSize);
 }
 
 bool MainNode::flushWrBuff(size_t offset, size_t len)
 {
-	mConn->write(mRdBuffMR, offset, len, mRdBuffDesc.Addr, mRdBuffDesc.Key);
+	mConn->write(mTxBuffMR.get(), offset, len, mTxBuffDesc.Addr, mTxBuffDesc.Key);
 }
 
 void MainNode::onPut(PutHandler handler)

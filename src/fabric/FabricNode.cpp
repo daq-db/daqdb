@@ -31,7 +31,7 @@
  */
 
 #include <FabricNode.h>
-
+#include "common.h"
 namespace Fabric {
 
 FabricNode::FabricNode(const FabricAttributes &attr, const std::string &node, const std::string &serv) :
@@ -42,11 +42,11 @@ FabricNode::FabricNode(const FabricAttributes &attr, const std::string &node, co
 
 	ret = fi_passive_ep(mFabric.fabric(), mFabric.info(), &mPep, NULL);
 	if (ret)
-		throw std::string("fi_passive_ep() failed");
+		FATAL("fi_passive_ep() failed");
 
 	ret = fi_pep_bind(mPep, &mFabric.eq()->fid, 0);
 	if (ret)
-		throw std::string("fi_pep_bind(pep, eq) failed");
+		FATAL("fi_pep_bind(pep, eq) failed");
 
 	mEqThreadRun = true;
 	mEqThread = std::thread(&FabricNode::eqThreadFunc, this);
@@ -74,9 +74,18 @@ void FabricNode::eqThreadFunc()
 	struct fi_eq_cm_entry entry;
 
 	while (mEqThreadRun) {
-		sret = fi_eq_sread(mFabric.eq(), &event, &entry, sizeof(entry), 100, 0);
+		sret = fi_eq_sread(mFabric.eq(), &event, &entry, sizeof(entry), -1, 0);
 		if (sret == -FI_EAGAIN)
 			continue;
+
+		if (sret == -EINTR)
+			continue;
+
+		if (sret < 0)
+			FATAL("fi_eq_sread failed " + std::to_string(sret));
+
+		if (event == FI_SHUTDOWN && entry.fid == &mPep->fid)
+			break;
 
 		if (event == FI_CONNREQ) {
 			std::shared_ptr<FabricConnection> conn = std::make_shared<FabricConnection>(mFabric, entry.info);
@@ -91,7 +100,7 @@ void FabricNode::eqThreadFunc()
 			std::unique_lock<std::mutex> lock(mConnLock);
 			auto c = mConnecting.find((struct fid_ep *)entry.fid);
 			if (c == mConnecting.end())
-				throw std::string("Invalid endpoint");
+				FATAL("Invalid endpoint");
 
 			struct fid_ep *ep = c->first;
 			std::shared_ptr<FabricConnection> conn = c->second;
@@ -108,7 +117,7 @@ void FabricNode::eqThreadFunc()
 			std::unique_lock<std::mutex> lock(mConnLock);
 			auto c = mConnected.find((struct fid_ep *)entry.fid);
 			if (c == mConnected.end())
-				throw std::string("Invalid endpoint");
+				FATAL("Invalid endpoint");
 
 			if(mDisconnectedHandler)
 				mDisconnectedHandler(c->second);
@@ -117,7 +126,6 @@ void FabricNode::eqThreadFunc()
 
 			lock.unlock();
 			mConnCond.notify_all();
-
 		}
 	}
 }
@@ -128,25 +136,43 @@ void FabricNode::listen()
 
 	ret = fi_listen(mPep);
 	if (ret)
-		throw std::string("fi_listen() failed");
+		FATAL("fi_listen() failed");
 
 }
 
 void FabricNode::stop()
 {
 	mEqThreadRun = false;
+	struct fi_eq_cm_entry entry;
+	entry.info = NULL;
+	entry.fid = &mPep->fid;
+	ssize_t sret = fi_eq_write(mFabric.eq(), FI_SHUTDOWN, &entry, sizeof(entry), 0);
+	if (sret < 0)
+		FATAL("fi_eq_write failed");
+
 	mEqThread.join();
 }
 
-std::shared_ptr<FabricConnection>  FabricNode::connection(const std::string &addr, const std::string &serv)
+std::shared_ptr<FabricConnection> FabricNode::connection(const std::string &addr, const std::string &serv)
 {
 	std::unique_lock<std::mutex> lock(mConnLock);
 	std::shared_ptr<FabricConnection> conn = std::make_shared<FabricConnection>(mFabric, addr, serv);
 	return conn;
 }
 
+void FabricNode::disconnect(std::shared_ptr<FabricConnection> conn)
+{
+	conn->close();
+	std::unique_lock<std::mutex> lock(mConnLock);
+	mConnCond.wait(lock, [&] {
+		return mConnecting.find(conn->endpoint()) == mConnecting.end() &&
+			mConnected.find(conn->endpoint()) == mConnected.end();
+	});
+}
+
 void FabricNode::connectAsync(std::shared_ptr<FabricConnection> conn)
 {
+	std::unique_lock<std::mutex> lock(mConnLock);
 	conn->connectAsync();
 	mConnecting[conn->endpoint()] = conn;
 }

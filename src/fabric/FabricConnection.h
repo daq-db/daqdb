@@ -38,6 +38,7 @@
 #include <vector>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 #include <map>
 
 #include <rdma/fi_endpoint.h>
@@ -48,20 +49,22 @@ namespace Fabric {
 
 class FabricConnection {
 	using FabricConnectionDataEventHandler = 
-		std::function<void (FabricConnection &conn, std::shared_ptr<FabricMR> mr, size_t len)>;
+		std::function<void (FabricConnection &conn, FabricMR *mr, size_t len)>;
 public:
 	FabricConnection(Fabric &fabric, struct fi_info *info);
 	FabricConnection(Fabric &fabric, const std::string &node, const std::string &serv);
 	virtual ~FabricConnection();
 
 	void connectAsync();
+	void close();
 	void send(const std::string &msg);
 
-	void postRecv(std::shared_ptr<FabricMR> mr);
-	void send(std::shared_ptr<FabricMR> mr, size_t len = 0);
-	void write(std::shared_ptr<FabricMR> mr, size_t offset, size_t len, uint64_t raddr, uint64_t rkey);
+	void postRecv(FabricMR *mr);
+	void send(FabricMR *mr, size_t len = 0);
+	void write(FabricMR *mr, size_t offset, size_t len, uint64_t raddr, uint64_t rkey);
 
 	void onRecv(FabricConnectionDataEventHandler handler) { mRecvHandler = handler; }
+	void onSend(FabricConnectionDataEventHandler handler) { mSendHandler = handler; }
 
 	std::string getPeerStr();
 	std::string getNameStr();
@@ -82,10 +85,16 @@ protected:
 	bool mRxThreadRun;
 	void rxThreadFunc();
 
-	FabricConnectionDataEventHandler mRecvHandler;
+	std::thread mTxThread;
+	bool mTxThreadRun;
+	void txThreadFunc();
 
-	std::mutex mRecvPostedLock;
-	std::map<FabricMR *, std::shared_ptr<FabricMR> > mRecvPosted;
+	FabricConnectionDataEventHandler mRecvHandler;
+	FabricConnectionDataEventHandler mSendHandler;
+
+	std::vector<struct fi_cq_msg_entry> mRecvEntries;
+	std::mutex mRecvLock;
+	std::condition_variable mRecvCond;
 };
 
 }
