@@ -34,7 +34,8 @@ following libraries are required:
 <li>fabricpp</li>
 <li>fabric</li>
 <li>log4cxx</li>
-<li>log4cxx-devel</li>
+<li>log4cxx-devel (log4cxx-dev)</li>
+<li>libpmemobj++</li>
 </ul>
 
 Invoke scons with the following parameters:

@@ -18,8 +18,15 @@ env.Alias('install', [instDragon, instDragonTest])
 Depends('install', 'build')
 
 if not GetOption("clean"):
-	RequiredLibs = ['boost_system', 'boost_program_options', 'boost_filesystem', 'boost_unit_test_framework',
-				'pthread', 'rt', 'dl']
+	RequiredLibs = ['boost_system', 
+				'boost_program_options', 
+				'boost_filesystem', 
+				'boost_unit_test_framework',
+				'pthread', 
+				'rt', 
+				'dl',
+				'log4cxx'
+				]
 
 	config = Configure(env)
 	for required_lib in RequiredLibs:
