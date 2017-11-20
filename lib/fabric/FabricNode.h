@@ -32,8 +32,8 @@
 #ifndef FABRIC_NODE_HPP
 #define FABRIC_NODE_HPP
 
-#include <FabricConnection.h>
-#include <FabricMR.h>
+#include "FabricConnection.h"
+#include "FabricMR.h"
 
 #include <functional>
 #include <string>

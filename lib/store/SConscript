@@ -1,6 +1,0 @@
-Import('env')
-
-env.AppendUnique(LIBPATH=[Dir('.')])
-env.Append(CPPPATH = [Dir('#lib/store')])
-
-DhtLibTarget = env.Library('store', Glob('*.cpp'))

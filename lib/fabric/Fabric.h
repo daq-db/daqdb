@@ -32,8 +32,8 @@
 #ifndef FABRIC_HPP
 #define FABRIC_HPP
 
-#include <FabricAttributes.h>
-#include <FabricInfo.h>
+#include "FabricAttributes.h"
+#include "FabricInfo.h"
 
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>

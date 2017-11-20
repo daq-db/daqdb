@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <FabricNode.h>
+#include "FabricNode.h"
 #include "common.h"
 namespace Fabric {
 
