@@ -1,6 +1,0 @@
-Import('env')
-
-env.AppendUnique(LIBPATH=[Dir('.')])
-env.Append(CPPPATH = [Dir('.')])
-
-CoreLibTarget = env.Library('core', Glob('*.cpp'))

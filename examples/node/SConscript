@@ -1,12 +1,9 @@
 Import('env')
 
 env.AppendUnique(LIBPATH=[Dir('.')])
-DragonTarget = env.Program('dragon', Glob('*.cpp'), 
+NodeApp = env.Program('dragon', Glob('*.cpp'), 
             LIBS=["pthread",
                 "rt",
-                "dht",
-                "store",
-                File("#third-party/cChord/libmymed.a"),
                 "dl",
                 "log4cxx",
                 "boost_program_options",
@@ -15,11 +12,7 @@ DragonTarget = env.Program('dragon', Glob('*.cpp'),
                 "boost_thread",
                 File("#third-party/pmemkv/bin/libpmemkv.so"),
                 File("#third-party/linenoise/liblinenoise.a"),
+                "mymed",
+                "fogkv"
                 ])
-
-copyDragonTarget = Command(target = "#/dragon",
-        source = DragonTarget,
-        action = Copy("$TARGET", "$SOURCE"))
-
-env.Depends(copyDragonTarget, DragonTarget)
-env.Clean('#/dragon', 'dragon')
+env.Install('#bin', [NodeApp])

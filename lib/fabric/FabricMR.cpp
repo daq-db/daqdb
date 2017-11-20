@@ -29,38 +29,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_INFO_HPP
-#define FABRIC_INFO_HPP
 
-#include <string>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include "FabricMR.h"
 
-#include <FabricAttributes.h>
+namespace Fabric
+{
 
-namespace Fabric {
 
-class FabricInfo {
-public:
-	static std::string addr2str(const struct sockaddr_in &addr);
-
-public:
-	FabricInfo();
-	FabricInfo(struct fi_info *info);
-	FabricInfo(const FabricAttributes &attr, const std::string &node, const std::string &serv, bool listener);
-	virtual ~FabricInfo();
-
-	std::string getPeerStr();
-	std::string getNameStr();
-
-	struct fi_info *info();
-protected:
-	struct fi_info *mInfo;
-	struct fi_info *mHints;
-};
+FabricMR::FabricMR(Fabric &fabric, void *ptr, size_t size, uint64_t perm)
+	: mPtr(ptr), mSize(size)
+{
+	int ret = fi_mr_reg(fabric.domain(), mPtr, mSize, perm, 0, 0, 0, &mMr, NULL);
+	if (ret)
+		throw std::string("fi_mr_reg failed");
 
 }
-#endif // FABRIC_INFO_HPP
+
+FabricMR::~FabricMR()
+{
+	fi_close(&mMr->fid);
+}
+
+void *FabricMR::getLKey()
+{
+	return fi_mr_desc(mMr);
+}
+
+uint64_t FabricMR::getRKey()
+{
+	return fi_mr_key(mMr);
+}
+
+void *FabricMR::getPtr()
+{
+	return mPtr;
+}
+
+size_t FabricMR::getSize()
+{
+	return mSize;
+}
+
+}

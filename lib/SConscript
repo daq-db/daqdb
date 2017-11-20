@@ -1,0 +1,21 @@
+Import('env')
+
+lib_folders = [
+    Dir('./dht').abspath,
+    Dir('./store').abspath,
+    Dir('./fabric').abspath
+    ]
+lib_includes = lib_folders
+lib_sources = []
+for item_dir in lib_folders:
+    lib_sources.extend(Glob('%s/*.cpp' % item_dir))
+
+lib_dependencies = [
+    "fabric",
+    "mymed"
+    ]
+
+env.Append(CPPPATH = [lib_includes])
+FogKv_shared_lib = env.SharedLibrary('fogkv', [lib_sources], LIBS = lib_dependencies)
+FogKv_static_lib = env.StaticLibrary('fogkv', [lib_sources], LIBS = lib_dependencies)
+env.Install('#bin', [FogKv_shared_lib])

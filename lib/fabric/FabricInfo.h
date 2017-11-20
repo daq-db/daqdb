@@ -29,26 +29,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef FABRIC_INFO_HPP
+#define FABRIC_INFO_HPP
 
-#ifndef SRC_CORE_ROUTINGTABLE_H_
-#define SRC_CORE_ROUTINGTABLE_H_
+#include <string>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <rdma/fabric.h>
+#include <rdma/fi_domain.h>
 
-#include "RoutingTableItem.h"
-#include <vector>
+#include "FabricAttributes.h"
 
-namespace FogKV
-{
+namespace Fabric {
 
-class RoutingTable {
+class FabricInfo {
 public:
-	RoutingTable();
-	virtual ~RoutingTable();
+	static std::string addr2str(const struct sockaddr_in &addr);
 
-private:
-	std::vector<std::unique_ptr<FogKV::RoutingTableItem>> _RTable;
+public:
+	FabricInfo();
+	FabricInfo(struct fi_info *info);
+	FabricInfo(const FabricAttributes &attr, const std::string &node, const std::string &serv, bool listener);
+	virtual ~FabricInfo();
 
+	std::string getPeerStr();
+	std::string getNameStr();
+
+	struct fi_info *info();
+protected:
+	struct fi_info *mInfo;
+	struct fi_info *mHints;
 };
 
-} /* namespace Dragon */
-
-#endif /* SRC_CORE_ROUTINGTABLE_H_ */
+}
+#endif // FABRIC_INFO_HPP

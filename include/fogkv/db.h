@@ -30,22 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <FabricAttributes.h>
+#ifndef INCLUDE_FOGKV_DB_H_
+#define INCLUDE_FOGKV_DB_H_
 
-namespace Fabric {
 
-FabricAttributes::FabricAttributes() :
-	mProv("")
-{
-}
 
-FabricAttributes::~FabricAttributes()
-{
-}
 
-void FabricAttributes::setProvider(const std::string &prov)
-{
-	mProv = prov;
-}
 
-}
+#endif /* INCLUDE_FOGKV_DB_H_ */
