@@ -1,6 +1,6 @@
 Import('env')
 
 env.AppendUnique(LIBPATH=[Dir('.')])
-env.Append(CPPPATH = [Dir('#src/fabric')])
+env.Append(CPPPATH = [Dir('#lib/fabric')])
 
 env.Library('fabricpp', Glob('*.cpp'))
