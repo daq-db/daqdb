@@ -34,7 +34,8 @@
 
 #include <string>
 #include <atomic>
-#include <FabricNode.h>
+
+#include "../../../include/fabric/FabricNode.h"
 #include "Protocol.h"
 
 #include "RingBuffer.h"

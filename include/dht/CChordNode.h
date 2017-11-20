@@ -30,63 +30,72 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_STORE_KVSTORE_H_
-#define SRC_STORE_KVSTORE_H_
+#ifndef DHT_CCHORTADAPTER_H_
+#define DHT_CCHORTADAPTER_H_
 
-#include "KVInterface.h"
+#include <boost/asio/io_service.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+
+#include "../../include/dht/DhtNode.h"
+#include "ChordNode.h"
+
+namespace as = boost::asio;
 
 namespace FogKV
 {
 
 /*!
- * Class that defines KV store interface
+ * Adapter for cChord classes.
  */
-class KVStore : public KVInterface {
+class CChordAdapter : public FogKV::DhtNode {
 public:
-	KVStore();
-	virtual ~KVStore();
+	CChordAdapter(as::io_service &io_service, unsigned short port,
+		      unsigned short dragonPort, int id);
+	CChordAdapter(as::io_service &io_service, unsigned short port,
+		      unsigned short dragonPort, int id, bool skipShutDown);
+	virtual ~CChordAdapter();
 
 	/*!
-	 * Copy value for key to buffer
-	 *
-	 * @param limit maximum bytes to copy to buffer
-	 * @param keybytes key buffer bytes actually copied
-	 * @param valuebytes value buffer bytes actually copied
-	 * @param key item identifier
-	 * @param value value buffer as C-style string
-	 * @return
+	 * @return Status of the Node - format determined by 3rd party lib
 	 */
-	virtual KVStatus Get(int32_t limit, int32_t keybytes,
-			     int32_t *valuebytes, const char *key,
-			     char *value);
+	std::string printStatus();
 
-	/**
-	 * Append value for key to std::string
-	 *
-	 * @param key item identifier
-	 * @param valuestr item value will be appended to std::string
-	 * @return KVStatus
+	/*!
+	 * Refresh internal DHT data (fingertable, succ, pred)
 	 */
-	virtual KVStatus Get(const string &key, string *valuestr);
+	void refresh();
 
-	/**
-	 * Copy value for key from std::string
+	/*!
+	 * Fill peerNodes vector with peer node list from DHT.
+	 * This is a subset of full list of nodes in system.
 	 *
-	 * @param key item identifier
-	 * @param valuestr value to copy in
-	 * @return KVStatus
+	 * @param peerNodes vector to insert peer nodes
+	 * @return number of peer nodes
 	 */
-	virtual KVStatus Put(const string &key, const string &valuestr);
+	unsigned int getPeerList(boost::ptr_vector<PureNode> &peerNodes);
 
-	/**
-	 * Remove value for key
-	 *
-	 * @param key tem identifier
-	 * @return KVStatus
+	/*!
+	 * Triggers dragon aggregation table update.
+	 * @todo jradtke triggerAggregationUpdate not implemented
 	 */
-	virtual KVStatus Remove(const string &key);
+	void triggerAggregationUpdate();
+
+	/*!
+	 * Workaround on cChord bug for unit tests
+	 * @param skipShutDown
+	 */
+	void
+	setSkipShutDown(bool skipShutDown)
+	{
+		this->skipShutDown = skipShutDown;
+	}
+
+private:
+	unique_ptr<ChordNode> spNode;
+	unique_ptr<Node> spChord;
+	bool skipShutDown;
 };
 
-} /* namespace DragonStore */
+} /* namespace Dht */
 
-#endif /* SRC_STORE_KVSTORE_H_ */
+#endif /* DHT_CCHORTADAPTER_H_ */

@@ -30,47 +30,48 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_DRAGONCLI_H_
-#define SRC_NODE_DRAGONCLI_H_
+#ifndef DHT_DHTNODE_H_
+#define DHT_DHTNODE_H_
 
-#include "DragonSrv.h"
-#include <iostream>
-#include <linenoise.h>
+#include <boost/asio/io_service.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+#include "../../include/dht/PureNode.h"
 
-namespace
-{
-const unsigned int consoleHintColor = 35; // dark red
-};
+namespace as = boost::asio;
 
 namespace FogKV
 {
 
 /*!
- * Dragon shell interpreter.
- * Created for test purposes - to allow performing quick testing of the node.
+ * Class that defines interface for DHT
  */
-class DragonCli {
+class DhtNode : public PureNode {
 public:
-	DragonCli(std::shared_ptr<FogKV::DragonSrv> &spDragonSrv);
-	virtual ~DragonCli();
+	DhtNode(as::io_service &io_service, unsigned short port, unsigned short dragonPort);
+	virtual ~DhtNode();
 
 	/*!
-	 * Waiting for user input, executes defined commands
-	 *
-	 * @return false if user choose "quit" command, otherwise true
+	 * Prints DHT status.
+	 * @return
 	 */
-	int operator()();
+	virtual std::string printStatus() = 0;
 
-private:
-	void cmdGet(std::string &strLine);
-	void cmdPut(std::string &strLine);
-	void cmdRemove(std::string &strLine);
-	void cmdStatus();
-	void cmdNodeStatus(std::string &strLine);
+	/*!
+	 * Fill peerNodes vector with peer node list from DHT.
+	 * This is a subset of full list of nodes in system.
+	 *
+	 * @param peerNodes vector to insert peer nodes
+	 * @return number of peer nodes
+	 */
+	virtual unsigned int
+		getPeerList(boost::ptr_vector<PureNode>& peerNodes) = 0;
 
-	std::shared_ptr<FogKV::DragonSrv> _spDragonSrv;
+	/*!
+	 * Triggers dragon aggregation table update.
+	 */
+	virtual void triggerAggregationUpdate() = 0;
 };
 
-} /* namespace Dragon */
+} /* namespace Dht */
 
-#endif /* SRC_NODE_DRAGONCLI_H_ */
+#endif /* DHT_DHTNODE_H_ */

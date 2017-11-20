@@ -29,65 +29,73 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_NODE_HPP
-#define FABRIC_NODE_HPP
-
-#include "FabricConnection.h"
-#include "FabricMR.h"
+#ifndef FABRIC_CONNECTION_HPP
+#define FABRIC_CONNECTION_HPP
 
 #include <functional>
-#include <string>
-#include <mutex>
+#include <vector>
 #include <thread>
-#include <map>
-#include <list>
+#include <mutex>
 #include <condition_variable>
+#include <map>
+
+#include <rdma/fi_endpoint.h>
+#include <rdma/fi_cm.h>
+#include <rdma/fi_errno.h>
+#include "../../include/fabric/Fabric.h"
+#include "../../include/fabric/FabricMR.h"
 
 namespace Fabric {
 
-class FabricNode {
+class FabricConnection {
+	using FabricConnectionDataEventHandler = 
+		std::function<void (FabricConnection &conn, FabricMR *mr, size_t len)>;
 public:
-	using FabricConnectionEventHandler =
-		std::function<void (std::shared_ptr<FabricConnection>)>;
-public:
-	FabricNode(const FabricAttributes &attr, const std::string &node = "localhost", const std::string &serv = "1234");
-	FabricNode(const std::string &node = "localhost", const std::string &serv = "1234");
-	virtual ~FabricNode();
+	FabricConnection(Fabric &fabric, struct fi_info *info);
+	FabricConnection(Fabric &fabric, const std::string &node, const std::string &serv);
+	virtual ~FabricConnection();
 
-	void listen();
-	void stop();
+	void connectAsync();
+	void close();
+	void send(const std::string &msg);
 
-	std::shared_ptr<FabricConnection> connection(const std::string &node, const std::string &serv);
-	void disconnect(std::shared_ptr<FabricConnection> conn);
-	void connect(std::shared_ptr<FabricConnection> conn);
-	void connectAsync(std::shared_ptr<FabricConnection> conn);
-	void connectWait(std::shared_ptr<FabricConnection> conn);
+	void postRecv(FabricMR *mr);
+	void send(FabricMR *mr, size_t len = 0);
+	void write(FabricMR *mr, size_t offset, size_t len, uint64_t raddr, uint64_t rkey);
 
-	void onConnectionRequest(FabricConnectionEventHandler handler);
-	void onConnected(FabricConnectionEventHandler handler);
-	void onDisconnected(FabricConnectionEventHandler handler);
+	void onRecv(FabricConnectionDataEventHandler handler) { mRecvHandler = handler; }
+	void onSend(FabricConnectionDataEventHandler handler) { mSendHandler = handler; }
 
-	std::shared_ptr<FabricMR> registerMR(void *ptr, size_t size, uint64_t perm);
+	std::string getPeerStr();
+	std::string getNameStr();
+
+	struct fid_ep *endpoint() { return mEp; }
 protected:
+	Fabric &mFabric;
+	FabricInfo mInfo;
 
-	FabricAttributes mAttr;
-	Fabric mFabric;
+	struct fid_ep *mEp;
+	struct fi_cq_attr mCqAttr;
+	struct fid_cq *mTxCq;
+	struct fid_cq *mRxCq;
 
-	FabricConnectionEventHandler mConnReqHandler;
-	FabricConnectionEventHandler mConnectedHandler;
-	FabricConnectionEventHandler mDisconnectedHandler;
-	std::map<struct fid_ep *, std::shared_ptr<FabricConnection> > mConnected;
-	std::map<struct fid_ep *, std::shared_ptr<FabricConnection> > mConnecting;
-	std::list<std::shared_ptr<FabricMR> > mMRs;
-	std::mutex mConnLock;
-	std::condition_variable mConnCond;
-	struct fid_pep *mPep;
+	void createCq();
 
-	std::thread mEqThread;
-	bool mEqThreadRun;
-	void eqThreadFunc();
+	std::thread mRxThread;
+	bool mRxThreadRun;
+	void rxThreadFunc();
+
+	std::thread mTxThread;
+	bool mTxThreadRun;
+	void txThreadFunc();
+
+	FabricConnectionDataEventHandler mRecvHandler;
+	FabricConnectionDataEventHandler mSendHandler;
+
+	std::vector<struct fi_cq_msg_entry> mRecvEntries;
+	std::mutex mRecvLock;
+	std::condition_variable mRecvCond;
 };
 
 }
-
-#endif // FABRIC_NODE_HPP
+#endif // FABRIC_CONNECTION_HPP

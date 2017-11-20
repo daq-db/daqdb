@@ -30,60 +30,96 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_STORE_PMEMKVSTORE_H_
-#define SRC_STORE_PMEMKVSTORE_H_
+#ifndef SRC_NODE_DRAGONSRV_H_
+#define SRC_NODE_DRAGONSRV_H_
 
-#include <boost/filesystem.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/signal_set.hpp>
 
-#include <pmemkv.h>
+#include "../dht/CChordNode.h"
+#include "../dht/DhtNode.h"
+#include "../dht/DhtUtils.h"
+#include "../store/KVStore.h"
+#include "SocketReqManager.h"
 
-#include "KVStore.h"
+namespace as = boost::asio;
 
 namespace FogKV
 {
 
 /*!
- * Adapter for pmemkv
+ * Main node class, stores critical ingredients:
+ * - KV store
+ * - DHT
+ * - External API manager
  */
-class PmemKVStore : public KVStore {
+class FogSrv {
 public:
-	PmemKVStore(int nodeId, const bool temporaryDb = false);
-	virtual ~PmemKVStore();
+	FogSrv(as::io_service &io_service, const unsigned short nodeId = 0);
+	virtual ~FogSrv();
 
 	/*!
-		@copydoc KVStore::Get()
-	*/
-	virtual KVStatus Get(int32_t limit, int32_t keybytes,
-			     int32_t *valuebytes, const char *key,
-			     char *value);
-
-	/*!
-	 * @copydoc KVStore::Get()
+	 * Run the io_service object's event processing loop.
 	 */
-	virtual KVStatus Get(const string &key, string *valuestr);
+	void run();
 
 	/*!
-	 * @copydoc KVStore::Put()
+	 * Run the io_service object's event processing loop to execute ready
+	 * handlers
+	 * @return The number of handlers that were executed.
 	 */
-	virtual KVStatus Put(const string &key, const string &valuestr);
+	std::size_t poll();
 
 	/*!
-	 * @copydoc KVStore::Remove()
+	 * Determine whether the io_service object has been stopped.
+	 * @return true if io_service object has been stopped.
 	 */
-	virtual KVStatus Remove(const string &key);
+	bool stopped() const;
 
-	bool
-	isTemporaryDb() const
+	/*!
+	 * 	@return DHT ID for this node
+	 */
+	unsigned int getDhtId() const;
+
+	/*!
+	 * @return IP address for this node
+	 */
+	const std::string &getIp() const;
+
+	/*!
+	 * @return Port number for this node
+	 */
+	unsigned short getPort() const;
+
+	/*!
+	 * @return Port number for this node
+	 */
+	unsigned short getDragonPort() const;
+
+	/*!
+	 * Example result:
+	 * "Thu Oct 19 14:55:21 2017
+	 *      no DHT peers"
+	 *
+	 * @return peer status string
+	 */
+	std::string getDhtPeerStatus() const;
+
+	FogKV::KVStore *const
+	getKvStore()
 	{
-		return _temporaryDb;
+		return _spStore.get();
 	}
 
 private:
-	bool _temporaryDb;
-	boost::filesystem::path _kvStoreFile;
-	std::unique_ptr<pmemkv::KVEngine> _spStore;
+	unsigned short _nodeId;
+	as::io_service &_io_service;
+	std::unique_ptr<FogKV::SocketReqManager> _spReqManager;
+	std::unique_ptr<FogKV::DhtNode> _spDhtNode;
+
+	std::unique_ptr<FogKV::KVStore> _spStore;
 };
 
-} /* namespace DragonStore */
+} /* namespace DragonNode */
 
-#endif /* SRC_STORE_PMEMKVSTORE_H_ */
+#endif /* SRC_NODE_DRAGONSRV_H_ */

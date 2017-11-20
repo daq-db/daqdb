@@ -30,9 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Fabric.h"
+#include "../../include/fabric/Fabric.h"
+
 #include <string.h>
-#include "common.h"
+
+#include "../../include/fabric/common.h"
 
 namespace Fabric {
 

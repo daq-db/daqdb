@@ -30,72 +30,63 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DHT_CCHORTADAPTER_H_
-#define DHT_CCHORTADAPTER_H_
+#ifndef SRC_STORE_KVSTORE_H_
+#define SRC_STORE_KVSTORE_H_
 
-#include "DhtNode.h"
-#include <boost/asio/io_service.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
-
-#include "ChordNode.h"
-
-namespace as = boost::asio;
+#include "../../include/store/KVInterface.h"
 
 namespace FogKV
 {
 
 /*!
- * Adapter for cChord classes.
+ * Class that defines KV store interface
  */
-class CChordAdapter : public FogKV::DhtNode {
+class KVStore : public KVInterface {
 public:
-	CChordAdapter(as::io_service &io_service, unsigned short port,
-		      unsigned short dragonPort, int id);
-	CChordAdapter(as::io_service &io_service, unsigned short port,
-		      unsigned short dragonPort, int id, bool skipShutDown);
-	virtual ~CChordAdapter();
+	KVStore();
+	virtual ~KVStore();
 
 	/*!
-	 * @return Status of the Node - format determined by 3rd party lib
-	 */
-	std::string printStatus();
-
-	/*!
-	 * Refresh internal DHT data (fingertable, succ, pred)
-	 */
-	void refresh();
-
-	/*!
-	 * Fill peerNodes vector with peer node list from DHT.
-	 * This is a subset of full list of nodes in system.
+	 * Copy value for key to buffer
 	 *
-	 * @param peerNodes vector to insert peer nodes
-	 * @return number of peer nodes
+	 * @param limit maximum bytes to copy to buffer
+	 * @param keybytes key buffer bytes actually copied
+	 * @param valuebytes value buffer bytes actually copied
+	 * @param key item identifier
+	 * @param value value buffer as C-style string
+	 * @return
 	 */
-	unsigned int getPeerList(boost::ptr_vector<PureNode> &peerNodes);
+	virtual KVStatus Get(int32_t limit, int32_t keybytes,
+			     int32_t *valuebytes, const char *key,
+			     char *value);
 
-	/*!
-	 * Triggers dragon aggregation table update.
-	 * @todo jradtke triggerAggregationUpdate not implemented
+	/**
+	 * Append value for key to std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr item value will be appended to std::string
+	 * @return KVStatus
 	 */
-	void triggerAggregationUpdate();
+	virtual KVStatus Get(const string &key, string *valuestr);
 
-	/*!
-	 * Workaround on cChord bug for unit tests
-	 * @param skipShutDown
+	/**
+	 * Copy value for key from std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr value to copy in
+	 * @return KVStatus
 	 */
-	void
-	setSkipShutDown(bool skipShutDown)
-	{
-		this->skipShutDown = skipShutDown;
-	}
+	virtual KVStatus Put(const string &key, const string &valuestr);
 
-private:
-	unique_ptr<ChordNode> spNode;
-	unique_ptr<Node> spChord;
-	bool skipShutDown;
+	/**
+	 * Remove value for key
+	 *
+	 * @param key tem identifier
+	 * @return KVStatus
+	 */
+	virtual KVStatus Remove(const string &key);
 };
 
-} /* namespace Dht */
+} /* namespace DragonStore */
 
-#endif /* DHT_CCHORTADAPTER_H_ */
+#endif /* SRC_STORE_KVSTORE_H_ */

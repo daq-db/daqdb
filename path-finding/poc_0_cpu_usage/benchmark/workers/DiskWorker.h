@@ -34,7 +34,8 @@
 #define SRC_BENCHMARK_WORKERS_DISKWORKER_H_
 
 #include <tuple>
-#include <KVStore.h>
+
+#include "../../../../include/store/KVStore.h"
 #include "../IoMeter.h"
 
 namespace FogKV {

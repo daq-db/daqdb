@@ -39,10 +39,9 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "DragonSrv.h"
-#include "DragonCli.h"
-
+#include "../../include/db/FogSrv.h"
 #include "debug.h"
+#include "nodeCli.h"
 
 using namespace std;
 using boost::format;
@@ -50,7 +49,7 @@ using namespace boost::algorithm;
 
 namespace po = boost::program_options;
 
-LoggerPtr loggerDragon(Logger::getLogger( "dragon"));
+LoggerPtr loggerNode(Logger::getLogger( "dragon"));
 
 namespace
 {
@@ -111,21 +110,21 @@ main(int argc, const char *argv[])
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(	boost::bind(&boost::asio::io_service::stop, &io_service));
-	shared_ptr<FogKV::DragonSrv> spDragonSrv(
-		new FogKV::DragonSrv(io_service, nodeId));
+	shared_ptr<FogKV::FogSrv> spDragonSrv(
+		new FogKV::FogSrv(io_service, nodeId));
 
-	LOG4CXX_INFO(loggerDragon,
+	LOG4CXX_INFO(loggerNode,
 		     format("DHT node (id=%1%) is running on %2%:%3%") %
 			     spDragonSrv->getDhtId() % spDragonSrv->getIp() %
 			     spDragonSrv->getPort());
-	LOG4CXX_INFO(loggerDragon, format("Waiting for requests on port %1%.") %
+	LOG4CXX_INFO(loggerNode, format("Waiting for requests on port %1%.") %
 			     spDragonSrv->getDragonPort());
 
 	if (!interactiveMode) {
 		spDragonSrv->run();
 	} else {
 #if (1) // interactive mode
-		FogKV::DragonCli dragonCli(spDragonSrv);
+		FogKV::nodeCli dragonCli(spDragonSrv);
 		while (dragonCli()) {
 			if (spDragonSrv->stopped()) {
 				break;
@@ -135,7 +134,7 @@ main(int argc, const char *argv[])
 #endif
 	}
 
-	LOG4CXX_INFO(loggerDragon,
+	LOG4CXX_INFO(loggerNode,
 		     format("Closing DHT node (id=%1%) on %2%:%3%") %
 			     spDragonSrv->getDhtId() % spDragonSrv->getIp() %
 			     spDragonSrv->getPort());

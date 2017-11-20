@@ -29,73 +29,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_CONNECTION_HPP
-#define FABRIC_CONNECTION_HPP
+#ifndef FABRIC_INFO_HPP
+#define FABRIC_INFO_HPP
 
-#include "Fabric.h"
-#include "FabricMR.h"
-#include <functional>
-#include <vector>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <map>
+#include <string>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <rdma/fabric.h>
+#include <rdma/fi_domain.h>
 
-#include <rdma/fi_endpoint.h>
-#include <rdma/fi_cm.h>
-#include <rdma/fi_errno.h>
+#include "../../include/fabric/FabricAttributes.h"
 
 namespace Fabric {
 
-class FabricConnection {
-	using FabricConnectionDataEventHandler = 
-		std::function<void (FabricConnection &conn, FabricMR *mr, size_t len)>;
+class FabricInfo {
 public:
-	FabricConnection(Fabric &fabric, struct fi_info *info);
-	FabricConnection(Fabric &fabric, const std::string &node, const std::string &serv);
-	virtual ~FabricConnection();
+	static std::string addr2str(const struct sockaddr_in &addr);
 
-	void connectAsync();
-	void close();
-	void send(const std::string &msg);
-
-	void postRecv(FabricMR *mr);
-	void send(FabricMR *mr, size_t len = 0);
-	void write(FabricMR *mr, size_t offset, size_t len, uint64_t raddr, uint64_t rkey);
-
-	void onRecv(FabricConnectionDataEventHandler handler) { mRecvHandler = handler; }
-	void onSend(FabricConnectionDataEventHandler handler) { mSendHandler = handler; }
+public:
+	FabricInfo();
+	FabricInfo(struct fi_info *info);
+	FabricInfo(const FabricAttributes &attr, const std::string &node, const std::string &serv, bool listener);
+	virtual ~FabricInfo();
 
 	std::string getPeerStr();
 	std::string getNameStr();
 
-	struct fid_ep *endpoint() { return mEp; }
+	struct fi_info *info();
 protected:
-	Fabric &mFabric;
-	FabricInfo mInfo;
-
-	struct fid_ep *mEp;
-	struct fi_cq_attr mCqAttr;
-	struct fid_cq *mTxCq;
-	struct fid_cq *mRxCq;
-
-	void createCq();
-
-	std::thread mRxThread;
-	bool mRxThreadRun;
-	void rxThreadFunc();
-
-	std::thread mTxThread;
-	bool mTxThreadRun;
-	void txThreadFunc();
-
-	FabricConnectionDataEventHandler mRecvHandler;
-	FabricConnectionDataEventHandler mSendHandler;
-
-	std::vector<struct fi_cq_msg_entry> mRecvEntries;
-	std::mutex mRecvLock;
-	std::condition_variable mRecvCond;
+	struct fi_info *mInfo;
+	struct fi_info *mHints;
 };
 
 }
-#endif // FABRIC_CONNECTION_HPP
+#endif // FABRIC_INFO_HPP

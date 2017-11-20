@@ -13,8 +13,6 @@ env.Append(CCFLAGS=['-std=c++11', '-O0', '-ggdb'])
 env.Append(LIBPATH=[
 	'/usr/lib64',					# Fedora
 	'/usr/lib/x86_64-linux-gnu', 	# Ubuntu
-	'#third-party/cChord',
-	'#third-party/pmemkv/bin', 
 	'#build/', 
 	])
 
@@ -44,13 +42,10 @@ SConscript('build/SConscript', exports=['env', ])
 '''
 SConscript('examples/SConscript', exports=['env', ])
 
-
+'''
+	Build and execute tests
+'''
 # SConscript('tests/SConscript', exports=['env', ])
-
-# copy products to bin directory
-#instDragon = env.Install('bin', 'examples/node/dragon')
-#instDragonTest = env.Install('bin', 'tests/dragonTest')
-#env.Alias('install', [instDragon, instDragonTest])
 
 env.Alias('install', '#bin')
 Depends('install', 'build')

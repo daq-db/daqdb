@@ -36,7 +36,8 @@
 #include "RingBuffer.h"
 
 #include <string>
-#include <FabricNode.h>
+
+#include "../../../include/fabric/FabricNode.h"
 
 class MainNode : public Node {
 public:

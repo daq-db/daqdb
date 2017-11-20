@@ -29,38 +29,48 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_INFO_HPP
-#define FABRIC_INFO_HPP
 
-#include <string>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#ifndef SRC_NODE_DRAGONCLI_H_
+#define SRC_NODE_DRAGONCLI_H_
 
-#include "FabricAttributes.h"
+#include <iostream>
+#include <linenoise.h>
+#include "../../include/db/FogSrv.h"
 
-namespace Fabric {
-
-class FabricInfo {
-public:
-	static std::string addr2str(const struct sockaddr_in &addr);
-
-public:
-	FabricInfo();
-	FabricInfo(struct fi_info *info);
-	FabricInfo(const FabricAttributes &attr, const std::string &node, const std::string &serv, bool listener);
-	virtual ~FabricInfo();
-
-	std::string getPeerStr();
-	std::string getNameStr();
-
-	struct fi_info *info();
-protected:
-	struct fi_info *mInfo;
-	struct fi_info *mHints;
+namespace
+{
+const unsigned int consoleHintColor = 35; // dark red
 };
 
-}
-#endif // FABRIC_INFO_HPP
+namespace FogKV
+{
+
+/*!
+ * Dragon shell interpreter.
+ * Created for test purposes - to allow performing quick testing of the node.
+ */
+class nodeCli {
+public:
+	nodeCli(std::shared_ptr<FogKV::FogSrv> &spDragonSrv);
+	virtual ~nodeCli();
+
+	/*!
+	 * Waiting for user input, executes defined commands
+	 *
+	 * @return false if user choose "quit" command, otherwise true
+	 */
+	int operator()();
+
+private:
+	void cmdGet(std::string &strLine);
+	void cmdPut(std::string &strLine);
+	void cmdRemove(std::string &strLine);
+	void cmdStatus();
+	void cmdNodeStatus(std::string &strLine);
+
+	std::shared_ptr<FogKV::FogSrv> _spDragonSrv;
+};
+
+} /* namespace FogKV */
+
+#endif /* SRC_NODE_DRAGONCLI_H_ */

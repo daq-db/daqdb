@@ -29,50 +29,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef FABRIC_HPP
+#define FABRIC_HPP
 
-#ifndef DHT_DHTNODE_H_
-#define DHT_DHTNODE_H_
+#include <rdma/fabric.h>
+#include <rdma/fi_domain.h>
+#include "../../include/fabric/FabricAttributes.h"
+#include "../../include/fabric/FabricInfo.h"
 
-#include "PureNode.h"
+namespace Fabric {
 
-#include <boost/asio/io_service.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
-
-namespace as = boost::asio;
-
-namespace FogKV
-{
-
-/*!
- * Class that defines interface for DHT
- */
-class DhtNode : public PureNode {
+class Fabric {
 public:
-	DhtNode(as::io_service &io_service, unsigned short port, unsigned short dragonPort);
-	virtual ~DhtNode();
+	Fabric(const FabricAttributes &attr, const std::string &node,
+		const std::string &serv, bool listener);
+	virtual ~Fabric();
 
-	/*!
-	 * Prints DHT status.
-	 * @return
-	 */
-	virtual std::string printStatus() = 0;
+	FabricAttributes attr() { return mAttr; }
 
-	/*!
-	 * Fill peerNodes vector with peer node list from DHT.
-	 * This is a subset of full list of nodes in system.
-	 *
-	 * @param peerNodes vector to insert peer nodes
-	 * @return number of peer nodes
-	 */
-	virtual unsigned int
-		getPeerList(boost::ptr_vector<PureNode>& peerNodes) = 0;
-
-	/*!
-	 * Triggers dragon aggregation table update.
-	 */
-	virtual void triggerAggregationUpdate() = 0;
+	struct fi_info *info();
+	struct fid_fabric *fabric();
+	struct fid_domain *domain();
+	struct fid_eq *eq();
+protected:
+	FabricAttributes mAttr;
+	FabricInfo mInfo;
+	struct fi_info *mHints;
+	struct fid_fabric *mFabric;
+	struct fid_domain *mDomain;
+	struct fi_eq_attr mEqAttr;
+	struct fid_eq *mEq;
 };
 
-} /* namespace Dht */
+}
 
-#endif /* DHT_DHTNODE_H_ */
+#endif // FABRIC_HPP

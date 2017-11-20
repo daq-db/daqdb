@@ -30,13 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <FabricNode.h>
-#include <FabricAttributes.h>
+#include "../../include/fabric/FabricNode.h"
 
 #include <boost/test/unit_test.hpp>
 #include <mutex>
 #include <condition_variable>
 #include <iostream>
+#include "../../include/fabric/FabricAttributes.h"
 
 namespace ut = boost::unit_test;
 

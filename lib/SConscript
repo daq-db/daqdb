@@ -1,14 +1,20 @@
 Import('env')
 
 lib_folders = [
-    Dir('./dht').abspath,
-    Dir('./store').abspath,
-    Dir('./fabric').abspath
+	'db',
+    'dht',
+    'store',
+    'fabric'
     ]
-lib_includes = lib_folders
+lib_includes = []
 lib_sources = []
 for item_dir in lib_folders:
-    lib_sources.extend(Glob('%s/*.cpp' % item_dir))
+    source_dir = Dir('./%s' % item_dir)
+    include_dir = Dir('#include/%s' % item_dir)
+    lib_sources.extend(Glob('%s/*.cpp' % source_dir.abspath))
+    lib_includes.extend([include_dir.abspath])
+
+print(lib_includes)
 
 lib_dependencies = [
     "fabric",
