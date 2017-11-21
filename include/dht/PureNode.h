@@ -30,96 +30,54 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_DRAGONSRV_H_
-#define SRC_NODE_DRAGONSRV_H_
+#pragma once
 
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
-
-#include "SocketReqManager.h"
-#include <CChordNode.h>
-#include <DhtNode.h>
-#include <DhtUtils.h>
-#include <KVStore.h>
-
-namespace as = boost::asio;
+#include <iostream>
 
 namespace FogKV
 {
 
 /*!
- * Main node class, stores critical ingredients:
- * - KV store
- * - DHT
- * - External API manager
+ * Class that stores DHT stored/shared data.
  */
-class DragonSrv {
+class PureNode {
 public:
-	DragonSrv(as::io_service &io_service, const unsigned short nodeId = 0);
-	virtual ~DragonSrv();
+	PureNode();
+	PureNode(const std::string &ip, unsigned int dhtId, unsigned short port,
+		 unsigned short dragonPort);
+	virtual ~PureNode();
 
-	/*!
-	 * Run the io_service object's event processing loop.
-	 */
-	void run();
-
-	/*!
-	 * Run the io_service object's event processing loop to execute ready
-	 * handlers
-	 * @return The number of handlers that were executed.
-	 */
-	std::size_t poll();
-
-	/*!
-	 * Determine whether the io_service object has been stopped.
-	 * @return true if io_service object has been stopped.
-	 */
-	bool stopped() const;
-
-	/*!
+	/**
 	 * 	@return DHT ID for this node
 	 */
 	unsigned int getDhtId() const;
 
-	/*!
+	/**
 	 * @return IP address for this node
 	 */
 	const std::string &getIp() const;
 
-	/*!
+	/**
 	 * @return Port number for this node
 	 */
 	unsigned short getPort() const;
 
-	/*!
+	/**
 	 * @return Port number for this node
 	 */
 	unsigned short getDragonPort() const;
 
-	/*!
-	 * Example result:
-	 * "Thu Oct 19 14:55:21 2017
-	 *      no DHT peers"
-	 *
-	 * @return peer status string
-	 */
-	std::string getDhtPeerStatus() const;
-
-	FogKV::KVStore *const
-	getKvStore()
-	{
-		return _spStore.get();
-	}
+protected:
+	void setIp(const std::string &ip);
+	void setDhtId(unsigned int dhtId);
+	void setPort(unsigned short port);
+	void setDragonPort(unsigned short port);
 
 private:
-	unsigned short _nodeId;
-	as::io_service &_io_service;
-	std::unique_ptr<FogKV::SocketReqManager> _spReqManager;
-	std::unique_ptr<FogKV::DhtNode> _spDhtNode;
-
-	std::unique_ptr<FogKV::KVStore> _spStore;
+	std::string _ip;
+	unsigned int _dhtId;
+	unsigned short _port;
+	unsigned short _dragonPort;
 };
 
-} /* namespace DragonNode */
-
-#endif /* SRC_NODE_DRAGONSRV_H_ */
+}

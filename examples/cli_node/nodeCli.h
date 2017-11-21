@@ -30,60 +30,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_STORE_PMEMKVSTORE_H_
-#define SRC_STORE_PMEMKVSTORE_H_
+#pragma once
 
-#include <boost/filesystem.hpp>
+#include <iostream>
+#include <linenoise.h>
+#include "../../include/db/FogSrv.h"
 
-#include <pmemkv.h>
-
-#include "KVStore.h"
+namespace
+{
+const unsigned int consoleHintColor = 35; // dark red
+};
 
 namespace FogKV
 {
 
 /*!
- * Adapter for pmemkv
+ * Dragon shell interpreter.
+ * Created for test purposes - to allow performing quick testing of the node.
  */
-class PmemKVStore : public KVStore {
+class nodeCli {
 public:
-	PmemKVStore(int nodeId, const bool temporaryDb = false);
-	virtual ~PmemKVStore();
+	nodeCli(std::shared_ptr<FogKV::FogSrv> &spDragonSrv);
+	virtual ~nodeCli();
 
 	/*!
-		@copydoc KVStore::Get()
-	*/
-	virtual KVStatus Get(int32_t limit, int32_t keybytes,
-			     int32_t *valuebytes, const char *key,
-			     char *value);
-
-	/*!
-	 * @copydoc KVStore::Get()
+	 * Waiting for user input, executes defined commands
+	 *
+	 * @return false if user choose "quit" command, otherwise true
 	 */
-	virtual KVStatus Get(const string &key, string *valuestr);
-
-	/*!
-	 * @copydoc KVStore::Put()
-	 */
-	virtual KVStatus Put(const string &key, const string &valuestr);
-
-	/*!
-	 * @copydoc KVStore::Remove()
-	 */
-	virtual KVStatus Remove(const string &key);
-
-	bool
-	isTemporaryDb() const
-	{
-		return _temporaryDb;
-	}
+	int operator()();
 
 private:
-	bool _temporaryDb;
-	boost::filesystem::path _kvStoreFile;
-	std::unique_ptr<pmemkv::KVEngine> _spStore;
+	void cmdGet(std::string &strLine);
+	void cmdPut(std::string &strLine);
+	void cmdRemove(std::string &strLine);
+	void cmdStatus();
+	void cmdNodeStatus(std::string &strLine);
+
+	std::shared_ptr<FogKV::FogSrv> _spDragonSrv;
 };
 
-} /* namespace DragonStore */
-
-#endif /* SRC_STORE_PMEMKVSTORE_H_ */
+}

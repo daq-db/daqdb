@@ -29,38 +29,61 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_INFO_HPP
-#define FABRIC_INFO_HPP
 
-#include <string>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#pragma once
 
-#include "FabricAttributes.h"
+#include "../../include/store/KVInterface.h"
 
-namespace Fabric {
+namespace FogKV
+{
 
-class FabricInfo {
+/*!
+ * Class that defines KV store interface
+ */
+class KVStore : public KVInterface {
 public:
-	static std::string addr2str(const struct sockaddr_in &addr);
+	KVStore();
+	virtual ~KVStore();
 
-public:
-	FabricInfo();
-	FabricInfo(struct fi_info *info);
-	FabricInfo(const FabricAttributes &attr, const std::string &node, const std::string &serv, bool listener);
-	virtual ~FabricInfo();
+	/*!
+	 * Copy value for key to buffer
+	 *
+	 * @param limit maximum bytes to copy to buffer
+	 * @param keybytes key buffer bytes actually copied
+	 * @param valuebytes value buffer bytes actually copied
+	 * @param key item identifier
+	 * @param value value buffer as C-style string
+	 * @return
+	 */
+	virtual KVStatus Get(int32_t limit, int32_t keybytes,
+			     int32_t *valuebytes, const char *key,
+			     char *value);
 
-	std::string getPeerStr();
-	std::string getNameStr();
+	/**
+	 * Append value for key to std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr item value will be appended to std::string
+	 * @return KVStatus
+	 */
+	virtual KVStatus Get(const string &key, string *valuestr);
 
-	struct fi_info *info();
-protected:
-	struct fi_info *mInfo;
-	struct fi_info *mHints;
+	/**
+	 * Copy value for key from std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr value to copy in
+	 * @return KVStatus
+	 */
+	virtual KVStatus Put(const string &key, const string &valuestr);
+
+	/**
+	 * Remove value for key
+	 *
+	 * @param key tem identifier
+	 * @return KVStatus
+	 */
+	virtual KVStatus Remove(const string &key);
 };
 
 }
-#endif // FABRIC_INFO_HPP

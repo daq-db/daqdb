@@ -30,8 +30,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "FabricNode.h"
-#include "common.h"
+#include "../../include/fabric/FabricNode.h"
+
+#include "../../include/fabric/common.h"
 namespace Fabric {
 
 FabricNode::FabricNode(const FabricAttributes &attr, const std::string &node, const std::string &serv) :

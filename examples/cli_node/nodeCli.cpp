@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "DragonCli.h"
+#include "../cli_node/nodeCli.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
@@ -98,20 +98,20 @@ hints(const char *buf, int *color, int *bold)
 namespace FogKV
 {
 
-DragonCli::DragonCli(std::shared_ptr<FogKV::DragonSrv> &spDragonSrv) : _spDragonSrv(spDragonSrv)
+nodeCli::nodeCli(std::shared_ptr<FogKV::FogSrv> &spDragonSrv) : _spDragonSrv(spDragonSrv)
 {
 	linenoiseSetCompletionCallback(completion);
 	linenoiseSetHintsCallback(hints);
 }
 
-DragonCli::~DragonCli()
+nodeCli::~nodeCli()
 {
 }
 
 int
-DragonCli::operator()()
+nodeCli::operator()()
 {
-	auto *inLine = linenoise("dragon> ");
+	auto *inLine = linenoise("fogkv> ");
 	auto isEmpty = false;
 	if (inLine == nullptr) {
 		return false;
@@ -148,7 +148,7 @@ DragonCli::operator()()
 }
 
 void
-DragonCli::cmdGet(std::string &strLine)
+nodeCli::cmdGet(std::string &strLine)
 {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
@@ -170,7 +170,7 @@ DragonCli::cmdGet(std::string &strLine)
 }
 
 void
-DragonCli::cmdPut(std::string &strLine)
+nodeCli::cmdPut(std::string &strLine)
 {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
@@ -190,7 +190,7 @@ DragonCli::cmdPut(std::string &strLine)
 }
 
 void
-DragonCli::cmdRemove(std::string &strLine)
+nodeCli::cmdRemove(std::string &strLine)
 {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
@@ -211,14 +211,14 @@ DragonCli::cmdRemove(std::string &strLine)
 }
 
 void
-DragonCli::cmdStatus()
+nodeCli::cmdStatus()
 {
 	//!	@todo jradtke Add more information to status
 	cout << _spDragonSrv->getDhtPeerStatus() << endl;
 }
 
 void
-DragonCli::cmdNodeStatus(std::string &strLine)
+nodeCli::cmdNodeStatus(std::string &strLine)
 {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
@@ -249,4 +249,4 @@ DragonCli::cmdNodeStatus(std::string &strLine)
 	}
 }
 
-} /* namespace Dragon */
+}

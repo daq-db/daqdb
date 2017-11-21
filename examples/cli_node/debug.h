@@ -30,47 +30,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_DRAGONCLI_H_
-#define SRC_NODE_DRAGONCLI_H_
+#pragma once
 
-#include "DragonSrv.h"
-#include <iostream>
-#include <linenoise.h>
+#include <log4cxx/logger.h>
+#include <log4cxx/xml/domconfigurator.h>
+#include <log4cxx/basicconfigurator.h>
+#include <log4cxx/helpers/exception.h>
+#include <log4cxx/consoleappender.h>
+#include <log4cxx/simplelayout.h>
 
-namespace
-{
-const unsigned int consoleHintColor = 35; // dark red
-};
-
-namespace FogKV
-{
-
-/*!
- * Dragon shell interpreter.
- * Created for test purposes - to allow performing quick testing of the node.
- */
-class DragonCli {
-public:
-	DragonCli(std::shared_ptr<FogKV::DragonSrv> &spDragonSrv);
-	virtual ~DragonCli();
-
-	/*!
-	 * Waiting for user input, executes defined commands
-	 *
-	 * @return false if user choose "quit" command, otherwise true
-	 */
-	int operator()();
-
-private:
-	void cmdGet(std::string &strLine);
-	void cmdPut(std::string &strLine);
-	void cmdRemove(std::string &strLine);
-	void cmdStatus();
-	void cmdNodeStatus(std::string &strLine);
-
-	std::shared_ptr<FogKV::DragonSrv> _spDragonSrv;
-};
-
-} /* namespace Dragon */
-
-#endif /* SRC_NODE_DRAGONCLI_H_ */
+using namespace log4cxx;
+using namespace log4cxx::xml;
+using namespace log4cxx::helpers;

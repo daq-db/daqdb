@@ -29,73 +29,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef FABRIC_HPP
+#define FABRIC_HPP
 
-#ifndef DHT_CCHORTADAPTER_H_
-#define DHT_CCHORTADAPTER_H_
+#include <rdma/fabric.h>
+#include <rdma/fi_domain.h>
+#include "../../include/fabric/FabricAttributes.h"
+#include "../../include/fabric/FabricInfo.h"
 
-#include "DhtNode.h"
-#include <boost/asio/io_service.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
+namespace Fabric {
 
-#include "ChordNode.h"
-
-namespace as = boost::asio;
-
-namespace FogKV
-{
-
-/*!
- * Adapter for cChord classes.
- */
-class CChordAdapter : public FogKV::DhtNode {
+class Fabric {
 public:
-	CChordAdapter(as::io_service &io_service, unsigned short port,
-		      unsigned short dragonPort, int id);
-	CChordAdapter(as::io_service &io_service, unsigned short port,
-		      unsigned short dragonPort, int id, bool skipShutDown);
-	virtual ~CChordAdapter();
+	Fabric(const FabricAttributes &attr, const std::string &node,
+		const std::string &serv, bool listener);
+	virtual ~Fabric();
 
-	/*!
-	 * @return Status of the Node - format determined by 3rd party lib
-	 */
-	std::string printStatus();
+	FabricAttributes attr() { return mAttr; }
 
-	/*!
-	 * Refresh internal DHT data (fingertable, succ, pred)
-	 */
-	void refresh();
-
-	/*!
-	 * Fill peerNodes vector with peer node list from DHT.
-	 * This is a subset of full list of nodes in system.
-	 *
-	 * @param peerNodes vector to insert peer nodes
-	 * @return number of peer nodes
-	 */
-	unsigned int getPeerList(boost::ptr_vector<PureNode> &peerNodes);
-
-	/*!
-	 * Triggers dragon aggregation table update.
-	 * @todo jradtke triggerAggregationUpdate not implemented
-	 */
-	void triggerAggregationUpdate();
-
-	/*!
-	 * Workaround on cChord bug for unit tests
-	 * @param skipShutDown
-	 */
-	void
-	setSkipShutDown(bool skipShutDown)
-	{
-		this->skipShutDown = skipShutDown;
-	}
-
-private:
-	unique_ptr<ChordNode> spNode;
-	unique_ptr<Node> spChord;
-	bool skipShutDown;
+	struct fi_info *info();
+	struct fid_fabric *fabric();
+	struct fid_domain *domain();
+	struct fid_eq *eq();
+protected:
+	FabricAttributes mAttr;
+	FabricInfo mInfo;
+	struct fi_info *mHints;
+	struct fid_fabric *mFabric;
+	struct fid_domain *mDomain;
+	struct fi_eq_attr mEqAttr;
+	struct fid_eq *mEq;
 };
 
-} /* namespace Dht */
+}
 
-#endif /* DHT_CCHORTADAPTER_H_ */
+#endif // FABRIC_HPP

@@ -29,64 +29,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef FABRIC_MEM_REGION_H
+#define FABRIC_MEM_REGION_H
 
-#ifndef SRC_STORE_KVINTERFACE_H_
-#define SRC_STORE_KVINTERFACE_H_
+#include <stdint.h>
+#include <rdma/fi_domain.h>
 
-#include <pmemkv.h>
+#include "../../include/fabric/Fabric.h"
 
-namespace FogKV
+namespace Fabric
 {
 
-/*!
- * Class defines KV Store API
- */
-class KVInterface {
-public:
-	KVInterface();
-	virtual ~KVInterface();
-
-	/*!
-	 * Copy value for key to buffer
-	 *
-	 * @param limit maximum bytes to copy to buffer
-	 * @param keybytes key buffer bytes actually copied
-	 * @param valuebytes value buffer bytes actually copied
-	 * @param key item identifier
-	 * @param value value buffer as C-style string
-	 * @return
-	 */
-	virtual KVStatus Get(int32_t limit, int32_t keybytes,
-			     int32_t *valuebytes, const char *key,
-			     char *value) = 0;
-
-	/*!
-	 * Append value for key to std::string
-	 *
-	 * @param key item identifier
-	 * @param valuestr item value will be appended to std::string
-	 * @return KVStatus
-	 */
-	virtual KVStatus Get(const string &key, string *valuestr) = 0;
-
-	/*!
-	 * Copy value for key from std::string
-	 *
-	 * @param key item identifier
-	 * @param valuestr value to copy in
-	 * @return KVStatus
-	 */
-	virtual KVStatus Put(const string &key, const string &valuestr) = 0;
-
-	/*!
-	 * Remove value for key
-	 *
-	 * @param key tem identifier
-	 * @return KVStatus
-	 */
-	virtual KVStatus Remove(const string &key) = 0;
+enum FabricMRPerm {
+	SEND = FI_SEND,
+	RECV = FI_RECV,
+	READ = FI_READ,
+	WRITE = FI_WRITE,
+	REMOTE_READ = FI_REMOTE_READ,
+	REMOTE_WRITE = FI_REMOTE_WRITE,
 };
 
-} /* namespace DragonNode */
+class FabricMR {
+public:
+	FabricMR(Fabric &fabric, void *ptr, size_t size, uint64_t perm);
+	virtual ~FabricMR();
 
-#endif /* SRC_STORE_KVINTERFACE_H_ */
+	void *getLKey();
+	uint64_t getRKey();
+	void *getPtr();
+	size_t getSize();
+protected:
+
+	struct fid_mr *mMr;
+	void *mPtr;
+	size_t mSize;
+};
+
+}
+
+#endif // FABRIC_MEM_REGION_H

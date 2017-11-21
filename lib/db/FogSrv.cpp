@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "../../include/db/FogSrv.h"
+
 #include <chrono>
 #include <ctime>
 #include <sstream>
@@ -37,12 +39,8 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/format.hpp>
 
-#include "debug.h"
-
-#include "DragonSrv.h"
-#include <PmemKVStore.h>
-
 #include <libpmemobj/pool_base.h>
+#include "../../include/store/PmemKVStore.h"
 
 using namespace std;
 using boost::format;
@@ -59,7 +57,7 @@ const string pmemKvBasePath = "/dev/shm/fogkv";
 namespace FogKV
 {
 
-DragonSrv::DragonSrv(as::io_service &io_service, const unsigned short nodeId)
+FogSrv::FogSrv(as::io_service &io_service, const unsigned short nodeId)
     : _io_service(io_service), _nodeId(nodeId)
 {
 	unsigned short inputPort;
@@ -79,61 +77,58 @@ DragonSrv::DragonSrv(as::io_service &io_service, const unsigned short nodeId)
 		isTemporaryDb = true;
 	}
 
-	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
-		     format("New PmemKVStore (dbNameSuffix=%1%)") %
-			     dbNameSuffix);
 	this->_spStore.reset(
 		new FogKV::PmemKVStore(dbNameSuffix, isTemporaryDb));
 }
 
-DragonSrv::~DragonSrv()
+FogSrv::~FogSrv()
 {
 }
 
 void
-DragonSrv::run()
+FogSrv::run()
 {
 	_io_service.run();
 }
 
 unsigned int
-DragonSrv::getDhtId() const
+FogSrv::getDhtId() const
 {
 	return _spDhtNode->getDhtId();
 }
 
 const std::string &
-DragonSrv::getIp() const
+FogSrv::getIp() const
 {
 	return _spDhtNode->getIp();
 }
 
 unsigned short
-DragonSrv::getPort() const
+FogSrv::getPort() const
 {
 	return _spDhtNode->getPort();
 }
 
 std::size_t
-DragonSrv::poll()
+FogSrv::poll()
 {
 	return _io_service.poll();
 }
 
 bool
-DragonSrv::stopped() const
+FogSrv::stopped() const
 {
 	return _io_service.stopped();
 }
 
 unsigned short
-DragonSrv::getDragonPort() const
+FogSrv::getDragonPort() const
 {
 	return _spDhtNode->getDragonPort();
 }
 
 std::string
-DragonSrv::getDhtPeerStatus() const
+FogSrv::getDhtPeerStatus() const
 {
 	stringstream result;
 	boost::ptr_vector<FogKV::PureNode> peerNodes;

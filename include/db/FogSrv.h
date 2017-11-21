@@ -30,13 +30,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DHT_DHTNODE_H_
-#define DHT_DHTNODE_H_
+#pragma once
 
-#include "PureNode.h"
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/signal_set.hpp>
 
-#include <boost/asio/io_service.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
+#include "../dht/CChordNode.h"
+#include "../dht/DhtNode.h"
+#include "../dht/DhtUtils.h"
+#include "../store/KVStore.h"
+#include "SocketReqManager.h"
 
 namespace as = boost::asio;
 
@@ -44,35 +47,76 @@ namespace FogKV
 {
 
 /*!
- * Class that defines interface for DHT
+ * Main node class, stores critical ingredients:
+ * - KV store
+ * - DHT
+ * - External API manager
  */
-class DhtNode : public PureNode {
+class FogSrv {
 public:
-	DhtNode(as::io_service &io_service, unsigned short port, unsigned short dragonPort);
-	virtual ~DhtNode();
+	FogSrv(as::io_service &io_service, const unsigned short nodeId = 0);
+	virtual ~FogSrv();
 
 	/*!
-	 * Prints DHT status.
-	 * @return
+	 * Run the io_service object's event processing loop.
 	 */
-	virtual std::string printStatus() = 0;
+	void run();
 
 	/*!
-	 * Fill peerNodes vector with peer node list from DHT.
-	 * This is a subset of full list of nodes in system.
+	 * Run the io_service object's event processing loop to execute ready
+	 * handlers
+	 * @return The number of handlers that were executed.
+	 */
+	std::size_t poll();
+
+	/*!
+	 * Determine whether the io_service object has been stopped.
+	 * @return true if io_service object has been stopped.
+	 */
+	bool stopped() const;
+
+	/*!
+	 * 	@return DHT ID for this node
+	 */
+	unsigned int getDhtId() const;
+
+	/*!
+	 * @return IP address for this node
+	 */
+	const std::string &getIp() const;
+
+	/*!
+	 * @return Port number for this node
+	 */
+	unsigned short getPort() const;
+
+	/*!
+	 * @return Port number for this node
+	 */
+	unsigned short getDragonPort() const;
+
+	/*!
+	 * Example result:
+	 * "Thu Oct 19 14:55:21 2017
+	 *      no DHT peers"
 	 *
-	 * @param peerNodes vector to insert peer nodes
-	 * @return number of peer nodes
+	 * @return peer status string
 	 */
-	virtual unsigned int
-		getPeerList(boost::ptr_vector<PureNode>& peerNodes) = 0;
+	std::string getDhtPeerStatus() const;
 
-	/*!
-	 * Triggers dragon aggregation table update.
-	 */
-	virtual void triggerAggregationUpdate() = 0;
+	FogKV::KVStore *const
+	getKvStore()
+	{
+		return _spStore.get();
+	}
+
+private:
+	unsigned short _nodeId;
+	as::io_service &_io_service;
+	std::unique_ptr<FogKV::SocketReqManager> _spReqManager;
+	std::unique_ptr<FogKV::DhtNode> _spDhtNode;
+
+	std::unique_ptr<FogKV::KVStore> _spStore;
 };
 
-} /* namespace Dht */
-
-#endif /* DHT_DHTNODE_H_ */
+}

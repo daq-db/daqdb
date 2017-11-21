@@ -29,8 +29,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef DHT_DHTUTILS_H_
-#define DHT_DHTUTILS_H_
+
+#pragma once
 
 #include <boost/asio/io_service.hpp>
 
@@ -50,7 +50,5 @@ unsigned short getFreePort(boost::asio::io_service &io_service,
 			   const unsigned short backbonePort,
 			   bool reuseAddr = false);
 
-} /* namespace utils */
-} // namespace Dht
-
-#endif /* DHT_DHTUTILS_H_ */
+}
+}

@@ -1,7 +1,7 @@
-#include <FabricNode.h>
 #include <stdio.h>
 #include <vector>
 #include <iostream>
+#include "../../include/fabric/FabricNode.h"
 
 using namespace Fabric;
 

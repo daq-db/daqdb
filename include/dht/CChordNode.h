@@ -30,57 +30,69 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_DHT_PURENODE_H_
-#define SRC_DHT_PURENODE_H_
+#pragma once
 
-#include <iostream>
+#include <boost/asio/io_service.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+
+#include "../../include/dht/DhtNode.h"
+#include "ChordNode.h"
+
+namespace as = boost::asio;
 
 namespace FogKV
 {
 
 /*!
- * Class that stores DHT stored/shared data.
+ * Adapter for cChord classes.
  */
-class PureNode {
+class CChordAdapter : public FogKV::DhtNode {
 public:
-	PureNode();
-	PureNode(const std::string &ip, unsigned int dhtId, unsigned short port,
-		 unsigned short dragonPort);
-	virtual ~PureNode();
+	CChordAdapter(as::io_service &io_service, unsigned short port,
+		      unsigned short dragonPort, int id);
+	CChordAdapter(as::io_service &io_service, unsigned short port,
+		      unsigned short dragonPort, int id, bool skipShutDown);
+	virtual ~CChordAdapter();
 
-	/**
-	 * 	@return DHT ID for this node
+	/*!
+	 * @return Status of the Node - format determined by 3rd party lib
 	 */
-	unsigned int getDhtId() const;
+	std::string printStatus();
 
-	/**
-	 * @return IP address for this node
+	/*!
+	 * Refresh internal DHT data (fingertable, succ, pred)
 	 */
-	const std::string &getIp() const;
+	void refresh();
 
-	/**
-	 * @return Port number for this node
+	/*!
+	 * Fill peerNodes vector with peer node list from DHT.
+	 * This is a subset of full list of nodes in system.
+	 *
+	 * @param peerNodes vector to insert peer nodes
+	 * @return number of peer nodes
 	 */
-	unsigned short getPort() const;
+	unsigned int getPeerList(boost::ptr_vector<PureNode> &peerNodes);
 
-	/**
-	 * @return Port number for this node
+	/*!
+	 * Triggers dragon aggregation table update.
+	 * @todo jradtke triggerAggregationUpdate not implemented
 	 */
-	unsigned short getDragonPort() const;
+	void triggerAggregationUpdate();
 
-protected:
-	void setIp(const std::string &ip);
-	void setDhtId(unsigned int dhtId);
-	void setPort(unsigned short port);
-	void setDragonPort(unsigned short port);
+	/*!
+	 * Workaround on cChord bug for unit tests
+	 * @param skipShutDown
+	 */
+	void
+	setSkipShutDown(bool skipShutDown)
+	{
+		this->skipShutDown = skipShutDown;
+	}
 
 private:
-	std::string _ip;
-	unsigned int _dhtId;
-	unsigned short _port;
-	unsigned short _dragonPort;
+	unique_ptr<ChordNode> spNode;
+	unique_ptr<Node> spChord;
+	bool skipShutDown;
 };
 
-} /* namespace Dht */
-
-#endif /* SRC_DHT_PURENODE_H_ */
+}

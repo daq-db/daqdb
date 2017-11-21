@@ -30,35 +30,45 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_SOCKETREQMANAGER_H_
-#define SRC_NODE_SOCKETREQMANAGER_H_
+#pragma once
 
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+#include "../../include/dht/PureNode.h"
 
 namespace as = boost::asio;
 
 namespace FogKV
 {
 
-class SocketReqManager {
+/*!
+ * Class that defines interface for DHT
+ */
+class DhtNode : public PureNode {
 public:
-	SocketReqManager(as::io_service &io_service, short port);
-	virtual ~SocketReqManager();
+	DhtNode(as::io_service &io_service, unsigned short port, unsigned short dragonPort);
+	virtual ~DhtNode();
 
-	void handle_receive_from(const boost::system::error_code &error,
-				 size_t bytes_recvd);
-	void handle_send_to(const boost::system::error_code &error,
-			    size_t bytes_sent);
+	/*!
+	 * Prints DHT status.
+	 * @return
+	 */
+	virtual std::string printStatus() = 0;
 
-private:
-	as::io_service &_io_service;
-	as::ip::udp::socket _socket;
-	as::ip::udp::endpoint _sender_endpoint;
-	enum { max_length = 1024 };
-	char _data[max_length];
+	/*!
+	 * Fill peerNodes vector with peer node list from DHT.
+	 * This is a subset of full list of nodes in system.
+	 *
+	 * @param peerNodes vector to insert peer nodes
+	 * @return number of peer nodes
+	 */
+	virtual unsigned int
+		getPeerList(boost::ptr_vector<PureNode>& peerNodes) = 0;
+
+	/*!
+	 * Triggers dragon aggregation table update.
+	 */
+	virtual void triggerAggregationUpdate() = 0;
 };
 
-} /* namespace Node */
-
-#endif /* SRC_NODE_SOCKETREQMANAGER_H_ */
+}

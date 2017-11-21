@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "DhtUtils.h"
+#include "../../include/dht/DhtUtils.h"
 
 #include <iostream>
 

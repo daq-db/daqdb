@@ -29,39 +29,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_HPP
-#define FABRIC_HPP
 
-#include "FabricAttributes.h"
-#include "FabricInfo.h"
+#pragma once
 
-#include <rdma/fabric.h>
-#include <rdma/fi_domain.h>
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
 
-namespace Fabric {
+namespace as = boost::asio;
 
-class Fabric {
+namespace FogKV
+{
+
+class SocketReqManager {
 public:
-	Fabric(const FabricAttributes &attr, const std::string &node,
-		const std::string &serv, bool listener);
-	virtual ~Fabric();
+	SocketReqManager(as::io_service &io_service, short port);
+	virtual ~SocketReqManager();
 
-	FabricAttributes attr() { return mAttr; }
+	void handle_receive_from(const boost::system::error_code &error,
+				 size_t bytes_recvd);
+	void handle_send_to(const boost::system::error_code &error,
+			    size_t bytes_sent);
 
-	struct fi_info *info();
-	struct fid_fabric *fabric();
-	struct fid_domain *domain();
-	struct fid_eq *eq();
-protected:
-	FabricAttributes mAttr;
-	FabricInfo mInfo;
-	struct fi_info *mHints;
-	struct fid_fabric *mFabric;
-	struct fid_domain *mDomain;
-	struct fi_eq_attr mEqAttr;
-	struct fid_eq *mEq;
+private:
+	as::io_service &_io_service;
+	as::ip::udp::socket _socket;
+	as::ip::udp::endpoint _sender_endpoint;
+	enum { max_length = 1024 };
+	char _data[max_length];
 };
 
 }
-
-#endif // FABRIC_HPP

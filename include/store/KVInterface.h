@@ -30,11 +30,60 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef INCLUDE_FOGKV_DB_H_
-#define INCLUDE_FOGKV_DB_H_
+#pragma once
 
+#include <pmemkv.h>
 
+namespace FogKV
+{
 
+/*!
+ * Class defines KV Store API
+ */
+class KVInterface {
+public:
+	KVInterface();
+	virtual ~KVInterface();
 
+	/*!
+	 * Copy value for key to buffer
+	 *
+	 * @param limit maximum bytes to copy to buffer
+	 * @param keybytes key buffer bytes actually copied
+	 * @param valuebytes value buffer bytes actually copied
+	 * @param key item identifier
+	 * @param value value buffer as C-style string
+	 * @return
+	 */
+	virtual KVStatus Get(int32_t limit, int32_t keybytes,
+			     int32_t *valuebytes, const char *key,
+			     char *value) = 0;
 
-#endif /* INCLUDE_FOGKV_DB_H_ */
+	/*!
+	 * Append value for key to std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr item value will be appended to std::string
+	 * @return KVStatus
+	 */
+	virtual KVStatus Get(const string &key, string *valuestr) = 0;
+
+	/*!
+	 * Copy value for key from std::string
+	 *
+	 * @param key item identifier
+	 * @param valuestr value to copy in
+	 * @return KVStatus
+	 */
+	virtual KVStatus Put(const string &key, const string &valuestr) = 0;
+
+	/*!
+	 * Remove value for key
+	 *
+	 * @param key tem identifier
+	 * @return KVStatus
+	 */
+	virtual KVStatus Remove(const string &key) = 0;
+};
+
+}
