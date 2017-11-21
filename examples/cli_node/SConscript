@@ -1,7 +1,7 @@
 Import('env')
 
 env.AppendUnique(LIBPATH=[Dir('.')])
-NodeApp = env.Program('node', Glob('*.cpp'), 
+NodeApp = env.Program('cli_node', Glob('*.cpp'), 
             LIBS=["pthread",
                 "rt",
                 "dl",

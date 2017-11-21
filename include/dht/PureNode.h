@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_DHT_PURENODE_H_
-#define SRC_DHT_PURENODE_H_
+#pragma once
 
 #include <iostream>
 
@@ -81,6 +80,4 @@ private:
 	unsigned short _dragonPort;
 };
 
-} /* namespace Dht */
-
-#endif /* SRC_DHT_PURENODE_H_ */
+}

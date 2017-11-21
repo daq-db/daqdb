@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_DRAGONSRV_H_
-#define SRC_NODE_DRAGONSRV_H_
+#pragma once
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
@@ -120,6 +119,4 @@ private:
 	std::unique_ptr<FogKV::KVStore> _spStore;
 };
 
-} /* namespace DragonNode */
-
-#endif /* SRC_NODE_DRAGONSRV_H_ */
+}

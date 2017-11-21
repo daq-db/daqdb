@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DHT_DHTNODE_H_
-#define DHT_DHTNODE_H_
+#pragma once
 
 #include <boost/asio/io_service.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -72,6 +71,4 @@ public:
 	virtual void triggerAggregationUpdate() = 0;
 };
 
-} /* namespace Dht */
-
-#endif /* DHT_DHTNODE_H_ */
+}

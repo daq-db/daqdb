@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_NODE_SOCKETREQMANAGER_H_
-#define SRC_NODE_SOCKETREQMANAGER_H_
+#pragma once
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -59,6 +58,4 @@ private:
 	char _data[max_length];
 };
 
-} /* namespace Node */
-
-#endif /* SRC_NODE_SOCKETREQMANAGER_H_ */
+}

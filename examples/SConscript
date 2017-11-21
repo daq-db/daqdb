@@ -1,4 +1,4 @@
 Import('env')
 
-SConscript('node/SConscript', exports=['env', ])
+SConscript('cli_node/SConscript', exports=['env', ])
 SConscript('fabric_node/SConscript', exports=['env', ])

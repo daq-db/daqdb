@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_STORE_PMEMKVSTORE_H_
-#define SRC_STORE_PMEMKVSTORE_H_
+#pragma once
 
 #include <boost/filesystem.hpp>
 
@@ -84,6 +83,4 @@ private:
 	std::unique_ptr<pmemkv::KVEngine> _spStore;
 };
 
-} /* namespace DragonStore */
-
-#endif /* SRC_STORE_PMEMKVSTORE_H_ */
+}

@@ -30,11 +30,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef INCLUDE_FOGKV_DB_H_
-#define INCLUDE_FOGKV_DB_H_
+#pragma once
 
+#include <iostream>
+#include <linenoise.h>
+#include "../../include/db/FogSrv.h"
 
+namespace
+{
+const unsigned int consoleHintColor = 35; // dark red
+};
 
+namespace FogKV
+{
 
+/*!
+ * Dragon shell interpreter.
+ * Created for test purposes - to allow performing quick testing of the node.
+ */
+class nodeCli {
+public:
+	nodeCli(std::shared_ptr<FogKV::FogSrv> &spDragonSrv);
+	virtual ~nodeCli();
 
-#endif /* INCLUDE_FOGKV_DB_H_ */
+	/*!
+	 * Waiting for user input, executes defined commands
+	 *
+	 * @return false if user choose "quit" command, otherwise true
+	 */
+	int operator()();
+
+private:
+	void cmdGet(std::string &strLine);
+	void cmdPut(std::string &strLine);
+	void cmdRemove(std::string &strLine);
+	void cmdStatus();
+	void cmdNodeStatus(std::string &strLine);
+
+	std::shared_ptr<FogKV::FogSrv> _spDragonSrv;
+};
+
+}

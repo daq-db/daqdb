@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_STORE_KVINTERFACE_H_
-#define SRC_STORE_KVINTERFACE_H_
+#pragma once
 
 #include <pmemkv.h>
 
@@ -87,6 +86,4 @@ public:
 	virtual KVStatus Remove(const string &key) = 0;
 };
 
-} /* namespace DragonNode */
-
-#endif /* SRC_STORE_KVINTERFACE_H_ */
+}

@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_STORE_KVSTORE_H_
-#define SRC_STORE_KVSTORE_H_
+#pragma once
 
 #include "../../include/store/KVInterface.h"
 
@@ -87,6 +86,4 @@ public:
 	virtual KVStatus Remove(const string &key);
 };
 
-} /* namespace DragonStore */
-
-#endif /* SRC_STORE_KVSTORE_H_ */
+}

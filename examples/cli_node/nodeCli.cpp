@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "nodeCli.h"
+#include "../cli_node/nodeCli.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
@@ -249,4 +249,4 @@ nodeCli::cmdNodeStatus(std::string &strLine)
 	}
 }
 
-} /* namespace Dragon */
+}
