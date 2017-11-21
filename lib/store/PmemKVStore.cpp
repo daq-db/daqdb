@@ -34,7 +34,7 @@ using namespace std;
 
 #include <iostream>
 
-#include <store/PmemKVStore.h>
+#include "PmemKVStore.h"
 
 namespace bf = boost::filesystem;
 

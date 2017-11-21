@@ -37,7 +37,8 @@
 #include <log4cxx/logger.h>
 #include <log4cxx/simplelayout.h>
 #include <log4cxx/xml/domconfigurator.h>
-#include "../../../../include/store/PmemKVStore.h"
+
+#include "../../../lib/store/PmemKVStore.h" //!< @todo jradtke this include should be removed
 
 using namespace log4cxx;
 using namespace log4cxx::xml;

@@ -34,7 +34,7 @@
 
 #include <tuple>
 
-#include <store/KVStore.h>
+#include <store/KVInterface.h>
 #include "../IoMeter.h"
 
 namespace FogKV {

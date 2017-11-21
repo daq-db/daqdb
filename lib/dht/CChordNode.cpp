@@ -35,8 +35,8 @@
 #include <set>
 
 #include <dht/CChordNode.h>
-#include <dht/DhtUtils.h>
 
+#include "DhtUtils.h"
 #include "ProtocolSingleton.h"
 
 namespace bf = boost::filesystem;

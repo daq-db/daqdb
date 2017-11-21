@@ -21,19 +21,15 @@ Installation
 cd ${fogKvpath}
 git submodule init
 git submodule update
-git pull
 ```
 
 **Building**
 
 following libraries are required:
 <ul>
-<li>boost</li>
 <li>boost-devel</li>
 <li>boost-test</li>
-<li>fabricpp</li>
-<li>fabric</li>
-<li>log4cxx</li>
+<li>fabricpp-devel</li>
 <li>log4cxx-devel (log4cxx-dev)</li>
 <li>libpmemobj++</li>
 </ul>
@@ -53,7 +49,7 @@ Execution
 ------------
 
 ```
-./dragon -h
+./cli-node -h
 Options:
   -h [ --help ]            Print help messages
   -p [ --port ] arg        Node Communication port
@@ -69,10 +65,10 @@ Options:
 To enter interactive mode execute dragon with `--interactive` flag.
 
 ```
-./dragon -i
+./cli_node -i
 DHT node (id=107) is running on 127.0.0.1:11000
 Waiting for requests on port 40401. Press CTRL-C to exit.
-dragon> help
+fogkv> help
 Following commands supported:
 	- get <key>
 	- help
