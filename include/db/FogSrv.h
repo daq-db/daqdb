@@ -37,8 +37,9 @@
 
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
-#include <dht/DhtUtils.h>
-#include <store/KVStore.h>
+
+#include <store/KVInterface.h>
+
 #include "SocketReqManager.h"
 
 namespace as = boost::asio;
@@ -104,7 +105,7 @@ public:
 	 */
 	std::string getDhtPeerStatus() const;
 
-	FogKV::KVStore *const
+	FogKV::KVInterface *const
 	getKvStore()
 	{
 		return _spStore.get();
@@ -116,7 +117,7 @@ private:
 	std::unique_ptr<FogKV::SocketReqManager> _spReqManager;
 	std::unique_ptr<FogKV::DhtNode> _spDhtNode;
 
-	std::unique_ptr<FogKV::KVStore> _spStore;
+	std::unique_ptr<FogKV::KVInterface> _spStore;
 };
 
 }

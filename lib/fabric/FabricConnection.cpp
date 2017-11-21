@@ -36,8 +36,8 @@
 #include <string.h>
 #include <iostream>
 
-#include <fabric/common.h>
 #include <fabric/FabricInfo.h>
+#include "common.h"
 
 #define CQ_SIZE 128
 

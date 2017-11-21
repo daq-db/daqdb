@@ -41,7 +41,8 @@
 
 #include <libpmemobj/pool_base.h>
 
-#include <store/PmemKVStore.h>
+#include "../store/PmemKVStore.h"
+#include "../dht/DhtUtils.h"
 
 using namespace std;
 using boost::format;

@@ -31,9 +31,8 @@
  */
 
 #include <fabric/Fabric.h>
-#include <fabric/common.h>
-
 #include <string.h>
+#include "common.h"
 
 namespace Fabric {
 

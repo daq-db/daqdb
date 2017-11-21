@@ -36,7 +36,8 @@
 
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/test/unit_test.hpp>
-#include "../../include/dht/DhtUtils.h"
+
+#include "../../lib/dht/DhtUtils.h"
 
 using namespace std;
 

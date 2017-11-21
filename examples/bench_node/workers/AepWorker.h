@@ -34,7 +34,7 @@
 
 #include <memory>
 
-#include <store/KVStore.h>
+#include "../../../lib/store/KVStore.h"
 #include "../IoMeter.h"
 
 namespace FogKV {

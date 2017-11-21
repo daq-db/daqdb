@@ -32,7 +32,7 @@
 
 #include <fabric/FabricNode.h>
 
-#include <fabric/common.h>
+#include "common.h"
 namespace Fabric {
 
 FabricNode::FabricNode(const FabricAttributes &attr, const std::string &node, const std::string &serv) :
