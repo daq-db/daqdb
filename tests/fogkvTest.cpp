@@ -30,11 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "dragonTest.h"
+#include "fogkvTest.h"
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
-#define BOOST_TEST_MODULE dragon test module
+#define BOOST_TEST_MODULE fogkv test module
 
 #include <boost/test/unit_test.hpp>
 

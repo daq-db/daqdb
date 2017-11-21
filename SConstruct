@@ -42,13 +42,14 @@ SConscript('build/SConscript', exports=['env', ])
 '''
 SConscript('examples/SConscript', exports=['env', ])
 
+env.Alias('install', '#bin')
+Depends('install', 'build')
+
 '''
 	Build and execute tests
 '''
-# SConscript('tests/SConscript', exports=['env', ])
+SConscript('tests/SConscript', exports=['env', ])
 
-env.Alias('install', '#bin')
-Depends('install', 'build')
 
 if not GetOption("clean"):
 	RequiredLibs = [
