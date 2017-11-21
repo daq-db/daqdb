@@ -30,34 +30,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_BENCHMARK_WORKERS_AEPWORKER_H_
-#define SRC_BENCHMARK_WORKERS_AEPWORKER_H_
+#pragma once
 
-#include <memory>
-
-#include "../../../../include/store/KVStore.h"
-#include "../IoMeter.h"
+#include <string>
+#include "workers/AepWorker.h"
+#include "workers/DiskWorker.h"
 
 namespace FogKV {
 
-class AepWorker {
+class SimFogKV {
 public:
-	AepWorker();
-	virtual ~AepWorker();
+	SimFogKV(const std::string &diskPath, const unsigned int elementSize,
+			const unsigned int limitGet = 0, const unsigned int limitPut = 0);
+	virtual ~SimFogKV();
 
-	KVStatus Put(const string &key, const string &valuestr);
-	KVStatus Get(const string &key, string *valuestr);
-	unsigned long int getReadCounter();
-	unsigned long int getWriteCounter();
+	void setIOLimit(const unsigned int limitGet, const unsigned int limitPut);
 
+	KVStatus Put(const std::string &key, const std::vector<char> &value);
+	KVStatus Get(const std::string &key, std::vector<char> &value);
 	std::tuple<float, float> getIoStat();
 
-private:
-	IoMeter _ioMeter;
-	std::unique_ptr<FogKV::KVStore> _spStore;
+	void TestSimpleGetPut(const unsigned int numOfGetOperations, const unsigned int numOfPutOperations);
 
+private:
+	FogKV::AepWorker _aepWorker;
+	FogKV::DiskWorker _diskWorker;
+	unsigned int _limit_get;
+	unsigned int _limit_put;
 };
 
-} /* namespace Dragon */
-
-#endif /* SRC_BENCHMARK_WORKERS_AEPWORKER_H_ */
+}

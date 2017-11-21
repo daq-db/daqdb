@@ -30,13 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "../../include/dht/CChordNode.h"
-
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <set>
 
-#include "../../include/dht/DhtUtils.h"
+#include <dht/CChordNode.h>
+#include <dht/DhtUtils.h>
+
 #include "ProtocolSingleton.h"
 
 namespace bf = boost::filesystem;

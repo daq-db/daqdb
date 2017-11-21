@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "../../include/store/KVInterface.h"
+#include <store/KVInterface.h>
 
 namespace FogKV
 {

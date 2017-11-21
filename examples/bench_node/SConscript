@@ -1,10 +1,10 @@
 Import('env')
 
-clinode_env = Environment()
-clinode_env.Append(CCFLAGS = env['CCFLAGS'])
-clinode_env.Append(CXXFLAGS = env['CXXFLAGS'])
-clinode_env.Append(LIBPATH = env['LIBPATH'])
-clinode_env.Append(LINKFLAGS = env['LINKFLAGS'])
+bench_env = Environment()
+bench_env.Append(CCFLAGS = env['CCFLAGS'])
+bench_env.Append(CXXFLAGS = env['CXXFLAGS'])
+bench_env.Append(LIBPATH = env['LIBPATH'])
+bench_env.Append(LINKFLAGS = env['LINKFLAGS'])
 
 cchord_includes = [
     Dir('#third-party/cChord/engine/helper'),
@@ -18,31 +18,35 @@ cchord_includes = [
     Dir('#third-party/cChord/engine/p2p/protocols/chord'),
     Dir('#third-party/cChord/engine/p2p/transport/http'),
     Dir('#third-party/cChord/engine/p2p/transport')]
-pmemkv_includes = [ 
+pmemkv_includes = [
     Dir('#third-party/pmemkv'),
     Dir('#third-party/pmemkv/src'),
     Dir('#third-party/pmemkv/src/engines')
     ]
 fokv_includes = [Dir('#include')]
-linenoise_includes = [
-    Dir('#third-party/linenoise')
+cpustat_includes = [
+    Dir('#third-party/cpu-stat/src')
     ]
 
-clinode_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, linenoise_includes])
+bench_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, cpustat_includes])
 
-NodeApp = clinode_env.Program('cli_node', Glob('*.cpp'),
+sources = [Glob('*.cpp'), Glob('workers/*.cpp')]
+
+benchApp = bench_env.Program('bench_node', sources,
             LIBS=["pthread",
-                "rt",
-                "dl",
                 "log4cxx",
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem",
                 "boost_thread",
+                "boost_timer",
+                "boost_regex",
+                "boost_date_time",
                 File("#third-party/pmemkv/bin/libpmemkv.so"),
-                File("#third-party/linenoise/liblinenoise.a"),
+                File("#third-party/cpu-stat/libcpu-stat.a"),
+                File("#third-party/csvpp/libcsvpp.a"),
                 "mymed",
                 "fogkv"
                 ])
 
-env.Install('#bin', [NodeApp])
+env.Install('#bin', [benchApp])

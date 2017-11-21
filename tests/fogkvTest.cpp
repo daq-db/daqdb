@@ -30,29 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_BENCHMARK_IOMETER_H_
-#define SRC_BENCHMARK_IOMETER_H_
+#include "fogkvTest.h"
 
-#include <tuple>
-#include "boost/date_time/posix_time/posix_time.hpp"
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_MODULE fogkv test module
 
-namespace FogKV {
+#include <boost/test/unit_test.hpp>
 
-class IoMeter {
-public:
-	IoMeter();
-	virtual ~IoMeter();
-
-	std::tuple<float, float> getIoStat();
-
-	unsigned long long _io_count_read = 0;
-	unsigned long long _io_count_write = 0;
-
-private:
-	boost::posix_time::ptime _snapshot_time;
-
-};
-
-} /* namespace Dragon */
-
-#endif /* SRC_BENCHMARK_IOMETER_H_ */

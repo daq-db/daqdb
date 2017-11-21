@@ -29,35 +29,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "IoMeter.h"
 
-namespace FogKV {
+#pragma once
 
-IoMeter::IoMeter() {
-	_snapshot_time = boost::posix_time::second_clock::local_time();
-}
+#include "Node.h"
 
-IoMeter::~IoMeter() {
-}
+#include <string>
+#include <mutex>
+#include <condition_variable>
 
-std::tuple<float, float> IoMeter::getIoStat() {
-	auto now = boost::posix_time::microsec_clock::local_time();
+#include <fabric/FabricNode.h>
 
-	boost::posix_time::time_duration diff = now - _snapshot_time;
+class AuxNode : public Node {
+public:
+	using GetHandler = std::function<void (const std::string &, const std::string &)>;
+	AuxNode(const std::string &node, const std::string &serv,
+		const std::string &remoteNode, const std::string &remoteServ,
+		size_t buffSize, size_t txBuffCount, size_t rxBuffCount, bool logMsg);
+	virtual ~AuxNode();
 
-	float readStat = 0;
-	float writeStat = 0;
+	void put(const std::string &key, const std::vector<char> &value);
+	void get(const std::string &key, std::vector<char> &value);
+	void start();
 
-	if (diff.total_milliseconds() > 100) {
-		readStat = (1000.f * _io_count_read / diff.total_milliseconds());
-		writeStat = (1000.f * _io_count_write / diff.total_milliseconds());
+protected:
+	void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
+	void onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
+	void onMsgReady(Fabric::FabricConnection &conn);
 
-		_io_count_read = 0;
-		_io_count_write = 0;
-		_snapshot_time = boost::posix_time::microsec_clock::local_time();
-	}
+	void sendParams();
+	bool flushWrBuff(size_t offset, size_t len);
+	void notifyReady();
+	void waitReady();
 
-	return std::make_tuple(readStat, writeStat);
-}
+	std::mutex mReadyLock;
+	bool mReady;
+	std::condition_variable mReadyCond;
 
-} /* namespace Dragon */
+	std::function<void ()> mReadyHandler;
+
+	void clrGet();
+	size_t waitGet();
+	void notifyGet(size_t valSize);
+
+	size_t mValSize;
+	std::mutex mGetLock;
+	std::condition_variable mGetCond;
+};

@@ -39,7 +39,8 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "../../include/db/FogSrv.h"
+#include <db/FogSrv.h>
+
 #include "debug.h"
 #include "nodeCli.h"
 

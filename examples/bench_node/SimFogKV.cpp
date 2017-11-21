@@ -30,14 +30,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AepWorker.h"
+#include "SimFogKV.h"
+
 #include <log4cxx/basicconfigurator.h>
 #include <log4cxx/consoleappender.h>
 #include <log4cxx/helpers/exception.h>
 #include <log4cxx/logger.h>
 #include <log4cxx/simplelayout.h>
 #include <log4cxx/xml/domconfigurator.h>
-#include "../../../../include/store/PmemKVStore.h"
+
+#include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
 
 using namespace log4cxx;
 using namespace log4cxx::xml;
@@ -45,37 +48,60 @@ using namespace log4cxx::helpers;
 
 namespace FogKV {
 
-AepWorker::AepWorker() {
-	auto isTemporaryDb = true;
-
-	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "New PmemKVStore created");
-	this->_spStore.reset(
-		new FogKV::PmemKVStore(1, isTemporaryDb));
+SimFogKV::SimFogKV(const std::string &diskPath, const unsigned int elementSize,
+		const unsigned int limitGet, const unsigned int limitPut) :
+		_diskWorker(diskPath, elementSize), _limit_get(limitGet), _limit_put(
+				limitPut) {
 }
 
-AepWorker::~AepWorker() {
+SimFogKV::~SimFogKV() {
 }
 
-KVStatus AepWorker::Put(const string& key, const string& valuestr) {
-	_ioMeter._io_count_write++;
-	return _spStore->Put(key, valuestr);
+KVStatus SimFogKV::Put(const std::string& key, const std::vector<char> &value) {
+
+	KVStatus status;
+	unsigned long int startLba;
+
+	if ((_limit_put > 0) && (_aepWorker.getWriteCounter() > _limit_put)) {
+		return KVStatus::FAILED;
+	}
+
+	std::tie(status, startLba) = _diskWorker.Add(value);
+
+	auto actionStatus = _aepWorker.Put(key, std::to_string(startLba));
+
+	return KVStatus::OK;
 }
 
-KVStatus AepWorker::Get(const string& key, string* valuestr) {
-	_ioMeter._io_count_read++;
-	return _spStore->Get(key, valuestr);
+KVStatus SimFogKV::Get(const std::string& key, std::vector<char> &value) {
+
+	if ((_limit_get > 0) && (_aepWorker.getReadCounter() > _limit_get)) {
+		return KVStatus::FAILED;
+	}
+
+	string valuestr;
+	auto actionStatus = _aepWorker.Get(key, &valuestr);
+
+	auto status = _diskWorker.Read(
+			boost::lexical_cast<unsigned long int>(valuestr), value);
+
+	return KVStatus::OK;
 }
 
-std::tuple<float, float> AepWorker::getIoStat() {
-	return _ioMeter.getIoStat();
+std::tuple<float, float> SimFogKV::getIoStat() {
+
+	return _aepWorker.getIoStat();
 }
 
-unsigned long int AepWorker::getReadCounter() {
-	return _ioMeter._io_count_read;
+void SimFogKV::setIOLimit(const unsigned int limitGet,
+		const unsigned int limitPut) {
+	_limit_get = limitGet;
+	_limit_put = limitPut;
 }
 
-unsigned long int AepWorker::getWriteCounter() {
-	return _ioMeter._io_count_write;
+void SimFogKV::TestSimpleGetPut(const unsigned int numOfGetOperations,
+		const unsigned int numOfPutOperations) {
 }
 
-} /* namespace Dragon */
+}
+

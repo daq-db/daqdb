@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "../../include/fabric/FabricInfo.h"
+#include <fabric/FabricInfo.h>
 
 #include <sstream>
 #include <string.h>

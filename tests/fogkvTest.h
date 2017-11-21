@@ -30,36 +30,4 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_BENCHMARK_SIMFOGKV_H_
-#define SRC_BENCHMARK_SIMFOGKV_H_
-
-#include <string>
-#include "workers/AepWorker.h"
-#include "workers/DiskWorker.h"
-
-namespace FogKV {
-
-class SimFogKV {
-public:
-	SimFogKV(const std::string &diskPath, const unsigned int elementSize,
-			const unsigned int limitGet = 0, const unsigned int limitPut = 0);
-	virtual ~SimFogKV();
-
-	void setIOLimit(const unsigned int limitGet, const unsigned int limitPut);
-
-	KVStatus Put(const std::string &key, const std::vector<char> &value);
-	KVStatus Get(const std::string &key, std::vector<char> &value);
-	std::tuple<float, float> getIoStat();
-
-	void TestSimpleGetPut(const unsigned int numOfGetOperations, const unsigned int numOfPutOperations);
-
-private:
-	FogKV::AepWorker _aepWorker;
-	FogKV::DiskWorker _diskWorker;
-	unsigned int _limit_get;
-	unsigned int _limit_put;
-};
-
-} /* namespace Dragon */
-
-#endif /* SRC_BENCHMARK_SIMFOGKV_H_ */
+#pragma once

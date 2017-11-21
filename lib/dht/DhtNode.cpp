@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "../../include/dht/DhtNode.h"
+#include <dht/DhtNode.h>
 
 namespace FogKV
 {

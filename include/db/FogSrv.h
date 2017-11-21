@@ -35,10 +35,10 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 
-#include "../dht/CChordNode.h"
-#include "../dht/DhtNode.h"
-#include "../dht/DhtUtils.h"
-#include "../store/KVStore.h"
+#include <dht/CChordNode.h>
+#include <dht/DhtNode.h>
+#include <dht/DhtUtils.h>
+#include <store/KVStore.h>
 #include "SocketReqManager.h"
 
 namespace as = boost::asio;

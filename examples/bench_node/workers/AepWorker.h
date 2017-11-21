@@ -32,3 +32,29 @@
 
 #pragma once
 
+#include <memory>
+
+#include <store/KVStore.h>
+#include "../IoMeter.h"
+
+namespace FogKV {
+
+class AepWorker {
+public:
+	AepWorker();
+	virtual ~AepWorker();
+
+	KVStatus Put(const string &key, const string &valuestr);
+	KVStatus Get(const string &key, string *valuestr);
+	unsigned long int getReadCounter();
+	unsigned long int getWriteCounter();
+
+	std::tuple<float, float> getIoStat();
+
+private:
+	IoMeter _ioMeter;
+	std::unique_ptr<FogKV::KVStore> _spStore;
+
+};
+
+}

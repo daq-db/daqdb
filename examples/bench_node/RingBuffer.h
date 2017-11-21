@@ -29,42 +29,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FABRIC_MEM_REGION_H
-#define FABRIC_MEM_REGION_H
 
-#include <stdint.h>
-#include <rdma/fi_domain.h>
+#pragma once
 
-#include <fabric/Fabric.h>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
 
-namespace Fabric
-{
-
-enum FabricMRPerm {
-	SEND = FI_SEND,
-	RECV = FI_RECV,
-	READ = FI_READ,
-	WRITE = FI_WRITE,
-	REMOTE_READ = FI_REMOTE_READ,
-	REMOTE_WRITE = FI_REMOTE_WRITE,
-};
-
-class FabricMR {
+class RingBuffer {
 public:
-	FabricMR(Fabric &fabric, void *ptr, size_t size, uint64_t perm);
-	virtual ~FabricMR();
+	using RingBufferFlush = std::function<bool (size_t, size_t)>;
+	using RingBufferRead = std::function<ssize_t (const uint8_t *, size_t len)>;
+public:
+	RingBuffer(size_t size, RingBufferFlush flush = RingBufferFlush());
+	virtual ~RingBuffer();
 
-	void *getLKey();
-	uint64_t getRKey();
-	void *getPtr();
-	size_t getSize();
+	uint8_t *get();
+	size_t write(const uint8_t *ptr, size_t len);
+	void read(size_t len, RingBufferRead read);
+	void notifyRead(size_t len);
+	void notifyWrite(size_t len);
+	size_t size();
+	size_t occupied();
+	size_t space();
 protected:
-
-	struct fid_mr *mMr;
-	void *mPtr;
+	size_t occupied_unlocked();
+	size_t space_unlocked();
+	std::mutex mMtx;
+	std::condition_variable mCond;
+	uint8_t *mBuff;
 	size_t mSize;
+	size_t mBegin;
+	size_t mEnd;
+	RingBufferFlush mFlush;
 };
-
-}
-
-#endif // FABRIC_MEM_REGION_H

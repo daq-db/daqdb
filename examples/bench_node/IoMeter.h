@@ -29,55 +29,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef AUX_NODE_H
-#define AUX_NODE_H
 
-#include "Node.h"
+#pragma once
 
-#include <string>
-#include <mutex>
-#include <condition_variable>
+#include <tuple>
+#include "boost/date_time/posix_time/posix_time.hpp"
 
-#include "../../../include/fabric/FabricNode.h"
+namespace FogKV {
 
-class AuxNode : public Node {
+class IoMeter {
 public:
-	using GetHandler = std::function<void (const std::string &, const std::string &)>;
-	AuxNode(const std::string &node, const std::string &serv,
-		const std::string &remoteNode, const std::string &remoteServ,
-		size_t buffSize, size_t txBuffCount, size_t rxBuffCount, bool logMsg);
-	virtual ~AuxNode();
+	IoMeter();
+	virtual ~IoMeter();
 
-	void put(const std::string &key, const std::vector<char> &value);
-	void get(const std::string &key, std::vector<char> &value);
-	void start();
+	std::tuple<float, float> getIoStat();
 
-protected:
-	void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
-	void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
-	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
-	void onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg);
-	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
-	void onMsgReady(Fabric::FabricConnection &conn);
+	unsigned long long _io_count_read = 0;
+	unsigned long long _io_count_write = 0;
 
-	void sendParams();
-	bool flushWrBuff(size_t offset, size_t len);
-	void notifyReady();
-	void waitReady();
+private:
+	boost::posix_time::ptime _snapshot_time;
 
-	std::mutex mReadyLock;
-	bool mReady;
-	std::condition_variable mReadyCond;
-
-	std::function<void ()> mReadyHandler;
-
-	void clrGet();
-	size_t waitGet();
-	void notifyGet(size_t valSize);
-
-	size_t mValSize;
-	std::mutex mGetLock;
-	std::condition_variable mGetCond;
 };
 
-#endif // AUX_NODE_H
+}

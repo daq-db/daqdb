@@ -29,39 +29,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RING_BUFFER_H
-#define RING_BUFFER_H
 
-#include <mutex>
-#include <condition_variable>
-#include <functional>
+#include "AepWorker.h"
+#include <log4cxx/basicconfigurator.h>
+#include <log4cxx/consoleappender.h>
+#include <log4cxx/helpers/exception.h>
+#include <log4cxx/logger.h>
+#include <log4cxx/simplelayout.h>
+#include <log4cxx/xml/domconfigurator.h>
+#include "../../../../include/store/PmemKVStore.h"
 
-class RingBuffer {
-public:
-	using RingBufferFlush = std::function<bool (size_t, size_t)>;
-	using RingBufferRead = std::function<ssize_t (const uint8_t *, size_t len)>;
-public:
-	RingBuffer(size_t size, RingBufferFlush flush = RingBufferFlush());
-	virtual ~RingBuffer();
+using namespace log4cxx;
+using namespace log4cxx::xml;
+using namespace log4cxx::helpers;
 
-	uint8_t *get();
-	size_t write(const uint8_t *ptr, size_t len);
-	void read(size_t len, RingBufferRead read);
-	void notifyRead(size_t len);
-	void notifyWrite(size_t len);
-	size_t size();
-	size_t occupied();
-	size_t space();
-protected:
-	size_t occupied_unlocked();
-	size_t space_unlocked();
-	std::mutex mMtx;
-	std::condition_variable mCond;
-	uint8_t *mBuff;
-	size_t mSize;
-	size_t mBegin;
-	size_t mEnd;
-	RingBufferFlush mFlush;
-};
+namespace FogKV {
 
-#endif // RING_BUFFER_H
+AepWorker::AepWorker() {
+	auto isTemporaryDb = true;
+
+	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "New PmemKVStore created");
+	this->_spStore.reset(
+		new FogKV::PmemKVStore(1, isTemporaryDb));
+}
+
+AepWorker::~AepWorker() {
+}
+
+KVStatus AepWorker::Put(const string& key, const string& valuestr) {
+	_ioMeter._io_count_write++;
+	return _spStore->Put(key, valuestr);
+}
+
+KVStatus AepWorker::Get(const string& key, string* valuestr) {
+	_ioMeter._io_count_read++;
+	return _spStore->Get(key, valuestr);
+}
+
+std::tuple<float, float> AepWorker::getIoStat() {
+	return _ioMeter.getIoStat();
+}
+
+unsigned long int AepWorker::getReadCounter() {
+	return _ioMeter._io_count_read;
+}
+
+unsigned long int AepWorker::getWriteCounter() {
+	return _ioMeter._io_count_write;
+}
+
+}

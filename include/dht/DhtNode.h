@@ -34,7 +34,7 @@
 
 #include <boost/asio/io_service.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include "../../include/dht/PureNode.h"
+#include <dht/PureNode.h>
 
 namespace as = boost::asio;
 

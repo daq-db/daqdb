@@ -5,7 +5,8 @@ env = Environment()
 '''
 	Compiler flags
 '''
-env.Append(CCFLAGS=['-std=c++11', '-O0', '-ggdb'])
+env.Append(CCFLAGS = ['-O0', '-ggdb'])
+env.Append(CXXFLAGS = ['-std=c++11'])
 
 '''
 	Depends on linux distribution
@@ -21,6 +22,8 @@ env.Append(LIBPATH=[
 	- loads shared library from the binary directory
 '''
 env.Append(LINKFLAGS='-Wl,-rpath=.')
+
+env.Append(CPPPATH=[Dir('#include')])
 
 env.Append(VERBOSE=ARGUMENTS.get('verbose', 0))
 
@@ -42,13 +45,14 @@ SConscript('build/SConscript', exports=['env', ])
 '''
 SConscript('examples/SConscript', exports=['env', ])
 
+env.Alias('install', '#bin')
+Depends('install', 'build')
+
 '''
 	Build and execute tests
 '''
-# SConscript('tests/SConscript', exports=['env', ])
+SConscript('tests/SConscript', exports=['env', ])
 
-env.Alias('install', '#bin')
-Depends('install', 'build')
 
 if not GetOption("clean"):
 	RequiredLibs = [

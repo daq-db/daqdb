@@ -30,46 +30,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_BENCHMARK_CPUMETER_H_
-#define SRC_BENCHMARK_CPUMETER_H_
+#pragma once
 
-#include <boost/timer/timer.hpp>
 #include <tuple>
-#include <vector>
-#include <string>
 
-#include <CPUSnapshot.h>
+#include <store/KVStore.h>
+#include "../IoMeter.h"
 
-#include <csv/writer.hpp>
+namespace FogKV {
 
-#include "SimFogKV.h"
-
-using namespace boost::timer;
-
-namespace FogKV
-{
-
-class CpuMeter {
+class DiskWorker {
 public:
-	CpuMeter(bool enableCSV);
-	virtual ~CpuMeter();
+	DiskWorker(const std::string &diskPath, const unsigned int elementSize);
+	virtual ~DiskWorker();
 
-	void start();
-	void stop();
-
-	std::tuple<unsigned short, cpu_times> getCpuUsage();
-
-	std::string format();
-
-	void logCpuUsage(FogKV::SimFogKV* simFog);
+	std::tuple<KVStatus, unsigned int> Add(const std::vector<char> &value);
+	KVStatus Update(const unsigned int lba, const std::vector<char> &value);
+	KVStatus Read(const unsigned int lba, std::vector<char> &value);
+	std::tuple<float, float> getIoStat();
 
 private:
-	bool _csvEnabled;
-	cpu_timer _timer;
-	std::unique_ptr<CPUSnapshot> _spLastSnapshot;
-	std::string _csvFileName;
+	IoMeter _ioMeter;
+
+	unsigned long int _valueBlockSize;
+	std::string _deviceName;
+
+	off_t GetFileLength();
 };
 
-} /* namespace Dragon */
-
-#endif /* SRC_BENCHMARK_CPUMETER_H_ */
+}

@@ -30,11 +30,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "dragonTest.h"
+#pragma once
 
-#define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_MODULE dragon test module
+#include "Node.h"
+#include "RingBuffer.h"
 
-#include <boost/test/unit_test.hpp>
+#include <string>
 
+#include <fabric/FabricNode.h>
+
+class MainNode : public Node {
+public:
+	using WriteHandler = std::function<void (std::shared_ptr<RingBuffer>)>;
+	using ReadHandler = std::function<void (std::shared_ptr<RingBuffer>, size_t)>;
+	using PutHandler = std::function<void (const std::string &key, const std::vector<char> &value)>;
+	using GetHandler = std::function<void (const std::string &key, std::vector<char> &value)>;
+
+	MainNode(const std::string &node, const std::string &serv,
+		size_t wrBuffSize, size_t txBuffCount,
+		size_t rxBuffCount, bool logMsg);
+	virtual ~MainNode();
+
+	void start();
+	void onPut(PutHandler handler);
+	void onGet(GetHandler handler);
+protected:
+	void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onConnectionRequestHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onConnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onDisconnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
+	void onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg);
+	void onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg);
+	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
+	bool flushWrBuff(size_t offset, size_t len);
+
+	PutHandler mPutHandler;
+	GetHandler mGetHandler;
+};
