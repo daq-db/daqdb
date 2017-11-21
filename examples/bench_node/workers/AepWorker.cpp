@@ -30,29 +30,52 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_BENCHMARK_IOMETER_H_
-#define SRC_BENCHMARK_IOMETER_H_
+#include "AepWorker.h"
+#include <log4cxx/basicconfigurator.h>
+#include <log4cxx/consoleappender.h>
+#include <log4cxx/helpers/exception.h>
+#include <log4cxx/logger.h>
+#include <log4cxx/simplelayout.h>
+#include <log4cxx/xml/domconfigurator.h>
+#include "../../../../include/store/PmemKVStore.h"
 
-#include <tuple>
-#include "boost/date_time/posix_time/posix_time.hpp"
+using namespace log4cxx;
+using namespace log4cxx::xml;
+using namespace log4cxx::helpers;
 
 namespace FogKV {
 
-class IoMeter {
-public:
-	IoMeter();
-	virtual ~IoMeter();
+AepWorker::AepWorker() {
+	auto isTemporaryDb = true;
 
-	std::tuple<float, float> getIoStat();
+	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "New PmemKVStore created");
+	this->_spStore.reset(
+		new FogKV::PmemKVStore(1, isTemporaryDb));
+}
 
-	unsigned long long _io_count_read = 0;
-	unsigned long long _io_count_write = 0;
+AepWorker::~AepWorker() {
+}
 
-private:
-	boost::posix_time::ptime _snapshot_time;
+KVStatus AepWorker::Put(const string& key, const string& valuestr) {
+	_ioMeter._io_count_write++;
+	return _spStore->Put(key, valuestr);
+}
 
-};
+KVStatus AepWorker::Get(const string& key, string* valuestr) {
+	_ioMeter._io_count_read++;
+	return _spStore->Get(key, valuestr);
+}
 
-} /* namespace Dragon */
+std::tuple<float, float> AepWorker::getIoStat() {
+	return _ioMeter.getIoStat();
+}
 
-#endif /* SRC_BENCHMARK_IOMETER_H_ */
+unsigned long int AepWorker::getReadCounter() {
+	return _ioMeter._io_count_read;
+}
+
+unsigned long int AepWorker::getWriteCounter() {
+	return _ioMeter._io_count_write;
+}
+
+}

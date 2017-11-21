@@ -29,35 +29,43 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "IoMeter.h"
 
-namespace FogKV {
+#pragma once
 
-IoMeter::IoMeter() {
-	_snapshot_time = boost::posix_time::second_clock::local_time();
-}
+#include "Node.h"
+#include "RingBuffer.h"
 
-IoMeter::~IoMeter() {
-}
+#include <string>
 
-std::tuple<float, float> IoMeter::getIoStat() {
-	auto now = boost::posix_time::microsec_clock::local_time();
+#include "../../../include/fabric/FabricNode.h"
 
-	boost::posix_time::time_duration diff = now - _snapshot_time;
+class MainNode : public Node {
+public:
+	using WriteHandler = std::function<void (std::shared_ptr<RingBuffer>)>;
+	using ReadHandler = std::function<void (std::shared_ptr<RingBuffer>, size_t)>;
+	using PutHandler = std::function<void (const std::string &key, const std::vector<char> &value)>;
+	using GetHandler = std::function<void (const std::string &key, std::vector<char> &value)>;
 
-	float readStat = 0;
-	float writeStat = 0;
+	MainNode(const std::string &node, const std::string &serv,
+		size_t wrBuffSize, size_t txBuffCount,
+		size_t rxBuffCount, bool logMsg);
+	virtual ~MainNode();
 
-	if (diff.total_milliseconds() > 100) {
-		readStat = (1000.f * _io_count_read / diff.total_milliseconds());
-		writeStat = (1000.f * _io_count_write / diff.total_milliseconds());
+	void start();
+	void onPut(PutHandler handler);
+	void onGet(GetHandler handler);
+protected:
+	void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onConnectionRequestHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onConnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onDisconnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
+	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
+	void onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg);
+	void onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg);
+	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
+	bool flushWrBuff(size_t offset, size_t len);
 
-		_io_count_read = 0;
-		_io_count_write = 0;
-		_snapshot_time = boost::posix_time::microsec_clock::local_time();
-	}
-
-	return std::make_tuple(readStat, writeStat);
-}
-
-} /* namespace Dragon */
+	PutHandler mPutHandler;
+	GetHandler mGetHandler;
+};

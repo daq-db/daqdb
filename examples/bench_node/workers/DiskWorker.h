@@ -29,39 +29,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RING_BUFFER_H
-#define RING_BUFFER_H
 
-#include <mutex>
-#include <condition_variable>
-#include <functional>
+#pragma once
 
-class RingBuffer {
+#include <tuple>
+
+#include "../../../../include/store/KVStore.h"
+#include "../IoMeter.h"
+
+namespace FogKV {
+
+class DiskWorker {
 public:
-	using RingBufferFlush = std::function<bool (size_t, size_t)>;
-	using RingBufferRead = std::function<ssize_t (const uint8_t *, size_t len)>;
-public:
-	RingBuffer(size_t size, RingBufferFlush flush = RingBufferFlush());
-	virtual ~RingBuffer();
+	DiskWorker(const std::string &diskPath, const unsigned int elementSize);
+	virtual ~DiskWorker();
 
-	uint8_t *get();
-	size_t write(const uint8_t *ptr, size_t len);
-	void read(size_t len, RingBufferRead read);
-	void notifyRead(size_t len);
-	void notifyWrite(size_t len);
-	size_t size();
-	size_t occupied();
-	size_t space();
-protected:
-	size_t occupied_unlocked();
-	size_t space_unlocked();
-	std::mutex mMtx;
-	std::condition_variable mCond;
-	uint8_t *mBuff;
-	size_t mSize;
-	size_t mBegin;
-	size_t mEnd;
-	RingBufferFlush mFlush;
+	std::tuple<KVStatus, unsigned int> Add(const std::vector<char> &value);
+	KVStatus Update(const unsigned int lba, const std::vector<char> &value);
+	KVStatus Read(const unsigned int lba, std::vector<char> &value);
+	std::tuple<float, float> getIoStat();
+
+private:
+	IoMeter _ioMeter;
+
+	unsigned long int _valueBlockSize;
+	std::string _deviceName;
+
+	off_t GetFileLength();
 };
 
-#endif // RING_BUFFER_H
+}

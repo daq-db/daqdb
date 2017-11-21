@@ -1,15 +1,9 @@
 Import('env')
 
-env.AppendUnique(LIBPATH=[Dir('.'), Dir('./workers')])
-env.Append(CPPPATH = [Dir('.'), Dir('./workers')])
-
-sources = Glob('*.cpp')
-sources.extend(Glob('workers/*.cpp'))
-
-benchTarget = env.Program('benchmark', sources, 
+sources = [Glob('*.cpp'), Glob('workers/*.cpp')]
+benchApp = env.Program('bench_node', sources, 
             LIBS=["pthread",
                 "log4cxx",
-                "store",
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem",
@@ -20,13 +14,8 @@ benchTarget = env.Program('benchmark', sources,
                 File("#third-party/pmemkv/bin/libpmemkv.so"),
                 File("#third-party/cpu-stat/libcpu-stat.a"),
                 File("#third-party/csvpp/libcsvpp.a"),
-                "fabricpp",
-                "fabric"
+                "mymed",
+                "fogkv"
                 ])
 
-copyBenchTarget = Command(target = "#/benchmark",
-        source = benchTarget,
-        action = Copy("$TARGET", "$SOURCE"))
-
-env.Depends(copyBenchTarget, benchTarget)
-env.Clean('#/benchmark', 'benchmark')
+env.Install('#bin', [benchApp])

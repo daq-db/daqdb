@@ -29,36 +29,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef SRC_BENCHMARK_WORKERS_DISKWORKER_H_
-#define SRC_BENCHMARK_WORKERS_DISKWORKER_H_
-
-#include <tuple>
-
-#include "../../../../include/store/KVStore.h"
-#include "../IoMeter.h"
+#include "IoMeter.h"
 
 namespace FogKV {
 
-class DiskWorker {
-public:
-	DiskWorker(const std::string &diskPath, const unsigned int elementSize);
-	virtual ~DiskWorker();
+IoMeter::IoMeter() {
+	_snapshot_time = boost::posix_time::second_clock::local_time();
+}
 
-	std::tuple<KVStatus, unsigned int> Add(const std::vector<char> &value);
-	KVStatus Update(const unsigned int lba, const std::vector<char> &value);
-	KVStatus Read(const unsigned int lba, std::vector<char> &value);
-	std::tuple<float, float> getIoStat();
+IoMeter::~IoMeter() {
+}
 
-private:
-	IoMeter _ioMeter;
+std::tuple<float, float> IoMeter::getIoStat() {
+	auto now = boost::posix_time::microsec_clock::local_time();
 
-	unsigned long int _valueBlockSize;
-	std::string _deviceName;
+	boost::posix_time::time_duration diff = now - _snapshot_time;
 
-	off_t GetFileLength();
-};
+	float readStat = 0;
+	float writeStat = 0;
 
-} /* namespace Dragon */
+	if (diff.total_milliseconds() > 100) {
+		readStat = (1000.f * _io_count_read / diff.total_milliseconds());
+		writeStat = (1000.f * _io_count_write / diff.total_milliseconds());
 
-#endif /* SRC_BENCHMARK_WORKERS_DISKWORKER_H_ */
+		_io_count_read = 0;
+		_io_count_write = 0;
+		_snapshot_time = boost::posix_time::microsec_clock::local_time();
+	}
+
+	return std::make_tuple(readStat, writeStat);
+}
+
+}

@@ -103,5 +103,5 @@ void SimFogKV::TestSimpleGetPut(const unsigned int numOfGetOperations,
 		const unsigned int numOfPutOperations) {
 }
 
-} /* namespace Dragon */
+}
 

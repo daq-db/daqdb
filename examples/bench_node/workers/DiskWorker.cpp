@@ -148,4 +148,4 @@ std::tuple<float, float> DiskWorker::getIoStat() {
 	return _ioMeter.getIoStat();
 }
 
-} /* namespace Dragon */
+}

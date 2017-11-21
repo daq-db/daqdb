@@ -29,45 +29,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef MAIN_NODE_H
-#define MAIN_NODE_H
 
-#include "Node.h"
-#include "RingBuffer.h"
+#pragma once
 
-#include <string>
+#include <memory>
 
-#include "../../../include/fabric/FabricNode.h"
+#include "../../../../include/store/KVStore.h"
+#include "../IoMeter.h"
 
-class MainNode : public Node {
+namespace FogKV {
+
+class AepWorker {
 public:
-	using WriteHandler = std::function<void (std::shared_ptr<RingBuffer>)>;
-	using ReadHandler = std::function<void (std::shared_ptr<RingBuffer>, size_t)>;
-	using PutHandler = std::function<void (const std::string &key, const std::vector<char> &value)>;
-	using GetHandler = std::function<void (const std::string &key, std::vector<char> &value)>;
+	AepWorker();
+	virtual ~AepWorker();
 
-	MainNode(const std::string &node, const std::string &serv,
-		size_t wrBuffSize, size_t txBuffCount,
-		size_t rxBuffCount, bool logMsg);
-	virtual ~MainNode();
+	KVStatus Put(const string &key, const string &valuestr);
+	KVStatus Get(const string &key, string *valuestr);
+	unsigned long int getReadCounter();
+	unsigned long int getWriteCounter();
 
-	void start();
-	void onPut(PutHandler handler);
-	void onGet(GetHandler handler);
-protected:
-	void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
-	void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
-	void onConnectionRequestHandler(std::shared_ptr<Fabric::FabricConnection> conn);
-	void onConnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
-	void onDisconnectedHandler(std::shared_ptr<Fabric::FabricConnection> conn);
-	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
-	void onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg);
-	void onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg);
-	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
-	bool flushWrBuff(size_t offset, size_t len);
+	std::tuple<float, float> getIoStat();
 
-	PutHandler mPutHandler;
-	GetHandler mGetHandler;
+private:
+	IoMeter _ioMeter;
+	std::unique_ptr<FogKV::KVStore> _spStore;
+
 };
 
-#endif // MAIN_NODE_H
+}

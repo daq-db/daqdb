@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_BENCHMARK_CPUMETER_H_
-#define SRC_BENCHMARK_CPUMETER_H_
+#pragma once
 
 #include <boost/timer/timer.hpp>
 #include <tuple>
@@ -70,6 +69,4 @@ private:
 	std::string _csvFileName;
 };
 
-} /* namespace Dragon */
-
-#endif /* SRC_BENCHMARK_CPUMETER_H_ */
+}

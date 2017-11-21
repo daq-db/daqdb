@@ -30,52 +30,52 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AepWorker.h"
-#include <log4cxx/basicconfigurator.h>
-#include <log4cxx/consoleappender.h>
-#include <log4cxx/helpers/exception.h>
-#include <log4cxx/logger.h>
-#include <log4cxx/simplelayout.h>
-#include <log4cxx/xml/domconfigurator.h>
-#include "../../../../include/store/PmemKVStore.h"
+#pragma once
 
-using namespace log4cxx;
-using namespace log4cxx::xml;
-using namespace log4cxx::helpers;
+#include "Node.h"
 
-namespace FogKV {
+#include <string>
+#include <mutex>
+#include <condition_variable>
 
-AepWorker::AepWorker() {
-	auto isTemporaryDb = true;
+#include "../../../include/fabric/FabricNode.h"
 
-	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "New PmemKVStore created");
-	this->_spStore.reset(
-		new FogKV::PmemKVStore(1, isTemporaryDb));
-}
+class AuxNode : public Node {
+public:
+	using GetHandler = std::function<void (const std::string &, const std::string &)>;
+	AuxNode(const std::string &node, const std::string &serv,
+		const std::string &remoteNode, const std::string &remoteServ,
+		size_t buffSize, size_t txBuffCount, size_t rxBuffCount, bool logMsg);
+	virtual ~AuxNode();
 
-AepWorker::~AepWorker() {
-}
+	void put(const std::string &key, const std::vector<char> &value);
+	void get(const std::string &key, std::vector<char> &value);
+	void start();
 
-KVStatus AepWorker::Put(const string& key, const string& valuestr) {
-	_ioMeter._io_count_write++;
-	return _spStore->Put(key, valuestr);
-}
+protected:
+	void onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onSendHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len);
+	void onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg);
+	void onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg);
+	void onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg);
+	void onMsgReady(Fabric::FabricConnection &conn);
 
-KVStatus AepWorker::Get(const string& key, string* valuestr) {
-	_ioMeter._io_count_read++;
-	return _spStore->Get(key, valuestr);
-}
+	void sendParams();
+	bool flushWrBuff(size_t offset, size_t len);
+	void notifyReady();
+	void waitReady();
 
-std::tuple<float, float> AepWorker::getIoStat() {
-	return _ioMeter.getIoStat();
-}
+	std::mutex mReadyLock;
+	bool mReady;
+	std::condition_variable mReadyCond;
 
-unsigned long int AepWorker::getReadCounter() {
-	return _ioMeter._io_count_read;
-}
+	std::function<void ()> mReadyHandler;
 
-unsigned long int AepWorker::getWriteCounter() {
-	return _ioMeter._io_count_write;
-}
+	void clrGet();
+	size_t waitGet();
+	void notifyGet(size_t valSize);
 
-} /* namespace Dragon */
+	size_t mValSize;
+	std::mutex mGetLock;
+	std::condition_variable mGetCond;
+};

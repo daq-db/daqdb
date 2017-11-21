@@ -30,36 +30,36 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_BENCHMARK_SIMFOGKV_H_
-#define SRC_BENCHMARK_SIMFOGKV_H_
+#pragma once
 
-#include <string>
-#include "workers/AepWorker.h"
-#include "workers/DiskWorker.h"
+#include <mutex>
+#include <condition_variable>
+#include <functional>
 
-namespace FogKV {
-
-class SimFogKV {
+class RingBuffer {
 public:
-	SimFogKV(const std::string &diskPath, const unsigned int elementSize,
-			const unsigned int limitGet = 0, const unsigned int limitPut = 0);
-	virtual ~SimFogKV();
+	using RingBufferFlush = std::function<bool (size_t, size_t)>;
+	using RingBufferRead = std::function<ssize_t (const uint8_t *, size_t len)>;
+public:
+	RingBuffer(size_t size, RingBufferFlush flush = RingBufferFlush());
+	virtual ~RingBuffer();
 
-	void setIOLimit(const unsigned int limitGet, const unsigned int limitPut);
-
-	KVStatus Put(const std::string &key, const std::vector<char> &value);
-	KVStatus Get(const std::string &key, std::vector<char> &value);
-	std::tuple<float, float> getIoStat();
-
-	void TestSimpleGetPut(const unsigned int numOfGetOperations, const unsigned int numOfPutOperations);
-
-private:
-	FogKV::AepWorker _aepWorker;
-	FogKV::DiskWorker _diskWorker;
-	unsigned int _limit_get;
-	unsigned int _limit_put;
+	uint8_t *get();
+	size_t write(const uint8_t *ptr, size_t len);
+	void read(size_t len, RingBufferRead read);
+	void notifyRead(size_t len);
+	void notifyWrite(size_t len);
+	size_t size();
+	size_t occupied();
+	size_t space();
+protected:
+	size_t occupied_unlocked();
+	size_t space_unlocked();
+	std::mutex mMtx;
+	std::condition_variable mCond;
+	uint8_t *mBuff;
+	size_t mSize;
+	size_t mBegin;
+	size_t mEnd;
+	RingBufferFlush mFlush;
 };
-
-} /* namespace Dragon */
-
-#endif /* SRC_BENCHMARK_SIMFOGKV_H_ */

@@ -185,4 +185,4 @@ void CpuMeter::logCpuUsage(FogKV::SimFogKV* simFog) {
 	_spLastSnapshot.reset(newCpuSnapshot);
 }
 
-} /* namespace Dragon */
+}

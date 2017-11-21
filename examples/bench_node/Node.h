@@ -29,8 +29,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef NODE_H
-#define NODE_H
+
+#pragma once
 
 #include <string>
 #include <atomic>
@@ -102,6 +102,3 @@ protected:
 	std::atomic<unsigned long long> mRxUsageCnt;
 	void rxBuffStat();
 };
-
-#endif // NODE_H
-
