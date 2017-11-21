@@ -1,7 +1,38 @@
 Import('env')
 
+bench_env = Environment()
+bench_env.Append(CCFLAGS = env['CCFLAGS'])
+bench_env.Append(CXXFLAGS = env['CXXFLAGS'])
+bench_env.Append(LIBPATH = env['LIBPATH'])
+bench_env.Append(LINKFLAGS = env['LINKFLAGS'])
+
+cchord_includes = [
+    Dir('#third-party/cChord/engine/helper'),
+    Dir('#third-party/cChord/engine/helper/crypto/'),
+    Dir('#third-party/cChord/engine/helper/mongoose_http_server/callbacks'),
+    Dir('#third-party/cChord/engine/helper/mongoose_http_server'),
+    Dir('#third-party/cChord/engine/helper/thread'),
+    Dir('#third-party/cChord/engine/helper/request'),
+    Dir('#third-party/cChord/engine/p2p/node'),
+    Dir('#third-party/cChord/engine/p2p/protocols'),
+    Dir('#third-party/cChord/engine/p2p/protocols/chord'),
+    Dir('#third-party/cChord/engine/p2p/transport/http'),
+    Dir('#third-party/cChord/engine/p2p/transport')]
+pmemkv_includes = [
+    Dir('#third-party/pmemkv'),
+    Dir('#third-party/pmemkv/src'),
+    Dir('#third-party/pmemkv/src/engines')
+    ]
+fokv_includes = [Dir('#include')]
+cpustat_includes = [
+    Dir('#third-party/cpu-stat/src')
+    ]
+
+bench_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, cpustat_includes])
+
 sources = [Glob('*.cpp'), Glob('workers/*.cpp')]
-benchApp = env.Program('bench_node', sources, 
+
+benchApp = bench_env.Program('bench_node', sources,
             LIBS=["pthread",
                 "log4cxx",
                 "boost_program_options",

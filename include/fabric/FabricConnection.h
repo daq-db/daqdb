@@ -42,8 +42,8 @@
 #include <rdma/fi_endpoint.h>
 #include <rdma/fi_cm.h>
 #include <rdma/fi_errno.h>
-#include "../../include/fabric/Fabric.h"
-#include "../../include/fabric/FabricMR.h"
+#include <fabric/Fabric.h>
+#include <fabric/FabricMR.h>
 
 namespace Fabric {
 

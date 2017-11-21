@@ -34,8 +34,9 @@
 
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
-#include "../../include/fabric/FabricAttributes.h"
-#include "../../include/fabric/FabricInfo.h"
+
+#include <fabric/FabricAttributes.h>
+#include <fabric/FabricInfo.h>
 
 namespace Fabric {
 

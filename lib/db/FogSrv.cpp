@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "../../include/db/FogSrv.h"
+#include <db/FogSrv.h>
 
 #include <chrono>
 #include <ctime>
@@ -40,7 +40,8 @@
 #include <boost/format.hpp>
 
 #include <libpmemobj/pool_base.h>
-#include "../../include/store/PmemKVStore.h"
+
+#include <store/PmemKVStore.h>
 
 using namespace std;
 using boost::format;

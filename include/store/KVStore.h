@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "../../include/store/KVInterface.h"
+#include <store/KVInterface.h>
 
 namespace FogKV
 {

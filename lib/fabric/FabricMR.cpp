@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "../../include/fabric/FabricMR.h"
+#include <fabric/FabricMR.h>
 
 namespace Fabric
 {

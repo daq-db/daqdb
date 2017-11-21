@@ -38,7 +38,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "../../../include/fabric/FabricNode.h"
+#include <fabric/FabricNode.h>
 
 class AuxNode : public Node {
 public:

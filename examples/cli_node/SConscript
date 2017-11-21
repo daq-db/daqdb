@@ -1,7 +1,36 @@
 Import('env')
 
-env.AppendUnique(LIBPATH=[Dir('.')])
-NodeApp = env.Program('cli_node', Glob('*.cpp'), 
+clinode_env = Environment()
+clinode_env.Append(CCFLAGS = env['CCFLAGS'])
+clinode_env.Append(CXXFLAGS = env['CXXFLAGS'])
+clinode_env.Append(LIBPATH = env['LIBPATH'])
+clinode_env.Append(LINKFLAGS = env['LINKFLAGS'])
+
+cchord_includes = [
+    Dir('#third-party/cChord/engine/helper'),
+    Dir('#third-party/cChord/engine/helper/crypto/'),
+    Dir('#third-party/cChord/engine/helper/mongoose_http_server/callbacks'),
+    Dir('#third-party/cChord/engine/helper/mongoose_http_server'),
+    Dir('#third-party/cChord/engine/helper/thread'),
+    Dir('#third-party/cChord/engine/helper/request'),
+    Dir('#third-party/cChord/engine/p2p/node'),
+    Dir('#third-party/cChord/engine/p2p/protocols'),
+    Dir('#third-party/cChord/engine/p2p/protocols/chord'),
+    Dir('#third-party/cChord/engine/p2p/transport/http'),
+    Dir('#third-party/cChord/engine/p2p/transport')]
+pmemkv_includes = [ 
+    Dir('#third-party/pmemkv'),
+    Dir('#third-party/pmemkv/src'),
+    Dir('#third-party/pmemkv/src/engines')
+    ]
+fokv_includes = [Dir('#include')]
+linenoise_includes = [
+    Dir('#third-party/linenoise')
+    ]
+
+clinode_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, linenoise_includes])
+
+NodeApp = clinode_env.Program('cli_node', Glob('*.cpp'),
             LIBS=["pthread",
                 "rt",
                 "dl",
@@ -15,4 +44,5 @@ NodeApp = env.Program('cli_node', Glob('*.cpp'),
                 "mymed",
                 "fogkv"
                 ])
+
 env.Install('#bin', [NodeApp])

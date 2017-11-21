@@ -30,14 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "../../include/fabric/FabricConnection.h"
+#include <fabric/FabricConnection.h>
 
 #include <rdma/fi_rma.h>
 #include <string.h>
 #include <iostream>
 
-#include "../../include/fabric/common.h"
-#include "../../include/fabric/FabricInfo.h"
+#include <fabric/common.h>
+#include <fabric/FabricInfo.h>
 
 #define CQ_SIZE 128
 

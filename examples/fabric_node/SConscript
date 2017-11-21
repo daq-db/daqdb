@@ -1,6 +1,16 @@
 Import('env')
 
-FabricNode = env.Program('fabric_node', Glob('*.cpp'), 
+fabric_env = Environment()
+fabric_env.Append(CCFLAGS = env['CCFLAGS'])
+fabric_env.Append(CXXFLAGS = env['CXXFLAGS'])
+fabric_env.Append(LIBPATH = env['LIBPATH'])
+fabric_env.Append(LINKFLAGS = env['LINKFLAGS'])
+
+fokv_includes = [Dir('#include')]
+
+fabric_env.Append(CPPPATH=[fokv_includes])
+
+FabricNode = fabric_env.Program('fabric_node', Glob('*.cpp'), 
             LIBS=["pthread",
                 "boost_program_options",
                 "boost_system",

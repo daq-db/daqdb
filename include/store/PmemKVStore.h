@@ -36,7 +36,7 @@
 
 #include <pmemkv.h>
 
-#include "../../include/store/KVStore.h"
+#include <store/KVStore.h>
 
 namespace FogKV
 {

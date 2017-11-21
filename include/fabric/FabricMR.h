@@ -35,7 +35,7 @@
 #include <stdint.h>
 #include <rdma/fi_domain.h>
 
-#include "../../include/fabric/Fabric.h"
+#include <fabric/Fabric.h>
 
 namespace Fabric
 {

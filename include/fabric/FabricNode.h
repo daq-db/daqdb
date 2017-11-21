@@ -39,8 +39,8 @@
 #include <map>
 #include <list>
 #include <condition_variable>
-#include "../../include/fabric/FabricConnection.h"
-#include "../../include/fabric/FabricMR.h"
+#include <fabric/FabricConnection.h>
+#include <fabric/FabricMR.h>
 
 namespace Fabric {
 

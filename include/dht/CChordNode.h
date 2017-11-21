@@ -35,8 +35,8 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "../../include/dht/DhtNode.h"
-#include "ChordNode.h"
+#include <dht/DhtNode.h>
+#include <ChordNode.h>
 
 namespace as = boost::asio;
 

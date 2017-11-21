@@ -37,7 +37,7 @@
 
 #include <string>
 
-#include "../../../include/fabric/FabricNode.h"
+#include <fabric/FabricNode.h>
 
 class MainNode : public Node {
 public:
