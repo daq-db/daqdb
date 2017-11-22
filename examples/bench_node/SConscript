@@ -28,7 +28,11 @@ cpustat_includes = [
     Dir('#third-party/cpu-stat/src')
     ]
 
-bench_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, cpustat_includes])
+csvpp_includes = [
+    Dir('#third-party/csvpp/src')
+]
+
+bench_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, cpustat_includes, csvpp_includes])
 
 sources = [Glob('*.cpp'), Glob('workers/*.cpp')]
 
