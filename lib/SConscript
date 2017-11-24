@@ -12,6 +12,8 @@ for item_dir in lib_folders:
     lib_sources.extend(Glob('%s/*.cpp' % source_dir.abspath))
 
 lib_dependencies = [
+	"pmemkv",
+	"boost_filesystem",
     "fabric",
     "mymed"
     ]
