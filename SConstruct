@@ -6,7 +6,7 @@ env = Environment()
 	Compiler flags
 '''
 env.Append(CCFLAGS = ['-O0', '-ggdb'])
-env.Append(CXXFLAGS = ['-std=c++11'])
+env.Append(CXXFLAGS = ['-std=c++14'])
 
 '''
 	Depends on linux distribution
