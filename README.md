@@ -27,8 +27,8 @@ git submodule update
 
 following libraries are required:
 <ul>
-<li>boost-devel</li>
-<li>boost-test</li>
+<li>boost-devel (1.60+)</li>
+<li>boost-test (1.60+)</li>
 <li>fabricpp-devel</li>
 <li>log4cxx-devel (log4cxx-dev)</li>
 <li>libpmemobj++</li>
