@@ -34,13 +34,21 @@
 
 #include <FogKV/KVStoreBase.h>
 
+#include <dht/CChordNode.h>
+#include <dht/DhtNode.h>
+#include <pmemkv.h>
+
 namespace FogKV {
 
 class KVStoreBaseImpl : public KVStoreBase {
 public:
 	static KVStoreBase *Open(const Options &options, Status *status);
 public:
-	virtual size_t KeySize();
+	virtual size_t KeySize()
+	{
+		return mKeySize;
+	}
+
 	virtual const Options &getOptions();
 	virtual std::string getProperty(const std::string &name);
 
@@ -71,8 +79,15 @@ protected:
 	virtual ~KVStoreBaseImpl();
 
 	Status init();
+	void registerProperties();
 
-	Options _options;
+	boost::asio::io_service &io_service();
+
+	boost::asio::io_service *m_io_service;
+
+	size_t mKeySize;
+	Options mOptions;
+	std::unique_ptr<FogKV::DhtNode> mDhtNode;
 };
 
 } //namespace FogKV
