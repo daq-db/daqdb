@@ -34,7 +34,8 @@
 
 #include <iostream>
 #include <linenoise.h>
-#include "../../include/db/FogSrv.h"
+#include <FogKV/KVStoreBase.h>
+#include <json/json.h>
 
 namespace
 {
@@ -50,7 +51,7 @@ namespace FogKV
  */
 class nodeCli {
 public:
-	nodeCli(std::shared_ptr<FogKV::FogSrv> &spDragonSrv);
+	nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spDragonSrv);
 	virtual ~nodeCli();
 
 	/*!
@@ -67,7 +68,9 @@ private:
 	void cmdStatus();
 	void cmdNodeStatus(std::string &strLine);
 
-	std::shared_ptr<FogKV::FogSrv> _spDragonSrv;
+	std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
+
+	Json::Value getPeersJson();
 };
 
 }
