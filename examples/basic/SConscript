@@ -1,0 +1,22 @@
+Import('env')
+
+clinode_env = Environment()
+clinode_env.Append(CCFLAGS = env['CCFLAGS'])
+clinode_env.Append(CXXFLAGS = env['CXXFLAGS'])
+clinode_env.Append(LIBPATH = env['LIBPATH'])
+clinode_env.Append(LINKFLAGS = env['LINKFLAGS'])
+
+fogkv_includes = [Dir('#include')]
+
+clinode_env.Append(CPPPATH=[fogkv_includes])
+
+NodeApp = clinode_env.Program('basic', Glob('*.cpp'),
+            LIBS=["pthread",
+                "rt",
+                "dl",
+                "boost_system",
+                "fogkv",
+		"mymed"
+                ])
+
+env.Install('#bin', [NodeApp])
