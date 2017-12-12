@@ -1,7 +1,7 @@
 # FogKV
 
-Contents
---------
+## Contents
+
 <ul>
 <li><a href="#overview">Overview</a></li>
 <li><a href="#installation">Installation</a></li>
@@ -14,17 +14,21 @@ Overview
 Scalable distributed, low-latency key/value store with range queries.
 
 <a name="installation"></a>
-Installation
-------------
+## Installation
 
+#### Source Code
 ```
-cd ${fogKvpath}
-git submodule init
-git submodule update
+git clone https://github.com/FogKV/FogKV.git
+cd ${fogKVpath}
+git submodule update --init
 ```
 
-**Building**
+#### Prerequisites
 
+The dependencies can be installed automatically by scripts/pkgdep.sh.
+```
+./scripts/pkgdep.sh
+```
 following libraries are required:
 <ul>
 <li>boost-devel (1.60+)</li>
@@ -34,20 +38,28 @@ following libraries are required:
 <li>libpmemobj++</li>
 </ul>
 
+#### Build
+
 Invoke scons with the following parameters:
 
 ```
 scons                 # build everything
 scons -c              # remove build files
-scons test            # execute unit tests
-scons test verbose=1  # execute unit tests, prints all test messages
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
 
-<a name="execution"></a>
-Execution
-------------
+#### Unit Tests
 
+Invoke scons with the following parameters:
+```
+scons test            # execute unit tests
+scons test verbose=1  # execute unit tests, prints all test messages
+```
+
+<a name="execution"></a>
+## Execution
+
+#### CLI node example 
 ```
 ./cli-node -h
 Options:
@@ -60,9 +72,7 @@ Options:
   -l [ --log ]             Enable logging
 ```
 
-**Interactive mode**
-
-To enter interactive mode execute dragon with `--interactive` flag.
+To enter interactive mode execute cli-node with `--interactive` flag.
 
 ```
 ./cli_node -i
