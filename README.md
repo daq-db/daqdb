@@ -17,14 +17,15 @@ Scalable distributed, low-latency key/value store with range queries.
 Installation
 ------------
 
-**Source Code**
+##Source Code
 ```
 git clone https://github.com/FogKV/FogKV.git
 cd ${fogKVpath}
 git submodule update --init
 ```
 
-**Prerequisites**
+##Prerequisites
+
 The dependencies can be installed automatically by scripts/pkgdep.sh.
 ```
 ./scripts/pkgdep.sh
@@ -38,7 +39,8 @@ following libraries are required:
 <li>libpmemobj++</li>
 </ul>
 
-**Build**
+##Build
+
 Invoke scons with the following parameters:
 
 ```
@@ -47,7 +49,8 @@ scons -c              # remove build files
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
 
-**Unit Tests**
+##Unit Tests
+
 Invoke scons with the following parameters:
 ```
 scons test            # execute unit tests
@@ -58,7 +61,7 @@ scons test verbose=1  # execute unit tests, prints all test messages
 Execution
 ------------
 
-**CLI node example** 
+##CLI node example 
 ```
 ./cli-node -h
 Options:
