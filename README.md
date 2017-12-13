@@ -31,8 +31,8 @@ The dependencies can be installed automatically by scripts/pkgdep.sh.
 ```
 following libraries are required:
 <ul>
-<li>boost-devel (1.60+)</li>
-<li>boost-test (1.60+)</li>
+<li>boost-devel (1.63+)</li>
+<li>boost-test (1.63+)</li>
 <li>fabricpp-devel</li>
 <li>log4cxx-devel (log4cxx-dev)</li>
 <li>libpmemobj++</li>

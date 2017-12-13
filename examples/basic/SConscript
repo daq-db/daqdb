@@ -15,8 +15,9 @@ NodeApp = clinode_env.Program('basic', Glob('*.cpp'),
                 "rt",
                 "dl",
                 "boost_system",
+                File("#third-party/pmemkv/bin/libpmemkv.so"),
                 "fogkv",
-		"mymed"
+                "mymed"
                 ])
 
 env.Install('#bin', [NodeApp])
