@@ -19,8 +19,17 @@ if [ -s /etc/redhat-release ]; then
 
 elif [ -f /etc/debian_version ]; then
 	# Includes Ubuntu, Debian
-	# TODO
-	echo "pkgdep: not implemented yet."
+	
+	# FogKV Building environment dependencies
+    apt-get install -y scons
+    # Boost dependencies
+    apt-get install -y libboost1.63-all-dev
+    # NVML library
+    echo "pkgdep: NVML library has to be installed manually."
+    # RDMA related dependencies
+    apt-get install -y libfabric1 libfabric-dev
+    # logging dependencies
+    apt-get install -y liblog4cxx10v5 liblog4cxx-dev
  
 else
 	echo "pkgdep: unknown system type."
