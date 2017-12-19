@@ -20,7 +20,7 @@ Scalable distributed, low-latency key/value store with range queries.
 ```
 git clone https://github.com/FogKV/FogKV.git
 cd ${fogKVpath}
-git submodule update --init
+git submodule update --init --recursive
 ```
 
 #### Prerequisites

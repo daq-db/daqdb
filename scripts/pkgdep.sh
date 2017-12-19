@@ -7,7 +7,7 @@ if [ -s /etc/redhat-release ]; then
 	# Includes Fedora
 
 	# FogKV Building environment dependencies
-	dnf install scons
+	dnf install scons cmake
 	# Boost dependencies
 	dnf install -y boost boost-test boost-devel
 	# NVML library
@@ -21,7 +21,7 @@ elif [ -f /etc/debian_version ]; then
 	# Includes Ubuntu, Debian
 	
 	# FogKV Building environment dependencies
-    apt-get install -y scons
+    apt-get install -y scons cmake
     # Boost dependencies
     apt-get install -y libboost1.63-all-dev
     # NVML library
