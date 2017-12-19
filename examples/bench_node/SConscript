@@ -1,6 +1,8 @@
+import os
+
 Import('env')
 
-bench_env = Environment()
+bench_env = Environment(ENV = {'PATH' : os.environ['PATH']})
 bench_env.Append(CCFLAGS = env['CCFLAGS'])
 bench_env.Append(CXXFLAGS = env['CXXFLAGS'])
 bench_env.Append(LIBPATH = env['LIBPATH'])

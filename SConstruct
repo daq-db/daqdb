@@ -1,6 +1,6 @@
 import os
 
-env = Environment()
+env = Environment(ENV = {'PATH' : os.environ['PATH']})
 
 '''
 	Compiler flags

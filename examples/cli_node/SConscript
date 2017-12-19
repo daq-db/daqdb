@@ -1,6 +1,7 @@
+import os
 Import('env')
 
-clinode_env = Environment()
+clinode_env = Environment(ENV = {'PATH' : os.environ['PATH']})
 clinode_env.Append(CCFLAGS = env['CCFLAGS'])
 clinode_env.Append(CXXFLAGS = env['CXXFLAGS'])
 clinode_env.Append(LIBPATH = env['LIBPATH'])
