@@ -1,6 +1,8 @@
+import os
+
 Import('env')
 
-fabric_env = Environment()
+fabric_env = Environment(ENV = {'PATH' : os.environ['PATH']})
 fabric_env.Append(CCFLAGS = env['CCFLAGS'])
 fabric_env.Append(CXXFLAGS = env['CXXFLAGS'])
 fabric_env.Append(LIBPATH = env['LIBPATH'])
