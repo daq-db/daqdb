@@ -32,8 +32,9 @@
 
 #include "KVStoreBaseImpl.h"
 #include <FogKV/Types.h>
-
+#include <json/json.h>
 #include "common.h"
+#include "../dht/DhtUtils.h"
 
 namespace FogKV {
 
@@ -55,27 +56,63 @@ KVStoreBase *KVStoreBaseImpl::Open(const Options &options, Status *status)
 	return nullptr;
 }
 
-KVStoreBaseImpl::KVStoreBaseImpl(const Options &options)
+KVStoreBaseImpl::KVStoreBaseImpl(const Options &options):
+	mOptions(options), mKeySize(0)
 {
+	if (mOptions.Runtime.io_service() == nullptr)
+		m_io_service = new boost::asio::io_service();
+
+	for (size_t i = 0; i < options.Key.nfields(); i++)
+		mKeySize += options.Key.field(i).Size;
+
+	auto dhtPort = getOptions().Dht.Port ? : FogKV::utils::getFreePort(io_service(), 0);
+	auto port = getOptions().Port ? : FogKV::utils::getFreePort(io_service(), 0);
+
+	mDhtNode = make_unique<FogKV::CChordAdapter>(io_service(),
+			dhtPort, port,
+			getOptions().Dht.Id);
 }
 
 KVStoreBaseImpl::~KVStoreBaseImpl()
 {
+	mDhtNode.reset();
+
+	if (m_io_service)
+		delete m_io_service;
 }
 
 std::string KVStoreBaseImpl::getProperty(const std::string &name)
 {
-	throw FUNC_NOT_IMPLEMENTED;
-}
+	if (name == "fogkv.dht.id")
+		return std::to_string(mDhtNode->getDhtId());
+	if (name == "fogkv.listener.ip")
+		return mDhtNode->getIp();
+	if (name == "fogkv.listener.port")
+		return std::to_string(mDhtNode->getPort());
+	if (name == "fogkv.listener.dht_port")
+		return std::to_string(mDhtNode->getDragonPort());
+	if (name == "fogkv.dht.peers") {
+		Json::Value peers;
+		boost::ptr_vector<FogKV::PureNode> peerNodes;
+		mDhtNode->getPeerList(peerNodes);
 
-size_t KVStoreBaseImpl::KeySize()
-{
-	throw FUNC_NOT_IMPLEMENTED;
+		int i = 0;
+		for (auto peer: peerNodes) {
+			peers[i]["id"] = std::to_string(peer.getDhtId());
+			peers[i]["port"] = std::to_string(peer.getPort());
+			peers[i]["ip"] = peer.getIp();
+			peers[i]["dht_port"] = std::to_string(peer.getDragonPort());
+		}
+
+		Json::FastWriter writer;
+		return writer.write(peers);
+	}
+	return "";
 }
 
 const Options & KVStoreBaseImpl::getOptions()
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	return mOptions;
 }
 
 Status KVStoreBaseImpl::Put(const char *key, const char *value, size_t size)
@@ -160,7 +197,14 @@ Status KVStoreBaseImpl::RemoveRange(const char *beg, const char *end)
 
 Status KVStoreBaseImpl::init()
 {
-	return NotImplemented;
+
+	return Ok;
 }
 
+boost::asio::io_service &KVStoreBaseImpl::io_service()
+{
+	if (mOptions.Runtime.io_service())
+		return *mOptions.Runtime.io_service();
+	return *m_io_service;
+}
 } // namespace FogKV

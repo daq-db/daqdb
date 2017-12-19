@@ -32,6 +32,8 @@
 
 #include <iostream>
 
+#include <boost/asio/io_service.hpp>
+#include <boost/bind.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
@@ -39,7 +41,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <db/FogSrv.h>
+#include <FogKV/KVStoreBase.h>
 
 #include "debug.h"
 #include "nodeCli.h"
@@ -49,8 +51,11 @@ using boost::format;
 using namespace boost::algorithm;
 
 namespace po = boost::program_options;
+namespace as = boost::asio;
 
 LoggerPtr loggerNode(Logger::getLogger( "dragon"));
+
+typedef char KeyType[16];
 
 namespace
 {
@@ -110,35 +115,45 @@ main(int argc, const char *argv[])
 
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(	boost::bind(&boost::asio::io_service::stop, &io_service));
-	shared_ptr<FogKV::FogSrv> spDragonSrv(
-		new FogKV::FogSrv(io_service, nodeId));
+	signals.async_wait(boost::bind(&boost::asio::io_service::stop, &io_service));
+
+	FogKV::Options options;
+	options.Runtime.io_service(&io_service);
+	options.Dht.Id = nodeId;
+	options.Dht.Port = dhtPort;
+	options.Port = inputPort;
+	options.Key.field(0, sizeof(KeyType));
+
+	FogKV::Status status;
+	shared_ptr<FogKV::KVStoreBase> spKVStore(FogKV::KVStoreBase::Open(options, &status));
+	if (!status.ok()) {
+		cerr << "Failed to create KVStore: " << status.to_string() << endl;
+		return -1;
+	}
 
 	LOG4CXX_INFO(loggerNode,
 		     format("DHT node (id=%1%) is running on %2%:%3%") %
-			     spDragonSrv->getDhtId() % spDragonSrv->getIp() %
-			     spDragonSrv->getPort());
+			     spKVStore->getProperty("fogkv.dht.id") %
+			     spKVStore->getProperty("fogkv.listener.ip") %
+			     spKVStore->getProperty("fogkv.listener.port"));
 	LOG4CXX_INFO(loggerNode, format("Waiting for requests on port %1%.") %
-			     spDragonSrv->getDragonPort());
+			     spKVStore->getProperty("fogkv.listener.dht_port"));
 
-	if (!interactiveMode) {
-		spDragonSrv->run();
-	} else {
-#if (1) // interactive mode
-		FogKV::nodeCli dragonCli(spDragonSrv);
-		while (dragonCli()) {
-			if (spDragonSrv->stopped()) {
+	if (interactiveMode) {
+		FogKV::nodeCli nodeCli(spKVStore);
+		while (nodeCli()) {
+			if (io_service.stopped())
 				break;
-			}
 		}
-
-#endif
+	} else {
+		io_service.run();
 	}
 
 	LOG4CXX_INFO(loggerNode,
 		     format("Closing DHT node (id=%1%) on %2%:%3%") %
-			     spDragonSrv->getDhtId() % spDragonSrv->getIp() %
-			     spDragonSrv->getPort());
+			     spKVStore->getProperty("fogkv.dht.id") %
+			     spKVStore->getProperty("fogkv.listener.ip") %
+			     spKVStore->getProperty("fogkv.listener.port"));
 
 	return 0;
 }

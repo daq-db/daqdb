@@ -32,11 +32,13 @@
 
 #include "../cli_node/nodeCli.h"
 
+#include <chrono>
 #include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
-
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <iostream>
 #include <map>
 
@@ -98,7 +100,7 @@ hints(const char *buf, int *color, int *bold)
 namespace FogKV
 {
 
-nodeCli::nodeCli(std::shared_ptr<FogKV::FogSrv> &spDragonSrv) : _spDragonSrv(spDragonSrv)
+nodeCli::nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spKVStore) : _spKVStore(spKVStore)
 {
 	linenoiseSetCompletionCallback(completion);
 	linenoiseSetHintsCallback(hints);
@@ -157,11 +159,17 @@ nodeCli::cmdGet(std::string &strLine)
 		cout << "Error: expects one argument" << endl;
 	} else {
 		auto key = arguments[1];
-		string valuestr;
-		auto actionStatus = _spDragonSrv->getKvStore()->Get(key, &valuestr);
-		if (actionStatus == KVStatus::OK) {
+		if (key.size() > _spKVStore->KeySize()) {
+			cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+			return;
+		}
+
+		vector<char> value;
+		auto actionStatus = _spKVStore->Get(key.c_str(), value);
+		if (actionStatus.ok()) {
+			string valuestr(value.begin(), value.end());
 			cout << format("[%1%] = %2%\n") % key % valuestr;
-		} else if (actionStatus == KVStatus::NOT_FOUND) {
+		} else if (actionStatus() == FogKV::KeyNotFound) {
 			cout << format("[%1%] not found\n") % key;
 		} else {
 			cout << "Error: cannot get element" << endl;
@@ -179,9 +187,14 @@ nodeCli::cmdPut(std::string &strLine)
 		cout << "Error: expects two arguments" << endl;
 	} else {
 		auto key = arguments[1];
+		if (key.size() > _spKVStore->KeySize()) {
+			cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+			return;
+		}
+
 		auto value = arguments[2];
-		auto actionStatus = _spDragonSrv->getKvStore()->Put(key, value);
-		if (actionStatus == KVStatus::OK) {
+		auto actionStatus = _spKVStore->Put(key.c_str(), value.c_str(), value.size());
+		if (actionStatus.ok()) {
 			cout << format("Put: [%1%] = %2%\n") % key % value;
 		} else {
 			cout << "Error: cannot put element" << endl;
@@ -199,10 +212,10 @@ nodeCli::cmdRemove(std::string &strLine)
 		cout << "Error: expects one argument" << endl;
 	} else {
 		auto key = arguments[1];
-		auto actionStatus = _spDragonSrv->getKvStore()->Remove(key);
-		if (actionStatus == KVStatus::OK) {
+		auto actionStatus = _spKVStore->Remove(key.c_str());
+		if (actionStatus.ok()) {
 			cout << format("Remove: [%1%]\n") % key;
-		} else if (actionStatus == KVStatus::NOT_FOUND) {
+		} else if (actionStatus() == FogKV::KeyNotFound) {
 			cout << format("[%1%] not found\n") % key;
 		} else {
 			cout << "Error: cannot remove element" << endl;
@@ -210,11 +223,40 @@ nodeCli::cmdRemove(std::string &strLine)
 	}
 }
 
+Json::Value nodeCli::getPeersJson()
+{
+	Json::Reader reader;
+	Json::Value peers;
+	std::string peersStr = _spKVStore->getProperty("fogkv.dht.peers");
+	reader.parse(peersStr, peers);
+
+	return peers;
+}
+
 void
 nodeCli::cmdStatus()
 {
-	//!	@todo jradtke Add more information to status
-	cout << _spDragonSrv->getDhtPeerStatus() << endl;
+	Json::Value peers = getPeersJson();
+
+	auto npeers = peers.size();
+	chrono::time_point<chrono::system_clock> timestamp;
+	auto currentTime = chrono::system_clock::to_time_t(timestamp);
+
+	if (!npeers) {
+		cout << format("%1%\tno DHT peer(s)\n") %
+					std::ctime(&currentTime);
+			return;
+	}
+
+	cout << format("%1%\t%2% DHT "
+			 "peers found") %
+			std::ctime(&currentTime) % npeers << endl;
+
+	for (int i = 0; i < npeers; i++) {
+		cout << "[" << i << "]: " << peers[i].toStyledString();
+	}
+
+
 }
 
 void
@@ -226,26 +268,30 @@ nodeCli::cmdNodeStatus(std::string &strLine)
 	if (arguments.size() != 2) {
 		cout << "Error: expects one argument" << endl;
 	} else {
-		auto nodeIdArg = arguments[1];
-		unsigned int nodeId = 0;
-		try {
-			nodeId = boost::lexical_cast<unsigned int>(nodeIdArg);
-		} catch (boost::bad_lexical_cast const &) {
-			std::cout << "Error: input string was not valid"
-				  << std::endl;
-		}
+		auto nodeId = arguments[1];
 
-		_spDragonSrv->getDhtPeerStatus();
-
-		if (nodeId == _spDragonSrv->getDhtId()) {
+		if (nodeId == _spKVStore->getProperty("fogkv.dht.id")) {
 			cout << format("Node status:\n\t "
 				       "dht_id=%1%\n\tdht_ip:port=%2%:%3%"
 				       "\n\texternal_port=%4%") %
-					_spDragonSrv->getDhtId() %
-					_spDragonSrv->getIp() %
-					_spDragonSrv->getPort() %
-					_spDragonSrv->getDragonPort();
+					_spKVStore->getProperty("fogkv.dht.id") %
+					_spKVStore->getProperty("fogkv.listener.ip") %
+					_spKVStore->getProperty("fogkv.listener.port") %
+					_spKVStore->getProperty("fogkv.listener.dht_port") << endl;
+			return;
 		}
+
+		Json::Value peers = getPeersJson();
+		
+		for (int i = 0; i < peers.size(); i++) {
+			if (peers[i]["id"].asString() == nodeId) {
+				cout << peers[i].toStyledString() << endl;
+				return;
+			}
+		}
+
+		cout << "Node not connected" << endl;
+		
 	}
 }
 
