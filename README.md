@@ -36,6 +36,7 @@ following libraries are required:
 <li>fabricpp-devel</li>
 <li>log4cxx-devel (log4cxx-dev)</li>
 <li>libpmemobj++</li>
+<li>libjsoncpp</li>
 </ul>
 
 #### Build

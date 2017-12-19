@@ -66,7 +66,8 @@ if not GetOption("clean"):
 				'log4cxx',
 				'fabric',
 				'libpmem',
-				'libpmemobj++'
+				'libpmemobj++',
+				'jsoncpp'
 				]
 
 	config = Configure(env)
