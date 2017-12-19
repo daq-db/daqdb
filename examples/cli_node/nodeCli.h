@@ -36,6 +36,7 @@
 #include <linenoise.h>
 #include <FogKV/KVStoreBase.h>
 #include <json/json.h>
+#include <memory>
 
 namespace
 {

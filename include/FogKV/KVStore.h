@@ -38,9 +38,32 @@
 #include "FogKV/KVBuff.h"
 #include "FogKV/KVPair.h"
 #include "FogKV/KVStoreBase.h"
+
 #include <boost/hana.hpp>
 
 namespace FogKV {
+
+template <class T>
+bool Set(KeyDescriptor &key)
+{
+	size_t sum = 0;
+	size_t idx = 0;
+	bool compat = true;
+	T t;
+	boost::hana::for_each(t, [&](auto pair) {
+		size_t s = sizeof(boost::hana::second(pair));
+		sum += s;
+		key.field(idx, s);
+	});
+
+	// The struct has padding
+	if (sizeof(T) != sum) {
+		key.clear();
+		return false;
+	}
+
+	return true;
+}
 
 template <class T>
 class KVStore {

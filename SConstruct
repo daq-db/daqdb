@@ -1,6 +1,29 @@
 import os
 
+def AddPkg(self, pkg):
+	self.ParseConfig('pkg-config --cflags --libs \'%s\'' % pkg)
+
+AddMethod(Environment, AddPkg)
+
 env = Environment(ENV = {'PATH' : os.environ['PATH']})
+
+def CheckPkgConfig(ctx, version = None):
+	if version:
+		ctx.Message('Checking for pkg-config version %s...' % version)
+		ret = ctx.TryAction('pkg-config --atleast-pkgconfig-version=%s' % version)[0]
+	else:
+		ctx.Message('Checking for pkg-config...')
+		ret = ctx.TryAction('pkg-config --version')[0]
+	ctx.Result(ret)
+	return ret;
+	
+		
+
+def CheckPkg(ctx, pkg):
+	ctx.Message('Checking for %s package using pkg-config...' % pkg)
+	ret = ctx.TryAction('pkg-config --exists \'%s\'' % pkg)[0]
+	ctx.Result(ret);
+	return ret
 
 '''
 	Compiler flags
@@ -26,6 +49,50 @@ env.Append(LINKFLAGS='-Wl,-rpath=.')
 env.Append(CPPPATH=[Dir('#include')])
 
 env.Append(VERBOSE=ARGUMENTS.get('verbose', 0))
+
+config = Configure(env, custom_tests = {'CheckPkg': CheckPkg, 'CheckPkgConfig': CheckPkgConfig})
+
+if not GetOption("clean"):
+
+	if not config.CheckCXXHeader('boost/hana.hpp'):
+		env.Append(CPPFLAGS = ['-DHAS_BOOST_HANA=0'])
+	else:
+		env.Append(CPPFLAGS = ['-DHAS_BOOST_HANA=1'])
+
+	RequiredPkgs = [
+				'libpmemobj++',
+				'jsoncpp',
+	]
+	RequiredLibs = [
+				'boost_system', 
+				'boost_program_options', 
+				'boost_filesystem', 
+				'boost_unit_test_framework',
+				'pthread', 
+				'rt', 
+				'dl',
+				'log4cxx',
+				'libpmem',
+				'fabric',
+	]
+
+
+	for required_lib in RequiredLibs:
+		if not config.CheckLib(required_lib):
+			config.Finish()
+			exit(1)
+
+	if not config.CheckPkgConfig():
+		config.Finish()
+		exit(1)
+
+	for required_pkg in RequiredPkgs:
+		if not config.CheckPkg(required_pkg):
+			config.Finish()
+			exit(1)
+		else:
+			env.AddPkg(required_pkg)
+
 
 '''
 	Build dependencies first
@@ -53,26 +120,4 @@ Depends('install', 'build')
 '''
 SConscript('tests/SConscript', exports=['env', ])
 
-
-if not GetOption("clean"):
-	RequiredLibs = [
-				'boost_system', 
-				'boost_program_options', 
-				'boost_filesystem', 
-				'boost_unit_test_framework',
-				'pthread', 
-				'rt', 
-				'dl',
-				'log4cxx',
-				'fabric',
-				'libpmem',
-				'libpmemobj++',
-				'jsoncpp'
-				]
-
-	config = Configure(env)
-	for required_lib in RequiredLibs:
-		if not config.CheckLib(required_lib):
-			config.Finish()
-			exit(1)
-	config.Finish()
+config.Finish()
