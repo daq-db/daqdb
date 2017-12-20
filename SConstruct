@@ -63,7 +63,11 @@ if not GetOption("clean"):
 				'pthread', 
 				'rt', 
 				'dl',
-				'log4cxx'
+				'log4cxx',
+				'fabric',
+				'libpmem',
+				'libpmemobj++',
+				'jsoncpp'
 				]
 
 	config = Configure(env)

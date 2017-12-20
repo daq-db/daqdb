@@ -3,25 +3,7 @@ Import('env')
 SConscript('./cChord/SConscript', exports='env')
 
 # pmemkv
-pmemkv_include = [ Dir('./pmemkv'),
-	Dir('./pmemkv/src'),
-	Dir('./pmemkv/src/engines')]
-
-env.Append(LIBPATH=[Dir('./pmemkv/bin')])
-env.Append(CPPPATH = pmemkv_include)
-
-PmemKV = env.Command('pmemkv/bin/libpmemkv.so', "", 'cd %s && make configure sharedlib' % Dir('#third-party/pmemkv').abspath)
-env.Clean(PmemKV, 'pmemkv/bin/libpmemkv.so')
-copyPmemKv = Command(target = "#/bin/libpmemkv.so",
-        source = PmemKV,
-        action = Copy("$TARGET", "$SOURCE"))
-env.Depends(copyPmemKv, PmemKV)
-
-# cpp-btree
-# TODO: uncomment when is used - compilation takes quite long
-env.Append(CPPPATH = [Dir('./cpp-btree-1.0.1')])
-env.Append(LIBPATH=[Dir('./cpp-btree-1.0.1')])
-# env.Library('./cpp-btree-1.0.1/cpp-btree-1.0.1', Glob('./cpp-btree-1.0.1/*.cc'))
+SConscript('./SConscript-pmemkv', exports='env')
 
 # linenoise
 env.Append(CPPPATH = [Dir('#third-party/linenoise')])
@@ -37,3 +19,6 @@ env.Library('./cpu-stat/cpu-stat', Glob('./cpu-stat/src/*.cpp'))
 env.Append(CPPPATH = [Dir('#third-party/csvpp/src')])
 env.Append(LIBPATH=[Dir('./csvpp/src/csv')])
 env.Library('./csvpp/csvpp', Glob('./csvpp/src/*.cpp'))
+
+# spdk
+SConscript('./SConscript-spdk', exports='env')
