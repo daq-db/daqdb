@@ -1,0 +1,7 @@
+import os
+
+Import('env')
+spdk_env = Environment(ENV = {'PATH' : os.environ['PATH']})
+
+buildSPDKExample = spdk_env.Command("spdk_example", "", "cd %s && make" % Dir('#examples/spdk_example').abspath)
+spdk_env.Depends(buildSPDKExample, '#third-party/spdk')
