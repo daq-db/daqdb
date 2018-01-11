@@ -30,13 +30,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "FogKV/KVStore.h"
 #include "FogKV/KVStoreBase.h"
-#include <boost/hana.hpp>
 
 #include <assert.h>
 #include <cstring>
 #include <limits>
+
+#if HAS_BOOST_HANA
+#include "FogKV/KVStore.h"
+#endif
 
 struct Key {
 	Key() = default;
@@ -64,8 +66,10 @@ struct Key3 {
 	uint64_t event_id;
 };
 
+#if HAS_BOOST_HANA
 BOOST_HANA_ADAPT_STRUCT(Key, subdetector_id, run_id, event_id);
 BOOST_HANA_ADAPT_STRUCT(Key2, run_id, event_id);
+#endif
 
 int KVStoreBaseExample()
 {
@@ -207,6 +211,7 @@ int KVStoreBaseExample()
 	}
 }
 
+#if HAS_BOOST_HANA
 int KVStoreExample()
 {
 	FogKV::Options options;
@@ -232,8 +237,7 @@ int KVStoreExample()
 	options.Key.field(2, sizeof(Key::event_id));
 
 	// or with boost::hana
-	
-	options.Key.set<Key>();
+	FogKV::Set<Key>(options.Key);
 
 	// Open KV store
 	FogKV::Status s;
@@ -256,6 +260,7 @@ int KVStoreExample()
 		s = kvs->Get(Key(1, 1, 3), value);
 	}
 }
+#endif
 
 int main()
 {

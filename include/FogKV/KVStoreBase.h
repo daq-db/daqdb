@@ -38,7 +38,6 @@
 #include "FogKV/KVBuff.h"
 #include "FogKV/KVPair.h"
 #include <functional>
-#include <boost/hana.hpp>
 
 namespace FogKV {
 

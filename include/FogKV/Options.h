@@ -33,7 +33,6 @@
 #pragma once
 
 #include <vector>
-#include <boost/hana.hpp>
 #include <boost/asio/io_service.hpp>
 
 #include <FogKV/Types.h>
@@ -49,27 +48,6 @@ struct KeyFieldDescriptor {
 };
 
 struct KeyDescriptor {
-	template <class T>
-	bool set()
-	{
-		size_t sum = 0;
-		size_t idx = 0;
-		bool compat = true;
-		T t;
-		boost::hana::for_each(t, [&](auto pair) {
-			size_t s = sizeof(boost::hana::second(pair));
-			sum += s;
-			field(idx, s);
-		});
-
-		// The struct has padding
-		if (sizeof(T) != sum) {
-			clear();
-			return false;
-		}
-
-		return true;
-	}
 
 	size_t nfields() const
 	{
