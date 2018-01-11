@@ -30,6 +30,7 @@ def CheckPkg(ctx, pkg):
 '''
 env.Append(CCFLAGS = ['-O0', '-ggdb'])
 env.Append(CXXFLAGS = ['-std=c++14'])
+env.Append(CPPFLAGS = [])
 
 '''
 	Depends on linux distribution
