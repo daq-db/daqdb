@@ -29,15 +29,30 @@ The dependencies can be installed automatically by scripts/pkgdep.sh.
 ```
 ./scripts/pkgdep.sh
 ```
-following libraries are required:
+Following libraries are required:
 <ul>
 <li>boost-devel (1.63+)</li>
 <li>boost-test (1.63+)</li>
 <li>fabricpp-devel</li>
-<li>log4cxx-devel (log4cxx-dev)</li>
-<li>libpmemobj++</li>
 <li>libjsoncpp</li>
 </ul>
+Following libraries are optional:
+<ul>
+<li>log4cxx-devel (log4cxx-dev)</li>
+</ul>
+
+##### LCG
+
+Another option is building against LHC Computing Grid (LCG) release. Steps to configure the LCG environemt:
+```
+sudo yum install -y https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm
+sudo cvmfs_config setup
+echo "CVMFS_REPOSITORIES=sft.cern.ch" | sudo tee -a /etc/cvmfs/default.local
+echo "CVMFS_HTTP_PROXY=http://your-proxy.com:proxy-port | sudo tee -a /etc/cvmfs/default.local
+cvmfs_config probe
+ls /cvmfs/grid.cern.ch
+
+```
 
 #### Build
 
@@ -48,6 +63,12 @@ scons                 # build everything
 scons -c              # remove build files
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
+
+##### LCG
+If using LCG release, set the desired environemt:
+```
+. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_89 x86_64-centos7-gcc7-opt
+```
 
 #### Unit Tests
 

@@ -53,7 +53,9 @@ using namespace boost::algorithm;
 namespace po = boost::program_options;
 namespace as = boost::asio;
 
+#ifdef FOGKV_USE_LOG4CXX
 LoggerPtr loggerNode(Logger::getLogger( "dragon"));
+#endif
 
 typedef char KeyType[16];
 
@@ -70,12 +72,14 @@ main(int argc, const char *argv[])
 	auto dhtPort = dhtBackBonePort;
 	bool interactiveMode = false;
 
+#ifdef FOGKV_USE_LOG4CXX
 	log4cxx::ConsoleAppender *consoleAppender =
 		new log4cxx::ConsoleAppender(
 			log4cxx::LayoutPtr(new log4cxx::SimpleLayout()));
 	log4cxx::BasicConfigurator::configure(
 		log4cxx::AppenderPtr(consoleAppender));
 	log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
+#endif
 
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
@@ -100,9 +104,11 @@ main(int argc, const char *argv[])
 		if (parsedArguments.count("interactive")) {
 			interactiveMode = true;
 		}
+#ifdef FOGKV_USE_LOG4CXX
 		if (parsedArguments.count("log")) {
 			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getDebug());
 		}
+#endif
 
 		po::notify(parsedArguments);
 	} catch (po::error &parserError) {
@@ -131,6 +137,7 @@ main(int argc, const char *argv[])
 		return -1;
 	}
 
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(loggerNode,
 		     format("DHT node (id=%1%) is running on %2%:%3%") %
 			     spKVStore->getProperty("fogkv.dht.id") %
@@ -138,6 +145,7 @@ main(int argc, const char *argv[])
 			     spKVStore->getProperty("fogkv.listener.port"));
 	LOG4CXX_INFO(loggerNode, format("Waiting for requests on port %1%.") %
 			     spKVStore->getProperty("fogkv.listener.dht_port"));
+#endif
 
 	if (interactiveMode) {
 		FogKV::nodeCli nodeCli(spKVStore);
@@ -149,11 +157,13 @@ main(int argc, const char *argv[])
 		io_service.run();
 	}
 
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(loggerNode,
 		     format("Closing DHT node (id=%1%) on %2%:%3%") %
 			     spKVStore->getProperty("fogkv.dht.id") %
 			     spKVStore->getProperty("fogkv.listener.ip") %
 			     spKVStore->getProperty("fogkv.listener.port"));
+#endif
 
 	return 0;
 }

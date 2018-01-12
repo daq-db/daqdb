@@ -5,7 +5,7 @@ def AddPkg(self, pkg):
 
 AddMethod(Environment, AddPkg)
 
-env = Environment(ENV = {'PATH' : os.environ['PATH']})
+env = Environment(ENV = os.environ)
 
 def CheckPkgConfig(ctx, version = None):
 	if version:
@@ -31,6 +31,12 @@ def CheckPkg(ctx, pkg):
 env.Append(CCFLAGS = ['-O0', '-ggdb'])
 env.Append(CXXFLAGS = ['-std=c++14'])
 env.Append(CPPFLAGS = [])
+
+'''
+	Paths for LCG
+'''
+env.Append(CPPPATH = [env['ENV']['CMAKE_PREFIX_PATH'] + '/include'])
+env.Append(LIBPATH = env['ENV']['LD_LIBRARY_PATH'].split(':'))
 
 '''
 	Depends on linux distribution
@@ -60,11 +66,14 @@ if not GetOption("clean"):
 	else:
 		env.Append(CPPFLAGS = ['-DHAS_BOOST_HANA=1'])
 
+	if config.CheckLib('log4cxx'):
+		env.Append(CPPFLAGS = ['-DFOGKV_USE_LOG4CXX'])
+
 	RequiredPkgs = [
-				'libpmemobj++',
-				'jsoncpp',
 	]
 	RequiredLibs = [
+#todo @gjerecze move to jsoncpp
+				'jsoncpp',
 				'boost_system', 
 				'boost_program_options', 
 				'boost_filesystem', 
@@ -72,9 +81,6 @@ if not GetOption("clean"):
 				'pthread', 
 				'rt', 
 				'dl',
-				'log4cxx',
-				'libpmem',
-				'fabric',
 	]
 
 
@@ -119,6 +125,5 @@ Depends('install', 'build')
 '''
 	Build and execute tests
 '''
+#todo @gjerecze fix for lcg
 SConscript('tests/SConscript', exports=['env', ])
-
-config.Finish()

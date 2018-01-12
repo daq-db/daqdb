@@ -59,8 +59,10 @@ CpuMeter::CpuMeter(bool enableCSV) :
 		std::ofstream file;
 		file.open(_csvFileName);
 
+#ifdef FOGKV_USE_LOG4CXX
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
 				boost::format("Create CSV file [%1%]") % _csvFileName);
+#endif
 
 		Csv::Writer writer(file, ';');
 		Csv::Row header;
@@ -80,8 +82,10 @@ CpuMeter::CpuMeter(bool enableCSV) :
 
 		writer.insert(header);
 		file.close();
+#ifdef FOGKV_USE_LOG4CXX
 	} else {
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "CSV disabled");
+#endif
 	}
 
 	_spLastSnapshot.reset(new CPUSnapshot());
@@ -169,6 +173,7 @@ void CpuMeter::logCpuUsage(FogKV::SimFogKV* simFog) {
 		file.close();
 	}
 
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_DEBUG(log4cxx::Logger::getRootLogger(),
 			boost::format(
 					"%5%: Process CPU usage = %1%%%, system=%3%, user=%4%, wall=%2%")
@@ -179,6 +184,7 @@ void CpuMeter::logCpuUsage(FogKV::SimFogKV* simFog) {
 					"%5%: System CPU usage = %1%%%, active=%2%, idle=%3%, wall=%4%")
 					% totalCpuUsage % activeTime % idleTime % totalTime
 					% timestamp);
+#endif
 
 	_timer.start();
 	_spLastSnapshot.release();

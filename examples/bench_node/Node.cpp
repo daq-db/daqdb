@@ -82,8 +82,10 @@ void Node::onRecvHandler(FabricConnection &conn, FabricMR *mr, size_t len)
 	memcpy(msg.buff, mr->getPtr(), len);
 	conn.postRecv(mr);
 
+#ifdef FOGKV_USE_LOG4CXX
 	if (mLogMsg)
 		LOG4CXX_INFO(benchDragon, "RECV: " + MsgToString(&msg.Hdr));
+#endif
 
 	switch (msg.Hdr.Type)
 	{
@@ -110,32 +112,44 @@ void Node::onRecvHandler(FabricConnection &conn, FabricMR *mr, size_t len)
 
 void Node::onMsgParams(Fabric::FabricConnection &conn, MsgParams *msg)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "onMsgParams function not implemented");
+#endif
 }
 
 void Node::onMsgReady(Fabric::FabricConnection &conn)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "onMsgReady function not implemented");
+#endif
 }
 
 void Node::onMsgPut(Fabric::FabricConnection &conn, MsgPut *msg)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "onMsgPut function not implemented");
+#endif
 }
 
 void Node::onMsgPutResp(Fabric::FabricConnection &conn, MsgOp *msg)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "onMsgPutResp function not implemented");
+#endif
 }
 
 void Node::onMsgGet(Fabric::FabricConnection &conn, MsgGet *msg)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "onMsgGet function not implemented");
+#endif
 }
 
 void Node::onMsgGetResp(Fabric::FabricConnection &conn, MsgGetResp *msg)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "onMsgGetResp function not implemented");
+#endif
 }
 
 void Node::postRecv()
@@ -170,8 +184,10 @@ FabricMR *Node::getTxBuff()
 
 	if (noTxBuff) {
 		std::chrono::duration<double> time = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+#ifdef FOGKV_USE_LOG4CXX
 		if (time.count() > 0.1)
 			LOG4CXX_INFO(benchDragon, "waiting for tx buff took " + std::to_string(time.count()) + " seconds");
+#endif
 	}
 
 	return mr;
@@ -190,8 +206,10 @@ void Node::postSend(MsgHdr *hdrp)
 	FabricMR *mr = getTxBuff();
 	memcpy(mr->getPtr(), hdrp, hdrp->Size);
 
+#ifdef FOGKV_USE_LOG4CXX
 	if (mLogMsg)
 		LOG4CXX_INFO(benchDragon, "SEND: " + MsgToString(hdrp));
+#endif
 
 
 	mConn->send(mr, hdrp->Size);

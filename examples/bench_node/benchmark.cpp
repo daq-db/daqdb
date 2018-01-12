@@ -57,7 +57,9 @@ using namespace Fabric;
 namespace po = boost::program_options;
 namespace as = boost::asio;
 
+#ifdef FOGKV_USE_LOG4CXX
 LoggerPtr benchDragon(Logger::getLogger("benchmark"));
+#endif
 
 /*!
  *
@@ -70,7 +72,9 @@ void logCpuUsage(const boost::system::error_code&,
 	double txU = node->getAvgTxBuffUsage(true) * 100.0;
 	double rxU = node->getAvgRxBuffUsage(true) * 100.0;
 	double txMsgU = node->getAvgTxMsgUsage(true) * 100.0;
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "TX: " + std::to_string(txU) + " RX: " + std::to_string(rxU) + " TX MSG: " + std::to_string(txMsgU));
+#endif
 
 	cpuLogTimer->expires_at(
 			cpuLogTimer->expires_at() + boost::posix_time::seconds(1));
@@ -99,11 +103,13 @@ int main(int argc, const char *argv[]) {
 	unsigned int iter;
 	size_t buffSize;
 
+#ifdef FOGKV_USE_LOG4CXX
 	log4cxx::ConsoleAppender *consoleAppender = new log4cxx::ConsoleAppender(
 			log4cxx::LayoutPtr(new log4cxx::SimpleLayout()));
 	log4cxx::BasicConfigurator::configure(
 			log4cxx::AppenderPtr(consoleAppender));
 	log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
+#endif
 
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription { "Options" };
@@ -143,10 +149,12 @@ int main(int argc, const char *argv[]) {
 			return 0;
 		}
 
+#ifdef FOGKV_USE_LOG4CXX
 		if (parsedArguments.count("log")) {
 			log4cxx::Logger::getRootLogger()->setLevel(
 					log4cxx::Level::getDebug());
 		}
+#endif
 		if (parsedArguments.count("csv")) {
 			enableCSV = true;
 		}
@@ -174,11 +182,13 @@ int main(int argc, const char *argv[]) {
 	}
 #endif
 
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "Address: " + addr);
 	LOG4CXX_INFO(benchDragon, "Port   : " + std::to_string(port));
 	LOG4CXX_INFO(benchDragon,
 			"Node   : "
 					+ (isMainNode ? std::string("Main") : std::string("Aux")));
+#endif
 
 	as::io_service io_service;
 	as::signal_set signals(io_service, SIGINT, SIGTERM);
@@ -230,7 +240,9 @@ int main(int argc, const char *argv[]) {
 						&cpuLogTimer, &cpuMeter, &simFog, mainNode.get()));
 	}
 
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "Start benchmark process");
+#endif
 
 	for (;;) {
 		io_service.poll();
@@ -263,10 +275,12 @@ int main(int argc, const char *argv[]) {
 				double rxU = auxNode->getAvgRxBuffUsage(true) * 100.0;
 				double txMsgU = auxNode->getAvgTxMsgUsage(true) * 100.0;
 
+#ifdef FOGKV_USE_LOG4CXX
 				LOG4CXX_INFO(benchDragon, "PUT LAT: " +  std::to_string(lat*1000000.0) + " us IOPS: " + std::to_string(iops) + " 1/s " +
 					"TX: " + std::to_string(txU) + "% RX: " + std::to_string(rxU) +
 				       " TX MSG: " + std::to_string(txMsgU)	
 				);
+#endif
 			}
 
 			if (get_iter)
@@ -287,9 +301,11 @@ int main(int argc, const char *argv[]) {
 				double txU = auxNode->getAvgTxBuffUsage(true) * 100.0;
 				double rxU = auxNode->getAvgRxBuffUsage(true) * 100.0;
 
+#ifdef FOGKV_USE_LOG4CXX
 				LOG4CXX_INFO(benchDragon, "GET LAT: " +  std::to_string(lat*1000000.0) + " us IOPS: " + std::to_string(iops) + " 1/s " +
 					"TX: " + std::to_string(txU) + "% RX: " + std::to_string(rxU) 
 				);
+#endif
 			}
 
 		} else {
