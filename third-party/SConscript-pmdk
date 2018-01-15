@@ -15,5 +15,5 @@ env.Append(CPPPATH = pmdk_include)
 env.Append(LIBPATH = pmdk_libs)
 env.Append(RPATH = pmdk_rpath)
 
-pmdk = env.Command(['#bin/libfabric/lib/libpmem.so', '#bin/libfabric/lib/libpmemobj.so'], "", 'cd %s && make install prefix=%s' % (Dir('#third-party/pmdk').abspath ,Dir('#bin//pmdk').abspath))
+pmdk = env.Command(['#bin/libpmdk/lib/libpmem.so', '#bin/libpmdk/lib/libpmemobj.so'], "", 'cd %s && make install prefix=%s' % (Dir('#third-party/pmdk').abspath, Dir('#bin/pmdk').abspath))
 env.Clean(pmdk, '#/bin/pmdk')

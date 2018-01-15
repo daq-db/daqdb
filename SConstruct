@@ -5,6 +5,9 @@ def AddPkg(self, pkg):
 
 AddMethod(Environment, AddPkg)
 
+AddOption('--lcg', dest='use_lcg_env', action='store_true',
+		  help='Use CERN LCG environment')
+
 env = Environment(ENV = os.environ)
 
 def CheckPkgConfig(ctx, version = None):
@@ -35,8 +38,9 @@ env.Append(CPPFLAGS = [])
 '''
 	Paths for LCG
 '''
-env.Append(CPPPATH = [env['ENV']['CMAKE_PREFIX_PATH'] + '/include'])
-env.Append(LIBPATH = env['ENV']['LD_LIBRARY_PATH'].split(':'))
+if GetOption('use_lcg_env'):
+	env.Append(CPPPATH = [env['ENV']['CMAKE_PREFIX_PATH'] + '/include'])
+	env.Append(LIBPATH = env['ENV']['LD_LIBRARY_PATH'].split(':'))
 
 '''
 	Depends on linux distribution
@@ -72,7 +76,6 @@ if not GetOption("clean"):
 	RequiredPkgs = [
 	]
 	RequiredLibs = [
-#todo @gjerecze move to jsoncpp
 				'jsoncpp',
 				'boost_system', 
 				'boost_program_options', 

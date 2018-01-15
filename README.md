@@ -33,7 +33,6 @@ Following libraries are required:
 <ul>
 <li>boost-devel (1.63+)</li>
 <li>boost-test (1.63+)</li>
-<li>fabricpp-devel</li>
 <li>libjsoncpp</li>
 </ul>
 Following libraries are optional:
@@ -61,6 +60,7 @@ Invoke scons with the following parameters:
 ```
 scons                 # build everything
 scons -c              # remove build files
+scons --lcg           # build against CERN LCG
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
 
