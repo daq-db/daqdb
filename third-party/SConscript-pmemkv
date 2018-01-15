@@ -4,6 +4,13 @@ pmemkv_include = [ Dir('./pmemkv'),
     Dir('./pmemkv/src'),
     Dir('./pmemkv/src/engines')]
 
+pmemkv_libs = [
+	Dir('#/bin/pmemkv/lib'),
+	]
+pmemkv_rpath = [
+	'pmemkv/lib',
+	]
+
 pmemkv_lib_dependencies = [ "pmem",
     "pmemobj"]
 
@@ -11,6 +18,8 @@ pmemkv_lib_sources = ['./pmemkv/src/pmemkv.cc',
     Glob('./pmemkv/src/engines/*.cc')]
 
 env.Append(CPPPATH = pmemkv_include)
+env.Append(LIBPATH = pmemkv_libs)
+env.Append(RPATH = pmemkv_rpath)
 
 pmemkv_lib = env.SharedLibrary('./pmemkv/pmemkv', pmemkv_lib_sources, LIBS = pmemkv_lib_dependencies)
-env.Install('#/bin', pmemkv_lib)
+env.Install('#bin/pmemkv/lib', pmemkv_lib)
