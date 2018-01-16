@@ -16,6 +16,7 @@ fokv_includes = [Dir('#include')]
 fabric_env.Append(CPPPATH=[fokv_includes])
 
 fabric_libs = ["pthread",
+               "log4cxx",
                "boost_program_options",
                "boost_system",
                "boost_filesystem",
@@ -30,8 +31,8 @@ fabric_libs = ["pthread",
                "fabric",
                "fogkv"
               ]
-if 'FOGKV_USE_LOG4CXX' in fabric_env['CPPFLAGS']:
-	fabric_libs.append(['log4cxx'])
+if not '-DFOGKV_USE_LOG4CXX' in fabric_env['CPPFLAGS']:
+	fabric_libs.remove('log4cxx')
 
 FabricNode = fabric_env.Program('fabric_node', Glob('*.cpp'), 
             LIBS= fabric_libs)

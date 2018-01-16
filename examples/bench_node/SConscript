@@ -28,7 +28,7 @@ pmemkv_includes = [
     Dir('#third-party/pmemkv/src'),
     Dir('#third-party/pmemkv/src/engines')
     ]
-fokv_includes = [Dir('#include')]
+fogkv_includes = [Dir('#include')]
 cpustat_includes = [
     Dir('#third-party/cpu-stat/src')
     ]
@@ -38,6 +38,7 @@ csvpp_includes = [
 ]
 
 bench_libs = ["pthread",
+              "log4cxx",
               "boost_program_options",
               "boost_system",
               "boost_filesystem",
@@ -54,10 +55,10 @@ bench_libs = ["pthread",
               "mymed",
               "fogkv"
               ]
-if 'FOGKV_USE_LOG4CXX' in bench_env['CPPFLAGS']:
-	bench_libs.append(['log4cxx'])
+if not '-DFOGKV_USE_LOG4CXX' in bench_env['CPPFLAGS']:
+	bench_libs.remove('log4cxx')
 
-bench_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, cpustat_includes, csvpp_includes])
+bench_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fogkv_includes, cpustat_includes, csvpp_includes])
 
 sources = [Glob('*.cpp'), Glob('workers/*.cpp')]
 
