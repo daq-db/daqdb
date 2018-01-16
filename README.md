@@ -60,14 +60,18 @@ Invoke scons with the following parameters:
 ```
 scons                 # build everything
 scons -c              # remove build files
-scons --lcg           # build against CERN LCG
+scons --lcg           # build against CERN LCG (environment must be set)
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
 
 ##### LCG
-If using LCG release, set the desired environemt:
+If using LCG release, set the desired environment first:
 ```
 . /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_89 x86_64-centos7-gcc7-opt
+```
+It may happen that there are some conflicting python paths when using local scons and LCG. In this case you can try explicit paths like this:
+```
+/cvmfs/sft.cern.ch/lcg/views/LCG_87/x86_64-centos7-gcc62-opt/bin/python /usr/bin/scons --lcg
 ```
 
 #### Unit Tests
