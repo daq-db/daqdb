@@ -16,9 +16,12 @@ fogkvTests = env.Program('fogkv_test',
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem",
-                File("#third-party/pmemkv/bin/libpmemkv.so"),
-                "mymed",
-                "fogkv"
+                "pmem",
+                "pmemobj",
+                "pmemkv",
+                "fabric",
+                "fogkv",
+                "mymed"
                 ])
 env.Install('#bin', [fogkvTests])
 

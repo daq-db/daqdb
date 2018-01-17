@@ -1,13 +1,14 @@
 import os
 Import('env')
 
-clinode_env = Environment(ENV = {'PATH' : os.environ['PATH']})
+clinode_env = Environment(ENV = os.environ)
 clinode_env.Append(CCFLAGS = env['CCFLAGS'])
 clinode_env.Append(CXXFLAGS = env['CXXFLAGS'])
 clinode_env.Append(CPPFLAGS = env['CPPFLAGS'])
 clinode_env.Append(CPPPATH = env['CPPPATH'])
 clinode_env.Append(LIBPATH = env['LIBPATH'])
 clinode_env.Append(LINKFLAGS = env['LINKFLAGS'])
+clinode_env.Append(RPATH = env['RPATH'])
 
 cchord_includes = [
     Dir('#third-party/cChord/engine/helper'),
@@ -33,20 +34,27 @@ linenoise_includes = [
 
 clinode_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, linenoise_includes])
 
-NodeApp = clinode_env.Program('cli_node', Glob('*.cpp'),
-            LIBS=["pthread",
+clinode_libs = ["pthread",
+                "log4cxx",
                 "rt",
                 "dl",
-                "log4cxx",
                 "boost_program_options",
                 "boost_system",
                 "boost_filesystem",
                 "boost_thread",
                 "jsoncpp",
-                File("#third-party/pmemkv/bin/libpmemkv.so"),
-                File("#third-party/linenoise/liblinenoise.a"),
                 "mymed",
-                "fogkv"
-                ])
+                "pmem",
+                "pmemobj",
+                "pmemkv",
+                "fabric",
+                "fogkv",
+                File("#third-party/linenoise/liblinenoise.a"),
+              ]
+if not '-DFOGKV_USE_LOG4CXX' in clinode_env['CPPFLAGS']:
+	clinode_libs.remove('log4cxx')
+
+NodeApp = clinode_env.Program('cli_node', Glob('*.cpp'),
+            LIBS= clinode_libs)
 
 env.Install('#bin', [NodeApp])

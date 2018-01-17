@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <string>
 
+#ifdef FOGKV_USE_LOG4CXX
 #include <log4cxx/basicconfigurator.h>
 #include <log4cxx/consoleappender.h>
 #include <log4cxx/helpers/exception.h>
@@ -26,6 +27,7 @@
 using namespace log4cxx;
 using namespace log4cxx::xml;
 using namespace log4cxx::helpers;
+#endif
 
 namespace FogKV {
 
@@ -58,15 +60,19 @@ std::tuple<KVStatus, unsigned int> DiskWorker::Add(
 		const std::vector<char>& value) {
 
 	if (value.size() != _valueBlockSize) {
+#ifdef FOGKV_USE_LOG4CXX
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "Wrong uffer size");
+#endif
 
 		return std::make_tuple(KVStatus::FAILED, 0);
 	}
 
 	std::ofstream dbFile(_deviceName, std::ios_base::binary | std::ios::app);
 	if (!dbFile) {
+#ifdef FOGKV_USE_LOG4CXX
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
 				"Cannot open file to add new element");
+#endif
 
 		return std::make_tuple(KVStatus::FAILED, 0);
 	}
@@ -83,7 +89,9 @@ KVStatus DiskWorker::Update(const unsigned int lba,
 		const std::vector<char>& value) {
 
 	if (value.size() != _valueBlockSize) {
+#ifdef FOGKV_USE_LOG4CXX
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "Wrong uffer size");
+#endif
 
 		return KVStatus::FAILED;
 	}
@@ -92,8 +100,10 @@ KVStatus DiskWorker::Update(const unsigned int lba,
 			std::ios_base::binary | std::ios::out | std::ios::ate
 					| std::ios::in);
 	if (!dbFile) {
+#ifdef FOGKV_USE_LOG4CXX
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
 				"Cannot open file to add new element");
+#endif
 
 		return KVStatus::FAILED;
 	}
@@ -101,8 +111,10 @@ KVStatus DiskWorker::Update(const unsigned int lba,
 	auto lastLba = GetFileLength() / _valueBlockSize;
 
 	if (lba >= lastLba) {
+#ifdef FOGKV_USE_LOG4CXX
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
 				"DiskWorker::Update: LBA out of bounds");
+#endif
 		dbFile.close();
 		return KVStatus::FAILED;
 	}
@@ -120,8 +132,10 @@ KVStatus DiskWorker::Read(const unsigned int lba, std::vector<char>& value) {
 	std::ifstream dbFile(_deviceName, std::ios_base::binary | std::ios::ate);
 
 	if (!dbFile) {
+#ifdef FOGKV_USE_LOG4CXX
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
 				"Cannot open file to get element");
+#endif
 
 		return KVStatus::FAILED;
 	}
@@ -129,8 +143,10 @@ KVStatus DiskWorker::Read(const unsigned int lba, std::vector<char>& value) {
 	auto lastLba = GetFileLength() / _valueBlockSize;
 
 	if (lba >= lastLba) {
+#ifdef FOGKV_USE_LOG4CXX
 		LOG4CXX_INFO(log4cxx::Logger::getRootLogger(),
 				"DiskWorker::Read: LBA out of bounds");
+#endif
 		dbFile.close();
 		return KVStatus::FAILED;
 	}

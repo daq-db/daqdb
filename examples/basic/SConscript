@@ -2,24 +2,35 @@ import os
 
 Import('env')
 
-clinode_env = Environment(ENV = {'PATH' : os.environ['PATH']})
+clinode_env = Environment(ENV = os.environ)
 clinode_env.Append(CCFLAGS = env['CCFLAGS'])
 clinode_env.Append(CXXFLAGS = env['CXXFLAGS'])
+clinode_env.Append(CPPFLAGS = env['CPPFLAGS'])
+clinode_env.Append(CPPPATH = env['CPPPATH'])
 clinode_env.Append(LIBPATH = env['LIBPATH'])
 clinode_env.Append(LINKFLAGS = env['LINKFLAGS'])
+clinode_env.Append(RPATH = env['RPATH'])
+
+clinode_libs = ["pthread",
+                "log4cxx",
+                "rt",
+                "dl",
+                "boost_system",
+                "pmem",
+                "pmemobj",
+                "pmemkv",
+                "fabric",
+                "fogkv",
+				"mymed"
+                ]
+if not '-DFOGKV_USE_LOG4CXX' in clinode_env['CPPFLAGS']:
+	clinode_libs.remove('log4cxx')
 
 fogkv_includes = [Dir('#include')]
 
 clinode_env.Append(CPPPATH=[fogkv_includes])
 
 NodeApp = clinode_env.Program('basic', Glob('*.cpp'),
-            LIBS=["pthread",
-                "rt",
-                "dl",
-                "boost_system",
-                File("#third-party/pmemkv/bin/libpmemkv.so"),
-                "fogkv",
-                "mymed"
-                ])
+            LIBS= clinode_libs)
 
 env.Install('#bin', [NodeApp])

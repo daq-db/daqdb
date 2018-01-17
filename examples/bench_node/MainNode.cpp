@@ -61,7 +61,9 @@ void MainNode::start()
 
 void MainNode::onConnectionRequestHandler(std::shared_ptr<FabricConnection> conn)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "Connection request from " + conn->getPeerStr());
+#endif
 
 	conn->onRecv(std::bind(&MainNode::onRecvHandler, this, _1, _2, _3));
 	conn->onSend(std::bind(&MainNode::onSendHandler, this, _1, _2, _3));
@@ -73,7 +75,9 @@ void MainNode::onConnectionRequestHandler(std::shared_ptr<FabricConnection> conn
 
 void MainNode::onConnectedHandler(std::shared_ptr<FabricConnection> conn)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "Connected with " + conn->getPeerStr());
+#endif
 
 	MsgBuffDesc buffDesc(
 		mRxBuffMR->getSize(),
@@ -88,8 +92,10 @@ void MainNode::onConnectedHandler(std::shared_ptr<FabricConnection> conn)
 
 void MainNode::onDisconnectedHandler(std::shared_ptr<FabricConnection> conn)
 {
+#ifdef FOGKV_USE_LOG4CXX
 	LOG4CXX_INFO(benchDragon, "Disconnected with " + conn->getPeerStr());
 	exit(0);
+#endif
 }
 
 void MainNode::onRecvHandler(Fabric::FabricConnection &conn, Fabric::FabricMR *mr, size_t len)

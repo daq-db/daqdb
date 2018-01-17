@@ -2,6 +2,12 @@ Import('env')
 
 SConscript('./cChord/SConscript', exports='env')
 
+# libfabric
+SConscript('./SConscript-libfabric', exports='env')
+
+# pmdk
+SConscript('./SConscript-pmdk', exports='env')
+
 # pmemkv
 SConscript('./SConscript-pmemkv', exports='env')
 

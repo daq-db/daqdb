@@ -33,6 +33,7 @@
 #ifndef SRC_BENCHMARK_DEBUG_H_
 #define SRC_BENCHMARK_DEBUG_H_
 
+#ifdef FOGKV_USE_LOG4CXX
 #include <log4cxx/basicconfigurator.h>
 #include <log4cxx/consoleappender.h>
 #include <log4cxx/helpers/exception.h>
@@ -45,5 +46,6 @@ using namespace log4cxx::xml;
 using namespace log4cxx::helpers;
 
 extern LoggerPtr benchDragon;
+#endif
 
 #endif /* SRC_BENCHMARK_DEBUG_H_ */

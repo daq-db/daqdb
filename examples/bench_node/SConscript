@@ -2,11 +2,14 @@ import os
 
 Import('env')
 
-bench_env = Environment(ENV = {'PATH' : os.environ['PATH']})
+bench_env = Environment(ENV = os.environ)
 bench_env.Append(CCFLAGS = env['CCFLAGS'])
 bench_env.Append(CXXFLAGS = env['CXXFLAGS'])
+bench_env.Append(CPPFLAGS = env['CPPFLAGS'])
 bench_env.Append(LIBPATH = env['LIBPATH'])
 bench_env.Append(LINKFLAGS = env['LINKFLAGS'])
+bench_env.Append(CPPPATH = env['CPPPATH'])
+bench_env.Append(RPATH = env['RPATH'])
 
 cchord_includes = [
     Dir('#third-party/cChord/engine/helper'),
@@ -25,7 +28,7 @@ pmemkv_includes = [
     Dir('#third-party/pmemkv/src'),
     Dir('#third-party/pmemkv/src/engines')
     ]
-fokv_includes = [Dir('#include')]
+fogkv_includes = [Dir('#include')]
 cpustat_includes = [
     Dir('#third-party/cpu-stat/src')
     ]
@@ -34,25 +37,32 @@ csvpp_includes = [
     Dir('#third-party/csvpp/src')
 ]
 
-bench_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fokv_includes, cpustat_includes, csvpp_includes])
+bench_libs = ["pthread",
+              "log4cxx",
+              "boost_program_options",
+              "boost_system",
+              "boost_filesystem",
+              "boost_thread",
+              "boost_timer",
+              "boost_regex",
+              "boost_date_time",
+              "pmem",
+              "pmemobj",
+              "pmemkv",
+              "fabric",
+              File("#third-party/cpu-stat/libcpu-stat.a"),
+              File("#third-party/csvpp/libcsvpp.a"),
+              "mymed",
+              "fogkv"
+              ]
+if not '-DFOGKV_USE_LOG4CXX' in bench_env['CPPFLAGS']:
+	bench_libs.remove('log4cxx')
+
+bench_env.Append(CPPPATH=[cchord_includes, pmemkv_includes, fogkv_includes, cpustat_includes, csvpp_includes])
 
 sources = [Glob('*.cpp'), Glob('workers/*.cpp')]
 
 benchApp = bench_env.Program('bench_node', sources,
-            LIBS=["pthread",
-                "log4cxx",
-                "boost_program_options",
-                "boost_system",
-                "boost_filesystem",
-                "boost_thread",
-                "boost_timer",
-                "boost_regex",
-                "boost_date_time",
-                File("#third-party/pmemkv/bin/libpmemkv.so"),
-                File("#third-party/cpu-stat/libcpu-stat.a"),
-                File("#third-party/csvpp/libcsvpp.a"),
-                "mymed",
-                "fogkv"
-                ])
+            LIBS= bench_libs)
 
 env.Install('#bin', [benchApp])

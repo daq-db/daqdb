@@ -16,3 +16,9 @@
 [submodule "third-party/spdk"]
 	path = third-party/spdk
 	url = https://github.com/spdk/spdk.git
+[submodule "third-party/pmdk"]
+	path = third-party/pmdk
+	url = https://github.com/pmem/pmdk
+[submodule "third-party/libfabric"]
+	path = third-party/libfabric
+	url = https://github.com/ofiwg/libfabric.git
