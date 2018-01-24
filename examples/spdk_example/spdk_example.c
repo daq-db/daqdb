@@ -39,9 +39,8 @@ static char g_path[256];
 static void
 usage(char *executable_name)
 {
-	printf("%s [options]\n", executable_name);
+	printf("%s -c config_file [options]\n", executable_name);
 	printf("options:\n");
-	printf(" -c config  config file [required]\n");
 	printf(" -i shared memory ID\n");
 	printf(" -m mask    core mask for DPDK\n");
 	printf(" -n channel number of memory channels used for DPDK\n");
@@ -123,6 +122,4 @@ int main(int argc, char **argv) {
 	spdk_app_fini();
 
 	return rc;
-
-	return 0;
 }
