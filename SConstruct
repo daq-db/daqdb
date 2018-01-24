@@ -116,7 +116,6 @@ SConscript('third-party/SConscript', exports='env')
 VariantDir('build', 'lib', duplicate=0)
 SConscript('build/SConscript', exports=['env', ])
 
-
 '''
 	Build examples
 '''
