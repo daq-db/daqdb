@@ -40,6 +40,8 @@
 #include "FogKV/KVStore.h"
 #endif
 
+// ![key_struct]
+
 struct Key {
 	Key() = default;
 	Key(uint16_t s, uint16_t r, uint64_t e) : subdetector_id(s), run_id(r), event_id(e) {}
@@ -47,6 +49,8 @@ struct Key {
 	uint16_t run_id;
 	uint64_t event_id;
 };
+
+// ![key_struct]
 
 struct Key1 {
 	uint16_t subdetector_id;
@@ -95,120 +99,177 @@ int KVStoreBaseExample()
 	options.Key.field(1, sizeof(Key::run_id));
 	options.Key.field(2, sizeof(Key::event_id));
 
-
 	// Open KV store
+	//! [open]
+	
 	FogKV::Status s;
-       	FogKV::KVStoreBase *kvs = FogKV::KVStoreBase::Open(options, &s);
+	FogKV::KVStoreBase *kvs = FogKV::KVStoreBase::Open(options, &s);
 	if (!s.ok()) {
 		// error
-		return 1;
+		return -1;
 	}
 
-	// Put using (char *) for key and value
-	{
-		Key key(1, 1, 1);
-		char *keyp = reinterpret_cast<char *>(&key);
-		char data[256] = {0, };
+	// success
 
-		s = kvs->Put(keyp, data, sizeof(data));
-		assert(s.ok());
+	//! [open]
+
+// Put using (char *) for key and value
+{
+	// ![put_sync_char]
+	
+	Key key(1, 1, 1);
+	char *keyp = reinterpret_cast<char *>(&key);
+	char data[256] = {0, };
+
+	s = kvs->Put(keyp, data, sizeof(data));
+	assert(s.ok());
+
+	// ![put_sync_char]
+}
+
+// Put using user-defined key structure for key and preallocated
+// buffer. The Put with such a buffer is zero-copy operation as the
+// buffer is allocated from persistent memory.
+// The user is _not_ allowed to use the buffer after Put operation.
+{
+	// ![put_sync_buff]
+	
+	FogKV::KVBuff *buff = kvs->Alloc(256);
+
+	std::memset(buff->data(), 0, buff->size());
+
+	Key key(1, 1, 2);
+	char *keyp = reinterpret_cast<char *>(&key);
+
+	s = kvs->Put(keyp, buff);
+	assert(s.ok());
+
+	// ![put_sync_buff]
+}
+
+// Asynchronous put
+{
+	// ![put_async_char]
+
+	Key key(1, 1, 5);
+	char *keyp = reinterpret_cast<char *>(&key);
+	char data[256] = {0, };
+
+
+	s = kvs->PutAsync(keyp, data, sizeof(data), [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key, const FogKV::KVBuff &buff) {
+		if (!status.ok())
+			return;
+		// Done
+	});
+
+	// ![put_async_char]
+}
+
+{
+	// ![put_async_buff]
+
+	FogKV::KVBuff *buff = kvs->Alloc(256);
+
+	std::memset(buff->data(), 0, buff->size());
+
+	Key key(1, 1, 5);
+	char *keyp = reinterpret_cast<char *>(&key);
+
+	s = kvs->PutAsync(keyp, buff, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key, const FogKV::KVBuff &buff) {
+		if (!status.ok())
+			return;
+		// Done
+	});
+
+	// ![put_async_buff]
+}
+
+// Get using (char *) as a key and std::vector as a value.
+{
+	// ![get_sync_vector]
+
+	Key key(1, 1, 3);
+	char *keyp = reinterpret_cast<char *>(&key);
+
+	std::vector<char> value;
+	s = kvs->Get(keyp, value);
+	assert(s.ok());
+
+	// ![get_sync_vector]
+}
+
+// Get using (char *) as a key and KVBuff
+{
+	// ![get_sync_buff_ptr]
+	
+	Key key(1, 1, 3);
+	char *keyp = reinterpret_cast<char *>(&key);
+
+	FogKV::KVBuff *value;
+	s = kvs->Get(keyp, &value);
+
+	// ![get_sync_buff_ptr]
+}
+
+// Asynchronous get
+{
+	// ![get_async]
+	
+	Key key(1, 1, 3);
+	char *keyp = reinterpret_cast<char *>(&key);
+
+	s = kvs->GetAsync(keyp, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key, const FogKV::KVBuff &buff) {
+		if (!status.ok())
+			return;
+		// Done
+	});
+
+	// ![get_async]
+}
+
+// Get range
+{
+	// ![get_range_sync]
+	
+	Key beg(1, std::numeric_limits<uint16_t>::min(), 1);
+	char *begp = reinterpret_cast<char *>(&beg);
+
+	Key end(1, std::numeric_limits<uint16_t>::max(), 3);
+	char *endp = reinterpret_cast<char *>(&end);
+	
+	std::vector<FogKV::KVPair> result;
+
+	s = kvs->GetRange(begp, endp, result);
+
+	for (auto kv: result) {
+		// kv.key();
+		// kv.value();
 	}
 
-	// Put using user-defined key structure for key and preallocated
-	// buffer. The Put with such a buffer is zero-copy operation as the
-	// buffer is allocated from persistent memory.
-	// The user is _not_ allowed to use the buffer after Put operation.
-	{
-		FogKV::KVBuff *buff = kvs->Alloc(256);
+	// ![get_range_sync]
+}
 
-		std::memset(buff->data(), 0, buff->size());
+// Asynchronous Get range
+{
+	// ![get_range_async]
+	
+	Key beg(1, std::numeric_limits<uint16_t>::min(), 1);
+	char *begp = reinterpret_cast<char *>(&beg);
+	Key end(1, std::numeric_limits<uint16_t>::max(), 3);
+	char *endp = reinterpret_cast<char *>(&end);
 
-		Key key(1, 1, 2);
-		char *keyp = reinterpret_cast<char *>(&key);
-
-		s = kvs->Put(keyp, buff);
-	}
-
-	// Asynchronous put
-	{
-		FogKV::KVBuff *buff = kvs->Alloc(256);
-
-		std::memset(buff->data(), 0, buff->size());
-
-		Key key(1, 1, 5);
-		char *keyp = reinterpret_cast<char *>(&key);
-
-		s = kvs->PutAsync(keyp, buff, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key, const FogKV::KVBuff &buff) {
-			if (!status.ok())
-				return;
-			// Done
-		});
-	}
-
-	// Get using (char *) as a key and std::vector as a value.
-	{
-		Key key(1, 1, 3);
-		char *keyp = reinterpret_cast<char *>(&key);
-		std::vector<char> value;
-
-		s = kvs->Get(keyp, value);
-	}
-
-	// Get using (char *) as a key and KVBuff
-	{
-		Key key(1, 1, 3);
-		char *keyp = reinterpret_cast<char *>(&key);
-		FogKV::KVBuff *value;
-
-		s = kvs->Get(keyp, &value);
-	}
-
-	// Asynchronous get
-	{
-		Key key(1, 1, 3);
-		char *keyp = reinterpret_cast<char *>(&key);
-
-		s = kvs->GetAsync(keyp, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key, const FogKV::KVBuff &buff) {
-			if (!status.ok())
-				return;
-			// Done
-		});
-	}
-
-	// Get range
-	{
-		Key beg(1, std::numeric_limits<uint16_t>::min(), 1);
-		char *begp = reinterpret_cast<char *>(&beg);
-		Key end(1, std::numeric_limits<uint16_t>::max(), 3);
-		char *endp = reinterpret_cast<char *>(&end);
-		std::vector<FogKV::KVPair> result;
-
-		s = kvs->GetRange(begp, endp, result);
+	s = kvs->GetRangeAsync(begp, endp, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, std::vector<FogKV::KVPair> &result) {
+		if (!status.ok())
+			return;
 
 		for (auto kv: result) {
 			// kv.key();
 			// kv.value();
 		}
-	}
+	});
 
-	// Asynchronous Get range
-	{
-		Key beg(1, std::numeric_limits<uint16_t>::min(), 1);
-		char *begp = reinterpret_cast<char *>(&beg);
-		Key end(1, std::numeric_limits<uint16_t>::max(), 3);
-		char *endp = reinterpret_cast<char *>(&end);
-
-		s = kvs->GetRangeAsync(begp, endp, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, std::vector<FogKV::KVPair> &result) {
-			if (!status.ok())
-				return;
-
-			for (auto kv: result) {
-				// kv.key();
-				// kv.value();
-			}
-		});
-
-	}
+	// ![get_range_async]
+}
 }
 
 #if HAS_BOOST_HANA

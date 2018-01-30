@@ -2,6 +2,7 @@
 /dragonTest
 /benchmark
 /dhtTest
+doc_html
 libpmemkv.so
 *.o
 *.a
