@@ -38,6 +38,7 @@ Following libraries are required:
 Following libraries are optional:
 <ul>
 <li>log4cxx-devel (log4cxx-dev)</li>
+<li>doxygen</li>
 </ul>
 
 ##### LCG
@@ -61,6 +62,7 @@ Invoke scons with the following parameters:
 scons                 # build everything
 scons -c              # remove build files
 scons --lcg           # build against CERN LCG (environment must be set)
+scons --doc           # build everything & generate doxygen documentation
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
 
