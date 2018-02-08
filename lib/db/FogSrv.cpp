@@ -36,41 +36,33 @@
 #include <ctime>
 #include <sstream>
 
-#include <boost/algorithm/string/join.hpp>
-#include <boost/format.hpp>
-
 #include <libpmemobj/pool_base.h>
 
 #include "../store/PmemKVStore.h"
 #include "../dht/DhtUtils.h"
 
 using namespace std;
-using boost::format;
 
-namespace as = boost::asio;
-
-namespace
-{
+namespace {
 const unsigned short dhtBackBonePort = 11000;
 const string pmemKvEngine = "kvtree";
 const string pmemKvBasePath = "/dev/shm/fogkv";
-};
+}
 
-namespace FogKV
-{
+namespace FogKV {
 
-FogSrv::FogSrv(as::io_service &io_service, const unsigned short nodeId)
-    : _io_service(io_service), _nodeId(nodeId)
-{
+FogSrv::FogSrv(asio::io_service &io_service, const unsigned short nodeId) :
+		_io_service(io_service), _nodeId(nodeId) {
 	unsigned short inputPort;
 	auto dhtPort = dhtBackBonePort;
 	bool interactiveMode = false;
 
 	auto requestPort = FogKV::utils::getFreePort(_io_service, 0);
 	this->_spReqManager.reset(
-		new FogKV::SocketReqManager(_io_service, requestPort));
+			new FogKV::SocketReqManager(_io_service, requestPort));
 	this->_spDhtNode.reset(
-		new FogKV::CChordAdapter(_io_service, dhtPort, requestPort, _nodeId));
+			new FogKV::CChordAdapter(_io_service, dhtPort, requestPort,
+					_nodeId));
 
 	unsigned short dbNameSuffix = _nodeId;
 	auto isTemporaryDb = false;
@@ -79,61 +71,44 @@ FogSrv::FogSrv(as::io_service &io_service, const unsigned short nodeId)
 		isTemporaryDb = true;
 	}
 
-	this->_spStore.reset(
-		new FogKV::PmemKVStore(dbNameSuffix, isTemporaryDb));
+	this->_spStore.reset(new FogKV::PmemKVStore(dbNameSuffix, isTemporaryDb));
 }
 
-FogSrv::~FogSrv()
-{
+FogSrv::~FogSrv() {
 }
 
-void
-FogSrv::run()
-{
+void FogSrv::run() {
 	_io_service.run();
 }
 
-unsigned int
-FogSrv::getDhtId() const
-{
+unsigned int FogSrv::getDhtId() const {
 	return _spDhtNode->getDhtId();
 }
 
 const std::string &
-FogSrv::getIp() const
-{
+FogSrv::getIp() const {
 	return _spDhtNode->getIp();
 }
 
-unsigned short
-FogSrv::getPort() const
-{
+unsigned short FogSrv::getPort() const {
 	return _spDhtNode->getPort();
 }
 
-std::size_t
-FogSrv::poll()
-{
+std::size_t FogSrv::poll() {
 	return _io_service.poll();
 }
 
-bool
-FogSrv::stopped() const
-{
+bool FogSrv::stopped() const {
 	return _io_service.stopped();
 }
 
-unsigned short
-FogSrv::getDragonPort() const
-{
+unsigned short FogSrv::getDragonPort() const {
 	return _spDhtNode->getDragonPort();
 }
 
-std::string
-FogSrv::getDhtPeerStatus() const
-{
+std::string FogSrv::getDhtPeerStatus() const {
 	stringstream result;
-	boost::ptr_vector<FogKV::PureNode> peerNodes;
+	std::vector<FogKV::PureNode*> peerNodes;
 	chrono::time_point<chrono::system_clock> timestamp;
 
 	timestamp = chrono::system_clock::now();
@@ -141,17 +116,21 @@ FogSrv::getDhtPeerStatus() const
 	auto peerCount = _spDhtNode->getPeerList(peerNodes);
 
 	if (!peerCount) {
-		result << format("%1%\tno DHT peers\n") %
-				std::ctime(&currentTime);
+		result << std::ctime(&currentTime) << "\tno DHT peers\n";
+
 	} else {
 		vector<string> peersID;
+		std::stringstream strPeersIDs;
 		for (auto node : peerNodes) {
-			peersID.push_back(std::to_string(node.getDhtId()));
+			peersID.push_back(std::to_string(node->getDhtId()));
+			if (strPeersIDs.tellp() != 0) {
+				strPeersIDs << ", ";
+			}
+			strPeersIDs << node->getDhtId();
 		}
-		result << format("%1%\t[%2%] DHT "
-				 "peers found, IDs [%3%]\n") %
-				std::ctime(&currentTime) % peerCount %
-				boost::algorithm::join(peersID, ",");
+
+		result << std::ctime(&currentTime) << "\t[" << peerCount
+				<< "] DHT peers found, IDs [" << strPeersIDs.str() << "\n";
 	}
 	return result.str();
 }

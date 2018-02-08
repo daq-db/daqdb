@@ -9,7 +9,8 @@ fabric_env.Append(CPPFLAGS = env['CPPFLAGS'])
 fabric_env.Append(LIBPATH = env['LIBPATH'])
 fabric_env.Append(LINKFLAGS = env['LINKFLAGS'])
 fabric_env.Append(CPPPATH = env['CPPPATH'])
-fabric_env.Append(RPATH = env['RPATH'])
+if 'RPATH' in env:
+    fabric_env.Append(RPATH = env['RPATH'])
 
 fokv_includes = [Dir('#include')]
 

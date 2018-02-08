@@ -2,6 +2,7 @@
 /dragonTest
 /benchmark
 /dhtTest
+examples/spdk_example/spdk_example
 doc_html
 libpmemkv.so
 *.o
@@ -18,3 +19,4 @@ config.log
 .pydevproject
 *.csv
 .*.swp
+*.d

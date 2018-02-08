@@ -1,12 +1,23 @@
 import os
+import subprocess
+from distutils.spawn import find_executable
 
 def AddPkg(self, pkg):
 	self.ParseConfig('pkg-config --cflags --libs \'%s\'' % pkg)
 
+
 AddMethod(Environment, AddPkg)
 
+'''
+	Scons input arguments
+'''
 AddOption('--lcg', dest='use_lcg_env', action='store_true',
 		  help='Use CERN LCG environment')
+AddOption('--doc', dest='gen_doxygen', action='store_true',
+		  help='Generate doxygen')
+AddOption('--verbose', dest='verbose', action='store_true',
+		  help='Prints all test messages')
+
 
 env = Environment(ENV = os.environ)
 
@@ -19,8 +30,7 @@ def CheckPkgConfig(ctx, version = None):
 		ret = ctx.TryAction('pkg-config --version')[0]
 	ctx.Result(ret)
 	return ret;
-	
-		
+
 
 def CheckPkg(ctx, pkg):
 	ctx.Message('Checking for %s package using pkg-config...' % pkg)
@@ -28,11 +38,12 @@ def CheckPkg(ctx, pkg):
 	ctx.Result(ret);
 	return ret
 
+
 '''
 	Compiler flags
 '''
-env.Append(CCFLAGS = ['-O0', '-ggdb'])
-env.Append(CXXFLAGS = ['-std=c++14'])
+env.Append(CCFLAGS = ['-O0'])
+env.Append(CXXFLAGS = ['-g3', '-std=c++14'])
 env.Append(CPPFLAGS = [])
 
 '''
@@ -56,15 +67,11 @@ env.Append(LIBPATH=[
 	- loads shared library from the binary directory
 '''
 env.Append(LINKFLAGS='-Wl,-rpath=.')
-
 env.Append(CPPPATH=[Dir('#include')])
-
-env.Append(VERBOSE=ARGUMENTS.get('verbose', 0))
 
 config = Configure(env, custom_tests = {'CheckPkg': CheckPkg, 'CheckPkgConfig': CheckPkgConfig})
 
 if not GetOption("clean"):
-
 	if not config.CheckCXXHeader('boost/hana.hpp'):
 		env.Append(CPPFLAGS = ['-DHAS_BOOST_HANA=0'])
 	else:
@@ -73,19 +80,24 @@ if not GetOption("clean"):
 	if config.CheckLib('log4cxx'):
 		env.Append(CPPFLAGS = ['-DFOGKV_USE_LOG4CXX'])
 
+	if not config.CheckCXXHeader('json/json.h'):
+		p = subprocess.Popen(["pkg-config", "--variable=includedir", 'jsoncpp'], stdout=subprocess.PIPE)
+		includedir, err = p.communicate()
+		if not err:
+			env.Append(CPPPATH = Dir(includedir.strip()))
+
 	RequiredPkgs = [
 	]
 	RequiredLibs = [
-				'jsoncpp',
-				'boost_system', 
-				'boost_program_options', 
-				'boost_filesystem', 
-				'boost_unit_test_framework',
-				'pthread', 
-				'rt', 
-				'dl',
+		'jsoncpp',
+		'boost_system', 
+		'boost_program_options', 
+		'boost_filesystem', 
+		'boost_unit_test_framework',
+		'pthread', 
+		'rt', 
+		'dl'
 	]
-
 
 	for required_lib in RequiredLibs:
 		if not config.CheckLib(required_lib):
@@ -103,11 +115,14 @@ if not GetOption("clean"):
 		else:
 			env.AddPkg(required_pkg)
 
-
 '''
 	Build dependencies first
 '''
-SConscript('third-party/SConscript', exports='env')
+if not env.GetOption('clean'):
+	SConscript('third-party/SConscript', exports='env')
+else:
+	if not ('lib' in COMMAND_LINE_TARGETS):
+		SConscript('third-party/SConscript', exports='env')
 
 '''
 	Build FogKV library (shared, static ones)
@@ -119,13 +134,35 @@ SConscript('build/SConscript', exports=['env', ])
 '''
 	Build examples
 '''
-SConscript('examples/SConscript', exports=['env', ])
+if not ('lib' in COMMAND_LINE_TARGETS):
+	SConscript('examples/SConscript', exports=['env', ])
+
+'''
+	Generate doxygen
+'''
+if GetOption('gen_doxygen'):
+	if find_executable("doxygen") is not None:
+		genDoxygen = env.Command('doxygen', "", 'cd %s && doxygen fogkv.Doxyfile' % Dir('#').abspath)
+		env.Alias('doc', genDoxygen)
+	else:
+		print ("Please install doxygen to generate documentation")
 
 env.Alias('install', '#bin')
+
 Depends('install', 'build')
 
 '''
 	Build and execute tests
 '''
-#todo @gjerecze fix for lcg
-SConscript('tests/SConscript', exports=['env', ])
+if 'tests' in COMMAND_LINE_TARGETS:
+	SConscript('tests/SConscript', exports=['env', ])
+
+if env.GetOption('clean'):
+	env.Clean('bin', Dir('#bin'))
+
+	if 'distclean' in COMMAND_LINE_TARGETS:
+		env.Clean("distclean",[
+			".sconsign.dblite",
+			".sconf_temp",
+			"config.log",
+			])

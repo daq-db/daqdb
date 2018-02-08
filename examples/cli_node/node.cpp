@@ -32,10 +32,10 @@
 
 #include <iostream>
 
-#include <boost/asio/io_service.hpp>
+#include <asio/io_service.hpp>
 #include <boost/bind.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/signal_set.hpp>
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -51,7 +51,6 @@ using boost::format;
 using namespace boost::algorithm;
 
 namespace po = boost::program_options;
-namespace as = boost::asio;
 
 #ifdef FOGKV_USE_LOG4CXX
 LoggerPtr loggerNode(Logger::getLogger( "dragon"));
@@ -119,9 +118,9 @@ main(int argc, const char *argv[])
 	}
 #endif
 
-	as::io_service io_service;
-	as::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(boost::bind(&boost::asio::io_service::stop, &io_service));
+	asio::io_service io_service;
+	asio::signal_set signals(io_service, SIGINT, SIGTERM);
+	signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
 
 	FogKV::Options options;
 	options.Runtime.io_service(&io_service);

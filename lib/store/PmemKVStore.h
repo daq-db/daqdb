@@ -32,8 +32,6 @@
 
 #pragma once
 
-#include <boost/filesystem.hpp>
-
 #include <pmemkv.h>
 
 #include "KVStore.h"
@@ -79,7 +77,7 @@ public:
 
 private:
 	bool _temporaryDb;
-	boost::filesystem::path _kvStoreFile;
+	string _kvStoreFile;
 	std::unique_ptr<pmemkv::KVEngine> _spStore;
 };
 

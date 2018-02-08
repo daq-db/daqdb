@@ -60,7 +60,7 @@ KVStoreBaseImpl::KVStoreBaseImpl(const Options &options):
 	mOptions(options), mKeySize(0)
 {
 	if (mOptions.Runtime.io_service() == nullptr)
-		m_io_service = new boost::asio::io_service();
+		m_io_service = new asio::io_service();
 
 	for (size_t i = 0; i < options.Key.nfields(); i++)
 		mKeySize += options.Key.field(i).Size;
@@ -93,15 +93,15 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name)
 		return std::to_string(mDhtNode->getDragonPort());
 	if (name == "fogkv.dht.peers") {
 		Json::Value peers;
-		boost::ptr_vector<FogKV::PureNode> peerNodes;
+		std::vector<FogKV::PureNode*> peerNodes;
 		mDhtNode->getPeerList(peerNodes);
 
 		int i = 0;
 		for (auto peer: peerNodes) {
-			peers[i]["id"] = std::to_string(peer.getDhtId());
-			peers[i]["port"] = std::to_string(peer.getPort());
-			peers[i]["ip"] = peer.getIp();
-			peers[i]["dht_port"] = std::to_string(peer.getDragonPort());
+			peers[i]["id"] = std::to_string(peer->getDhtId());
+			peers[i]["port"] = std::to_string(peer->getPort());
+			peers[i]["ip"] = peer->getIp();
+			peers[i]["dht_port"] = std::to_string(peer->getDragonPort());
 		}
 
 		Json::FastWriter writer;
@@ -201,7 +201,7 @@ Status KVStoreBaseImpl::init()
 	return Ok;
 }
 
-boost::asio::io_service &KVStoreBaseImpl::io_service()
+asio::io_service &KVStoreBaseImpl::io_service()
 {
 	if (mOptions.Runtime.io_service())
 		return *mOptions.Runtime.io_service();
