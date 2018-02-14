@@ -1,12 +1,19 @@
 import os
+from distutils.spawn import find_executable
 
 def AddPkg(self, pkg):
 	self.ParseConfig('pkg-config --cflags --libs \'%s\'' % pkg)
 
 AddMethod(Environment, AddPkg)
 
+'''
+	Scons input arguments
+'''
 AddOption('--lcg', dest='use_lcg_env', action='store_true',
 		  help='Use CERN LCG environment')
+AddOption('--doc', dest='gen_doxygen', action='store_true',
+		  help='Generate doxygen')
+
 
 env = Environment(ENV = os.environ)
 
@@ -64,7 +71,6 @@ env.Append(VERBOSE=ARGUMENTS.get('verbose', 0))
 config = Configure(env, custom_tests = {'CheckPkg': CheckPkg, 'CheckPkgConfig': CheckPkgConfig})
 
 if not GetOption("clean"):
-
 	if not config.CheckCXXHeader('boost/hana.hpp'):
 		env.Append(CPPFLAGS = ['-DHAS_BOOST_HANA=0'])
 	else:
@@ -76,14 +82,14 @@ if not GetOption("clean"):
 	RequiredPkgs = [
 	]
 	RequiredLibs = [
-				'jsoncpp',
-				'boost_system', 
-				'boost_program_options', 
-				'boost_filesystem', 
-				'boost_unit_test_framework',
-				'pthread', 
-				'rt', 
-				'dl',
+		'jsoncpp',
+		'boost_system', 
+		'boost_program_options', 
+		'boost_filesystem', 
+		'boost_unit_test_framework',
+		'pthread', 
+		'rt', 
+		'dl'
 	]
 
 
@@ -120,6 +126,16 @@ SConscript('build/SConscript', exports=['env', ])
 	Build examples
 '''
 SConscript('examples/SConscript', exports=['env', ])
+
+'''
+	Generate doxygen
+'''
+if GetOption('gen_doxygen'):
+	if find_executable("doxygen") is not None:
+		genDoxygen = env.Command('doxygen', "", 'cd %s && doxygen fogkv.Doxyfile' % Dir('#').abspath)
+		env.Alias('doc', genDoxygen)
+	else:
+		print ("Please install doxygen to generate documentation")
 
 env.Alias('install', '#bin')
 Depends('install', 'build')
