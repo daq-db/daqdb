@@ -49,7 +49,7 @@ env.Append(CPPFLAGS = [])
 	Paths for LCG
 '''
 if GetOption('use_lcg_env'):
-	env.Append(CPPPATH = [env['ENV']['CMAKE_PREFIX_PATH'] + '/include'])
+	env.Append(CPPPATH = [p + '/include' for p in env['ENV']['CMAKE_PREFIX_PATH'].split(':')])
 	env.Append(LIBPATH = env['ENV']['LD_LIBRARY_PATH'].split(':'))
 
 '''
