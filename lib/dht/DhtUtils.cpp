@@ -34,12 +34,9 @@
 
 #include <iostream>
 
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
-#include <boost/bind.hpp>
-
-namespace as = boost::asio;
+#include <asio/io_service.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/signal_set.hpp>
 
 namespace FogKV
 {
@@ -47,26 +44,26 @@ namespace utils
 {
 
 unsigned short
-getFreePort(as::io_service &io_service, const unsigned short backbonePort, bool reuseAddr)
+getFreePort(asio::io_service &io_service, const unsigned short backbonePort, bool reuseAddr)
 {
 	auto resultPort = backbonePort;
-	as::ip::tcp::acceptor acceptor(io_service);
-	boost::system::error_code checkPortErrorCode;
+	asio::ip::tcp::acceptor acceptor(io_service);
+	std::error_code checkPortErrorCode;
 
 	if (backbonePort) {
-		acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
+		acceptor.open(asio::ip::tcp::v4(), checkPortErrorCode);
 
 		if (reuseAddr) {
-			boost::asio::socket_base::reuse_address option(true);
+			asio::socket_base::reuse_address option(true);
 			acceptor.set_option(option);
 		}
 
-		acceptor.bind({as::ip::tcp::v4(), resultPort}, checkPortErrorCode);
+		acceptor.bind({asio::ip::tcp::v4(), resultPort}, checkPortErrorCode);
 		acceptor.close();
 	}
 	if (!backbonePort || checkPortErrorCode) {
-		acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
-		acceptor.bind({as::ip::tcp::v4(), 0}, checkPortErrorCode);
+		acceptor.open(asio::ip::tcp::v4(), checkPortErrorCode);
+		acceptor.bind({asio::ip::tcp::v4(), 0}, checkPortErrorCode);
 		resultPort = acceptor.local_endpoint().port();
 		acceptor.close();
 	}

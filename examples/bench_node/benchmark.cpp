@@ -32,11 +32,9 @@
 
 #include <iostream>
 
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
-#include <boost/bind.hpp>
-#include <boost/asio.hpp>
-#include <boost/format.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/signal_set.hpp>
+
 #include <boost/program_options.hpp>
 #include <chrono>
 
@@ -55,7 +53,6 @@ using namespace std;
 using namespace Fabric;
 
 namespace po = boost::program_options;
-namespace as = boost::asio;
 
 #ifdef FOGKV_USE_LOG4CXX
 LoggerPtr benchDragon(Logger::getLogger("benchmark"));
@@ -64,10 +61,7 @@ LoggerPtr benchDragon(Logger::getLogger("benchmark"));
 /*!
  *
  */
-void logCpuUsage(const boost::system::error_code&,
-		boost::asio::deadline_timer* cpuLogTimer, FogKV::CpuMeter* cpuMeter, FogKV::SimFogKV* simFog, Node* node) {
-
-//	cpuMeter->logCpuUsage(simFog);
+void logCpuUsage(asio::deadline_timer* cpuLogTimer, FogKV::CpuMeter* cpuMeter, FogKV::SimFogKV* simFog, Node* node) {
 
 	double txU = node->getAvgTxBuffUsage(true) * 100.0;
 	double rxU = node->getAvgRxBuffUsage(true) * 100.0;
@@ -79,8 +73,7 @@ void logCpuUsage(const boost::system::error_code&,
 	cpuLogTimer->expires_at(
 			cpuLogTimer->expires_at() + boost::posix_time::seconds(1));
 	cpuLogTimer->async_wait(
-			boost::bind(logCpuUsage, boost::asio::placeholders::error,
-					cpuLogTimer, cpuMeter, simFog, node));
+			std::bind(logCpuUsage, cpuLogTimer, cpuMeter, simFog, node));
 }
 
 int main(int argc, const char *argv[]) {
@@ -190,14 +183,14 @@ int main(int argc, const char *argv[]) {
 					+ (isMainNode ? std::string("Main") : std::string("Aux")));
 #endif
 
-	as::io_service io_service;
-	as::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(bind(&boost::asio::io_service::stop, &io_service));
+	asio::io_service io_service;
+	asio::signal_set signals(io_service, SIGINT, SIGTERM);
+	signals.async_wait(bind(&asio::io_service::stop, &io_service));
 
 	FogKV::CpuMeter cpuMeter(enableCSV);
 	FogKV::SimFogKV simFog(diskPath, diskBuffSize);
 
-	boost::asio::deadline_timer cpuLogTimer(io_service,
+	asio::deadline_timer cpuLogTimer(io_service,
 			boost::posix_time::seconds(1));
 
 	vector<char> buffer;
@@ -236,8 +229,7 @@ int main(int argc, const char *argv[]) {
 
 	if (cpuUsage) {
 		cpuLogTimer.async_wait(
-				boost::bind(logCpuUsage, boost::asio::placeholders::error,
-						&cpuLogTimer, &cpuMeter, &simFog, mainNode.get()));
+				std::bind(logCpuUsage, &cpuLogTimer, &cpuMeter, &simFog, mainNode.get()));
 	}
 
 #ifdef FOGKV_USE_LOG4CXX

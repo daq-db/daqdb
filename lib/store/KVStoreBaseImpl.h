@@ -81,9 +81,8 @@ protected:
 	Status init();
 	void registerProperties();
 
-	boost::asio::io_service &io_service();
-
-	boost::asio::io_service *m_io_service;
+	asio::io_service &io_service();
+	asio::io_service *m_io_service;
 
 	size_t mKeySize;
 	Options mOptions;

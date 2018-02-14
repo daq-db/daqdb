@@ -37,16 +37,16 @@
 namespace FogKV
 {
 
-SocketReqManager::SocketReqManager(boost::asio::io_service &io_service,
+SocketReqManager::SocketReqManager(asio::io_service &io_service,
 				   short port)
     : _io_service(io_service),
-      _socket(io_service, as::ip::udp::endpoint(as::ip::udp::v4(), port))
+      _socket(io_service, asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
 {
 	_socket.async_receive_from(
-		boost::asio::buffer(_data, max_length), _sender_endpoint,
-		boost::bind(&SocketReqManager::handle_receive_from, this,
-			    boost::asio::placeholders::error,
-			    boost::asio::placeholders::bytes_transferred));
+		asio::buffer(_data, max_length), _sender_endpoint,
+		std::bind(&SocketReqManager::handle_receive_from, this,
+				std::placeholders::_1,
+				std::placeholders::_2));
 }
 
 SocketReqManager::~SocketReqManager()
@@ -54,40 +54,40 @@ SocketReqManager::~SocketReqManager()
 }
 
 void
-SocketReqManager::handle_receive_from(const boost::system::error_code &error,
+SocketReqManager::handle_receive_from(const std::error_code &error,
 				      size_t bytes_recvd)
 {
 	if (!error && bytes_recvd > 0) {
 		_socket.async_send_to(
-			boost::asio::buffer(_data, bytes_recvd),
+			asio::buffer(_data, bytes_recvd),
 			_sender_endpoint,
-			boost::bind(
+			std::bind(
 				&SocketReqManager::handle_send_to, this,
-				boost::asio::placeholders::error,
-				boost::asio::placeholders::bytes_transferred));
+				std::placeholders::_1,
+				std::placeholders::_2));
 
 		std::cout.write(_data, bytes_recvd);
 
 	} else {
 		_socket.async_receive_from(
-			boost::asio::buffer(_data, max_length),
+			asio::buffer(_data, max_length),
 			_sender_endpoint,
-			boost::bind(
+			std::bind(
 				&SocketReqManager::handle_receive_from, this,
-				boost::asio::placeholders::error,
-				boost::asio::placeholders::bytes_transferred));
+				std::placeholders::_1,
+				std::placeholders::_2));
 	}
 }
 
 void
-SocketReqManager::handle_send_to(const boost::system::error_code &error,
+SocketReqManager::handle_send_to(const std::error_code &error,
 				 size_t bytes_sent)
 {
 	_socket.async_receive_from(
-		boost::asio::buffer(_data, max_length), _sender_endpoint,
-		boost::bind(&SocketReqManager::handle_receive_from, this,
-			    boost::asio::placeholders::error,
-			    boost::asio::placeholders::bytes_transferred));
+		asio::buffer(_data, max_length), _sender_endpoint,
+		std::bind(&SocketReqManager::handle_receive_from, this,
+				std::placeholders::_1,
+				std::placeholders::_2));
 }
 
 } /* namespace Node */

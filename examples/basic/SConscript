@@ -9,7 +9,8 @@ clinode_env.Append(CPPFLAGS = env['CPPFLAGS'])
 clinode_env.Append(CPPPATH = env['CPPPATH'])
 clinode_env.Append(LIBPATH = env['LIBPATH'])
 clinode_env.Append(LINKFLAGS = env['LINKFLAGS'])
-clinode_env.Append(RPATH = env['RPATH'])
+if 'RPATH' in env:
+    clinode_env.Append(RPATH = env['RPATH'])
 
 clinode_libs = ["pthread",
                 "log4cxx",

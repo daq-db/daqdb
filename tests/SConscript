@@ -3,8 +3,8 @@ Import('env')
 test_sources = [
     Glob('*.cpp'),
     Glob('dht/*.cpp'),
-    Glob('fabric/*.cpp'),
-    Glob('store/*.cpp')
+    Glob('store/*.cpp'),
+    # Glob('fabric/*.cpp'),
     ]
 
 fogkvTests = env.Program('fogkv_test',
@@ -26,10 +26,10 @@ fogkvTests = env.Program('fogkv_test',
 env.Install('#bin', [fogkvTests])
 
 logging_option = ' --color_output=yes'
-if env["VERBOSE"]:
+if GetOption('verbose'):
 	logging_option += ' --log_level=all'
 
-test_alias = Alias('test', [fogkvTests], 'cd %s && ./fogkv_test %s' % (Dir('#bin').abspath, logging_option))
+test_alias = env.Command(['fogkvTests'], "", 'cd %s && ./fogkv_test %s' % (Dir('#bin').abspath, logging_option))
 Depends(test_alias, 'install')
 
 AlwaysBuild(test_alias)

@@ -33,7 +33,7 @@
 #pragma once
 
 #include <vector>
-#include <boost/asio/io_service.hpp>
+#include <asio/io_service.hpp>
 
 #include <FogKV/Types.h>
 
@@ -79,17 +79,17 @@ struct KeyDescriptor {
 };
 
 struct RuntimeOptions {
-	void io_service(boost::asio::io_service *io_service)
+	void io_service(asio::io_service *io_service)
 	{
 		_io_service = io_service;
 	}
 
-	boost::asio::io_service *io_service()
+	asio::io_service *io_service()
 	{
 		return _io_service;
 	}
 
-	boost::asio::io_service *_io_service;
+	asio::io_service *_io_service;
 };
 
 struct DhtOptions {
