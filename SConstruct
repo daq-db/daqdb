@@ -18,7 +18,6 @@ AddOption('--doc', dest='gen_doxygen', action='store_true',
 AddOption('--verbose', dest='verbose', action='store_true',
 		  help='Prints all test messages')
 
-
 env = Environment(ENV = os.environ)
 
 def CheckPkgConfig(ctx, version = None):
@@ -136,6 +135,16 @@ SConscript('build/SConscript', exports=['env', ])
 '''
 if not ('lib' in COMMAND_LINE_TARGETS):
 	SConscript('examples/SConscript', exports=['env', ])
+
+'''
+	Generate doxygen
+'''
+if GetOption('gen_doxygen'):
+	if find_executable("doxygen") is not None:
+		genDoxygen = env.Command('doxygen', "", 'cd %s && doxygen fogkv.Doxyfile' % Dir('#').abspath)
+		env.Alias('doc', genDoxygen)
+	else:
+		print ("Please install doxygen to generate documentation")
 
 '''
 	Generate doxygen
