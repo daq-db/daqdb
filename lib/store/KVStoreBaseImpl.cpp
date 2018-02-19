@@ -38,22 +38,127 @@
 
 namespace FogKV {
 
-KVStoreBase *KVStoreBase::Open(const Options &options, Status *status)
+KVStoreBase *KVStoreBase::Open(const Options &options)
 {
-	return KVStoreBaseImpl::Open(options, status);
+	return KVStoreBaseImpl::Open(options);
 }
 
-KVStoreBase *KVStoreBaseImpl::Open(const Options &options, Status *status)
+KVStoreBase *KVStoreBaseImpl::Open(const Options &options)
 {
 	KVStoreBaseImpl *kvs = new KVStoreBaseImpl(options);
 
-	*status = kvs->init();
-	if (status->ok())
+	Status s = kvs->init();
+	if (s.ok())
 		return dynamic_cast<KVStoreBase *>(kvs);
 
 	delete kvs;
 
-	return nullptr;
+	throw OperationFailedException(s);
+}
+
+size_t KVStoreBaseImpl::KeySize()
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+const Options & KVStoreBaseImpl::getOptions()
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::Put(Key &&key, Value &&value, const PutOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb, const PutOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb, const GetOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::Update(const Key &key, Value &&value, const UpdateOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::UpdateAsync(const Key &key, const Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end, const GetOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::GetRangeAsync(const Key &beg, const Key &end, KVStoreBaseRangeCallback cb, const GetOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::Remove(const Key &key)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+Value KVStoreBaseImpl::Alloc(size_t size, const AllocOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::Free(Value &&value)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::Realloc(Value &value, size_t size, const AllocOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::ChangeOptions(Value &value, const AllocOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+Key KVStoreBaseImpl::AllocKey(const AllocOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::Free(Key &&key)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
 }
 
 KVStoreBaseImpl::KVStoreBaseImpl(const Options &options):
@@ -110,90 +215,6 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name)
 	return "";
 }
 
-const Options & KVStoreBaseImpl::getOptions()
-{
-	return mOptions;
-}
-
-Status KVStoreBaseImpl::Put(const char *key, const char *value, size_t size)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::Put(const char *key, KVBuff *buff)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::PutAsync(const char *key, const char *value, size_t size, KVStoreBaseCallback cb)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::PutAsync(const char *key, KVBuff *buff, KVStoreBaseCallback cb)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::Get(const char *key, char *value, size_t *size)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::Get(const char *key, std::vector<char> &value)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::Get(const char *key, KVBuff *buff)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::Get(const char *key, KVBuff **buff)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::GetAsync(const char *key, KVStoreBaseCallback cb)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::GetRange(const char *beg, const char *end, std::vector<KVPair> &result)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::GetRangeAsync(const char *beg, const char *end, KVStoreBaseRangeCallback cb)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-KVBuff *KVStoreBaseImpl::Alloc(size_t size, const AllocOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-void KVStoreBaseImpl::Free(KVBuff *buff)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-KVBuff *KVStoreBaseImpl::Realloc(KVBuff *buff, size_t size, const AllocOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::Remove(const char *key)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Status KVStoreBaseImpl::RemoveRange(const char *beg, const char *end)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
 
 Status KVStoreBaseImpl::init()
 {
@@ -207,4 +228,5 @@ asio::io_service &KVStoreBaseImpl::io_service()
 		return *mOptions.Runtime.io_service();
 	return *m_io_service;
 }
+
 } // namespace FogKV

@@ -158,18 +158,29 @@ void nodeCli::cmdGet(std::string &strLine) {
 			cout << "Error: key size is " << _spKVStore->KeySize() << endl;
 			return;
 		}
-
-		vector<char> value;
-		auto actionStatus = _spKVStore->Get(key.c_str(), value);
-		if (actionStatus.ok()) {
-			string valuestr(value.begin(), value.end());
-			cout << format("[%1%] = %2%\n") % key % valuestr;
-		} else if (actionStatus() == FogKV::KeyNotFound) {
-			cout << format("[%1%] not found\n") % key;
-		} else {
-			cout << "Error: cannot get element" << endl;
+		FogKV::Key keyBuff;
+		try {
+			keyBuff = _spKVStore->AllocKey();
+		} catch (FogKV::OperationFailedException e) {
+			cout << "Error: cannot allocate key buffer" << endl;
+			return;
 		}
 
+		FogKV::Value value;
+		try {
+			std::memcpy(keyBuff.data(), key.c_str(), key.size());
+		       	value = _spKVStore->Get(keyBuff);
+			string valuestr(value.data());
+			cout << format("[%1%] = %2%\n") % key % valuestr;
+		} catch (FogKV::OperationFailedException e) {
+			if (e.status()() == FogKV::KeyNotFound) {
+				cout << format("[%1%] not found\n") % key;
+			} else {
+				cout << "Error: cannot get element: " << e.status().to_string() << endl;
+			}
+		}
+
+		_spKVStore->Free(std::move(keyBuff));
 	}
 }
 
@@ -186,15 +197,36 @@ void nodeCli::cmdPut(std::string &strLine) {
 			return;
 		}
 
-		auto value = arguments[2];
-		auto actionStatus = _spKVStore->Put(key.c_str(), value.c_str(),
-				value.size());
-		if (actionStatus.ok()) {
-			cout << format("Put: [%1%] = %2%\n") % key % value;
-		} else {
-			cout << "Error: cannot put element" << endl;
+		FogKV::Key keyBuff;
+		try {
+			keyBuff = _spKVStore->AllocKey();
+			std::memcpy(keyBuff.data(), key.c_str(), key.size());
+		} catch (...) {
+			cout << "Error: cannot allocate key buffer" << endl;
+			return;
 		}
 
+		auto value = arguments[2];
+
+		FogKV::Value valBuff;
+		try {
+		       	valBuff = _spKVStore->Alloc(value.size());
+			std::memcpy(valBuff.data(), value.c_str(), value.size());
+		} catch (...) {
+			cout << "Error: cannot allocate value buffer" << endl;
+			_spKVStore->Free(std::move(keyBuff));
+			return;
+		}
+
+		try {
+			_spKVStore->Put(std::move(keyBuff), std::move(valBuff));
+			cout << format("Put: [%1%] = %2%\n") % key % value;
+		} catch (FogKV::OperationFailedException e) {
+			cout << "Error: cannot put element: " << e.status().to_string() << endl;
+
+			_spKVStore->Free(std::move(keyBuff));
+			_spKVStore->Free(std::move(valBuff));
+		}
 	}
 }
 
@@ -205,14 +237,26 @@ void nodeCli::cmdRemove(std::string &strLine) {
 	if (arguments.size() != 2) {
 		cout << "Error: expects one argument" << endl;
 	} else {
+
 		auto key = arguments[1];
-		auto actionStatus = _spKVStore->Remove(key.c_str());
-		if (actionStatus.ok()) {
+		FogKV::Key keyBuff;
+		try {
+			keyBuff = _spKVStore->AllocKey();
+			std::memcpy(keyBuff.data(), key.c_str(), key.size());
+		} catch (...) {
+			cout << "Error: cannot allocate key buffer" << endl;
+			return;
+		}
+
+		try {
+			_spKVStore->Remove(keyBuff);
 			cout << format("Remove: [%1%]\n") % key;
-		} else if (actionStatus() == FogKV::KeyNotFound) {
-			cout << format("[%1%] not found\n") % key;
-		} else {
-			cout << "Error: cannot remove element" << endl;
+		} catch (FogKV::OperationFailedException e){
+			if (e.status()() == FogKV::KeyNotFound) {
+				cout << format("[%1%] not found\n") % key;
+			} else {
+				cout << "Error: cannot remove element" << endl;
+			}
 		}
 	}
 }

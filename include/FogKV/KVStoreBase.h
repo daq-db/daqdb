@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2017-2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,8 @@
 #include <string>
 #include "FogKV/Status.h"
 #include "FogKV/Options.h"
-#include "FogKV/KVBuff.h"
+#include "FogKV/Key.h"
+#include "FogKV/Value.h"
 #include "FogKV/KVPair.h"
 #include <functional>
 
@@ -61,7 +62,9 @@ namespace FogKV {
  */
 class KVStoreBase {
 public:
-	using KVStoreBaseCallback = std::function<void (KVStoreBase *kvs, Status status, const char *key, const KVBuff &buff)>;
+	using KVStoreBasePutCallback = std::function<void (KVStoreBase *kvs, Status status, const Key &key, const Value &value)>;
+	using KVStoreBaseGetCallback = std::function<void (KVStoreBase *kvs, Status status, const Key &key, Value value)>;
+	using KVStoreBaseUpdateCallback = std::function<void (KVStoreBase *kvs, Status status, const Key &key, const Value &value)>;
 	using KVStoreBaseRangeCallback = std::function<void (KVStoreBase *kvs, Status status, std::vector<KVPair> &results)>;
 
 	/**
@@ -72,12 +75,10 @@ public:
 	 *
 	 * @param[in] options Required options parameter which contains KV Store
 	 * configuration and runtime options.
-	 * @param[out] status If not nullptr, will contain a status code if error
-	 * occured. Otherwise Ok value is stored.
 	 *
 	 * @snippet basic/basic.cpp open
 	 */
-	static KVStoreBase *Open(const Options &options, Status *status);
+	static KVStoreBase *Open(const Options &options);
 public:
 
 	/**
@@ -103,148 +104,178 @@ public:
 	virtual std::string getProperty(const std::string &name) = 0;
 
 	/**
-	 * Synchronously insert a value for a given key. 
+	 * Synchronously insert a value for a given key.
 	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
+	 * @note The ownership of key and value buffers are transferred to the KVStoreBase object.
 	 *
-	 * @param[in] key Pointer to a key structure.
-	 * @param[in] value Pointer to a value.
-	 * @param[in] size Size of value.
+	 * @param[in] key Rvalue reference to key buffer.
+	 * @param[in] value Rvalue reference to value buffer
+	 * @param[in] options Put opration options.
 	 *
-	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp put_sync_char
-	 */
-	virtual Status Put(const char *key, const char *value, size_t size) = 0;
-
-	/**
-	 * Synchronously insert a value for a given key. 
-	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
-	 *
-	 * @param[in] key Pointer to a key structure.
-	 * @param[in] buff Pointer to Value buffer structure. The buff cannot be used anymore.
+	 * @throw OperationFailedException if any error occured XXX
 	 *
 	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp put_sync_buff
+	 * @snippet basic/basic.cpp put
 	 */
-	virtual Status Put(const char *key, KVBuff *buff) = 0;
-
-	/**
-	 * Asynchronously insert a value for a given key.
-	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
-	 *
-	 * @param[in] key Pointer to a key structure.
-	 * @param[in] value Pointer to a value.
-	 * @param[in] size Size of value.
-	 * @param[in] cb Callback function. Will be called when the operation completes.
-	 *
-	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp put_async_char
-	 */
-	virtual Status PutAsync(const char *key, const char *value, size_t size, KVStoreBaseCallback cb) = 0;
+	virtual void Put(Key &&key, Value &&value, const PutOptions &options = PutOptions()) = 0;
 
 	/**
 	 * Asynchronously insert a value for a given key. 
 	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
+	 * @note The ownership of key and value buffers are transferred to the KVStoreBase object.
 	 *
-	 * @param[in] key Pointer to a key structure.
-	 * @param[in] buff Pointer to Value buffer structure. The buff cannot be used anymore.
+	 * @param[in] key Rvalue reference to key buffer.
+	 * @param[in] value Rvalue reference to value buffer
 	 * @param[in] cb Callback function. Will be called when the operation completes with results passed in arguments.
+	 * @param[in] options Put operation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
 	 *
 	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp put_async_buff
+	 * @snippet basic/basic.cpp put_async
 	 */
-	virtual Status PutAsync(const char *key, KVBuff *buff, KVStoreBaseCallback cb) = 0;
+	virtual void PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb, const PutOptions &options = PutOptions()) = 0;
 
 	/**
 	 * Synchronously get a value for a given key.
 	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
+	 * @return On success returns allocated buffer with value. The caller is responsible of releasing the buffer.
 	 *
-	 * @param[in] key Pointer to a key structure.
-	 * @param[out] value Vector of bytes with value for a given key.
+	 * @param[in] key Reference to a key structure.
+	 * @param[in] options Get operation options.
 	 *
-	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp get_sync_vector
-	 */
-	virtual Status Get(const char *key, std::vector<char> &value) = 0;
-
-	/**
-	 * Synchronously get a value for a given key.
-	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
-	 *
-	 * @param[in] key Pointer to a key structure.
-	 * @param[out] value Pointer to a pointer to a key-Value buffer structure. On success
-	 * the buffer is allocated. The caller is responsible of releasing the buffer using Free method.
-	 * Otherwise the buff is left untouched.
+	 * @throw OperationFailedException if any error occured XXX
 	 *
 	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp get_sync_buff_ptr
+	 * @snippet basic/basic.cpp get
 	 */
-	virtual Status Get(const char *key, KVBuff **value) = 0;
+	virtual Value Get(const Key &key, const GetOptions &options = GetOptions()) = 0;
 
 	/**
 	 * Asynchronously get a value for a given key.
 	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
-	 *
-	 * @param[in] key Pointer to a key structure.
+	 * @param[in] key Reference to a key structure.
 	 * @param[in] cb Callback function. Will be called when the operation completes with results passed in arguments.
+	 * @param[in] options Get operation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
 	 *
 	 * @snippet basic/basic.cpp key_struct 
 	 * @snippet basic/basic.cpp get_async
 	 */
-	virtual Status GetAsync(const char *key, KVStoreBaseCallback cb) = 0;
+	virtual void GetAsync(const Key &key, KVStoreBaseGetCallback cb, const GetOptions &options = GetOptions()) = 0;
+
+	/**
+	 * Update value and (optionally) options for a given key.
+	 *
+	 * @note The ownership of the value buffer is transferred to the KVStoreBase object.
+	 *
+	 * @param[in] key Reference to a key buffer.
+	 * @param[in] value Rvalue reference to a value buffer.
+	 * @param[in] options Update operation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
+	 *
+	 * @snippet basic/basic.cpp key_struct
+	 * @snippet basic/basic.cpp update_value
+	 */
+	virtual void Update(const Key &key, Value &&value, const UpdateOptions &options = UpdateOptions()) = 0;
+
+	/**
+	 * Update options for a given key.
+	 *
+	 * @param[in] key Reference to a key buffer.
+	 * @param[in] options Update operation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
+	 *
+	 * @snippet basic/basic.cpp key_struct
+	 * @snippet basic/basic.cpp update_options
+	 */
+	virtual void Update(const Key &key, const UpdateOptions &options) = 0;
+
+	/**
+	 * Asynchronously update value and (optionally) options for a given key.
+	 *
+	 * @note The ownership of the value buffer is transferred to the KVStoreBase object.
+	 * 
+	 * @param[in] key Reference to a key buffer.
+	 * @param[in] value Rvalue reference to a value buffer.
+	 * @param[in] cb Callback function. Will be called when the operation completes with results passed in arguments.
+	 * @param[in] options Update operation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
+	 *
+	 * @snippet basic/basic.cpp key_struct
+	 * @snippet basic/basic.cpp update_async_value
+	 */
+	virtual void UpdateAsync(const Key &key, const Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options = UpdateOptions()) = 0;
+
+	/**
+	 * Asynchronously update options for a given key.
+	 *
+	 * @note The ownership of the value buffer is transferred to the KVStoreBase object.
+	 * 
+	 * @param[in] key Reference to a key buffer.
+	 * @param[in] cb Callback function. Will be called when the operation completes with results passed in arguments.
+	 * @param[in] options Update operation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
+	 *
+	 * @snippet basic/basic.cpp key_struct
+	 * @snippet basic/basic.cpp update_async_options
+	 */
+	virtual void UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb) = 0;
 
 	/**
 	 * Synchronously get values for a given range of keys.
 	 *
 	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
 	 *
-	 * @param[in] beg Pointer to a key structure representing the beginning of a range.
-	 * @param[in] end Pointer to a key structure representing the end of a range.
-	 * @param[out] result Vector of KVPair elements each representing a key and a value found for a given range.
+	 * @param[in] beg key representing the beginning of a range.
+	 * @param[in] end key representing the end of a range.
+	 * @param[in] options Get operation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
 	 *
 	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp get_range_sync
+	 * @snippet basic/basic.cpp get_range
 	 */
-	virtual Status GetRange(const char *beg, const char *end, std::vector<KVPair> &result) = 0;
+	virtual std::vector<KVPair> GetRange(const Key &beg, const Key &end, const GetOptions &options = GetOptions()) = 0;
 
 	/**
 	 * Aynchronously get values for a given range of keys.
 	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
-	 *
-	 * @param[in] beg Pointer to a key structure representing the beginning of a range.
-	 * @param[in] end Pointer to a key structure representing the end of a range.
+	 * @param[in] beg key representing the beginning of a range.
+	 * @param[in] end key representing the end of a range.
 	 * @param[in] cb Callback function. Will be called when the operation completes with results passed in arguments.
+	 * @param[in] options Get operation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
 	 *
 	 * @snippet basic/basic.cpp key_struct 
 	 * @snippet basic/basic.cpp get_range_async
 	 */
-	virtual Status GetRangeAsync(const char *beg, const char *end, KVStoreBaseRangeCallback cb) = 0;
+	virtual void GetRangeAsync(const Key &beg, const Key &end, KVStoreBaseRangeCallback cb, const GetOptions &options = GetOptions()) = 0;
 
 	/**
-	 * Synchronously remove a value for a given key.
-	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
+	 * Synchronously remove a key-value store entry for a given key.
 	 *
 	 * @param[in] key Pointer to a key structure.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
 	 */
-	virtual Status Remove(const char *key) = 0;
+	virtual void Remove(const Key &key) = 0;
 
 	/**
-	 * Synchronously remove values for a given range of key.
-	 *
-	 * @return On success returns Ok, on failure returns a value indicating an error occurred.
+	 * Synchronously remove key-value store entries for a given range of keys.
 	 *
 	 * @param[in] beg Pointer to a key structure representing the beginning of a range.
 	 * @param[in] end Pointer to a key structure representing the end of a range.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
 	 */
-	virtual Status RemoveRange(const char *beg, const char *end) = 0;
+	virtual void RemoveRange(const Key &beg, const Key &end) = 0;
 
 	/**
 	 * Allocate a Value buffer of a given size.
@@ -254,28 +285,66 @@ public:
 	 * @param[in] size Size of allocation.
 	 * @param[in] options Allocation options.
 	 */
-	virtual KVBuff *Alloc(size_t size, const AllocOptions &options = AllocOptions()) = 0;
+	virtual Value Alloc(size_t size, const AllocOptions &options = AllocOptions()) = 0;
 
 	/**
 	 * Deallocate a Value buffer.
 	 *
-	 * @param[in] buff KV buffer. If not allocated by current instance of KVStoreBase the behaviour is undefined.
+	 * @param[in] value Value buffer. If not allocated by current instance of KVStoreBase the behaviour is undefined.
 	 */
-	virtual void Free(KVBuff *buff) = 0;
+	virtual void Free(Value &&value) = 0;
 
 	/**
 	 * Reallocate a Value buffer.
 	 *
-	 * @returns On success returns a pointer to reallocated KV buffer and this can be different than buff. Otherwise returns nullptr.
+	 * @param[in] value KV buffer to be reallocated. If buff is nullptr this call is equivalent to Alloc.
+	 * @param[in] size New size of a Value buffer. If the size is 0 and buff is not nullptr, this call is equivalent to Free.
+	 * @param[in] options New options for a Value buffer.
 	 *
-	 * @param[in] buff KV buffer to be reallocated. If buff is nullptr this call is equivalent to Alloc.
-	 * @param[in] size New size of a KV buffer. If the size is 0 and buff is not nullptr, this call is equivalent to Free.
-	 * @param[in] options New options for a KV buffer.
+	 * @throw OperationFailedException if any error occured XXX
 	 *
 	 * @note It is possible to modify the options of an allocation without changing a size, by passing the same size.
 	 *
 	 */
-	virtual KVBuff *Realloc(KVBuff *buff, size_t size, const AllocOptions &options = AllocOptions()) = 0;
+	virtual void Realloc(Value &value, size_t size, const AllocOptions &options = AllocOptions()) = 0;
+
+	/**
+	 * Change allocation options of the given Value buffer.
+	 *
+	 * @param[in] value Value buffer.
+	 * @param[in] options Allocation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
+	 *
+	 */
+	virtual void ChangeOptions(Value &value, const AllocOptions &options) = 0;
+
+	/**
+	 * Allocate a Key buffer
+	 *
+	 * @return On success returns a pointer to allocated Key buffer. Otherwise returns nullptr.
+	 *
+	 * @param[in] options Allocation options.
+	 */
+	virtual Key AllocKey(const AllocOptions &options = AllocOptions()) = 0;
+
+	/**
+	 * Deallocate a Key buffer.
+	 *
+	 * @param[in] key Key buffer. If not allocated by current instance of KVStoreBase the behaviour is undefined.
+	 */
+	virtual void Free(Key &&key) = 0;
+
+	/**
+	 * Change allocation options of the given Key buffer.
+	 *
+	 * @param[in] key Key buffer.
+	 * @param[in] options Allocation options.
+	 *
+	 * @throw OperationFailedException if any error occured XXX
+	 *
+	 */
+	virtual void ChangeOptions(Key &key, const AllocOptions &options) = 0;
 };
 
 } // namespace FogKV

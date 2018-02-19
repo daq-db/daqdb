@@ -32,91 +32,15 @@
 
 #pragma once
 
-#include <vector>
-#include <asio/io_service.hpp>
-
-#include <FogKV/Types.h>
-
 namespace FogKV {
 
-struct AllocOptions {
-};
-
-struct UpdateOptions {
-};
-
-struct PutOptions {
-};
-
-struct GetOptions {
-};
-
-struct KeyFieldDescriptor {
-	KeyFieldDescriptor() : Size(0) {}
-	size_t Size;
-};
-
-struct KeyDescriptor {
-
-	size_t nfields() const
-	{
-		return _fields.size();
-	}
-
-	void field(size_t idx, size_t size)
-	{
-		if (nfields() <= idx)
-			_fields.resize(idx + 1);
-
-		_fields[idx].Size = size;
-	}
-	
-	KeyFieldDescriptor field(size_t idx) const
-	{
-		if (nfields() <= idx)
-			return KeyFieldDescriptor();
-
-		return _fields[idx];
-	}
-
-	void clear()
-	{
-		_fields.clear();
-	}
-
-	std::vector<KeyFieldDescriptor> _fields;
-};
-
-struct RuntimeOptions {
-	void io_service(asio::io_service *io_service)
-	{
-		_io_service = io_service;
-	}
-
-	asio::io_service *io_service()
-	{
-		return _io_service;
-	}
-
-	asio::io_service *_io_service;
-};
-
-struct DhtOptions {
-	unsigned short Port;
-	NodeId Id;
-};
-
-struct Options {
+class Value {
 public:
-	Options() { }
-	Options(const std::string &path);
-
-	KeyDescriptor Key;
-	RuntimeOptions Runtime;
-	DhtOptions Dht;
-
-	// TODO move to struct ?
-	unsigned short Port;
+	char *data() { return _data; }
+	size_t size() { return _size; }
+protected:
+	char *_data;
+	size_t _size;
 };
 
 } // namespace FogKV
