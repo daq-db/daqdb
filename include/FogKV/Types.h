@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2017-2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,14 @@ public:
 	NotImplementedException(): logic_error("Not Implemented") {}
 };
 
-
+class OperationFailedException : public std::exception {
+public:
+	OperationFailedException(Status s) :
+		_status(s) { }
+	OperationFailedException() :
+		_status(UnknownError) { }
+	Status status() { return _status; }
+	Status _status;
+};
 
 } // namespace FogKV

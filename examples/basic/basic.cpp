@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2017-2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,10 +36,6 @@
 #include <cstring>
 #include <limits>
 
-#if HAS_BOOST_HANA
-#include "FogKV/KVStore.h"
-#endif
-
 // ![key_struct]
 
 struct Key {
@@ -70,258 +66,184 @@ struct Key3 {
 	uint64_t event_id;
 };
 
-#if HAS_BOOST_HANA
-BOOST_HANA_ADAPT_STRUCT(Key, subdetector_id, run_id, event_id);
-BOOST_HANA_ADAPT_STRUCT(Key2, run_id, event_id);
-#endif
-
 int KVStoreBaseExample()
 {
+	// Open KV store
+	//! [open]
 	FogKV::Options options;
 
-	/*
-	 * key : {
-	 *	size: 16,
-	 *	fields : [
-	 *		{
-	 *			size: 	2,
-	 *		},
-	 *		{
-	 *			size:	2,
-	 *		},
-	 *		{
-	 *			size:	8,
-	 *		},
-	 *	],
-	 * },
-	 */
+	// Configure key structure
 	options.Key.field(0, sizeof(Key::subdetector_id));
 	options.Key.field(1, sizeof(Key::run_id));
 	options.Key.field(2, sizeof(Key::event_id));
-
-	// Open KV store
-	//! [open]
 	
-	FogKV::Status s;
-	FogKV::KVStoreBase *kvs = FogKV::KVStoreBase::Open(options, &s);
-	if (!s.ok()) {
+	FogKV::KVStoreBase *kvs;
+	try {
+		kvs = FogKV::KVStoreBase::Open(options);
+	} catch (FogKV::OperationFailedException &e) {
 		// error
-		return -1;
+		// e.status()
 	}
 
 	// success
 
 	//! [open]
 
-// Put using (char *) for key and value
-{
-	// ![put_sync_char]
-	
-	Key key(1, 1, 1);
-	char *keyp = reinterpret_cast<char *>(&key);
-	char data[256] = {0, };
+	//! [put]
+	try {
+		FogKV::Key key = kvs->AllocKey();
 
-	s = kvs->Put(keyp, data, sizeof(data));
-	assert(s.ok());
+		// Fill the key
+		Key *keyp = reinterpret_cast<Key *>(key.data());
+		keyp->subdetector_id = 1;
+		keyp->run_id = 2;
+		keyp->event_id = 3;
 
-	// ![put_sync_char]
-}
+		FogKV::Value value = kvs->Alloc(1024);
 
-// Put using user-defined key structure for key and preallocated
-// buffer. The Put with such a buffer is zero-copy operation as the
-// buffer is allocated from persistent memory.
-// The user is _not_ allowed to use the buffer after Put operation.
-{
-	// ![put_sync_buff]
-	
-	FogKV::KVBuff *buff = kvs->Alloc(256);
+		// Fil the value buffer
+		std::memset(value.data(), 0, value.size());
 
-	std::memset(buff->data(), 0, buff->size());
-
-	Key key(1, 1, 2);
-	char *keyp = reinterpret_cast<char *>(&key);
-
-	s = kvs->Put(keyp, buff);
-	assert(s.ok());
-
-	// ![put_sync_buff]
-}
-
-// Asynchronous put
-{
-	// ![put_async_char]
-
-	Key key(1, 1, 5);
-	char *keyp = reinterpret_cast<char *>(&key);
-	char data[256] = {0, };
-
-
-	s = kvs->PutAsync(keyp, data, sizeof(data), [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key, const FogKV::KVBuff &buff) {
-		if (!status.ok())
-			return;
-		// Done
-	});
-
-	// ![put_async_char]
-}
-
-{
-	// ![put_async_buff]
-
-	FogKV::KVBuff *buff = kvs->Alloc(256);
-
-	std::memset(buff->data(), 0, buff->size());
-
-	Key key(1, 1, 5);
-	char *keyp = reinterpret_cast<char *>(&key);
-
-	s = kvs->PutAsync(keyp, buff, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key, const FogKV::KVBuff &buff) {
-		if (!status.ok())
-			return;
-		// Done
-	});
-
-	// ![put_async_buff]
-}
-
-// Get using (char *) as a key and std::vector as a value.
-{
-	// ![get_sync_vector]
-
-	Key key(1, 1, 3);
-	char *keyp = reinterpret_cast<char *>(&key);
-
-	std::vector<char> value;
-	s = kvs->Get(keyp, value);
-	assert(s.ok());
-
-	// ![get_sync_vector]
-}
-
-// Get using (char *) as a key and KVBuff
-{
-	// ![get_sync_buff_ptr]
-	
-	Key key(1, 1, 3);
-	char *keyp = reinterpret_cast<char *>(&key);
-
-	FogKV::KVBuff *value;
-	s = kvs->Get(keyp, &value);
-
-	// ![get_sync_buff_ptr]
-}
-
-// Asynchronous get
-{
-	// ![get_async]
-	
-	Key key(1, 1, 3);
-	char *keyp = reinterpret_cast<char *>(&key);
-
-	s = kvs->GetAsync(keyp, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key, const FogKV::KVBuff &buff) {
-		if (!status.ok())
-			return;
-		// Done
-	});
-
-	// ![get_async]
-}
-
-// Get range
-{
-	// ![get_range_sync]
-	
-	Key beg(1, std::numeric_limits<uint16_t>::min(), 1);
-	char *begp = reinterpret_cast<char *>(&beg);
-
-	Key end(1, std::numeric_limits<uint16_t>::max(), 3);
-	char *endp = reinterpret_cast<char *>(&end);
-	
-	std::vector<FogKV::KVPair> result;
-
-	s = kvs->GetRange(begp, endp, result);
-
-	for (auto kv: result) {
-		// kv.key();
-		// kv.value();
+		// Put operation, transfer ownership of key and value buffers to library
+		kvs->Put(std::move(key), std::move(value));
+	} catch (...) {
+		// error 
 	}
+	//! [put]
 
-	// ![get_range_sync]
-}
+	//! [put_async]
+	try {
+		FogKV::Key key = kvs->AllocKey();
 
-// Asynchronous Get range
-{
-	// ![get_range_async]
-	
-	Key beg(1, std::numeric_limits<uint16_t>::min(), 1);
-	char *begp = reinterpret_cast<char *>(&beg);
-	Key end(1, std::numeric_limits<uint16_t>::max(), 3);
-	char *endp = reinterpret_cast<char *>(&end);
+		// Fill the key
+		Key *keyp = reinterpret_cast<Key *>(key.data());
+		keyp->subdetector_id = 1;
+		keyp->run_id = 2;
+		keyp->event_id = 3;
 
-	s = kvs->GetRangeAsync(begp, endp, [&] (FogKV::KVStoreBase *kvs, FogKV::Status status, std::vector<FogKV::KVPair> &result) {
-		if (!status.ok())
-			return;
 
-		for (auto kv: result) {
-			// kv.key();
-			// kv.value();
+		FogKV::Value value = kvs->Alloc(1024);
+
+		// Fill the value buffer
+		std::memset(value.data(), 0, value.size());
+
+		// Asynchronous Put operation, transfer ownership of key and value buffers to library
+		kvs->PutAsync(std::move(key), std::move(value),
+			[&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
+				const FogKV::Key &key, const FogKV::Value &val) {
+			if (!status.ok()) {
+				// error
+				return;
+			}
+
+		});
+	} catch (...) {
+		// error 
+	}
+	//! [put_async]
+
+	//! [get]
+	try {
+		
+		FogKV::Key key = kvs->AllocKey();
+
+		// Fill the key
+		Key *keyp = reinterpret_cast<Key *>(key.data());
+		keyp->subdetector_id = 1;
+		keyp->run_id = 2;
+		keyp->event_id = 3;
+
+
+		// Get operation, the caller becomes the owner of a local copy
+		// of the value. The caller must free both key and value buffers by itself, or
+		// transfer the ownership in another call.
+		FogKV::Value value;
+		try {
+			value = kvs->Get(key);
+		} catch (...) {
+			// error
+			kvs->Free(std::move(key));
 		}
-	});
 
-	// ![get_range_async]
-}
-}
+		// success, process the data and free the buffers
+		kvs->Free(std::move(key));
+		kvs->Free(std::move(value));
+	} catch (...) {
+		// error 
+	}
+	//! [get]
 
-#if HAS_BOOST_HANA
-int KVStoreExample()
-{
-	FogKV::Options options;
+	//! [get_async]
+	try {
+		FogKV::Key key = kvs->AllocKey();
 
-	/*
-	 * key : {
-	 *	size: 16,
-	 *	fields : [
-	 *		{
-	 *			size: 	2,
-	 *		},
-	 *		{
-	 *			size:	2,
-	 *		},
-	 *		{
-	 *			size:	8,
-	 *		},
-	 *	],
-	 * },
-	 */
-	options.Key.field(0, sizeof(Key::subdetector_id));
-	options.Key.field(1, sizeof(Key::run_id));
-	options.Key.field(2, sizeof(Key::event_id));
+		// Fill the key
+		Key *keyp = reinterpret_cast<Key *>(key.data());
+		keyp->subdetector_id = 1;
+		keyp->run_id = 2;
+		keyp->event_id = 3;
 
-	// or with boost::hana
-	FogKV::Set<Key>(options.Key);
+		try {
+			kvs->GetAsync(key,
+				[&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
+					const FogKV::Key &key, FogKV::Value value) {
 
-	// Open KV store
-	FogKV::Status s;
-       	FogKV::KVStore<Key> *kvs = FogKV::KVStore<Key>::Open(options, &s);
-	if (!s.ok()) {
-		// error
-		return 1;
+				if (!status.ok()) {
+					// error
+					return;
+				}
+
+				// process value
+				
+				// free the value buffer
+				kvs->Free(std::move(value));
+			});
+		} catch (FogKV::OperationFailedException exc) {
+			// error, status in:
+			// exc.status();
+			kvs->Free(std::move(key));
+		}
+	} catch (...) {
+		// error 
+	}
+	//! [get_async]
+
+	{
+		//! [update_value]
+		// TODO
+		//! [update_value]
 	}
 
 	{
-		FogKV::KVBuff *buff = kvs->Alloc(256);
-
-		std::memset(buff->data(), 0, buff->size());
-
-		s = kvs->Put(Key(1, 1, 2), buff);
+		//! [update_options]
+		// TODO
+		//! [update_options]
 	}
 
 	{
-		std::vector<char> value;
-		s = kvs->Get(Key(1, 1, 3), value);
+		//! [update_async_value]
+		// TODO
+		//! [update_async_value]
+	}
+
+	{
+		//! [update_async_options]
+		// TODO
+		//! [update_async_options]
+	}
+
+	{
+		//! [get_range]
+		// TODO
+		//! [get_range]
+	}
+
+	{
+		//! [get_range_async]
+		// TODO
+		//! [get_range_async]
 	}
 }
-#endif
 
 int main()
 {

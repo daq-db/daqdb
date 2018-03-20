@@ -129,10 +129,11 @@ main(int argc, const char *argv[])
 	options.Port = inputPort;
 	options.Key.field(0, sizeof(KeyType));
 
-	FogKV::Status status;
-	shared_ptr<FogKV::KVStoreBase> spKVStore(FogKV::KVStoreBase::Open(options, &status));
-	if (!status.ok()) {
-		cerr << "Failed to create KVStore: " << status.to_string() << endl;
+	shared_ptr<FogKV::KVStoreBase> spKVStore;
+	try {
+		spKVStore = shared_ptr<FogKV::KVStoreBase>(FogKV::KVStoreBase::Open(options));
+	} catch (FogKV::OperationFailedException e) {
+		cerr << "Failed to create KVStore: " << e.status().to_string() << endl;
 		return -1;
 	}
 

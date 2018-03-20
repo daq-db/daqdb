@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2017-2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,11 +34,13 @@
 
 namespace FogKV {
 
-class KVBuff {
+class Key {
 public:
-	virtual const char *data() const  = 0;
-	virtual char *data() = 0;
-	virtual size_t size() const = 0;
+	char *data() { return _data; }
+	size_t size() { return _size; }
+protected:
+	char *_data;
+	size_t _size;
 };
 
 } // namespace FogKV
