@@ -63,11 +63,14 @@ public:
 	int operator()();
 
 private:
-	void cmdGet(std::string &strLine);
-	void cmdPut(std::string &strLine);
-	void cmdRemove(std::string &strLine);
+	void cmdGet(const std::string &strLine);
+	void cmdPut(const std::string &strLine);
+	void cmdRemove(const std::string &strLine);
 	void cmdStatus();
-	void cmdNodeStatus(std::string &strLine);
+	void cmdNodeStatus(const std::string &strLine);
+
+	FogKV::Key strToKey(const std::string &key);
+	FogKV::Value strToValue(const std::string &val);
 
 	std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
 

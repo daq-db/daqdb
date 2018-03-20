@@ -36,7 +36,10 @@ namespace FogKV {
 
 class Key {
 public:
+	Key() : _data(nullptr), _size(0) {}
+	Key(char *data, size_t size) : _data(data), _size(size) {}
 	char *data() { return _data; }
+	const char *data() const { return _data; }
 	size_t size() { return _size; }
 protected:
 	char *_data;

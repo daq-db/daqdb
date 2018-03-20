@@ -35,6 +35,7 @@
 #include <json/json.h>
 #include "common.h"
 #include "../dht/DhtUtils.h"
+#include <future>
 
 namespace FogKV {
 
@@ -58,37 +59,83 @@ KVStoreBase *KVStoreBaseImpl::Open(const Options &options)
 
 size_t KVStoreBaseImpl::KeySize()
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	return mKeySize;
 }
 
 const Options & KVStoreBaseImpl::getOptions()
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	return mOptions;
 }
 
-void KVStoreBaseImpl::Put(Key &&key, Value &&value, const PutOptions &options)
+void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	std::unique_lock<std::mutex> l(mLock);
+
+	std::string keyStr(key.data(), mKeySize);
+	std::string valStr(val.data(), val.size());
+	KVStatus s = mPmemkv->Put(keyStr, valStr);
+	Free(std::move(key));
+	Free(std::move(val));
+	if (s != OK)
+		throw OperationFailedException(InvalidArgument);
 }
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb, const PutOptions &options)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	std::async(std::launch::async, [&] {
+		try {
+			Put(std::move(key), std::move(value));
+			cb(this, Ok, key, value);
+		} catch (OperationFailedException e) {
+			cb(this, e.status(), key, value);
+		}
+	});
 }
 
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	std::unique_lock<std::mutex> l(mLock);
+
+	std::string keyStr(key.data(), mKeySize);
+	std::string valStr;
+	KVStatus s = mPmemkv->Get(keyStr, &valStr);
+	if (s != OK) {
+		if (s == NOT_FOUND)
+			throw OperationFailedException(KeyNotFound);
+
+		throw OperationFailedException(InvalidArgument);
+	}
+
+	Value value(new char [valStr.length() + 1], valStr.length() + 1);
+	std::memcpy(value.data(), valStr.c_str(), value.size());
+	value.data()[value.size() - 1] = '\0';
+	return value;
 }
 
 void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb, const GetOptions &options)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	std::async(std::launch::async, [&] {
+		try {
+			Value val = Get(key);
+			cb(this, Ok, key, val);
+		} catch (OperationFailedException e) {
+			Value val;
+			cb(this, e.status(), key, val);
+		}
+	});
 }
 
-void KVStoreBaseImpl::Update(const Key &key, Value &&value, const UpdateOptions &options)
+void KVStoreBaseImpl::Update(const Key &key, Value &&val, const UpdateOptions &options)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	std::unique_lock<std::mutex> l(mLock);
+
+	std::string keyStr(key.data(), mKeySize);
+	std::string valStr(val.data(), val.size());
+	KVStatus s = mPmemkv->Put(keyStr, valStr);
+	Free(std::move(val));
+
+	if (s != OK)
+		throw OperationFailedException(InvalidArgument);
 }
 
 void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options)
@@ -96,9 +143,16 @@ void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options)
 	throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::UpdateAsync(const Key &key, const Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options)
+void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	std::async(std::launch::async, [&] {
+		try {
+			Update(key, std::move(value));
+			cb(this, Ok, key, value);
+		} catch (OperationFailedException e) {
+			cb(this, e.status(), key, value);
+		}
+	});
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb)
@@ -118,7 +172,16 @@ void KVStoreBaseImpl::GetRangeAsync(const Key &beg, const Key &end, KVStoreBaseR
 
 void KVStoreBaseImpl::Remove(const Key &key)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	std::unique_lock<std::mutex> l(mLock);
+
+	std::string keyStr(key.data(), mKeySize);
+	KVStatus s = mPmemkv->Remove(keyStr);
+	if (s != OK) {
+		if (s == NOT_FOUND)
+			throw OperationFailedException(KeyNotFound);
+
+		throw OperationFailedException(InvalidArgument);
+	}
 }
 
 void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end)
@@ -128,12 +191,12 @@ void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end)
 
 Value KVStoreBaseImpl::Alloc(size_t size, const AllocOptions &options)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	return Value(new char[size], size);
 }
 
 void KVStoreBaseImpl::Free(Value &&value)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	delete [] value.data();
 }
 
 void KVStoreBaseImpl::Realloc(Value &value, size_t size, const AllocOptions &options)
@@ -148,12 +211,12 @@ void KVStoreBaseImpl::ChangeOptions(Value &value, const AllocOptions &options)
 
 Key KVStoreBaseImpl::AllocKey(const AllocOptions &options)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	return Key(new char[mKeySize], mKeySize);
 }
 
 void KVStoreBaseImpl::Free(Key &&key)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	delete [] key.data();
 }
 
 void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options)
@@ -176,11 +239,20 @@ KVStoreBaseImpl::KVStoreBaseImpl(const Options &options):
 	mDhtNode = make_unique<FogKV::CChordAdapter>(io_service(),
 			dhtPort, port,
 			getOptions().Dht.Id);
+
+	mPmemkv.reset(pmemkv::KVEngine::Open(
+			mOptions.KVEngine, mOptions.PMEM.Path, mOptions.PMEM.Size));
+
+	if (mPmemkv == nullptr)
+		throw OperationFailedException();
 }
 
 KVStoreBaseImpl::~KVStoreBaseImpl()
 {
 	mDhtNode.reset();
+
+	pmemkv::KVEngine::Close(mPmemkv.get());
+	mPmemkv.reset();
 
 	if (m_io_service)
 		delete m_io_service;
@@ -196,6 +268,12 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name)
 		return std::to_string(mDhtNode->getPort());
 	if (name == "fogkv.listener.dht_port")
 		return std::to_string(mDhtNode->getDragonPort());
+	if (name == "fogkv.pmem.path")
+		return mOptions.PMEM.Path;
+	if (name == "fogkv.pmem.size")
+		return std::to_string(mOptions.PMEM.Size);
+	if (name == "fogkv.KVEngine")
+		return mPmemkv->Engine();
 	if (name == "fogkv.dht.peers") {
 		Json::Value peers;
 		std::vector<FogKV::PureNode*> peerNodes;
@@ -215,10 +293,8 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name)
 	return "";
 }
 
-
 Status KVStoreBaseImpl::init()
 {
-
 	return Ok;
 }
 
