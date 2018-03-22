@@ -58,6 +58,8 @@ public:
 	virtual void UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb);
 	virtual std::vector<KVPair> GetRange(const Key &beg, const Key &end, const GetOptions &options = GetOptions());
 	virtual void GetRangeAsync(const Key &beg, const Key &end, KVStoreBaseRangeCallback cb, const GetOptions &options = GetOptions());
+	virtual Key GetAny(const GetOptions &options = GetOptions());
+	virtual void GetAnyAsync(KVStoreBaseGetAnyCallback cb, const GetOptions &options = GetOptions());
 	virtual void Remove(const Key &key);
 	virtual void RemoveRange(const Key &beg, const Key &end);
 	virtual Value Alloc(size_t size, const AllocOptions &options = AllocOptions());

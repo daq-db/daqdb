@@ -40,31 +40,13 @@
 
 struct Key {
 	Key() = default;
-	Key(uint16_t s, uint16_t r, uint64_t e) : subdetector_id(s), run_id(r), event_id(e) {}
+	Key(uint64_t e, uint16_t s, uint16_t r) : event_id(e), subdetector_id(s), run_id(r) {}
+	uint64_t event_id;
 	uint16_t subdetector_id;
 	uint16_t run_id;
-	uint64_t event_id;
 };
 
 // ![key_struct]
-
-struct Key1 {
-	uint16_t subdetector_id;
-	uint32_t run_id; // different size
-	uint64_t event_id;
-};
-
-struct Key2 {
-	// uint16_t subdetector_id;
-	uint32_t run_id; // different size
-	uint64_t event_id;
-};
-
-struct Key3 {
-	// uint16_t subdetector_id;
-	uint32_t run_id; // different size
-	uint64_t event_id;
-};
 
 int KVStoreBaseExample()
 {
@@ -73,9 +55,9 @@ int KVStoreBaseExample()
 	FogKV::Options options;
 
 	// Configure key structure
-	options.Key.field(0, sizeof(Key::subdetector_id));
-	options.Key.field(1, sizeof(Key::run_id));
-	options.Key.field(2, sizeof(Key::event_id));
+	options.Key.field(0, sizeof(Key::event_id), true); // primary key
+	options.Key.field(1, sizeof(Key::subdetector_id));
+	options.Key.field(2, sizeof(Key::run_id));
 	
 	FogKV::KVStoreBase *kvs;
 	try {
@@ -207,6 +189,41 @@ int KVStoreBaseExample()
 		// error 
 	}
 	//! [get_async]
+	
+
+	//! [get_any]
+	try {
+
+
+		FogKV::GetOptions getOptions;
+		getOptions.Attr = FogKV::READY;
+		getOptions.NewAttr = FogKV::LOCKED | FogKV::READY;
+
+		// get and lock any primary key which is in unlocked state
+		FogKV::Key keyBuff = kvs->GetAny(getOptions);
+		Key *key = reinterpret_cast<Key *>(keyBuff.data());
+
+		Key keyBeg(key->event_id,
+			std::numeric_limits<uint16_t>::min(),
+			std::numeric_limits<uint16_t>::min());
+
+		Key keyEnd(key->event_id,
+			std::numeric_limits<uint16_t>::max(),
+			std::numeric_limits<uint16_t>::max());
+
+		std::vector<FogKV::KVPair> range = kvs->GetRange(
+				FogKV::Key(reinterpret_cast<char *>(&keyBeg), sizeof(keyBeg)),
+				FogKV::Key(reinterpret_cast<char *>(&keyEnd), sizeof(keyEnd)));
+
+		for(auto kv: range) {
+			// or unlock and mark the primary key as ready
+			kvs->Update(kv.key(), FogKV::READY);
+		}
+
+	} catch (...) {
+		// error
+	}
+	//! [get_any]
 }
 
 int main()

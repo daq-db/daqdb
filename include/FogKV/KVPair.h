@@ -42,11 +42,11 @@ public:
 		return *reinterpret_cast<const T *>(key());
 	}
 
-	const char *key() const
+	Key key() const
 	{
 	}
 
-	const char *value() const
+	Value value() const
 	{
 	}
 

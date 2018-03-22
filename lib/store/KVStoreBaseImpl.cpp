@@ -125,6 +125,16 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb, const 
 	});
 }
 
+Key KVStoreBaseImpl::GetAny(const GetOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb, const GetOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
+}
+
 void KVStoreBaseImpl::Update(const Key &key, Value &&val, const UpdateOptions &options)
 {
 	std::unique_lock<std::mutex> l(mLock);

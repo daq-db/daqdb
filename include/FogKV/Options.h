@@ -39,31 +39,50 @@
 
 namespace FogKV {
 
+enum PrimaryKeyAttribute {
+	LOCKED = 0x1,
+	READY = 0x2,
+};
+
+inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a, PrimaryKeyAttribute b)
+{
+	return static_cast<PrimaryKeyAttribute>(static_cast<int>(a) | static_cast<int>(b));
+}
+
 struct AllocOptions {
 };
 
 struct UpdateOptions {
+	UpdateOptions() { }
+	UpdateOptions(PrimaryKeyAttribute attr) : Attr(attr) { }
+
+	PrimaryKeyAttribute Attr;
 };
 
 struct PutOptions {
 };
 
 struct GetOptions {
+	GetOptions() {}
+	GetOptions(PrimaryKeyAttribute attr, PrimaryKeyAttribute newAttr) : Attr(attr), NewAttr(newAttr) { }
+
+	PrimaryKeyAttribute Attr;
+	PrimaryKeyAttribute NewAttr;
 };
 
 struct KeyFieldDescriptor {
-	KeyFieldDescriptor() : Size(0) {}
+	KeyFieldDescriptor() : Size(0), IsPrimary(false) {}
 	size_t Size;
+	bool IsPrimary;
 };
 
 struct KeyDescriptor {
-
 	size_t nfields() const
 	{
 		return _fields.size();
 	}
 
-	void field(size_t idx, size_t size)
+	void field(size_t idx, size_t size, bool isPrimary = false)
 	{
 		if (nfields() <= idx)
 			_fields.resize(idx + 1);
