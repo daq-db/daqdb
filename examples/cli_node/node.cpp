@@ -70,6 +70,8 @@ main(int argc, const char *argv[])
 	unsigned short nodeId = 0;
 	auto dhtPort = dhtBackBonePort;
 	bool interactiveMode = false;
+	std::string pmem_path;
+	size_t pmem_size;
 
 #ifdef FOGKV_USE_LOG4CXX
 	log4cxx::ConsoleAppender *consoleAppender =
@@ -88,7 +90,10 @@ main(int argc, const char *argv[])
 			("dht,d", po::value<unsigned short>(&dhtPort), "DHT Communication port")
 			("nodeid,n", po::value<unsigned short>(&nodeId)->default_value(0) , "Node ID used to match database file. If not set DB file will be removed when node stopped.")
 			("interactive,i", "Enable interactive mode")
-			("log,l", "Enable logging");
+			("log,l", "Enable logging")
+			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
+			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
+			;
 
 	po::variables_map parsedArguments;
 	try {
@@ -127,6 +132,8 @@ main(int argc, const char *argv[])
 	options.Dht.Id = nodeId;
 	options.Dht.Port = dhtPort;
 	options.Port = inputPort;
+	options.PMEM.Path = pmem_path;
+	options.PMEM.Size = pmem_size;
 	options.Key.field(0, sizeof(KeyType));
 
 	shared_ptr<FogKV::KVStoreBase> spKVStore;

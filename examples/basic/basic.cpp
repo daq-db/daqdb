@@ -207,42 +207,6 @@ int KVStoreBaseExample()
 		// error 
 	}
 	//! [get_async]
-
-	{
-		//! [update_value]
-		// TODO
-		//! [update_value]
-	}
-
-	{
-		//! [update_options]
-		// TODO
-		//! [update_options]
-	}
-
-	{
-		//! [update_async_value]
-		// TODO
-		//! [update_async_value]
-	}
-
-	{
-		//! [update_async_options]
-		// TODO
-		//! [update_async_options]
-	}
-
-	{
-		//! [get_range]
-		// TODO
-		//! [get_range]
-	}
-
-	{
-		//! [get_range_async]
-		// TODO
-		//! [get_range_async]
-	}
 }
 
 int main()

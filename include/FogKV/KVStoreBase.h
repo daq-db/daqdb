@@ -176,8 +176,6 @@ public:
 	 *
 	 * @throw OperationFailedException if any error occured XXX
 	 *
-	 * @snippet basic/basic.cpp key_struct
-	 * @snippet basic/basic.cpp update_value
 	 */
 	virtual void Update(const Key &key, Value &&value, const UpdateOptions &options = UpdateOptions()) = 0;
 
@@ -189,8 +187,6 @@ public:
 	 *
 	 * @throw OperationFailedException if any error occured XXX
 	 *
-	 * @snippet basic/basic.cpp key_struct
-	 * @snippet basic/basic.cpp update_options
 	 */
 	virtual void Update(const Key &key, const UpdateOptions &options) = 0;
 
@@ -206,10 +202,8 @@ public:
 	 *
 	 * @throw OperationFailedException if any error occured XXX
 	 *
-	 * @snippet basic/basic.cpp key_struct
-	 * @snippet basic/basic.cpp update_async_value
 	 */
-	virtual void UpdateAsync(const Key &key, const Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options = UpdateOptions()) = 0;
+	virtual void UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options = UpdateOptions()) = 0;
 
 	/**
 	 * Asynchronously update options for a given key.
@@ -222,8 +216,6 @@ public:
 	 *
 	 * @throw OperationFailedException if any error occured XXX
 	 *
-	 * @snippet basic/basic.cpp key_struct
-	 * @snippet basic/basic.cpp update_async_options
 	 */
 	virtual void UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb) = 0;
 
@@ -238,8 +230,6 @@ public:
 	 *
 	 * @throw OperationFailedException if any error occured XXX
 	 *
-	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp get_range
 	 */
 	virtual std::vector<KVPair> GetRange(const Key &beg, const Key &end, const GetOptions &options = GetOptions()) = 0;
 
@@ -253,8 +243,6 @@ public:
 	 *
 	 * @throw OperationFailedException if any error occured XXX
 	 *
-	 * @snippet basic/basic.cpp key_struct 
-	 * @snippet basic/basic.cpp get_range_async
 	 */
 	virtual void GetRangeAsync(const Key &beg, const Key &end, KVStoreBaseRangeCallback cb, const GetOptions &options = GetOptions()) = 0;
 

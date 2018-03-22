@@ -37,6 +37,7 @@
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
 #include <pmemkv.h>
+#include <mutex>
 
 namespace FogKV {
 
@@ -53,7 +54,7 @@ public:
 	virtual void GetAsync(const Key &key, KVStoreBaseGetCallback cb, const GetOptions &options = GetOptions());
 	virtual void Update(const Key &key, Value &&value, const UpdateOptions &options = UpdateOptions());
 	virtual void Update(const Key &key, const UpdateOptions &options);
-	virtual void UpdateAsync(const Key &key, const Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options = UpdateOptions());
+	virtual void UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options = UpdateOptions());
 	virtual void UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb);
 	virtual std::vector<KVPair> GetRange(const Key &beg, const Key &end, const GetOptions &options = GetOptions());
 	virtual void GetRangeAsync(const Key &beg, const Key &end, KVStoreBaseRangeCallback cb, const GetOptions &options = GetOptions());
@@ -79,6 +80,8 @@ protected:
 	size_t mKeySize;
 	Options mOptions;
 	std::unique_ptr<FogKV::DhtNode> mDhtNode;
+	std::unique_ptr<pmemkv::KVEngine> mPmemkv;
+	std::mutex mLock;
 };
 
 } //namespace FogKV

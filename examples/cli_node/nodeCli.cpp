@@ -146,7 +146,7 @@ int nodeCli::operator()() {
 	return true;
 }
 
-void nodeCli::cmdGet(std::string &strLine) {
+void nodeCli::cmdGet(const std::string &strLine) {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
@@ -161,6 +161,8 @@ void nodeCli::cmdGet(std::string &strLine) {
 		FogKV::Key keyBuff;
 		try {
 			keyBuff = _spKVStore->AllocKey();
+			std::memset(keyBuff.data(), 0, keyBuff.size());
+			std::memcpy(keyBuff.data(), key.c_str(), key.size());
 		} catch (FogKV::OperationFailedException e) {
 			cout << "Error: cannot allocate key buffer" << endl;
 			return;
@@ -168,7 +170,6 @@ void nodeCli::cmdGet(std::string &strLine) {
 
 		FogKV::Value value;
 		try {
-			std::memcpy(keyBuff.data(), key.c_str(), key.size());
 		       	value = _spKVStore->Get(keyBuff);
 			string valuestr(value.data());
 			cout << format("[%1%] = %2%\n") % key % valuestr;
@@ -184,7 +185,22 @@ void nodeCli::cmdGet(std::string &strLine) {
 	}
 }
 
-void nodeCli::cmdPut(std::string &strLine) {
+FogKV::Key nodeCli::strToKey(const std::string &key)
+{
+	FogKV::Key keyBuff = _spKVStore->AllocKey();
+	std::memset(keyBuff.data(), 0, keyBuff.size());
+	std::memcpy(keyBuff.data(), key.c_str(), key.size());
+	return keyBuff;
+}
+
+FogKV::Value nodeCli::strToValue(const std::string &value)
+{
+	FogKV::Value valBuff = _spKVStore->Alloc(value.size() + 1);
+	std::memcpy(valBuff.data(), value.c_str(), value.size());
+	valBuff.data()[valBuff.size() - 1] = '\0';
+}
+
+void nodeCli::cmdPut(const std::string &strLine) {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
@@ -199,8 +215,7 @@ void nodeCli::cmdPut(std::string &strLine) {
 
 		FogKV::Key keyBuff;
 		try {
-			keyBuff = _spKVStore->AllocKey();
-			std::memcpy(keyBuff.data(), key.c_str(), key.size());
+			keyBuff = strToKey(key);
 		} catch (...) {
 			cout << "Error: cannot allocate key buffer" << endl;
 			return;
@@ -210,8 +225,9 @@ void nodeCli::cmdPut(std::string &strLine) {
 
 		FogKV::Value valBuff;
 		try {
-		       	valBuff = _spKVStore->Alloc(value.size());
+		       	valBuff = _spKVStore->Alloc(value.size() + 1);
 			std::memcpy(valBuff.data(), value.c_str(), value.size());
+			valBuff.data()[valBuff.size() - 1] = '\0';
 		} catch (...) {
 			cout << "Error: cannot allocate value buffer" << endl;
 			_spKVStore->Free(std::move(keyBuff));
@@ -230,7 +246,7 @@ void nodeCli::cmdPut(std::string &strLine) {
 	}
 }
 
-void nodeCli::cmdRemove(std::string &strLine) {
+void nodeCli::cmdRemove(const std::string &strLine) {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
@@ -241,8 +257,7 @@ void nodeCli::cmdRemove(std::string &strLine) {
 		auto key = arguments[1];
 		FogKV::Key keyBuff;
 		try {
-			keyBuff = _spKVStore->AllocKey();
-			std::memcpy(keyBuff.data(), key.c_str(), key.size());
+			keyBuff = strToKey(key);
 		} catch (...) {
 			cout << "Error: cannot allocate key buffer" << endl;
 			return;
@@ -291,7 +306,7 @@ void nodeCli::cmdStatus() {
 
 }
 
-void nodeCli::cmdNodeStatus(std::string &strLine) {
+void nodeCli::cmdNodeStatus(const std::string &strLine) {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 

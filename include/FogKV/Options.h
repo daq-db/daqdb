@@ -106,6 +106,11 @@ struct DhtOptions {
 	NodeId Id;
 };
 
+struct PMEMOptions {
+	std::string Path;
+	size_t Size;
+};
+
 struct Options {
 public:
 	Options() { }
@@ -117,6 +122,9 @@ public:
 
 	// TODO move to struct ?
 	unsigned short Port;
+
+	std::string KVEngine = "kvtree";
+	PMEMOptions PMEM;
 };
 
 } // namespace FogKV
