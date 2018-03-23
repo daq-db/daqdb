@@ -64,6 +64,7 @@ class KVStoreBase {
 public:
 	using KVStoreBasePutCallback = std::function<void (KVStoreBase *kvs, Status status, const Key &key, const Value &value)>;
 	using KVStoreBaseGetCallback = std::function<void (KVStoreBase *kvs, Status status, const Key &key, Value value)>;
+	using KVStoreBaseGetAnyCallback = std::function<void (KVStoreBase *kvs, Status status, const Key &key)>;
 	using KVStoreBaseUpdateCallback = std::function<void (KVStoreBase *kvs, Status status, const Key &key, const Value &value)>;
 	using KVStoreBaseRangeCallback = std::function<void (KVStoreBase *kvs, Status status, std::vector<KVPair> &results)>;
 
@@ -150,6 +151,27 @@ public:
 	 * @snippet basic/basic.cpp get
 	 */
 	virtual Value Get(const Key &key, const GetOptions &options = GetOptions()) = 0;
+
+	/**
+	 * Synchronously get any unlocked primary key. Other fields of the key are invalid.
+	 *
+	 * @return On success returns a Key of an unprocessed key.
+	 *
+	 * @param[in] options Operation options. 
+	 *
+	 * @snippet basic/basic.cpp key_struct 
+	 * @snippet basic/basic.cpp open
+	 * @snippet basic/basic.cpp get_any
+	 */
+	virtual Key GetAny(const GetOptions &options = GetOptions()) = 0;
+
+	/**
+	 * Asynchronously get any unlocked primary key. Other fields of the key are invalid.
+	 *
+	 * @param[in] options Operation options. 
+	 * @param[in] cb Callback function. Will be called when the operation completes.
+	 */
+	virtual void GetAnyAsync(KVStoreBaseGetAnyCallback cb, const GetOptions &options = GetOptions()) = 0;
 
 	/**
 	 * Asynchronously get a value for a given key.
