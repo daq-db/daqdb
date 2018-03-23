@@ -5,6 +5,34 @@ from distutils.spawn import find_executable
 def AddPkg(self, pkg):
 	self.ParseConfig('pkg-config --cflags --libs \'%s\'' % pkg)
 
+class SPDKConfig:
+	def __init__(self, mk):
+		self.Makefile = mk;
+		self.libs = list();
+		self.__parse_all();
+
+	def env_append(self, env):
+		env.Append(CPPFLAGS = self.CPPPATH)
+		env.Append(LINKFLAGS = self.LINKFLAGS)
+
+	def add_lib(self, lib):
+		self.libs.extend(lib);
+		self.__parse_all();
+
+	def __parse_all(self):
+		self.LINKFLAGS = self.__parse("LIBS") + self.__parse("SYS_LIBS") +  self.__parse("LDFLAGS");
+		self.CPPPATH = self.__parse("CPPPATH");
+	
+	def __parse(self, target):
+		cmd = ["make", "-s", "-f", self.Makefile, target];
+		if self.libs:
+			cmd = cmd + ["SPDK_LIB_LIST=\"{0}\"".format(" ".join(self.libs))];
+		process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+		(output, err) = process.communicate()
+		exit_code = process.wait()
+		if exit_code:
+			raise Exception("make failed");
+		return output.split();
 
 AddMethod(Environment, AddPkg)
 
@@ -19,6 +47,8 @@ AddOption('--verbose', dest='verbose', action='store_true',
 		  help='Prints all test messages')
 
 env = Environment(ENV = os.environ)
+
+env.spdk = SPDKConfig(Dir("#third-party").abspath + "/spdk.mk");
 
 def CheckPkgConfig(ctx, version = None):
 	if version:
