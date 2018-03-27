@@ -48,13 +48,9 @@ KVStoreBase *KVStoreBaseImpl::Open(const Options &options)
 {
 	KVStoreBaseImpl *kvs = new KVStoreBaseImpl(options);
 
-	Status s = kvs->init();
-	if (s.ok())
-		return dynamic_cast<KVStoreBase *>(kvs);
+	kvs->init();
 
-	delete kvs;
-
-	throw OperationFailedException(s);
+	return kvs;
 }
 
 size_t KVStoreBaseImpl::KeySize()
@@ -77,7 +73,7 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
 	Free(std::move(key));
 	Free(std::move(val));
 	if (s != OK)
-		throw OperationFailedException(InvalidArgument);
+		throw OperationFailedException(EINVAL);
 }
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb, const PutOptions &options)
@@ -103,7 +99,7 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
 		if (s == NOT_FOUND)
 			throw OperationFailedException(KeyNotFound);
 
-		throw OperationFailedException(InvalidArgument);
+		throw OperationFailedException(EINVAL);
 	}
 
 	Value value(new char [valStr.length() + 1], valStr.length() + 1);
@@ -135,7 +131,7 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val, const UpdateOptions &o
 	Free(std::move(val));
 
 	if (s != OK)
-		throw OperationFailedException(InvalidArgument);
+		throw OperationFailedException(EINVAL);
 }
 
 void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options)
@@ -180,7 +176,7 @@ void KVStoreBaseImpl::Remove(const Key &key)
 		if (s == NOT_FOUND)
 			throw OperationFailedException(KeyNotFound);
 
-		throw OperationFailedException(InvalidArgument);
+		throw OperationFailedException(EINVAL);
 	}
 }
 
@@ -232,19 +228,6 @@ KVStoreBaseImpl::KVStoreBaseImpl(const Options &options):
 
 	for (size_t i = 0; i < options.Key.nfields(); i++)
 		mKeySize += options.Key.field(i).Size;
-
-	auto dhtPort = getOptions().Dht.Port ? : FogKV::utils::getFreePort(io_service(), 0);
-	auto port = getOptions().Port ? : FogKV::utils::getFreePort(io_service(), 0);
-
-	mDhtNode = make_unique<FogKV::CChordAdapter>(io_service(),
-			dhtPort, port,
-			getOptions().Dht.Id);
-
-	mPmemkv.reset(pmemkv::KVEngine::Open(
-			mOptions.KVEngine, mOptions.PMEM.Path, mOptions.PMEM.Size));
-
-	if (mPmemkv == nullptr)
-		throw OperationFailedException();
 }
 
 KVStoreBaseImpl::~KVStoreBaseImpl()
@@ -293,9 +276,20 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name)
 	return "";
 }
 
-Status KVStoreBaseImpl::init()
+void KVStoreBaseImpl::init()
 {
-	return Ok;
+	auto dhtPort = getOptions().Dht.Port ? : FogKV::utils::getFreePort(io_service(), 0);
+	auto port = getOptions().Port ? : FogKV::utils::getFreePort(io_service(), 0);
+
+	mDhtNode.reset(new FogKV::CChordAdapter(io_service(),
+			dhtPort, port,
+			getOptions().Dht.Id));
+
+	mPmemkv.reset(pmemkv::KVEngine::Open(
+			mOptions.KVEngine, mOptions.PMEM.Path, mOptions.PMEM.Size));
+
+	if (mPmemkv == nullptr)
+		throw OperationFailedException(errno, ::pmemobj_errormsg());
 }
 
 asio::io_service &KVStoreBaseImpl::io_service()
