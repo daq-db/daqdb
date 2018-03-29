@@ -46,14 +46,34 @@ public:
 	NotImplementedException(): logic_error("Not Implemented") {}
 };
 
-class OperationFailedException : public std::exception {
+class OperationFailedException : public std::runtime_error {
 public:
-	OperationFailedException(Status s) :
-		_status(s) { }
-	OperationFailedException() :
-		_status(UnknownError) { }
+	OperationFailedException(Status s, const std::string &msg = "") :
+		runtime_error(msg),
+		_status(s) { set_what(); }
+	OperationFailedException(const std::string &msg = "") :
+		runtime_error(msg),
+		_status(UnknownError) { set_what(); }
+	OperationFailedException(int errnum, std::string msg = "") :
+		runtime_error(msg),
+		_status(errnum) { set_what(); }
+
+	virtual const char *what() const noexcept {
+		return _what.c_str();
+	}
+
 	Status status() { return _status; }
 	Status _status;
+	std::string _what;
+private:
+	void set_what() {
+		_what = runtime_error::what();
+
+		if (!_status.ok() &&
+			_what.find(_status.to_string()) == std::string::npos) {
+			_what += ": " + _status.to_string();
+		}
+	}
 };
 
 } // namespace FogKV

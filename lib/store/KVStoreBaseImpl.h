@@ -73,7 +73,7 @@ protected:
 	KVStoreBaseImpl(const Options &options);
 	virtual ~KVStoreBaseImpl();
 
-	Status init();
+	void init();
 	void registerProperties();
 
 	asio::io_service &io_service();
