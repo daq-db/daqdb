@@ -80,7 +80,6 @@ public:
 	 * @snippet basic/basic.cpp open
 	 */
 	static KVStoreBase *Open(const Options &options);
-public:
 
 	/**
 	 * Return the size of a key, which the KV store uses.
@@ -150,7 +149,7 @@ public:
 	 * @snippet basic/basic.cpp key_struct 
 	 * @snippet basic/basic.cpp get
 	 */
-	virtual Value Get(const Key &key, const GetOptions &options = GetOptions()) = 0;
+	virtual Value* Get(const Key &key, const GetOptions &options = GetOptions()) = 0;
 
 	/**
 	 * Synchronously get any unlocked primary key. Other fields of the key are invalid.
@@ -163,7 +162,7 @@ public:
 	 * @snippet basic/basic.cpp open
 	 * @snippet basic/basic.cpp get_any
 	 */
-	virtual Key GetAny(const GetOptions &options = GetOptions()) = 0;
+	virtual Key* GetAny(const GetOptions &options = GetOptions()) = 0;
 
 	/**
 	 * Asynchronously get any unlocked primary key. Other fields of the key are invalid.
@@ -295,7 +294,7 @@ public:
 	 * @param[in] size Size of allocation.
 	 * @param[in] options Allocation options.
 	 */
-	virtual Value Alloc(size_t size, const AllocOptions &options = AllocOptions()) = 0;
+	virtual Value* Alloc(size_t size, const AllocOptions &options = AllocOptions()) = 0;
 
 	/**
 	 * Deallocate a Value buffer.
@@ -336,7 +335,7 @@ public:
 	 *
 	 * @param[in] options Allocation options.
 	 */
-	virtual Key AllocKey(const AllocOptions &options = AllocOptions()) = 0;
+	virtual Key* AllocKey(const AllocOptions &options = AllocOptions()) = 0;
 
 	/**
 	 * Deallocate a Key buffer.

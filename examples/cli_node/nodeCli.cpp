@@ -42,6 +42,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <iostream>
 #include <map>
+#include <memory>
 
 using namespace std;
 using namespace boost::algorithm;
@@ -147,6 +148,7 @@ int nodeCli::operator()() {
 }
 
 void nodeCli::cmdGet(const std::string &strLine) {
+
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
@@ -158,20 +160,20 @@ void nodeCli::cmdGet(const std::string &strLine) {
 			cout << "Error: key size is " << _spKVStore->KeySize() << endl;
 			return;
 		}
-		FogKV::Key keyBuff;
+		std::unique_ptr <FogKV::Key> keyBuff;
 		try {
-			keyBuff = _spKVStore->AllocKey();
-			std::memset(keyBuff.data(), 0, keyBuff.size());
-			std::memcpy(keyBuff.data(), key.c_str(), key.size());
+			keyBuff.reset (_spKVStore->AllocKey());
+			std::memset(keyBuff->data(), 0, keyBuff->size());
+			std::memcpy(keyBuff->data(), key.c_str(), key.size());
 		} catch (FogKV::OperationFailedException e) {
 			cout << "Error: cannot allocate key buffer" << endl;
 			return;
 		}
 
-		FogKV::Value value;
+		std::shared_ptr <FogKV::Value> value;
 		try {
-		       	value = _spKVStore->Get(keyBuff);
-			string valuestr(value.data());
+			value.reset (_spKVStore->Get(*keyBuff.get()));
+			string valuestr(value->data());
 			cout << format("[%1%] = %2%\n") % key % valuestr;
 		} catch (FogKV::OperationFailedException e) {
 			if (e.status()() == FogKV::KeyNotFound) {
@@ -180,27 +182,26 @@ void nodeCli::cmdGet(const std::string &strLine) {
 				cout << "Error: cannot get element: " << e.status().to_string() << endl;
 			}
 		}
-
-		_spKVStore->Free(std::move(keyBuff));
 	}
 }
 
-FogKV::Key nodeCli::strToKey(const std::string &key)
+std::unique_ptr<FogKV::Key> nodeCli::strToKey(const std::string &key)
 {
-	FogKV::Key keyBuff = _spKVStore->AllocKey();
-	std::memset(keyBuff.data(), 0, keyBuff.size());
-	std::memcpy(keyBuff.data(), key.c_str(), key.size());
+	std::unique_ptr<FogKV::Key> keyBuff (_spKVStore->AllocKey());
+	std::memset(keyBuff->data(), 0, keyBuff->size());
+	std::memcpy(keyBuff->data(), key.c_str(), key.size());
 	return keyBuff;
 }
 
 FogKV::Value nodeCli::strToValue(const std::string &value)
 {
-	FogKV::Value valBuff = _spKVStore->Alloc(value.size() + 1);
-	std::memcpy(valBuff.data(), value.c_str(), value.size());
-	valBuff.data()[valBuff.size() - 1] = '\0';
+	std::unique_ptr<FogKV::Value> valBuff (_spKVStore->Alloc(value.size() + 1));
+	std::memcpy(valBuff->data(), value.c_str(), value.size());
+	valBuff->data()[valBuff->size() - 1] = '\0';
 }
 
 void nodeCli::cmdPut(const std::string &strLine) {
+
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
@@ -213,7 +214,7 @@ void nodeCli::cmdPut(const std::string &strLine) {
 			return;
 		}
 
-		FogKV::Key keyBuff;
+		std::unique_ptr<FogKV::Key> keyBuff;
 		try {
 			keyBuff = strToKey(key);
 		} catch (...) {
@@ -223,25 +224,21 @@ void nodeCli::cmdPut(const std::string &strLine) {
 
 		auto value = arguments[2];
 
-		FogKV::Value valBuff;
+		std::unique_ptr<FogKV::Value> valBuff;
 		try {
-		       	valBuff = _spKVStore->Alloc(value.size() + 1);
-			std::memcpy(valBuff.data(), value.c_str(), value.size());
-			valBuff.data()[valBuff.size() - 1] = '\0';
+			valBuff.reset(_spKVStore->Alloc(value.size() + 1));
+			std::memcpy(valBuff->data(), value.c_str(), value.size());
+			valBuff->data()[valBuff->size() - 1] = '\0';
 		} catch (...) {
 			cout << "Error: cannot allocate value buffer" << endl;
-			_spKVStore->Free(std::move(keyBuff));
 			return;
 		}
 
 		try {
-			_spKVStore->Put(std::move(keyBuff), std::move(valBuff));
+			_spKVStore->Put(std::move(*keyBuff.get()), std::move(*valBuff.get()));
 			cout << format("Put: [%1%] = %2%\n") % key % value;
 		} catch (FogKV::OperationFailedException e) {
 			cout << "Error: cannot put element: " << e.status().to_string() << endl;
-
-			_spKVStore->Free(std::move(keyBuff));
-			_spKVStore->Free(std::move(valBuff));
 		}
 	}
 }
@@ -255,7 +252,7 @@ void nodeCli::cmdRemove(const std::string &strLine) {
 	} else {
 
 		auto key = arguments[1];
-		FogKV::Key keyBuff;
+		std::unique_ptr<FogKV::Key> keyBuff;
 		try {
 			keyBuff = strToKey(key);
 		} catch (...) {
@@ -264,7 +261,7 @@ void nodeCli::cmdRemove(const std::string &strLine) {
 		}
 
 		try {
-			_spKVStore->Remove(keyBuff);
+			_spKVStore->Remove(*keyBuff.get());
 			cout << format("Remove: [%1%]\n") % key;
 		} catch (FogKV::OperationFailedException e){
 			if (e.status()() == FogKV::KeyNotFound) {
