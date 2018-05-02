@@ -1,2 +1,2 @@
 all:    mist.cpp
-	g++ -o mist mist.cpp -lconfig++
+	g++ -o mist mist.cpp config.cpp -lconfig++
