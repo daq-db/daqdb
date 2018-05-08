@@ -14,6 +14,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 set(3RDPARTY ${PROJECT_SOURCE_DIR}/third-party)
 set(EXAMPLES ${PROJECT_SOURCE_DIR}/examples)
+set(APPS ${PROJECT_SOURCE_DIR}/apps)
 
 find_package(PkgConfig)
 
@@ -57,3 +58,6 @@ add_subdirectory(tests)
 # Build example folder
 add_subdirectory(${EXAMPLES}/cli_node)
 add_subdirectory(${EXAMPLES}/basic)
+
+# Build apps folder
+add_subdirectory(${APPS}/minidaq)

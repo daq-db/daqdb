@@ -2,6 +2,7 @@
 /dragonTest
 /benchmark
 /dhtTest
+/minidaq
 examples/spdk_example/spdk_example
 doc_html
 libpmemkv.so
