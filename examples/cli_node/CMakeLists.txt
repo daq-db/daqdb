@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.5)
+
+project(clinode)
+
+include(FindPkgConfig)
+find_package(PkgConfig)
+
+set(CMAKE_CXX_STANDARD 14)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
+
+set(3RDPARTY ${PROJECT_SOURCE_DIR}/../../third-party)
+
+find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
+find_package(Threads REQUIRED)
+find_package(Jsoncpp)
+
+include_directories(${Jsoncpp_INCLUDE_DIR})
+
+include_directories(${3RDPARTY}/linenoise)
+add_library(linenoise SHARED ${3RDPARTY}/linenoise/linenoise.c ${3RDPARTY}/linenoise/linenoise.h)
+
+file(GLOB CLINODE_SOURCES ${EXAMPLES}/cli_node/*.cpp ${EXAMPLES}/cli_node/*.h)
+add_executable(clinode ${CLINODE_SOURCES})
+target_link_libraries(clinode ${Jsoncpp_LIBRARY} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} libfabric libpmemobj libpmem pmemkv fogkv linenoise)
+

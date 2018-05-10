@@ -17,3 +17,10 @@ config.log
 .pydevproject
 *.csv
 .*.swp
+CMakeCache.txt
+CMakeFiles
+Testing
+CTestTestfile.cmake
+DartConfiguration.tcl
+cmake_install.cmake
+Makefile
