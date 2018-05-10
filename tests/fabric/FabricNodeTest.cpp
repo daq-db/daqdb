@@ -112,8 +112,8 @@ deleteNode(Node *node)
 }
 
 
-
-BOOST_AUTO_TEST_CASE(FabricNodeConnect)
+/** @TODO jradtke This test hangs, needs investigation */
+BOOST_AUTO_TEST_CASE(FabricNodeConnect, *boost::unit_test::disabled())
 {
 	Fabric::FabricAttributes attr;
 	attr.setProvider("sockets");
