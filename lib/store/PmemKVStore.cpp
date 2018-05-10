@@ -36,8 +36,6 @@ using namespace std;
 
 #include "PmemKVStore.h"
 
-namespace bf = boost::filesystem;
-
 namespace
 {
 const string pmemKvEngine = "kvtree";
@@ -53,17 +51,13 @@ PmemKVStore::PmemKVStore(int nodeId, const bool temporaryDb)
 	_kvStoreFile += to_string(nodeId);
 
 	this->_spStore.reset(pmemkv::KVEngine::Open(
-		pmemKvEngine, _kvStoreFile.string(), PMEMOBJ_MIN_POOL));
+		pmemKvEngine, _kvStoreFile, PMEMOBJ_MIN_POOL));
 }
 
 PmemKVStore::~PmemKVStore()
 {
-	try {
-		if (isTemporaryDb()) {
-			bf::remove(_kvStoreFile);
-		}
-	} catch (bf::filesystem_error &e) {
-		//! @todo jradtke Do we need logger?
+	if (isTemporaryDb()) {
+		std::remove (_kvStoreFile.c_str());
 	}
 }
 

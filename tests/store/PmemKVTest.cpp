@@ -51,26 +51,26 @@ const string pmemKvPath = "/dev/shm/forkv_test_pmemkv";
 
 BOOST_AUTO_TEST_SUITE(KVStoreTests)
 
-BOOST_AUTO_TEST_CASE(KVStoreTests_PutGetRemove, *ut::description(""))
+BOOST_AUTO_TEST_CASE(KVStoreTests_PutGetRemove)
 {
 	std::unique_ptr<KVEngine> spPmemKV(KVEngine::Open(
 		pmemKvEngine, pmemKvPath, PMEMOBJ_MIN_POOL));
 
 	auto actionStatus = spPmemKV->Put("key1", "value1");
 
-	BOOST_TEST(actionStatus == OK, "Put item to pmemKV store");
+	BOOST_CHECK(actionStatus == OK);
 
 	string resultValue;
 	actionStatus = spPmemKV->Get("key1", &resultValue);
 
-	BOOST_TEST(actionStatus == KVStatus::OK, "Get item from pmemKV store");
-	BOOST_TEST(resultValue == "value1");
+	BOOST_CHECK(actionStatus == KVStatus::OK);
+	BOOST_CHECK(resultValue == "value1");
 
 	actionStatus = spPmemKV->Remove("key1");
-	BOOST_TEST(actionStatus == KVStatus::OK, "Remove item from pmemKV store");
+	BOOST_CHECK(actionStatus == KVStatus::OK);
 
 	actionStatus = spPmemKV->Get("key1", &resultValue);
-	BOOST_TEST(actionStatus == KVStatus::NOT_FOUND, "Check if item removed from pmemKV store");
+	BOOST_CHECK(actionStatus == KVStatus::NOT_FOUND);
 
 	boost::filesystem::remove(pmemKvPath);
 }

@@ -38,7 +38,7 @@ namespace ut = boost::unit_test;
 
 BOOST_AUTO_TEST_SUITE(SocketReqManagerTests)
 
-BOOST_AUTO_TEST_CASE(SocketReqManager_BasicCommunication, *ut::description(""))
+BOOST_AUTO_TEST_CASE(SocketReqManager_BasicCommunication)
 {
 }
 

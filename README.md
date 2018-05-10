@@ -31,13 +31,15 @@ The dependencies can be installed automatically by scripts/pkgdep.sh.
 ```
 Following libraries are required:
 <ul>
-<li>boost-devel (1.63+)</li>
-<li>boost-test (1.63+)</li>
+<li>asio-devel</li>
 <li>libjsoncpp</li>
 </ul>
-Following libraries are optional:
+Following libraries are optional (needed for examples and unit tests):
 <ul>
+<li>boost-devel (1.63+)</li>
+<li>boost-test (1.63+)</li>
 <li>log4cxx-devel (log4cxx-dev)</li>
+<li>doxygen</li>
 </ul>
 
 ##### LCG
@@ -58,9 +60,15 @@ ls /cvmfs/grid.cern.ch
 Invoke scons with the following parameters:
 
 ```
-scons                 # build everything
-scons -c              # remove build files
-scons --lcg           # build against CERN LCG (environment must be set)
+scons                     # build lib and examples
+scons lib                 # build lib only
+scons tests               # build and execute unit tests
+scons -c                  # remove build files
+scons -c distclean        # remove build files, including scons cache
+scons -c lib              # remove build files, exclude dependencies (third-party)
+scons --lcg               # build against CERN LCG (environment must be set)
+scons --doc               # build lib and examples & generate doxygen documentation
+scons --verbose           # prints all test messages
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
 
@@ -73,15 +81,6 @@ It may happen that there are some conflicting python paths when using local scon
 ```
 /cvmfs/sft.cern.ch/lcg/views/LCG_87/x86_64-centos7-gcc62-opt/bin/python /usr/bin/scons --lcg
 ```
-
-#### Unit Tests
-
-Invoke scons with the following parameters:
-```
-scons test            # execute unit tests
-scons test verbose=1  # execute unit tests, prints all test messages
-```
-
 <a name="execution"></a>
 ## Execution
 

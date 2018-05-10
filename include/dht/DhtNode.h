@@ -32,12 +32,8 @@
 
 #pragma once
 
-#include <boost/asio/io_service.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
-
+#include <asio/io_service.hpp>
 #include <dht/PureNode.h>
-
-namespace as = boost::asio;
 
 namespace FogKV
 {
@@ -47,7 +43,7 @@ namespace FogKV
  */
 class DhtNode : public PureNode {
 public:
-	DhtNode(as::io_service &io_service, unsigned short port, unsigned short dragonPort);
+	DhtNode(asio::io_service &io_service, unsigned short port, unsigned short dragonPort);
 	virtual ~DhtNode();
 
 	/*!
@@ -64,7 +60,7 @@ public:
 	 * @return number of peer nodes
 	 */
 	virtual unsigned int
-		getPeerList(boost::ptr_vector<PureNode>& peerNodes) = 0;
+		getPeerList(std::vector<PureNode*>& peerNodes) = 0;
 
 	/*!
 	 * Triggers dragon aggregation table update.
