@@ -61,7 +61,7 @@ ls /cvmfs/grid.cern.ch
 ```
 cd ${fogKVpath}
 cmake .
-make
+make -j$(nproc)
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
 
@@ -81,7 +81,7 @@ If using LCG release, set the desired environment first:
 ```
 cd ${fogKVpath}
 cmake .
-make
+make -j$(nproc)
 ctest
 ```
 
@@ -92,17 +92,21 @@ ctest
 ```
 ./cli-node -h
 Options:
-  -h [ --help ]            Print help messages
-  -p [ --port ] arg        Node Communication port
-  -d [ --dht ] arg         DHT Communication port
-  -n [ --nodeid ] arg (=0) Node ID used to match database file. If not set DB 
-                           file will be removed when node stopped.
-  -i [ --interactive ]     Enable interactive mode
-  -l [ --log ]             Enable logging
+  -h [ --help ]                         Print help messages
+  -p [ --port ] arg                     Node Communication port
+  -d [ --dht ] arg                      DHT Communication port
+  -n [ --nodeid ] arg (=0)              Node ID used to match database file. If
+                                        not set DB file will be removed when 
+                                        node stopped.
+  -i [ --interactive ]                  Enable interactive mode
+  -l [ --log ]                          Enable logging
+  --pmem-path arg (=/mnt/pmem/pmemkv.dat)
+                                        pmemkv persistent memory pool file
+  --pmem-size arg (=536870912)          pmemkv persistent memory pool size
 ```
 
 To enter interactive mode execute cli-node with `--interactive` flag.
-
+(Remember to allow writing to /mnt/pmem/ if not changing default --pmem-path)
 ```
 ./cli_node -i
 DHT node (id=107) is running on 127.0.0.1:11000
