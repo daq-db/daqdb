@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
 
+# cchord
 set(CCHORD ${PROJECT_SOURCE_DIR}/cChord)
 set(CCHORD_INCLUDES ${CCHORD}/engine/helper
 	${CCHORD}/engine/helper/crypto/
@@ -22,13 +23,7 @@ include_directories(${CCHORD_INCLUDES})
 file(GLOB_RECURSE CCHORD_SOURCES ${CCHORD}/engine/*.cpp ${CCHORD}/engine/*.h)
 add_library(cchord SHARED ${CCHORD_SOURCES})
 
-set(PMEMKV ${PROJECT_SOURCE_DIR}/pmemkv)
-set(PMEMKV_INCLUDES ${PMEMKV}/src ${PMEMKV}/src/engines)
-set(PMEMKV_INCLUDES_EXPORT ${PMEMKV_INCLUDES} PARENT_SCOPE)
-include_directories(${PMEMKV_INCLUDES})
-file(GLOB_RECURSE PMEMKV_SOURCES ${PMEMKV}/src/pmemkv.cc ${PMEMKV}/src/engines/*.cc)
-add_library(pmemkv SHARED ${PMEMKV_SOURCES})
-
+# libfabric
 include_directories(libfabric/include)
 if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libfabric.so OR NOT EXISTS ${3RDPARTY}/libfabric/src/.libs/libfabric.so)
 	add_custom_target(libfabric_target 
@@ -51,6 +46,7 @@ set_target_properties(libfabric
     IMPORTED_LOCATION ${3RDPARTY}/libfabric/src/.libs/libfabric.so
     INTERFACE_INCLUDE_DIRECTORIES ${3RDPARTY}/libfabric/include)
 
+# pmdk
 include_directories(pmdk/src/include)
 if ((NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libpmem.so OR NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libpmemobj.so) OR
 	(NOT EXISTS ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so OR NOT EXISTS ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so))
@@ -83,6 +79,15 @@ set_target_properties(libpmemobj
     IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so
     INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/pmdk/src/include)
 
+# pmemkv
+set(PMEMKV ${PROJECT_SOURCE_DIR}/pmemkv)
+set(PMEMKV_INCLUDES ${PMEMKV}/src ${PMEMKV}/src/engines)
+set(PMEMKV_INCLUDES_EXPORT ${PMEMKV_INCLUDES} PARENT_SCOPE)
+include_directories(${PMEMKV_INCLUDES})
+file(GLOB_RECURSE PMEMKV_SOURCES ${PMEMKV}/src/pmemkv.cc ${PMEMKV}/src/engines/*.cc)
+add_library(pmemkv SHARED ${PMEMKV_SOURCES})
+
+# Cleanup tasks
 add_custom_target(clean-dep)
 add_custom_target(libpmdk_clean
 	COMMAND make clean

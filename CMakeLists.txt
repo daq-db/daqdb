@@ -34,13 +34,12 @@ add_custom_target(clean-all
 
 include_directories(${Jsoncpp_INCLUDE_DIR})
 
-# dependencies form third-party folder
+# dependencies from third-party folder
 add_subdirectory(third-party)
 include_directories(${CCHORD_INCLUDES_EXPORT})
-include_directories(${PMEMKV_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
-
+include_directories(${PMEMKV_INCLUDES_EXPORT})
 
 # Build and link fogkv library
 include_directories(include include/db include/dht include/fabric include/FogKV include/store)
