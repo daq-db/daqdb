@@ -17,6 +17,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 file(GLOB_RECURSE TESTS_SOURCES *.cpp *.h)
 add_executable(fogkv_test ${TESTS_SOURCES})
-target_link_libraries(fogkv_test ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} libfabric libpmemobj pmemkv fogkv)
+target_link_libraries(fogkv_test ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} libfabric pmemkv fogkv libpmemobj)
 
 add_test(NAME fogkv_tests COMMAND ${PROJECT_SOURCE_DIR}/../bin/fogkv_test --log_level=all --catch_system_error=yes)

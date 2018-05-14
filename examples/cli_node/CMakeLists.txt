@@ -23,5 +23,5 @@ add_library(linenoise SHARED ${3RDPARTY}/linenoise/linenoise.c ${3RDPARTY}/linen
 
 file(GLOB CLINODE_SOURCES ${EXAMPLES}/cli_node/*.cpp ${EXAMPLES}/cli_node/*.h)
 add_executable(clinode ${CLINODE_SOURCES})
-target_link_libraries(clinode ${Jsoncpp_LIBRARY} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} libfabric libpmemobj libpmem pmemkv fogkv linenoise)
+target_link_libraries(clinode ${Jsoncpp_LIBRARY} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} libfabric libpmem pmemkv fogkv linenoise libpmemobj)
 
