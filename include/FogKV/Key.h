@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2017-2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,46 +30,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "DhtUtils.h"
+#pragma once
 
-#include <iostream>
+namespace FogKV {
 
-#include <asio/io_service.hpp>
-#include <asio/ip/tcp.hpp>
-#include <asio/signal_set.hpp>
+class Key {
+public:
+	Key() : _data(nullptr), _size(0) {}
+	Key(char *data, size_t size) : _data(data), _size(size) {}
+	char *data() { return _data; }
+	const char *data() const { return _data; }
+	size_t size() { return _size; }
+protected:
+	char *_data;
+	size_t _size;
+};
 
-namespace FogKV
-{
-namespace utils
-{
-
-unsigned short
-getFreePort(asio::io_service &io_service, const unsigned short backbonePort, bool reuseAddr)
-{
-	auto resultPort = backbonePort;
-	asio::ip::tcp::acceptor acceptor(io_service);
-	std::error_code checkPortErrorCode;
-
-	if (backbonePort) {
-		acceptor.open(asio::ip::tcp::v4(), checkPortErrorCode);
-
-		if (reuseAddr) {
-			asio::socket_base::reuse_address option(true);
-			acceptor.set_option(option);
-		}
-
-		acceptor.bind({asio::ip::tcp::v4(), resultPort}, checkPortErrorCode);
-		acceptor.close();
-	}
-	if (!backbonePort || checkPortErrorCode) {
-		acceptor.open(asio::ip::tcp::v4(), checkPortErrorCode);
-		acceptor.bind({asio::ip::tcp::v4(), 0}, checkPortErrorCode);
-		resultPort = acceptor.local_endpoint().port();
-		acceptor.close();
-	}
-
-	return resultPort;
-}
-
-} /* namespace utils */
-} // namespace Dht
+} // namespace FogKV

@@ -9,7 +9,8 @@ bench_env.Append(CPPFLAGS = env['CPPFLAGS'])
 bench_env.Append(LIBPATH = env['LIBPATH'])
 bench_env.Append(LINKFLAGS = env['LINKFLAGS'])
 bench_env.Append(CPPPATH = env['CPPPATH'])
-bench_env.Append(RPATH = env['RPATH'])
+if 'RPATH' in env:
+    bench_env.Append(RPATH = env['RPATH'])
 
 cchord_includes = [
     Dir('#third-party/cChord/engine/helper'),

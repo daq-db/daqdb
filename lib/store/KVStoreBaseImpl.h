@@ -37,57 +37,53 @@
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
 #include <pmemkv.h>
+#include <mutex>
 
 namespace FogKV {
 
 class KVStoreBaseImpl : public KVStoreBase {
 public:
-	static KVStoreBase *Open(const Options &options, Status *status);
+	static KVStoreBase *Open(const Options &options);
 public:
-	virtual size_t KeySize()
-	{
-		return mKeySize;
-	}
-
+	virtual size_t KeySize();
 	virtual const Options &getOptions();
 	virtual std::string getProperty(const std::string &name);
-
-	virtual Status Put(const char *key, const char *value, size_t size);
-	virtual Status Put(const char *key, KVBuff *buff);
-
-	virtual Status PutAsync(const char *key, const char *value, size_t size, KVStoreBaseCallback cb);
-	virtual Status PutAsync(const char *key, KVBuff *buff, KVStoreBaseCallback cb);
-
-	virtual Status Get(const char *key, std::vector<char> &value);
-	virtual Status Get(const char *key, KVBuff **buff);
-	virtual Status Get(const char *key, KVBuff *buff);
-	virtual Status Get(const char *key, char *value, size_t *size);
-
-	virtual Status GetAsync(const char *key, KVStoreBaseCallback cb);
-
-	virtual Status GetRange(const char *beg, const char *end, std::vector<KVPair> &result);
-	virtual Status GetRangeAsync(const char *beg, const char *end, KVStoreBaseRangeCallback cb);
-
-	virtual Status Remove(const char *key);
-	virtual Status RemoveRange(const char *beg, const char *end);
-
-	virtual KVBuff *Alloc(size_t size, const AllocOptions &options = AllocOptions());
-	virtual void Free(KVBuff *buff);
-	virtual KVBuff *Realloc(KVBuff *buff, size_t size, const AllocOptions &options = AllocOptions());
+	virtual void Put(Key &&key, Value &&value, const PutOptions &options = PutOptions());
+	virtual void PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb, const PutOptions &options = PutOptions());
+	virtual Value Get(const Key &key, const GetOptions &options = GetOptions());
+	virtual void GetAsync(const Key &key, KVStoreBaseGetCallback cb, const GetOptions &options = GetOptions());
+	virtual void Update(const Key &key, Value &&value, const UpdateOptions &options = UpdateOptions());
+	virtual void Update(const Key &key, const UpdateOptions &options);
+	virtual void UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options = UpdateOptions());
+	virtual void UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb);
+	virtual std::vector<KVPair> GetRange(const Key &beg, const Key &end, const GetOptions &options = GetOptions());
+	virtual void GetRangeAsync(const Key &beg, const Key &end, KVStoreBaseRangeCallback cb, const GetOptions &options = GetOptions());
+	virtual Key GetAny(const GetOptions &options = GetOptions());
+	virtual void GetAnyAsync(KVStoreBaseGetAnyCallback cb, const GetOptions &options = GetOptions());
+	virtual void Remove(const Key &key);
+	virtual void RemoveRange(const Key &beg, const Key &end);
+	virtual Value Alloc(size_t size, const AllocOptions &options = AllocOptions());
+	virtual void Free(Value &&value);
+	virtual void Realloc(Value &value, size_t size, const AllocOptions &options = AllocOptions());
+	virtual void ChangeOptions(Value &value, const AllocOptions &options);
+	virtual Key AllocKey(const AllocOptions &options = AllocOptions());
+	virtual void Free(Key &&key);
+	virtual void ChangeOptions(Key &key, const AllocOptions &options);
 protected:
 	KVStoreBaseImpl(const Options &options);
 	virtual ~KVStoreBaseImpl();
 
-	Status init();
+	void init();
 	void registerProperties();
 
-	boost::asio::io_service &io_service();
-
-	boost::asio::io_service *m_io_service;
+	asio::io_service &io_service();
+	asio::io_service *m_io_service;
 
 	size_t mKeySize;
 	Options mOptions;
 	std::unique_ptr<FogKV::DhtNode> mDhtNode;
+	std::unique_ptr<pmemkv::KVEngine> mPmemkv;
+	std::mutex mLock;
 };
 
 } //namespace FogKV

@@ -31,13 +31,15 @@ The dependencies can be installed automatically by scripts/pkgdep.sh.
 ```
 Following libraries are required:
 <ul>
-<li>boost-devel (1.63+)</li>
-<li>boost-test (1.63+)</li>
+<li>asio-devel</li>
 <li>libjsoncpp</li>
 </ul>
-Following libraries are optional:
+Following libraries are optional (needed for examples and unit tests):
 <ul>
+<li>boost-devel (1.63+)</li>
+<li>boost-test (1.63+)</li>
 <li>log4cxx-devel (log4cxx-dev)</li>
+<li>doxygen</li>
 </ul>
 
 ##### LCG
@@ -74,7 +76,6 @@ If using LCG release, set the desired environment first:
 ```
 . /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_89 x86_64-centos7-gcc7-opt
 ```
-
 #### Unit Tests
 
 ```

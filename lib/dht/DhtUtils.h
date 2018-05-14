@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include <boost/asio/io_service.hpp>
+#include <asio/io_service.hpp>
 
 namespace FogKV
 {
@@ -46,7 +46,7 @@ namespace utils
  * @param reuseAddr	allow to reuse an address that is already in use
  * return it as a result
  */
-unsigned short getFreePort(boost::asio::io_service &io_service,
+unsigned short getFreePort(asio::io_service &io_service,
 			   const unsigned short backbonePort,
 			   bool reuseAddr = false);
 
