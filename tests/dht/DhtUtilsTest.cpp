@@ -32,103 +32,93 @@
 
 #include "../../lib/dht/DhtUtils.h"
 
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/ip/tcp.hpp>
+#include <asio/io_service.hpp>
+#include <asio/ip/tcp.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include <limits>
 #include <random>
 
 namespace ut = boost::unit_test;
-namespace as = boost::asio;
 
-namespace
-{
+namespace {
 const unsigned short reservedPortsEnd = 1024;
 const unsigned short echoProtocolPort = 7; //! Echo Protocol
 
-bool
-isPortFree(as::io_service &io_service, const unsigned short portToTest)
-{
-	as::ip::tcp::acceptor acceptor(io_service);
-	boost::system::error_code checkPortErrorCode;
+std::error_code isPortFree(asio::io_service &io_service,
+		const unsigned short portToTest) {
+	asio::ip::tcp::acceptor acceptor(io_service);
+	std::error_code checkPortErrorCode;
 
-	acceptor.open(as::ip::tcp::v4(), checkPortErrorCode);
-	acceptor.bind({as::ip::tcp::v4(), portToTest}, checkPortErrorCode);
+	acceptor.open(asio::ip::tcp::v4(), checkPortErrorCode);
+	acceptor.bind( { asio::ip::tcp::v4(), portToTest }, checkPortErrorCode);
 	acceptor.close();
-	return (checkPortErrorCode == 0);
+	return checkPortErrorCode;
 }
 
-unsigned short
-getRandomPortNumber()
-{
+unsigned short getRandomPortNumber() {
 	std::random_device rd;
 
-	auto gen = std::bind(std::uniform_int_distribution<>(
-				     reservedPortsEnd + 1, USHRT_MAX),
-			     std::default_random_engine(rd()));
+	auto gen = std::bind(
+			std::uniform_int_distribution<>(reservedPortsEnd + 1, USHRT_MAX),
+			std::default_random_engine(rd()));
 
 	return gen();
 }
 
-unsigned short
-getFreePortNumber(as::io_service &io_service)
-{
+unsigned short getFreePortNumber(asio::io_service &io_service) {
 	auto resultPort = getRandomPortNumber();
 	while (!isPortFree(io_service, resultPort)) {
 		resultPort = getRandomPortNumber();
 	}
 	return resultPort;
 }
-};
+}
+;
 
-BOOST_AUTO_TEST_SUITE(DhtUtilsTests, *ut::label("Dht"))
+BOOST_AUTO_TEST_SUITE(DhtUtilsTests)
 
-BOOST_AUTO_TEST_CASE(
-	DhtUtilsTest_GenRandomPort,
-	*ut::description("Test if Dht::utils::getFreePort give free "
-			 "port as result when no default.\n"))
-{
-	as::io_service io_service;
+/**
+ * Test if Dht::utils::getFreePort give free port as result when no default.
+ */
+BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort) {
+	asio::io_service io_service;
 
 	auto resultPort = FogKV::utils::getFreePort(io_service, 0);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
-	BOOST_TEST(isPortFree(io_service, resultPort),
-		   "resultPort shall be free");
+	auto isFreeResult = isPortFree(io_service, resultPort);
+	BOOST_CHECK(isFreeResult.value() == 0);
 }
 
-BOOST_AUTO_TEST_CASE(
-	DhtUtilsTest_GenRandomPort_DefaultIsUsed,
-	*ut::description("Test if Dht::utils::getFreePort give free "
-			 "port as result when default is given but it "
-			 "is already used."))
-{
-	as::io_service io_service;
+/**
+ * Test if Dht::utils::getFreePort give free port as result when default is given but it is already used
+ */
+BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultIsUsed) {
+	asio::io_service io_service;
 
 	auto portThatIsOpened = echoProtocolPort;
 
 	auto resultPort = FogKV::utils::getFreePort(io_service, portThatIsOpened);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
-	BOOST_TEST(isPortFree(io_service, resultPort),
-		   "resultPort shall be free");
+	auto isFreeResult = isPortFree(io_service, resultPort);
+	BOOST_CHECK(isFreeResult.value() == 0);
 	BOOST_CHECK_NE(resultPort, portThatIsOpened);
 }
 
-BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultNotUsed,
-		     *ut::description("Test if Dht::utils::getFreePort "
-				      "give free port as result when"))
-{
-	as::io_service io_service;
+/**
+ * Test if Dht::utils::getFreePort give free port as result when default is given.
+ */
+BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultNotUsed) {
+	asio::io_service io_service;
 
-	auto freePort = getFreePortNumber(io_service);
-
-	auto resultPort = FogKV::utils::getFreePort(io_service, freePort);
+	auto freePort = getRandomPortNumber();
+	auto resultPort = FogKV::utils::getFreePort(io_service, freePort, true);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
-	BOOST_TEST(isPortFree(io_service, resultPort),
-		   "resultPort shall be free");
+	auto isFreeResult = isPortFree(io_service, resultPort);
+	BOOST_CHECK(isFreeResult.value() == 0);
 	BOOST_CHECK_EQUAL(resultPort, freePort);
 }
 

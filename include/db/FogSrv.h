@@ -32,8 +32,8 @@
 
 #pragma once
 
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/signal_set.hpp>
 
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
@@ -41,8 +41,6 @@
 #include <store/KVInterface.h>
 
 #include "SocketReqManager.h"
-
-namespace as = boost::asio;
 
 namespace FogKV
 {
@@ -55,7 +53,7 @@ namespace FogKV
  */
 class FogSrv {
 public:
-	FogSrv(as::io_service &io_service, const unsigned short nodeId = 0);
+	FogSrv(asio::io_service &io_service, const unsigned short nodeId = 0);
 	virtual ~FogSrv();
 
 	/*!
@@ -113,7 +111,7 @@ public:
 
 private:
 	unsigned short _nodeId;
-	as::io_service &_io_service;
+	asio::io_service &_io_service;
 	std::unique_ptr<FogKV::SocketReqManager> _spReqManager;
 	std::unique_ptr<FogKV::DhtNode> _spDhtNode;
 

@@ -32,10 +32,10 @@
 
 #include <iostream>
 
-#include <boost/asio/io_service.hpp>
+#include <asio/io_service.hpp>
 #include <boost/bind.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/signal_set.hpp>
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -51,7 +51,6 @@ using boost::format;
 using namespace boost::algorithm;
 
 namespace po = boost::program_options;
-namespace as = boost::asio;
 
 #ifdef FOGKV_USE_LOG4CXX
 LoggerPtr loggerNode(Logger::getLogger( "dragon"));
@@ -71,6 +70,8 @@ main(int argc, const char *argv[])
 	unsigned short nodeId = 0;
 	auto dhtPort = dhtBackBonePort;
 	bool interactiveMode = false;
+	std::string pmem_path;
+	size_t pmem_size;
 
 #ifdef FOGKV_USE_LOG4CXX
 	log4cxx::ConsoleAppender *consoleAppender =
@@ -89,7 +90,10 @@ main(int argc, const char *argv[])
 			("dht,d", po::value<unsigned short>(&dhtPort), "DHT Communication port")
 			("nodeid,n", po::value<unsigned short>(&nodeId)->default_value(0) , "Node ID used to match database file. If not set DB file will be removed when node stopped.")
 			("interactive,i", "Enable interactive mode")
-			("log,l", "Enable logging");
+			("log,l", "Enable logging")
+			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
+			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
+			;
 
 	po::variables_map parsedArguments;
 	try {
@@ -119,21 +123,24 @@ main(int argc, const char *argv[])
 	}
 #endif
 
-	as::io_service io_service;
-	as::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(boost::bind(&boost::asio::io_service::stop, &io_service));
+	asio::io_service io_service;
+	asio::signal_set signals(io_service, SIGINT, SIGTERM);
+	signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
 
 	FogKV::Options options;
 	options.Runtime.io_service(&io_service);
 	options.Dht.Id = nodeId;
 	options.Dht.Port = dhtPort;
 	options.Port = inputPort;
+	options.PMEM.Path = pmem_path;
+	options.PMEM.Size = pmem_size;
 	options.Key.field(0, sizeof(KeyType));
 
-	FogKV::Status status;
-	shared_ptr<FogKV::KVStoreBase> spKVStore(FogKV::KVStoreBase::Open(options, &status));
-	if (!status.ok()) {
-		cerr << "Failed to create KVStore: " << status.to_string() << endl;
+	shared_ptr<FogKV::KVStoreBase> spKVStore;
+	try {
+		spKVStore = shared_ptr<FogKV::KVStoreBase>(FogKV::KVStoreBase::Open(options));
+	} catch (FogKV::OperationFailedException e) {
+		cerr << "Failed to create KVStore: " << e.what() << endl;
 		return -1;
 	}
 

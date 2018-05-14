@@ -30,7 +30,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <boost/filesystem.hpp>
 #include <iostream>
 #include <set>
 
@@ -39,7 +38,6 @@
 #include "DhtUtils.h"
 #include "ProtocolSingleton.h"
 
-namespace bf = boost::filesystem;
 using namespace std;
 
 namespace
@@ -52,13 +50,13 @@ const string rootDirectory = ".";
 namespace FogKV
 {
 
-CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
+CChordAdapter::CChordAdapter(asio::io_service &io_service, unsigned short port,
 			     unsigned short dragonPort, int id)
     : CChordAdapter(io_service, port, dragonPort, id, false)
 {
 }
 
-CChordAdapter::CChordAdapter(as::io_service &io_service, unsigned short port,
+CChordAdapter::CChordAdapter(asio::io_service &io_service, unsigned short port,
 			     unsigned short dragonPort, int id, bool skipShutDown)
     : FogKV::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
 {
@@ -95,7 +93,7 @@ CChordAdapter::printStatus()
 }
 
 unsigned int
-CChordAdapter::getPeerList(boost::ptr_vector<PureNode> &peerNodes)
+CChordAdapter::getPeerList(std::vector<PureNode*> &peerNodes)
 {
 	std::set<unsigned int> addedDhtNodes;
 	auto addUniqueNode = [&addedDhtNodes, &peerNodes](Node *pNodeToAdd) {

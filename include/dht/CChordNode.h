@@ -32,13 +32,9 @@
 
 #pragma once
 
-#include <boost/asio/io_service.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
-
+#include <asio/io_service.hpp>
 #include <dht/DhtNode.h>
 #include <ChordNode.h>
-
-namespace as = boost::asio;
 
 namespace FogKV
 {
@@ -48,9 +44,9 @@ namespace FogKV
  */
 class CChordAdapter : public FogKV::DhtNode {
 public:
-	CChordAdapter(as::io_service &io_service, unsigned short port,
+	CChordAdapter(asio::io_service &io_service, unsigned short port,
 		      unsigned short dragonPort, int id);
-	CChordAdapter(as::io_service &io_service, unsigned short port,
+	CChordAdapter(asio::io_service &io_service, unsigned short port,
 		      unsigned short dragonPort, int id, bool skipShutDown);
 	virtual ~CChordAdapter();
 
@@ -71,7 +67,7 @@ public:
 	 * @param peerNodes vector to insert peer nodes
 	 * @return number of peer nodes
 	 */
-	unsigned int getPeerList(boost::ptr_vector<PureNode> &peerNodes);
+	unsigned int getPeerList(std::vector<PureNode*> &peerNodes);
 
 	/*!
 	 * Triggers dragon aggregation table update.

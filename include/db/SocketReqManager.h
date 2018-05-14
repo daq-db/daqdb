@@ -32,28 +32,26 @@
 
 #pragma once
 
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-
-namespace as = boost::asio;
+#include <asio.hpp>
+#include <system_error>
 
 namespace FogKV
 {
 
 class SocketReqManager {
 public:
-	SocketReqManager(as::io_service &io_service, short port);
+	SocketReqManager(asio::io_service &io_service, short port);
 	virtual ~SocketReqManager();
 
-	void handle_receive_from(const boost::system::error_code &error,
+	void handle_receive_from(const std::error_code &error,
 				 size_t bytes_recvd);
-	void handle_send_to(const boost::system::error_code &error,
+	void handle_send_to(const std::error_code &error,
 			    size_t bytes_sent);
 
 private:
-	as::io_service &_io_service;
-	as::ip::udp::socket _socket;
-	as::ip::udp::endpoint _sender_endpoint;
+	asio::io_service &_io_service;
+	asio::ip::udp::socket _socket;
+	asio::ip::udp::endpoint _sender_endpoint;
 	enum { max_length = 1024 };
 	char _data[max_length];
 };

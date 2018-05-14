@@ -2,6 +2,8 @@
 /dragonTest
 /benchmark
 /dhtTest
+examples/spdk_example/spdk_example
+doc_html
 libpmemkv.so
 *.o
 *.a
@@ -17,6 +19,7 @@ config.log
 .pydevproject
 *.csv
 .*.swp
+*.d
 CMakeCache.txt
 CMakeFiles
 Testing

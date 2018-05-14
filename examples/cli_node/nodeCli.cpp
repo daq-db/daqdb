@@ -31,6 +31,7 @@
  */
 
 #include "../cli_node/nodeCli.h"
+#include <FogKV/Types.h>
 
 #include <chrono>
 #include <boost/algorithm/string.hpp>
@@ -46,9 +47,9 @@ using namespace std;
 using namespace boost::algorithm;
 using boost::format;
 
-map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
-	"get", " <key>")("put", " <key> <value>")("status", "")(
-	"remove", " <key>")("quit", "")("node", " <id>");
+map<string, string> consoleCmd = boost::assign::map_list_of("help", "")("get",
+		" <key>")("put", " <key> <value>")("status", "")("remove", " <key>")(
+		"quit", "")("node", " <id>");
 
 /*!
  * Provides completion functionality to dragon shell.
@@ -56,9 +57,7 @@ map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
  * @param buf	completion prefix
  * @param lc	callback functions manager
  */
-void
-completion(const char *buf, linenoiseCompletions *lc)
-{
+void completion(const char *buf, linenoiseCompletions *lc) {
 	if (buf[0] == 'h') {
 		linenoiseAddCompletion(lc, "help");
 	} else if (buf[0] == 'q') {
@@ -85,8 +84,7 @@ completion(const char *buf, linenoiseCompletions *lc)
  * @return
  */
 char *
-hints(const char *buf, int *color, int *bold)
-{
+hints(const char *buf, int *color, int *bold) {
 	*color = consoleHintColor;
 	char *result = nullptr;
 
@@ -97,22 +95,18 @@ hints(const char *buf, int *color, int *bold)
 	return result;
 }
 
-namespace FogKV
-{
+namespace FogKV {
 
-nodeCli::nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spKVStore) : _spKVStore(spKVStore)
-{
+nodeCli::nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spKVStore) :
+		_spKVStore(spKVStore) {
 	linenoiseSetCompletionCallback(completion);
 	linenoiseSetHintsCallback(hints);
 }
 
-nodeCli::~nodeCli()
-{
+nodeCli::~nodeCli() {
 }
 
-int
-nodeCli::operator()()
-{
+int nodeCli::operator()() {
 	auto *inLine = linenoise("fogkv> ");
 	auto isEmpty = false;
 	if (inLine == nullptr) {
@@ -124,34 +118,35 @@ nodeCli::operator()()
 	std::string strLine(inLine);
 	free(inLine);
 
-	if (isEmpty || starts_with(strLine, "help")) {
-		cout << "Following commands supported:" << endl;
-		for (auto cmdEntry : consoleCmd) {
-			cout << "\t- " << cmdEntry.first << cmdEntry.second
-			     << endl;
+	try {
+		if (isEmpty || starts_with(strLine, "help")) {
+			cout << "Following commands supported:" << endl;
+			for (auto cmdEntry : consoleCmd) {
+				cout << "\t- " << cmdEntry.first << cmdEntry.second << endl;
+			}
+		} else if (starts_with(strLine, "g")) {
+			this->cmdGet(strLine);
+		} else if (starts_with(strLine, "p")) {
+			this->cmdPut(strLine);
+		} else if (starts_with(strLine, "r")) {
+			this->cmdRemove(strLine);
+		} else if (starts_with(strLine, "s")) {
+			this->cmdStatus();
+		} else if (starts_with(strLine, "n")) {
+			this->cmdNodeStatus(strLine);
+		} else if (starts_with(strLine, "q")) {
+			return false;
+		} else {
+			cout << format("Unreconized command: %1%\n") % strLine;
 		}
-	} else if (starts_with(strLine, "g")) {
-		this->cmdGet(strLine);
-	} else if (starts_with(strLine, "p")) {
-		this->cmdPut(strLine);
-	} else if (starts_with(strLine, "r")) {
-		this->cmdRemove(strLine);
-	} else if (starts_with(strLine, "s")) {
-		this->cmdStatus();
-	} else if (starts_with(strLine, "n")) {
-		this->cmdNodeStatus(strLine);
-	} else if (starts_with(strLine, "q")) {
-		return false;
-	} else {
-		cout << format("Unreconized command: %1%\n") % strLine;
+	} catch (NotImplementedException& ex) {
+		cout << ex.what() << endl;
 	}
 
 	return true;
 }
 
-void
-nodeCli::cmdGet(std::string &strLine)
-{
+void nodeCli::cmdGet(const std::string &strLine) {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
@@ -163,23 +158,49 @@ nodeCli::cmdGet(std::string &strLine)
 			cout << "Error: key size is " << _spKVStore->KeySize() << endl;
 			return;
 		}
-
-		vector<char> value;
-		auto actionStatus = _spKVStore->Get(key.c_str(), value);
-		if (actionStatus.ok()) {
-			string valuestr(value.begin(), value.end());
-			cout << format("[%1%] = %2%\n") % key % valuestr;
-		} else if (actionStatus() == FogKV::KeyNotFound) {
-			cout << format("[%1%] not found\n") % key;
-		} else {
-			cout << "Error: cannot get element" << endl;
+		FogKV::Key keyBuff;
+		try {
+			keyBuff = _spKVStore->AllocKey();
+			std::memset(keyBuff.data(), 0, keyBuff.size());
+			std::memcpy(keyBuff.data(), key.c_str(), key.size());
+		} catch (FogKV::OperationFailedException e) {
+			cout << "Error: cannot allocate key buffer" << endl;
+			return;
 		}
+
+		FogKV::Value value;
+		try {
+		       	value = _spKVStore->Get(keyBuff);
+			string valuestr(value.data());
+			cout << format("[%1%] = %2%\n") % key % valuestr;
+		} catch (FogKV::OperationFailedException e) {
+			if (e.status()() == FogKV::KeyNotFound) {
+				cout << format("[%1%] not found\n") % key;
+			} else {
+				cout << "Error: cannot get element: " << e.status().to_string() << endl;
+			}
+		}
+
+		_spKVStore->Free(std::move(keyBuff));
 	}
 }
 
-void
-nodeCli::cmdPut(std::string &strLine)
+FogKV::Key nodeCli::strToKey(const std::string &key)
 {
+	FogKV::Key keyBuff = _spKVStore->AllocKey();
+	std::memset(keyBuff.data(), 0, keyBuff.size());
+	std::memcpy(keyBuff.data(), key.c_str(), key.size());
+	return keyBuff;
+}
+
+FogKV::Value nodeCli::strToValue(const std::string &value)
+{
+	FogKV::Value valBuff = _spKVStore->Alloc(value.size() + 1);
+	std::memcpy(valBuff.data(), value.c_str(), value.size());
+	valBuff.data()[valBuff.size() - 1] = '\0';
+}
+
+void nodeCli::cmdPut(const std::string &strLine) {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
@@ -192,39 +213,70 @@ nodeCli::cmdPut(std::string &strLine)
 			return;
 		}
 
+		FogKV::Key keyBuff;
+		try {
+			keyBuff = strToKey(key);
+		} catch (...) {
+			cout << "Error: cannot allocate key buffer" << endl;
+			return;
+		}
+
 		auto value = arguments[2];
-		auto actionStatus = _spKVStore->Put(key.c_str(), value.c_str(), value.size());
-		if (actionStatus.ok()) {
+
+		FogKV::Value valBuff;
+		try {
+		       	valBuff = _spKVStore->Alloc(value.size() + 1);
+			std::memcpy(valBuff.data(), value.c_str(), value.size());
+			valBuff.data()[valBuff.size() - 1] = '\0';
+		} catch (...) {
+			cout << "Error: cannot allocate value buffer" << endl;
+			_spKVStore->Free(std::move(keyBuff));
+			return;
+		}
+
+		try {
+			_spKVStore->Put(std::move(keyBuff), std::move(valBuff));
 			cout << format("Put: [%1%] = %2%\n") % key % value;
-		} else {
-			cout << "Error: cannot put element" << endl;
+		} catch (FogKV::OperationFailedException e) {
+			cout << "Error: cannot put element: " << e.status().to_string() << endl;
+
+			_spKVStore->Free(std::move(keyBuff));
+			_spKVStore->Free(std::move(valBuff));
 		}
 	}
 }
 
-void
-nodeCli::cmdRemove(std::string &strLine)
-{
+void nodeCli::cmdRemove(const std::string &strLine) {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
 	if (arguments.size() != 2) {
 		cout << "Error: expects one argument" << endl;
 	} else {
+
 		auto key = arguments[1];
-		auto actionStatus = _spKVStore->Remove(key.c_str());
-		if (actionStatus.ok()) {
+		FogKV::Key keyBuff;
+		try {
+			keyBuff = strToKey(key);
+		} catch (...) {
+			cout << "Error: cannot allocate key buffer" << endl;
+			return;
+		}
+
+		try {
+			_spKVStore->Remove(keyBuff);
 			cout << format("Remove: [%1%]\n") % key;
-		} else if (actionStatus() == FogKV::KeyNotFound) {
-			cout << format("[%1%] not found\n") % key;
-		} else {
-			cout << "Error: cannot remove element" << endl;
+		} catch (FogKV::OperationFailedException e){
+			if (e.status()() == FogKV::KeyNotFound) {
+				cout << format("[%1%] not found\n") % key;
+			} else {
+				cout << "Error: cannot remove element" << endl;
+			}
 		}
 	}
 }
 
-Json::Value nodeCli::getPeersJson()
-{
+Json::Value nodeCli::getPeersJson() {
 	Json::Reader reader;
 	Json::Value peers;
 	std::string peersStr = _spKVStore->getProperty("fogkv.dht.peers");
@@ -233,9 +285,7 @@ Json::Value nodeCli::getPeersJson()
 	return peers;
 }
 
-void
-nodeCli::cmdStatus()
-{
+void nodeCli::cmdStatus() {
 	Json::Value peers = getPeersJson();
 
 	auto npeers = peers.size();
@@ -243,25 +293,20 @@ nodeCli::cmdStatus()
 	auto currentTime = chrono::system_clock::to_time_t(timestamp);
 
 	if (!npeers) {
-		cout << format("%1%\tno DHT peer(s)\n") %
-					std::ctime(&currentTime);
-			return;
+		cout << format("%1%\tno DHT peer(s)\n") % std::ctime(&currentTime);
+		return;
 	}
 
 	cout << format("%1%\t%2% DHT "
-			 "peers found") %
-			std::ctime(&currentTime) % npeers << endl;
+			"peers found") % std::ctime(&currentTime) % npeers << endl;
 
 	for (int i = 0; i < npeers; i++) {
 		cout << "[" << i << "]: " << peers[i].toStyledString();
 	}
 
-
 }
 
-void
-nodeCli::cmdNodeStatus(std::string &strLine)
-{
+void nodeCli::cmdNodeStatus(const std::string &strLine) {
 	vector<string> arguments;
 	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
@@ -271,18 +316,20 @@ nodeCli::cmdNodeStatus(std::string &strLine)
 		auto nodeId = arguments[1];
 
 		if (nodeId == _spKVStore->getProperty("fogkv.dht.id")) {
-			cout << format("Node status:\n\t "
-				       "dht_id=%1%\n\tdht_ip:port=%2%:%3%"
-				       "\n\texternal_port=%4%") %
-					_spKVStore->getProperty("fogkv.dht.id") %
-					_spKVStore->getProperty("fogkv.listener.ip") %
-					_spKVStore->getProperty("fogkv.listener.port") %
-					_spKVStore->getProperty("fogkv.listener.dht_port") << endl;
+			cout
+					<< format("Node status:\n\t "
+							"dht_id=%1%\n\tdht_ip:port=%2%:%3%"
+							"\n\texternal_port=%4%")
+							% _spKVStore->getProperty("fogkv.dht.id")
+							% _spKVStore->getProperty("fogkv.listener.ip")
+							% _spKVStore->getProperty("fogkv.listener.port")
+							% _spKVStore->getProperty("fogkv.listener.dht_port")
+					<< endl;
 			return;
 		}
 
 		Json::Value peers = getPeersJson();
-		
+
 		for (int i = 0; i < peers.size(); i++) {
 			if (peers[i]["id"].asString() == nodeId) {
 				cout << peers[i].toStyledString() << endl;
@@ -291,7 +338,7 @@ nodeCli::cmdNodeStatus(std::string &strLine)
 		}
 
 		cout << "Node not connected" << endl;
-		
+
 	}
 }
 

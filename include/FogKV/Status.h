@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2017-2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,28 @@
  */
 #pragma once
 
+#include <string>
+#include <cstring>
+#include <limits>
+
 namespace FogKV {
 
-enum Code {
-	Ok,
-	InvalidArgument,
+enum Code : long {
+	Ok = 0,
+
+	_max_errno = std::numeric_limits<int>::max(),
 	KeyNotFound,
 
 	NotImplemented,
+	UnknownError,
 };
 
 struct Status {
 
 	Status() : _code(Ok)
+	{ }
+
+	Status(int errnum) : _code(static_cast<Code>(errnum))
 	{ }
 
 	Status(Code c) : _code(c)
@@ -55,11 +64,10 @@ struct Status {
 
 	std::string to_string()
 	{
+		if (_code < _max_errno)
+			return ::strerror((int)_code);
+
 		switch (_code) {
-		case Ok:
-			return "Ok";
-		case InvalidArgument:
-			return "Invalid Argument";
 		case NotImplemented:
 			return "Not Implemented";
 		default:
@@ -69,5 +77,7 @@ struct Status {
 
 	Code _code;
 };
+
+Status errno2status(int err);
 
 } // namespace FogKV

@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2017-2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,28 +33,56 @@
 #pragma once
 
 #include <vector>
-#include <boost/asio/io_service.hpp>
+#include <asio/io_service.hpp>
 
 #include <FogKV/Types.h>
 
 namespace FogKV {
 
+enum PrimaryKeyAttribute {
+	LOCKED = 0x1,
+	READY = 0x2,
+};
+
+inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a, PrimaryKeyAttribute b)
+{
+	return static_cast<PrimaryKeyAttribute>(static_cast<int>(a) | static_cast<int>(b));
+}
+
 struct AllocOptions {
 };
 
+struct UpdateOptions {
+	UpdateOptions() { }
+	UpdateOptions(PrimaryKeyAttribute attr) : Attr(attr) { }
+
+	PrimaryKeyAttribute Attr;
+};
+
+struct PutOptions {
+};
+
+struct GetOptions {
+	GetOptions() {}
+	GetOptions(PrimaryKeyAttribute attr, PrimaryKeyAttribute newAttr) : Attr(attr), NewAttr(newAttr) { }
+
+	PrimaryKeyAttribute Attr;
+	PrimaryKeyAttribute NewAttr;
+};
+
 struct KeyFieldDescriptor {
-	KeyFieldDescriptor() : Size(0) {}
+	KeyFieldDescriptor() : Size(0), IsPrimary(false) {}
 	size_t Size;
+	bool IsPrimary;
 };
 
 struct KeyDescriptor {
-
 	size_t nfields() const
 	{
 		return _fields.size();
 	}
 
-	void field(size_t idx, size_t size)
+	void field(size_t idx, size_t size, bool isPrimary = false)
 	{
 		if (nfields() <= idx)
 			_fields.resize(idx + 1);
@@ -79,22 +107,27 @@ struct KeyDescriptor {
 };
 
 struct RuntimeOptions {
-	void io_service(boost::asio::io_service *io_service)
+	void io_service(asio::io_service *io_service)
 	{
 		_io_service = io_service;
 	}
 
-	boost::asio::io_service *io_service()
+	asio::io_service *io_service()
 	{
 		return _io_service;
 	}
 
-	boost::asio::io_service *_io_service;
+	asio::io_service *_io_service;
 };
 
 struct DhtOptions {
 	unsigned short Port;
 	NodeId Id;
+};
+
+struct PMEMOptions {
+	std::string Path;
+	size_t Size;
 };
 
 struct Options {
@@ -108,6 +141,9 @@ public:
 
 	// TODO move to struct ?
 	unsigned short Port;
+
+	std::string KVEngine = "kvtree";
+	PMEMOptions PMEM;
 };
 
 } // namespace FogKV
