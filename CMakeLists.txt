@@ -56,3 +56,4 @@ add_subdirectory(tests)
 
 # Build example folder
 add_subdirectory(${EXAMPLES}/cli_node)
+add_subdirectory(${EXAMPLES}/basic)

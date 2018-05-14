@@ -118,3 +118,8 @@ Following commands supported:
 
 ```
 
+#### Basic example
+
+This application (located in examples/basic) provides examples how to
+use fogkv API (initialization, basic CRUD operations, ...).
+
