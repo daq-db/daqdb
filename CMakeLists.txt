@@ -60,3 +60,6 @@ add_subdirectory(${EXAMPLES}/cli_node)
 
 # Build apps folder
 add_subdirectory(${APPS}/mist)
+
+add_subdirectory(${EXAMPLES}/basic)
+
