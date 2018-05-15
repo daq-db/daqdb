@@ -122,3 +122,8 @@ Following commands supported:
 
 ```
 
+#### Basic example
+
+This application (located in examples/basic) provides examples how to
+use FogKV API (initialization, basic CRUD operations, ...).
+
