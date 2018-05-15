@@ -74,7 +74,7 @@ make clean-all          # remove cmake, third-party and fogkv build files
 ##### LCG
 If using LCG release, set the desired environment first:
 ```
-. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_89 x86_64-centos7-gcc7-opt
+. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
 ```
 #### Unit Tests
 
