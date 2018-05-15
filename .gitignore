@@ -20,3 +20,10 @@ config.log
 *.csv
 .*.swp
 *.d
+CMakeCache.txt
+CMakeFiles
+Testing
+CTestTestfile.cmake
+DartConfiguration.tcl
+cmake_install.cmake
+Makefile

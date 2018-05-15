@@ -57,30 +57,34 @@ ls /cvmfs/grid.cern.ch
 
 #### Build
 
-Invoke scons with the following parameters:
 
 ```
-scons                     # build lib and examples
-scons lib                 # build lib only
-scons tests               # build and execute unit tests
-scons -c                  # remove build files
-scons -c distclean        # remove build files, including scons cache
-scons -c lib              # remove build files, exclude dependencies (third-party)
-scons --lcg               # build against CERN LCG (environment must be set)
-scons --doc               # build lib and examples & generate doxygen documentation
-scons --verbose           # prints all test messages
+cd ${fogKVpath}
+cmake .
+make -j$(nproc)
 ```
 By default, all software can be found in ${fogKvpath}/bin folder.
+
+```
+make clean              # remove fogkv lib build files
+make clean-dep          # remove third-party build files
+make clean-all          # remove cmake, third-party and fogkv build files
+```
 
 ##### LCG
 If using LCG release, set the desired environment first:
 ```
 . /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_89 x86_64-centos7-gcc7-opt
 ```
-It may happen that there are some conflicting python paths when using local scons and LCG. In this case you can try explicit paths like this:
+#### Unit Tests
+
 ```
-/cvmfs/sft.cern.ch/lcg/views/LCG_87/x86_64-centos7-gcc62-opt/bin/python /usr/bin/scons --lcg
+cd ${fogKVpath}
+cmake .
+make -j$(nproc)
+ctest
 ```
+
 <a name="execution"></a>
 ## Execution
 
@@ -88,17 +92,21 @@ It may happen that there are some conflicting python paths when using local scon
 ```
 ./cli-node -h
 Options:
-  -h [ --help ]            Print help messages
-  -p [ --port ] arg        Node Communication port
-  -d [ --dht ] arg         DHT Communication port
-  -n [ --nodeid ] arg (=0) Node ID used to match database file. If not set DB 
-                           file will be removed when node stopped.
-  -i [ --interactive ]     Enable interactive mode
-  -l [ --log ]             Enable logging
+  -h [ --help ]                         Print help messages
+  -p [ --port ] arg                     Node Communication port
+  -d [ --dht ] arg                      DHT Communication port
+  -n [ --nodeid ] arg (=0)              Node ID used to match database file. If
+                                        not set DB file will be removed when 
+                                        node stopped.
+  -i [ --interactive ]                  Enable interactive mode
+  -l [ --log ]                          Enable logging
+  --pmem-path arg (=/mnt/pmem/pmemkv.dat)
+                                        pmemkv persistent memory pool file
+  --pmem-size arg (=536870912)          pmemkv persistent memory pool size
 ```
 
 To enter interactive mode execute cli-node with `--interactive` flag.
-
+(Remember to allow writing to /mnt/pmem/ if not changing default --pmem-path)
 ```
 ./cli_node -i
 DHT node (id=107) is running on 127.0.0.1:11000
