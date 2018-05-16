@@ -19,7 +19,7 @@ elif [ -f /etc/debian_version ]; then
     apt-get install cmake
     apt-get install libboost-all-dev
     apt-get install libasio-dev
-    apt-get install libjsoncpp libjsoncpp-dev 
+    apt-get install libjsoncpp1 libjsoncpp-dev 
 else
 	echo "pkgdep: unknown system type."
 	exit 1
