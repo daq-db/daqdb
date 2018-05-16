@@ -5,13 +5,13 @@
 	path = third-party/pmemkv
 	url = https://github.com/pmem/pmemkv.git
 [submodule "src/3rd/linenoise"]
-	path = third-party/linenoise
+	path = examples/cli_node/linenoise
 	url = https://github.com/antirez/linenoise.git
 [submodule "src/3rd/cpu-stat"]
-	path = third-party/cpu-stat
+	path = path-finding/poc_0_cpu_usage/third-party/cpu-stat
 	url = https://github.com/vivaladav/cpu-stat
 [submodule "src/3rd/csvpp"]
-	path = third-party/csvpp
+	path = path-finding/poc_0_cpu_usage/third-party/csvpp
 	url = https://github.com/Plaristote/csvpp.git
 [submodule "third-party/spdk"]
 	path = third-party/spdk
