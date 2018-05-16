@@ -33,6 +33,7 @@
 #include <iostream>
 #include <vector>
 #include <libconfig.h++>
+#include <FogKV/KVStoreBase.h>
 using namespace libconfig;
 using namespace std;
 
@@ -42,5 +43,5 @@ class Configuration {
 		const char * fileName;
 	public:
 		Configuration(const char *);
-		void readConfiguration(void);
+		void readConfiguration(FogKV::Options &options);
 };

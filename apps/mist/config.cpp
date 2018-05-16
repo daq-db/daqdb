@@ -45,30 +45,48 @@ Configuration::Configuration(const char * file) : fileName(file){
 	}
 }
 
-void Configuration::readConfiguration(void) {
+void Configuration::readConfiguration(FogKV::Options &options) {
 	// required parameters
+	// TODO move mode to FogKV options
 	string mode;
-	int port;
 	cfg.lookupValue("mode", mode);
+	int port;
 	cfg.lookupValue("port", port);
+	options.Port = port;
 
-	string primaryHash, replicaHash, primaryKey;
-	vector<int> keysStructure;
+	// TODO move hashes to FogKV options
+	string primaryHash, replicaHash;
 	cfg.lookupValue("primaryHash", primaryHash);
 	cfg.lookupValue("replicaHash", replicaHash);
-	const Setting &keys_settings = cfg.lookup("keys_structure");
-	for (int n = 0; n < keys_settings.getLength(); ++n)
-		keysStructure.push_back(keys_settings[n]);
+
+	// Configure key structure
+	string primaryKey;
 	cfg.lookupValue("primaryKey", primaryKey);
+	vector<int> keysStructure;
+	const Setting &keys_settings = cfg.lookup("keys_structure");
+	for (int n = 0; n < keys_settings.getLength(); ++n) {
+		keysStructure.push_back(keys_settings[n]);
+		// TODO extend functionality of primary key definition
+		options.Key.field(n, keysStructure[n], (n==0)?true:false);
+	}
 
 	// optional parameters
 	string pmem_path = "";
 	int pmem_size = 0;
-	string loggingLevel = "WARN";
 	cfg.lookupValue("pmem_path", pmem_path);
 	cfg.lookupValue("pmem_size", pmem_size);
+	options.PMEM.Path = pmem_path;
+	options.PMEM.Size = pmem_size;
+	// TODO add logging to FogKV optons
+	string loggingLevel = "WARN";
 	cfg.lookupValue("logging_level", loggingLevel);
 
+	// TODO check if those are required, and how/where should be defined
+	options.Dht.Id = 0;
+	options.Dht.Port = 5455;
+
+	// TODO shift placement for configuration printing
+	// TODO make the printing full
 	cout << "FogKV/mode=" << mode << "; file=" << pmem_path
 				<< "; size=" << pmem_size
 				<< endl;

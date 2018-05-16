@@ -33,24 +33,50 @@
 #include <iostream>
 #include <iomanip>
 #include "config.hpp"
-//#include <FogKV/KVStoreBase.h>
+#include <FogKV/KVStoreBase.h>
+#include <asio/io_service.hpp>
+#include <boost/bind.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/signal_set.hpp>
+
+sig_atomic_t volatile mist_running = 0;
+
+void sig_handler(int signum)
+{
+	if (signum == SIGINT)
+		mist_running = 1;
+}
 
 int main(int argc, char ** argv) {
 	if (argc != 2) {
 		cout << "Please specify configuration file, e.g. ./mist myConfig.cfg" << endl;
+		return -1;
 	}
 
 	Configuration fogServerConfiguration(argv[1]);
-	fogServerConfiguration.readConfiguration();
 
-	//FogKV::Options options;
-	//shared_ptr<FogKV::KVStoreBase> spKVStore;
-	//try {
-	//	spKVStore = shared_ptr<FogKV::KVStoreBase>(FogKV::KVStoreBase::Open(options));
-	//} catch (FogKV::OperationFailedException e) {
-	//	cerr << "Failed to create KVStore: " << e.what() << endl;
-	//	return -1;
-	//}
+	FogKV::Options options;
+	fogServerConfiguration.readConfiguration(options);
 
+	asio::io_service io_service;
+	asio::signal_set signals(io_service, SIGINT, SIGTERM);
+	signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
+	options.Runtime.io_service(&io_service);
+
+	FogKV::KVStoreBase *kvs;
+	try {
+		kvs = FogKV::KVStoreBase::Open(options);
+	} catch (FogKV::OperationFailedException e) {
+		cerr << "Failed to create KVStore: " << e.what() << endl;
+		return -1;
+	}
+	cout << "FogKV server running" << endl;
+
+	signal(SIGINT, &sig_handler);
+	while (!mist_running)
+		pause();
+
+	//cleanup code
+	cout << "Exiting gracefuly" << endl;
 	return 0;
 }
