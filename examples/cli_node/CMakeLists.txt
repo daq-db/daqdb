@@ -18,8 +18,8 @@ find_package(Jsoncpp)
 
 include_directories(${Jsoncpp_INCLUDE_DIR})
 
-include_directories(${3RDPARTY}/linenoise)
-add_library(linenoise SHARED ${3RDPARTY}/linenoise/linenoise.c ${3RDPARTY}/linenoise/linenoise.h)
+include_directories(linenoise)
+add_library(linenoise SHARED linenoise/linenoise.c linenoise/linenoise.h)
 
 file(GLOB CLINODE_SOURCES ${EXAMPLES}/cli_node/*.cpp ${EXAMPLES}/cli_node/*.h)
 add_executable(clinode ${CLINODE_SOURCES})
