@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <cstring>
 #include <limits>
+#include <memory>
 
 // ![key_struct]
 
@@ -73,21 +74,21 @@ int KVStoreBaseExample()
 
 	//! [put]
 	try {
-		FogKV::Key key = kvs->AllocKey();
+		std::shared_ptr<FogKV::Key> key (kvs->AllocKey());
 
 		// Fill the key
-		Key *keyp = reinterpret_cast<Key *>(key.data());
+		Key *keyp = reinterpret_cast<Key *>(key->data());
 		keyp->subdetector_id = 1;
 		keyp->run_id = 2;
 		keyp->event_id = 3;
 
-		FogKV::Value value = kvs->Alloc(1024);
+		std::shared_ptr<FogKV::Value> value (kvs->Alloc(1024));
 
 		// Fil the value buffer
-		std::memset(value.data(), 0, value.size());
+		std::memset(value->data(), 0, value->size());
 
 		// Put operation, transfer ownership of key and value buffers to library
-		kvs->Put(std::move(key), std::move(value));
+		kvs->Put(std::move(*key.get()), std::move(*value.get()));
 	} catch (...) {
 		// error 
 	}
@@ -95,24 +96,24 @@ int KVStoreBaseExample()
 
 	//! [put_async]
 	try {
-		FogKV::Key key = kvs->AllocKey();
+		std::shared_ptr<FogKV::Key> key (kvs->AllocKey());
 
 		// Fill the key
-		Key *keyp = reinterpret_cast<Key *>(key.data());
+		Key *keyp = reinterpret_cast<Key *> (key->data());
 		keyp->subdetector_id = 1;
 		keyp->run_id = 2;
 		keyp->event_id = 3;
 
 
-		FogKV::Value value = kvs->Alloc(1024);
+		std::shared_ptr<FogKV::Value> value (kvs->Alloc(1024));
 
 		// Fill the value buffer
-		std::memset(value.data(), 0, value.size());
+		std::memset(value->data(), 0, value->size());
 
 		// Asynchronous Put operation, transfer ownership of key and value buffers to library
-		kvs->PutAsync(std::move(key), std::move(value),
+		kvs->PutAsync(std::move(*key.get()), std::move(*value.get()),
 			[&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
-				const FogKV::Key &key, const FogKV::Value &val) {
+				const FogKV::Key key, const FogKV::Value val) {
 			if (!status.ok()) {
 				// error
 				return;
@@ -127,40 +128,42 @@ int KVStoreBaseExample()
 	//! [get]
 	try {
 		
-		FogKV::Key key = kvs->AllocKey();
+		std::shared_ptr<FogKV::Key> key (kvs->AllocKey());
 
 		// Fill the key
-		Key *keyp = reinterpret_cast<Key *>(key.data());
+		Key *keyp = reinterpret_cast<Key *>(key->data());
 		keyp->subdetector_id = 1;
 		keyp->run_id = 2;
 		keyp->event_id = 3;
 
 
+		printf ("Getttt \n");
 		// Get operation, the caller becomes the owner of a local copy
 		// of the value. The caller must free both key and value buffers by itself, or
 		// transfer the ownership in another call.
-		FogKV::Value value;
+		std::shared_ptr<FogKV::Value> value;
 		try {
-			value = kvs->Get(key);
+			value.reset (kvs->Get(*key));
 		} catch (...) {
 			// error
-			kvs->Free(std::move(key));
+			kvs->Free(std::move(*key));
 		}
 
 		// success, process the data and free the buffers
-		kvs->Free(std::move(key));
-		kvs->Free(std::move(value));
+		printf ("Freeeing \n");
+//		kvs->Free(std::move(*key));
+//		kvs->Free(std::move(*value));
 	} catch (...) {
 		// error 
 	}
 	//! [get]
-
+/*
 	//! [get_async]
 	try {
-		FogKV::Key key = kvs->AllocKey();
+		FogKV::Key* key = kvs->AllocKey();
 
 		// Fill the key
-		Key *keyp = reinterpret_cast<Key *>(key.data());
+		Key *keyp = reinterpret_cast<Key *>(key->data());
 		keyp->subdetector_id = 1;
 		keyp->run_id = 2;
 		keyp->event_id = 3;
@@ -168,7 +171,7 @@ int KVStoreBaseExample()
 		try {
 			kvs->GetAsync(key,
 				[&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
-					const FogKV::Key &key, FogKV::Value value) {
+					const FogKV::Key key, FogKV::Value value) {
 
 				if (!status.ok()) {
 					// error
@@ -224,6 +227,7 @@ int KVStoreBaseExample()
 		// error
 	}
 	//! [get_any]
+	*/
 }
 
 int main()

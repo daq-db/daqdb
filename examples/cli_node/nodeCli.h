@@ -69,7 +69,7 @@ private:
 	void cmdStatus();
 	void cmdNodeStatus(const std::string &strLine);
 
-	FogKV::Key strToKey(const std::string &key);
+	std::unique_ptr<FogKV::Key> strToKey(const std::string &key);
 	FogKV::Value strToValue(const std::string &val);
 
 	std::shared_ptr<FogKV::KVStoreBase> _spKVStore;

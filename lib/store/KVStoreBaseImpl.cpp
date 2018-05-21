@@ -88,7 +88,7 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback 
 	});
 }
 
-Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
+Value* KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
 {
 	std::unique_lock<std::mutex> l(mLock);
 
@@ -102,9 +102,9 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
 		throw OperationFailedException(EINVAL);
 	}
 
-	Value value(new char [valStr.length() + 1], valStr.length() + 1);
-	std::memcpy(value.data(), valStr.c_str(), value.size());
-	value.data()[value.size() - 1] = '\0';
+	Value* value = new Value(new char [valStr.length() + 1], valStr.length() + 1);
+	std::memcpy(value->data(), valStr.c_str(), value->size());
+	value->data()[value->size() - 1] = '\0';
 	return value;
 }
 
@@ -112,7 +112,7 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb, const 
 {
 	std::async(std::launch::async, [&] {
 		try {
-			Value val = Get(key);
+			Value val = *(Get(key));
 			cb(this, Ok, key, val);
 		} catch (OperationFailedException e) {
 			Value val;
@@ -121,7 +121,7 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb, const 
 	});
 }
 
-Key KVStoreBaseImpl::GetAny(const GetOptions &options)
+Key* KVStoreBaseImpl::GetAny(const GetOptions &options)
 {
 	throw FUNC_NOT_IMPLEMENTED;
 }
@@ -195,9 +195,9 @@ void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end)
 	throw FUNC_NOT_IMPLEMENTED;
 }
 
-Value KVStoreBaseImpl::Alloc(size_t size, const AllocOptions &options)
+Value* KVStoreBaseImpl::Alloc(size_t size, const AllocOptions &options)
 {
-	return Value(new char[size], size);
+	return new Value(new char[size], size);
 }
 
 void KVStoreBaseImpl::Free(Value &&value)
@@ -215,9 +215,9 @@ void KVStoreBaseImpl::ChangeOptions(Value &value, const AllocOptions &options)
 	throw FUNC_NOT_IMPLEMENTED;
 }
 
-Key KVStoreBaseImpl::AllocKey(const AllocOptions &options)
+Key* KVStoreBaseImpl::AllocKey(const AllocOptions &options)
 {
-	return Key(new char[mKeySize], mKeySize);
+	return new Key(new char[mKeySize], mKeySize);
 }
 
 void KVStoreBaseImpl::Free(Key &&key)

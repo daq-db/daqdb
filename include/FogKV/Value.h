@@ -32,12 +32,15 @@
 
 #pragma once
 
+#include <libpmem.h>
+
 namespace FogKV {
 
 class Value {
 public:
 	Value() : _data(nullptr), _size(0) {}
 	Value(char *data, size_t size) : _data(data), _size(size) {}
+	~Value() {if (pmem_is_pmem (_data, _size)) delete [] _data; }
 	char *data() { return _data; }
 	const char *data() const { return _data; }
 	size_t size() { return _size; }

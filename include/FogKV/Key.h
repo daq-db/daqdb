@@ -32,11 +32,14 @@
 
 #pragma once
 
+#include <libpmem.h>
+
 namespace FogKV {
 
 class Key {
 public:
 	Key() : _data(nullptr), _size(0) {}
+	~Key() { if (pmem_is_pmem(_data, _size)) delete [] _data;}
 	Key(char *data, size_t size) : _data(data), _size(size) {}
 	char *data() { return _data; }
 	const char *data() const { return _data; }
