@@ -2,8 +2,9 @@ project(third-party)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../bin)
+set(ROOT_FOGKV_DIR ${PROJECT_SOURCE_DIR}/..)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
 
 # cchord
 set(CCHORD ${PROJECT_SOURCE_DIR}/cChord)
@@ -90,32 +91,20 @@ file(GLOB_RECURSE PMEMKV_SOURCES ${PMEMKV}/src/pmemkv.cc ${PMEMKV}/src/engines/*
 add_library(pmemkv SHARED ${PMEMKV_SOURCES})
 
 # spdk
-set(SPDK_LIBS
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_app_rpc.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_malloc.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_null.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_aio.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_rpc.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_nvme.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_blob_bdev.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_blob.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_env_dpdk.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_nvme.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_rpc.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_util.a
-    )
 ExternalProject_Add(project_spdk
     PREFIX ${PROJECT_SOURCE_DIR}/spdk
     SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
     BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/spdk
     CONFIGURE_COMMAND ""
     BUILD_COMMAND make
-    INSTALL_COMMAND ar -rcT ${PROJECT_SOURCE_DIR}/spdk/libspdk.a ${SPDK_LIBS}
+    INSTALL_COMMAND ${ROOT_FOGKV_DIR}/scripts/prepare_spdk_libs.sh
 )
 add_library(spdk STATIC IMPORTED GLOBAL)
 set_property(TARGET spdk PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/spdk/libspdk.a)
 add_dependencies(spdk project_spdk)
+add_library(dpdk STATIC IMPORTED GLOBAL)
+set_property(TARGET dpdk PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/spdk/libdpdk.a)
+add_dependencies(dpdk project_spdk)
 
 # Cleanup tasks
 add_custom_target(clean-dep)
