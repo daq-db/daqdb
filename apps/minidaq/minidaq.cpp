@@ -42,11 +42,15 @@ namespace po = boost::program_options;
 int main(int argc, const char *argv[])
 {
 	bool readoutMode = false;
+	int nTh = 1;
+	int nSec = 10;
 
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()
 			("help,h", "Print help messages")
 			("readout,r", "Run in readout mode")
+			("threads,t", po::value<int>(&nTh), "Number of worker threads")
+			("duration,d,t", po::value<int>(&nSec), "Desired test duration in seconds")
 			;
 
 	po::variables_map parsedArguments;
@@ -72,8 +76,8 @@ int main(int argc, const char *argv[])
 	}
 
 	if (readoutMode) {
-		FogKV::MinidaqReadoutNode nodeReadout;
-		nodeReadout.Start();
+		FogKV::MinidaqReadoutNode nodeReadout(nTh, nSec);
+		nodeReadout.Run();
 	}
 	return 0;
 }

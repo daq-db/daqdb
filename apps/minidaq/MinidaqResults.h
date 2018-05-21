@@ -30,58 +30,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <future>
-#include <thread>
-#include <vector>
-#include <iostream>
+#pragma once
 
-#include "MinidaqNode.h"
+#include <time.h>
+#include <cstdint>
 
 namespace FogKV {
 
-MinidaqNode::MinidaqNode(int nThreads, int nSeconds) :
-	nTh{nThreads}, nSeconds{nSeconds}
-{
-}
+class MinidaqResults {
+public:
+	MinidaqResults();
+	~MinidaqResults();
 
-MinidaqNode::~MinidaqNode()
-{
-}
+	void SetStartTime();
+	void SetElapsed();
+	bool IsEnough(uint64_t desired_time_s);
+	void Dump();
 
-MinidaqResults MinidaqNode::Execute()
-{
-	MinidaqResults r;
-
-	r.SetStartTime();
-	do {
-		Task();
-		r.SetElapsed();
-	} while (!r.IsEnough(nSeconds));
-
-	return r;
-}
-
-void MinidaqNode::Run()
-{
-	std::vector<std::future<MinidaqResults>> future_v;
-	int i;
-	
-	for (i = 0; i < nTh; i++) {
-		future_v.push_back(std::async(std::launch::async,
-									  &MinidaqNode::Execute, this));
-	}
-
-	for (auto&& f : future_v) {
-		f.wait();
-	}
-
-	i = 0;
-	for (auto&& f : future_v) {
-		std::cout << "Results[" << i++ << "]:" << std::endl;
-		auto r = f.get();
-		r.Dump();
-		std::cout << std::endl;
-	}
-}
+private:
+	struct timespec tStart;
+	struct timespec tDiff;
+};
 
 }

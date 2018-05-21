@@ -32,14 +32,24 @@
 
 #pragma once
 
+#include "MinidaqResults.h"
+
 namespace FogKV {
 
 class MinidaqNode {
 public:
-	MinidaqNode();
+	MinidaqNode(int nThreads, int nSeconds);
 	virtual ~MinidaqNode();
 
-	virtual void Start() = 0;
+	void Run();
+
+protected:
+	virtual void Task() = 0;
+
+private:
+	int nTh; // number of worker threads
+	int nSeconds; // desired duration in seconds
+	MinidaqResults Execute();
 };
 
 }

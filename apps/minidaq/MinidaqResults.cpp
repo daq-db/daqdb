@@ -30,58 +30,54 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <future>
-#include <thread>
-#include <vector>
 #include <iostream>
+#include <iomanip>
 
-#include "MinidaqNode.h"
+#include "MinidaqResults.h"
+
+using namespace std;
 
 namespace FogKV {
 
-MinidaqNode::MinidaqNode(int nThreads, int nSeconds) :
-	nTh{nThreads}, nSeconds{nSeconds}
+MinidaqResults::MinidaqResults()
 {
 }
 
-MinidaqNode::~MinidaqNode()
+MinidaqResults::~MinidaqResults()
 {
 }
 
-MinidaqResults MinidaqNode::Execute()
+void MinidaqResults::SetStartTime()
 {
-	MinidaqResults r;
-
-	r.SetStartTime();
-	do {
-		Task();
-		r.SetElapsed();
-	} while (!r.IsEnough(nSeconds));
-
-	return r;
+	clock_gettime(CLOCK_MONOTONIC, &tStart);
 }
 
-void MinidaqNode::Run()
+void MinidaqResults::SetElapsed()
 {
-	std::vector<std::future<MinidaqResults>> future_v;
-	int i;
-	
-	for (i = 0; i < nTh; i++) {
-		future_v.push_back(std::async(std::launch::async,
-									  &MinidaqNode::Execute, this));
-	}
+	struct timespec tCurr;
 
-	for (auto&& f : future_v) {
-		f.wait();
-	}
+	clock_gettime(CLOCK_MONOTONIC, &tCurr);
 
-	i = 0;
-	for (auto&& f : future_v) {
-		std::cout << "Results[" << i++ << "]:" << std::endl;
-		auto r = f.get();
-		r.Dump();
-		std::cout << std::endl;
+	if ((tCurr.tv_nsec - tStart.tv_nsec) < 0) {
+		tDiff.tv_sec = tCurr.tv_sec - tStart.tv_sec - 1;
+		tDiff.tv_nsec = tCurr.tv_nsec - tStart.tv_nsec + 1000000000UL;
+	} else {
+		tDiff.tv_sec = tCurr.tv_sec - tStart.tv_sec;
+		tDiff.tv_nsec = tCurr.tv_nsec - tStart.tv_nsec;
 	}
+}
+
+bool MinidaqResults::IsEnough(uint64_t desired_time_s)
+{
+	return (tDiff.tv_sec >= desired_time_s);
+}
+
+void MinidaqResults::Dump()
+{
+	std::cout << "Start time (sec): " << tStart.tv_sec << "." << setfill('0')
+									  << setw(9) << tStart.tv_nsec << std::endl;
+	std::cout << "Duration (sec): " << tDiff.tv_sec << "." << setfill('0')
+									<< setw(9) << tDiff.tv_nsec << std::endl;
 }
 
 }

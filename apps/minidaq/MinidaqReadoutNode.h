@@ -38,10 +38,11 @@ namespace FogKV {
 
 class MinidaqReadoutNode : public MinidaqNode {
 public:
-	MinidaqReadoutNode();
+	MinidaqReadoutNode(int nThreads, int nSeconds);
 	~MinidaqReadoutNode();
 
-	void Start();
+protected:
+	void Task();
 };
 
 }

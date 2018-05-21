@@ -30,15 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream>
-
 #include "MinidaqReadoutNode.h"
 
 using namespace std;
 
 namespace FogKV {
 
-MinidaqReadoutNode::MinidaqReadoutNode()
+MinidaqReadoutNode::MinidaqReadoutNode(int nThreads, int nSeconds):
+	MinidaqNode(nThreads, nSeconds)
 {
 }
 
@@ -46,9 +45,8 @@ MinidaqReadoutNode::~MinidaqReadoutNode()
 {
 }
 
-void MinidaqReadoutNode::Start()
+void MinidaqReadoutNode::Task()
 {
-		cout << "Starting readout..." << endl;
 }
 
 }
