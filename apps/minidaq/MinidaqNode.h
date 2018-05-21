@@ -32,24 +32,53 @@
 
 #pragma once
 
+#include <vector>
+#include <future>
+
 #include "MinidaqResults.h"
+#include "FogKV/KVStoreBase.h"
 
 namespace FogKV {
 
+struct MinidaqKey {
+	MinidaqKey() = default;
+	MinidaqKey(uint64_t e, uint16_t s, uint16_t r) :
+		event_id(e), subdetector_id(s), run_id(r) {}
+	uint64_t event_id;
+	uint16_t subdetector_id;
+	uint16_t run_id;
+};
+
 class MinidaqNode {
 public:
-	MinidaqNode(int nThreads, int nSeconds);
+	MinidaqNode(KVStoreBase *kvs);
 	virtual ~MinidaqNode();
 
 	void Run();
+	void Wait();
+	void Show();
+	void SetDuration(int t);
+	void SetRampUp(int t);
+	void SetThreads(int n);
 
 protected:
-	virtual void Task() = 0;
+	virtual void Task(int executorId) = 0;
+	virtual void Setup() = 0;
+
+	KVStoreBase *kvs;
+	int nTh = 0; // number of worker threads
+	int id = 1; // global ID of the node
+	int nReadoutNodes = 1; // global number of Readout Nodes;
+	int runId = 599;
 
 private:
-	int nTh; // number of worker threads
-	int nSeconds; // desired duration in seconds
-	MinidaqResults Execute();
+	MinidaqResults Execute(int nThreads);
+
+	int runSeconds = 0; // desired duration in seconds
+	int rampUpSeconds = 0; // desired ramp up time in seconds
+	bool stopped = false; // signals first thread stopped execution
+
+	std::vector<std::future<MinidaqResults>> futureVec;
 };
 
 }

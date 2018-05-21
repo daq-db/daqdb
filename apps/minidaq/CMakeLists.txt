@@ -15,4 +15,4 @@ find_package(Threads REQUIRED)
 
 file(GLOB MINIDAQ_SOURCES *.cpp *.h)
 add_executable(minidaq ${MINIDAQ_SOURCES})
-target_link_libraries(minidaq ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(minidaq ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} fogkv libpmemobj)

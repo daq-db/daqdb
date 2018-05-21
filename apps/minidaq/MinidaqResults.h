@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include <vector>
 #include <time.h>
 #include <cstdint>
 
@@ -40,16 +41,33 @@ namespace FogKV {
 class MinidaqResults {
 public:
 	MinidaqResults();
+	MinidaqResults(std::vector<MinidaqResults> &rVector);
 	~MinidaqResults();
+
+	static void GetTime(timespec &tCurr);
+	static void GetTimeDiff(const timespec &t1, const timespec &t2, timespec &d);
 
 	void SetStartTime();
 	void SetElapsed();
+	timespec GetStartTime();
+	timespec GetElapsed();
+	timespec GetStopTime();
+	uint64_t GetErrors();
+	uint64_t GetSamples();
 	bool IsEnough(uint64_t desired_time_s);
+	void RecordLatency(timespec &t);
+	void RecordSample();
+	void RecordError();
 	void Dump();
+	void DumpCsv();
 
 private:
-	struct timespec tStart;
-	struct timespec tDiff;
+	timespec tStart;
+	timespec tStop;
+	timespec tDiff;
+
+	uint64_t nErrors = 0;
+	uint64_t nSamples = 0;
 };
 
 }

@@ -36,8 +36,8 @@ using namespace std;
 
 namespace FogKV {
 
-MinidaqReadoutNode::MinidaqReadoutNode(int nThreads, int nSeconds):
-	MinidaqNode(nThreads, nSeconds)
+MinidaqReadoutNode::MinidaqReadoutNode(KVStoreBase *kvs) :
+	MinidaqNode(kvs)
 {
 }
 
@@ -45,8 +45,27 @@ MinidaqReadoutNode::~MinidaqReadoutNode()
 {
 }
 
-void MinidaqReadoutNode::Task()
+void MinidaqReadoutNode::Setup()
 {
+	int i;
+
+	for (i = 0; i < nTh; i++) {
+		currEventId.push_back(i);
+	}
+}
+
+void MinidaqReadoutNode::Task(int executorId)
+{
+	Key key = kvs->AllocKey();
+	MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
+	keyp->subdetector_id = id;
+	keyp->run_id = runId;
+	keyp->event_id = currEventId[executorId];
+	currEventId[executorId] += nTh;
+
+	FogKV::Value value = kvs->Alloc(1024);
+
+	kvs->Put(std::move(key), std::move(value));
 }
 
 }

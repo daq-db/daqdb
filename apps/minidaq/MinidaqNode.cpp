@@ -39,8 +39,8 @@
 
 namespace FogKV {
 
-MinidaqNode::MinidaqNode(int nThreads, int nSeconds) :
-	nTh{nThreads}, nSeconds{nSeconds}
+MinidaqNode::MinidaqNode(KVStoreBase *kvs) :
+	kvs(kvs)
 {
 }
 
@@ -48,40 +48,98 @@ MinidaqNode::~MinidaqNode()
 {
 }
 
-MinidaqResults MinidaqNode::Execute()
+void MinidaqNode::SetRampUp(int t)
+{
+	rampUpSeconds = t;
+}
+
+void MinidaqNode::SetDuration(int t)
+{
+	runSeconds = t;
+}
+
+void MinidaqNode::SetThreads(int n)
+{
+	nTh= n;
+}
+
+MinidaqResults MinidaqNode::Execute(int executorId)
 {
 	MinidaqResults r;
+	timespec tStart;
+	timespec tStop;
+	timespec lat;
 
+	// Ramp up
 	r.SetStartTime();
 	do {
-		Task();
+		try {
+			Task(executorId);
+		}
+		catch (...) {
+		}
 		r.SetElapsed();
-	} while (!r.IsEnough(nSeconds));
+	} while (!r.IsEnough(rampUpSeconds));
+
+	// Record samples
+	r.SetStartTime();
+	do {
+		r.GetTime(tStart);
+		try {
+			Task(executorId);
+			r.RecordSample();
+		}
+		catch (...) {
+			r.RecordError();
+		}
+		r.GetTime(tStop);
+		r.GetTimeDiff(tStart, tStop, lat);
+		r.RecordLatency(lat);
+		r.SetElapsed();
+	} while (!r.IsEnough(runSeconds) && !stopped);
+
+	stopped = true;
 
 	return r;
 }
 
 void MinidaqNode::Run()
 {
-	std::vector<std::future<MinidaqResults>> future_v;
+	int i;
+
+	Setup();
+
+	for (i = 0; i < nTh; i++) {
+		futureVec.emplace_back(std::async(std::launch::async,
+										  &MinidaqNode::Execute, this, i));
+	}
+}
+
+void MinidaqNode::Wait()
+{
 	int i;
 	
-	for (i = 0; i < nTh; i++) {
-		future_v.push_back(std::async(std::launch::async,
-									  &MinidaqNode::Execute, this));
-	}
-
-	for (auto&& f : future_v) {
+	for (auto&& f : futureVec) {
 		f.wait();
 	}
+}
 
-	i = 0;
-	for (auto&& f : future_v) {
+void MinidaqNode::Show()
+{
+	std::vector<MinidaqResults> results;
+	int i = 0;
+
+	for (auto&& f : futureVec) {
 		std::cout << "Results[" << i++ << "]:" << std::endl;
-		auto r = f.get();
-		r.Dump();
+		results.push_back(f.get());
+		results.back().Dump();
 		std::cout << std::endl;
 	}
+
+	std::cout << "Results[all]:" << std::endl;
+	MinidaqResults total(results);
+	total.Dump();
+	std::cout << std::endl;
 }
 
 }

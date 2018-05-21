@@ -38,11 +38,15 @@ namespace FogKV {
 
 class MinidaqReadoutNode : public MinidaqNode {
 public:
-	MinidaqReadoutNode(int nThreads, int nSeconds);
+	MinidaqReadoutNode(KVStoreBase *kvs);
 	~MinidaqReadoutNode();
 
 protected:
-	void Task();
+	void Task(int executorId);
+	void Setup();
+
+private:
+	std::vector<uint64_t> currEventId;
 };
 
 }

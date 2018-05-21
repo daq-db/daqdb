@@ -33,24 +33,49 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 
+#include "FogKV/KVStoreBase.h"
 #include "MinidaqReadoutNode.h"
 
 using namespace std;
 
 namespace po = boost::program_options;
 
+static FogKV::KVStoreBase* openKVS(std::string &pmemPath, size_t pmemSize)
+{
+	// todo remove redundant stuff once initialization is fixed
+	FogKV::Options options;
+	options.PMEM.Path = pmemPath;
+	options.PMEM.Size = pmemSize;
+	options.Port = 0;
+	options.Dht.Port = 0;
+	options.Dht.Id = 0;
+	options.Runtime._io_service = nullptr;
+	options.Key.field(0, sizeof(FogKV::MinidaqKey::event_id), true);
+	options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetector_id));
+	options.Key.field(2, sizeof(FogKV::MinidaqKey::run_id));
+
+	return FogKV::KVStoreBase::Open(options);
+}
+
 int main(int argc, const char *argv[])
 {
 	bool readoutMode = false;
-	int nTh = 1;
+	FogKV::KVStoreBase *kvs;
+	std::string pmem_path;
+	int rampUpSec = 1;
+	size_t pmem_size;
 	int nSec = 10;
+	int nTh = 1;
 
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()
 			("help,h", "Print help messages")
 			("readout,r", "Run in readout mode")
 			("threads,t", po::value<int>(&nTh), "Number of worker threads")
-			("duration,d,t", po::value<int>(&nSec), "Desired test duration in seconds")
+			("duration,d", po::value<int>(&nSec), "Desired test duration in seconds")
+			("ramp", po::value<int>(&rampUpSec), "Desired ramp up time in seconds")
+			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
+			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
 			;
 
 	po::variables_map parsedArguments;
@@ -75,9 +100,33 @@ int main(int argc, const char *argv[])
 		return -1;
 	}
 
-	if (readoutMode) {
-		FogKV::MinidaqReadoutNode nodeReadout(nTh, nSec);
-		nodeReadout.Run();
+	try {
+		kvs = openKVS(pmem_path, pmem_size);
+
+		FogKV::MinidaqReadoutNode nodeReadout(kvs);
+
+		// Start workers
+		if (readoutMode) {
+			nodeReadout.SetDuration(nSec);
+			nodeReadout.SetRampUp(rampUpSec);
+			nodeReadout.SetThreads(nTh);
+			nodeReadout.Run();
+		}
+
+		// Wait for results
+		if (readoutMode) {
+			nodeReadout.Wait();
+		}
+
+		// Show results
+		if (readoutMode) {
+			cout << "### READOUT NODES ###" << std::endl;
+			nodeReadout.Show();
+		}
+	} catch (std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		return 0;
 	}
+
 	return 0;
 }
