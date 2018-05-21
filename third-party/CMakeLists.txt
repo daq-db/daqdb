@@ -23,6 +23,7 @@ include_directories(${CCHORD_INCLUDES})
 file(GLOB_RECURSE CCHORD_SOURCES ${CCHORD}/engine/*.cpp ${CCHORD}/engine/*.h)
 add_library(cchord SHARED ${CCHORD_SOURCES})
 
+# @TODO jradtke: change to use ExternalProject_Add
 # libfabric
 include_directories(libfabric/include)
 if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libfabric.so OR NOT EXISTS ${3RDPARTY}/libfabric/src/.libs/libfabric.so)
@@ -46,6 +47,7 @@ set_target_properties(libfabric
     IMPORTED_LOCATION ${3RDPARTY}/libfabric/src/.libs/libfabric.so
     INTERFACE_INCLUDE_DIRECTORIES ${3RDPARTY}/libfabric/include)
 
+# @TODO jradtke: change to use ExternalProject_Add
 # pmdk
 include_directories(pmdk/src/include)
 if ((NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libpmem.so OR NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libpmemobj.so) OR
@@ -87,6 +89,34 @@ include_directories(${PMEMKV_INCLUDES})
 file(GLOB_RECURSE PMEMKV_SOURCES ${PMEMKV}/src/pmemkv.cc ${PMEMKV}/src/engines/*.cc)
 add_library(pmemkv SHARED ${PMEMKV_SOURCES})
 
+# spdk
+set(SPDK_LIBS
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_app_rpc.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_malloc.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_null.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_aio.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_rpc.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_nvme.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_blob_bdev.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_blob.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_env_dpdk.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_nvme.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_rpc.a
+    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_util.a
+    )
+ExternalProject_Add(project_spdk
+    PREFIX ${PROJECT_SOURCE_DIR}/spdk
+    SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
+    BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/spdk
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND make
+    INSTALL_COMMAND ar -rcT ${PROJECT_SOURCE_DIR}/spdk/libspdk.a ${SPDK_LIBS}
+)
+add_library(spdk STATIC IMPORTED GLOBAL)
+set_property(TARGET spdk PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/spdk/libspdk.a)
+add_dependencies(spdk project_spdk)
+
 # Cleanup tasks
 add_custom_target(clean-dep)
 add_custom_target(libpmdk_clean
@@ -99,4 +129,8 @@ add_custom_target(libfabric_clean
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libfabric
 )
 add_dependencies(clean-dep libfabric_clean)
-
+add_custom_target(libspdk_clean
+	COMMAND make clean && rm ${PROJECT_SOURCE_DIR}/spdk/libspdk.a
+	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/spdk
+)
+add_dependencies(clean-dep libspdk_clean)
