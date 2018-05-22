@@ -60,6 +60,7 @@ add_subdirectory(tests)
 add_subdirectory(${EXAMPLES}/cli_node)
 
 # Build apps folder
+find_package(Config++ REQUIRED)
 add_subdirectory(${APPS}/mist)
 
 add_subdirectory(${EXAMPLES}/basic)

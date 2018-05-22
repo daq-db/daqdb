@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,22 +32,16 @@
 
 #include <iostream>
 #include <iomanip>
-#include "config.hpp"
+#include "config.h"
 #include <FogKV/KVStoreBase.h>
 #include <asio/io_service.hpp>
 #include <boost/bind.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/signal_set.hpp>
 
-sig_atomic_t volatile mist_running = 0;
-
-void sig_handler(int signum)
-{
-	if (signum == SIGINT)
-		mist_running = 1;
-}
 
 int main(int argc, char ** argv) {
+	// TODO utilize boost::program_options for help on each parameter
 	if (argc != 2) {
 		cout << "Please specify configuration file, e.g. ./mist myConfig.cfg" << endl;
 		return -1;
@@ -55,7 +49,7 @@ int main(int argc, char ** argv) {
 
 	Configuration fogServerConfiguration(argv[1]);
 
-	FogKV::Options options;
+	Options options;
 	fogServerConfiguration.readConfiguration(options);
 
 	asio::io_service io_service;
@@ -65,17 +59,14 @@ int main(int argc, char ** argv) {
 
 	FogKV::KVStoreBase *kvs;
 	try {
-		kvs = FogKV::KVStoreBase::Open(options);
-	} catch (FogKV::OperationFailedException e) {
+		kvs = KVStoreBase::Open(options);
+	} catch (OperationFailedException e) {
 		cerr << "Failed to create KVStore: " << e.what() << endl;
 		return -1;
 	}
 	cout << "FogKV server running" << endl;
 
-	signal(SIGINT, &sig_handler);
-	while (!mist_running)
-		pause();
-
+	io_service.run();
 	//cleanup code
 	cout << "Exiting gracefuly" << endl;
 	return 0;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.hpp"
+#include "config.h"
 
 Configuration::Configuration(const char * file) : fileName(file){
 	try {
@@ -41,11 +41,11 @@ Configuration::Configuration(const char * file) : fileName(file){
 	}
 	catch(const ParseException &pex) {
 		std::cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
-        		      << " - " << pex.getError() << std::endl;
+        		<< " - " << pex.getError() << std::endl;
 	}
 }
 
-void Configuration::readConfiguration(FogKV::Options &options) {
+void Configuration::readConfiguration(Options &options) {
 	// required parameters
 	// TODO move mode to FogKV options
 	string mode;
@@ -77,7 +77,7 @@ void Configuration::readConfiguration(FogKV::Options &options) {
 	cfg.lookupValue("pmem_size", pmem_size);
 	options.PMEM.Path = pmem_path;
 	options.PMEM.Size = pmem_size;
-	// TODO add logging to FogKV optons
+	// TODO add logging to FogKV options
 	string loggingLevel = "WARN";
 	cfg.lookupValue("logging_level", loggingLevel);
 

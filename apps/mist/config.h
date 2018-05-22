@@ -36,6 +36,7 @@
 #include <FogKV/KVStoreBase.h>
 using namespace libconfig;
 using namespace std;
+using namespace FogKV;
 
 class Configuration {
 	private:
@@ -43,5 +44,5 @@ class Configuration {
 		const char * fileName;
 	public:
 		Configuration(const char *);
-		void readConfiguration(FogKV::Options &options);
+		void readConfiguration(Options &options);
 };
