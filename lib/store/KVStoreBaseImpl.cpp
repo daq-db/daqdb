@@ -75,7 +75,10 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
 	if (s != OK)
 		throw OperationFailedException(EINVAL);
 
-	/** @TODO jradtke: initial implementation, msg format and cpl function needed */
+	/**
+	 * @TODO jradtke: initial implementation, msg format and cpl function needed.
+	 * 			Temporary in this place, will be moved to PutAsync.
+	 */
 	if (mRqstPooler) {
 		mRqstPooler->EnqueueMsg(new RqstMsg());
 	}
