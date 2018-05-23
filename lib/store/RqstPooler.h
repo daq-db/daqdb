@@ -32,21 +32,41 @@
 
 #pragma once
 
+#include <thread>
 #include <atomic>
+
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
 namespace FogKV {
 
+class RqstMsg {
+public:
+	int operation;
+};
+
 class RqstPooler {
 public:
 	RqstPooler();
 	virtual ~RqstPooler();
+	void Start();
+	void EnqueueMsg(RqstMsg *Message);
 
-	std::atomic_int		mState;
-	struct spdk_ring	*mSubmitRing;
+	/** @TODO jradtke: Change to enum with proper states */
+	std::atomic_int mState;
+	/** @TODO jradtke: Do we need completion queue too? */
+	struct spdk_ring *mSubmitRing;
+	std::thread *mThread;
+private:
+	void ThreadMain(void);
+	void DequeueMsg();
+
+	/**
+	 * @TODO jradtke: How many messages to store?
+	 * Maybe circular buffer will be better choice here?
+	 */
+	RqstMsg mRqstMsgBuffer[1024];
 };
 
 } /* namespace FogKV */
-

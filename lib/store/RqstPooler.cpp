@@ -32,16 +32,52 @@
 
 #include "RqstPooler.h"
 
+#include <iostream>
+
 #include "spdk/env.h"
 
 namespace FogKV {
 
-RqstPooler::RqstPooler() {
-	mSubmitRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
+RqstPooler::RqstPooler() :
+		mState(0), mThread(nullptr) {
+	/** @TODO jradtke: ring size should be configurable? */
+	mSubmitRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
+			SPDK_ENV_SOCKET_ID_ANY);
+	Start();
 }
 
 RqstPooler::~RqstPooler() {
 	spdk_ring_free(mSubmitRing);
+	mState = 0;
+	if (mThread != nullptr)
+		mThread->join();
+}
+
+void RqstPooler::Start() {
+	mState = 1;
+	mThread = new std::thread(&RqstPooler::ThreadMain, this);
+}
+
+void RqstPooler::ThreadMain() {
+	while (mState) {
+		DequeueMsg();
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+}
+
+void RqstPooler::EnqueueMsg(RqstMsg *Message)
+{
+	size_t count = spdk_ring_enqueue(mSubmitRing, (void **)&Message, 1);
+
+	/** @TODO jradtke: Initial implementation, error handling not implemented */
+}
+
+void RqstPooler::DequeueMsg()
+{
+	size_t count;
+	count = spdk_ring_dequeue(mSubmitRing, (void **) &mRqstMsgBuffer, 1);
+
+	/** @TODO jradtke: Initial implementation, request handling not implemented */
 }
 
 } /* namespace FogKV */
