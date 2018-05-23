@@ -38,6 +38,7 @@
 #include <dht/DhtNode.h>
 #include <pmemkv.h>
 #include <mutex>
+#include "RqstPooler.h"
 
 namespace FogKV {
 
@@ -84,6 +85,8 @@ protected:
 	std::unique_ptr<FogKV::DhtNode> mDhtNode;
 	std::unique_ptr<pmemkv::KVEngine> mPmemkv;
 	std::mutex mLock;
+
+	RqstPooler mRqstPooler;
 };
 
 } //namespace FogKV
