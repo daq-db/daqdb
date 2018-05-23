@@ -82,9 +82,9 @@ FogKV is using SPDK internally so following extra step is required to configure 
 
 ```
 cd ${fogKVpath}
-sudo . third-party/spdk/scripts/setup
+sudo third-party/spdk/scripts/setup
 ```
-Note: If using LCG then remember to preserve user LD_LIBRARY_PATH e.g. `sudo LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./clinode -i`
+Note: If using LCG then execute as root with LCG initialized or remember to preserve user LD_LIBRARY_PATH in visudo.
 
 #### Unit Tests
 
