@@ -33,7 +33,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "MinidaqResults.h"
+#include "MinidaqStats.h"
 
 using namespace std;
 
@@ -47,20 +47,22 @@ bool operator <(const timespec& lhs, const timespec& rhs)
         return lhs.tv_sec < rhs.tv_sec;
 }
 
-MinidaqResults::MinidaqResults()
+MinidaqStats::MinidaqStats()
 {
 }
 
-MinidaqResults::MinidaqResults(std::vector<MinidaqResults> &rVector)
+MinidaqStats::MinidaqStats(std::vector<MinidaqStats> &rVector)
 {
-	nSamples = 0;
 	tStop.tv_sec = 0;
 	tStop.tv_nsec = 0;
 	GetTime(tStart);
 
 	for (auto& r : rVector) {
 		nSamples += r.GetSamples();
-		nErrors += r.GetErrors();
+		nRequests += r.GetRequests();
+		nErrRequests += r.GetErrRequests();
+		nCompletions += r.GetCompletions();
+		nErrCompletions += r.GetErrCompletions();
 		if (!(tStart < r.GetStartTime())) {
 			tStart = r.GetStartTime();
 		}
@@ -72,16 +74,16 @@ MinidaqResults::MinidaqResults(std::vector<MinidaqResults> &rVector)
 	GetTimeDiff(tStop, tStart, tDiff);
 }
 
-MinidaqResults::~MinidaqResults()
+MinidaqStats::~MinidaqStats()
 {
 }
 
-void MinidaqResults::GetTime(timespec &tCurr)
+void MinidaqStats::GetTime(timespec &tCurr)
 {
 	clock_gettime(CLOCK_MONOTONIC, &tCurr);
 }
 
-void MinidaqResults::GetTimeDiff(const timespec &t1, const timespec &t2, timespec &d)
+void MinidaqStats::GetTimeDiff(const timespec &t1, const timespec &t2, timespec &d)
 {
 	if ((t1.tv_nsec - t2.tv_nsec) < 0) {
 		d.tv_sec = t1.tv_sec - t2.tv_sec - 1;
@@ -92,80 +94,116 @@ void MinidaqResults::GetTimeDiff(const timespec &t1, const timespec &t2, timespe
 	}
 }
 
-void MinidaqResults::SetStartTime()
+void MinidaqStats::SetStartTime()
 {
 	GetTime(tStart);
 }
 
-timespec MinidaqResults::GetStartTime()
+timespec MinidaqStats::GetStartTime()
 {
 	return tStart;
 }
 
-timespec MinidaqResults::GetStopTime()
+timespec MinidaqStats::GetStopTime()
 {
 	return tStop;
 }
 
-void MinidaqResults::SetElapsed()
+void MinidaqStats::SetElapsed()
 {
 	GetTime(tStop);
 	GetTimeDiff(tStop, tStart, tDiff);
 }
 
-timespec MinidaqResults::GetElapsed()
+timespec MinidaqStats::GetElapsed()
 {
 	return tDiff;
 }
 
-bool MinidaqResults::IsEnough(uint64_t desired_time_s)
+bool MinidaqStats::IsEnough(uint64_t desired_time_s)
 {
 	return (tDiff.tv_sec >= desired_time_s);
 }
 
-void MinidaqResults::RecordLatency(timespec &t)
+void MinidaqStats::RecordRequest(timespec &lat)
 {
+	nRequests++;
+
+	/** @todo add latency histogram */
 }
 
-void MinidaqResults::RecordSample()
+void MinidaqStats::RecordErrRequest(timespec &lat)
 {
-	nSamples++;
+	nErrRequests++;
+
+	/** @todo add latency histogram */
 }
 
-uint64_t MinidaqResults::GetSamples()
+void MinidaqStats::SetSamples(uint64_t n)
+{
+	nSamples = n;
+}
+
+void MinidaqStats::SetCompletions(uint64_t n)
+{
+	nCompletions = n;
+}
+
+void MinidaqStats::SetErrCompletions(uint64_t n)
+{
+	nErrCompletions = n;
+}
+
+uint64_t MinidaqStats::GetSamples()
 {
 	return nSamples;
 }
 
-void MinidaqResults::RecordError()
+uint64_t MinidaqStats::GetRequests()
 {
-	nErrors++;
+	return nRequests;
 }
 
-uint64_t MinidaqResults::GetErrors()
+uint64_t MinidaqStats::GetErrRequests()
 {
-	return nErrors;
+	return nErrRequests;
 }
 
-void MinidaqResults::Dump()
+uint64_t MinidaqStats::GetCompletions()
 {
-	double ops;
+	return nCompletions;
+}
+
+uint64_t MinidaqStats::GetErrCompletions()
+{
+	return nErrCompletions;
+}
+
+void MinidaqStats::Dump()
+{
+	double cps;
+	double rps;
+	uint64_t n;
 	double t;
 
 	t = tDiff.tv_sec + double(tDiff.tv_nsec) / 1000000000.0;
-	ops = (nSamples - nErrors) / t;
+	cps = double(nCompletions) / t;
+	rps = double(nRequests) / t;
 
 	std::cout << "Start time [sec]: " << tStart.tv_sec << "." << setfill('0')
 									  << setw(9) << tStart.tv_nsec << std::endl;
 	std::cout << "Duration [sec]: " << tDiff.tv_sec << "." << setfill('0')
 									<< setw(9) << tDiff.tv_nsec << std::endl;
 	std::cout << "Total samples: " << nSamples << std::endl;
-	std::cout << "Successful samples: " << nSamples - nErrors << std::endl;
-	std::cout << "Error samples: " << nErrors << std::endl;
-	std::cout << "Operations per second [1/sec]: " << ops << std::endl;
+	std::cout << "Issued requests: " << nRequests << std::endl;
+	std::cout << "Error requests: " << nErrRequests << std::endl;
+	std::cout << "Completions: " << nCompletions << std::endl;
+	std::cout << "Completion errors: " << nErrCompletions << std::endl;
+	std::cout << "Requests per second [1/sec]: " << rps << std::endl;
+	std::cout << "Completions per second [1/sec]: " << cps << std::endl;
 }
 
-void MinidaqResults::DumpCsv()
+void MinidaqStats::DumpCsv()
 {
 }
 

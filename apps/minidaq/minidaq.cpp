@@ -35,6 +35,7 @@
 
 #include "FogKV/KVStoreBase.h"
 #include "MinidaqReadoutNode.h"
+#include "MinidaqAsyncReadoutNode.h"
 
 using namespace std;
 
@@ -59,9 +60,11 @@ static FogKV::KVStoreBase* openKVS(std::string &pmemPath, size_t pmemSize)
 
 int main(int argc, const char *argv[])
 {
+	bool asyncReadoutMode = false;
 	bool readoutMode = false;
 	FogKV::KVStoreBase *kvs;
 	std::string pmem_path;
+	size_t fSize = 10240;
 	int rampUpSec = 1;
 	size_t pmem_size;
 	int nSec = 10;
@@ -71,6 +74,8 @@ int main(int argc, const char *argv[])
 	argumentsDescription.add_options()
 			("help,h", "Print help messages")
 			("readout,r", "Run in readout mode")
+			("readout-async", "Run in async readout mode")
+			("fragment-size", po::value<size_t>(&fSize), "Fragment size in bytes in case of readout mode")
 			("threads,t", po::value<int>(&nTh), "Number of worker threads")
 			("duration,d", po::value<int>(&nSec), "Desired test duration in seconds")
 			("ramp", po::value<int>(&rampUpSec), "Desired ramp up time in seconds")
@@ -80,9 +85,8 @@ int main(int argc, const char *argv[])
 
 	po::variables_map parsedArguments;
 	try {
-		po::store(po::parse_command_line(argc, argv,
-						 argumentsDescription),
-			  parsedArguments);
+		po::store(po::parse_command_line(argc, argv, argumentsDescription),
+				  parsedArguments);
 
 		if (parsedArguments.count("help")) {
 			std::cout << argumentsDescription << endl;
@@ -90,6 +94,9 @@ int main(int argc, const char *argv[])
 		}
 		if (parsedArguments.count("readout")) {
 			readoutMode = true;
+		}
+		if (parsedArguments.count("readout-async")) {
+			asyncReadoutMode = true;
 		}
 
 		po::notify(parsedArguments);
@@ -102,26 +109,36 @@ int main(int argc, const char *argv[])
 
 	try {
 		kvs = openKVS(pmem_path, pmem_size);
-
 		FogKV::MinidaqReadoutNode nodeReadout(kvs);
+		FogKV::MinidaqAsyncReadoutNode nodeAsyncReadout(kvs);
+		std::vector<FogKV::MinidaqNode*> nodes;
 
 		// Start workers
 		if (readoutMode) {
 			nodeReadout.SetDuration(nSec);
 			nodeReadout.SetRampUp(rampUpSec);
 			nodeReadout.SetThreads(nTh);
+			nodeReadout.SetFragmentSize(fSize);
 			nodeReadout.Run();
+			nodes.push_back(&nodeReadout);
+		}
+
+		if (asyncReadoutMode) {
+			nodeAsyncReadout.SetDuration(nSec);
+			nodeAsyncReadout.SetRampUp(rampUpSec);
+			nodeAsyncReadout.SetThreads(nTh);
+			nodeAsyncReadout.Run();
+			nodes.push_back(&nodeAsyncReadout);
 		}
 
 		// Wait for results
-		if (readoutMode) {
-			nodeReadout.Wait();
+		for (auto& n : nodes) {
+			n->Wait();
 		}
 
 		// Show results
-		if (readoutMode) {
-			cout << "### READOUT NODES ###" << std::endl;
-			nodeReadout.Show();
+		for (auto& n : nodes) {
+			n->Show();
 		}
 	} catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;

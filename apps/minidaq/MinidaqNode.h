@@ -34,8 +34,9 @@
 
 #include <vector>
 #include <future>
+#include <atomic>
 
-#include "MinidaqResults.h"
+#include "MinidaqStats.h"
 #include "FogKV/KVStoreBase.h"
 
 namespace FogKV {
@@ -62,7 +63,8 @@ public:
 	void SetThreads(int n);
 
 protected:
-	virtual void Task(int executorId) = 0;
+	virtual void Task(int executorId, std::atomic<std::uint64_t> &cnt,
+					  std::atomic<std::uint64_t> &cntErr) = 0;
 	virtual void Setup() = 0;
 
 	KVStoreBase *kvs;
@@ -72,13 +74,13 @@ protected:
 	int runId = 599;
 
 private:
-	MinidaqResults Execute(int nThreads);
+	MinidaqStats Execute(int nThreads);
 
 	int runSeconds = 0; // desired duration in seconds
 	int rampUpSeconds = 0; // desired ramp up time in seconds
-	bool stopped = false; // signals first thread stopped execution
+	std::atomic_bool stopped; // signals first thread stopped execution
 
-	std::vector<std::future<MinidaqResults>> futureVec;
+	std::vector<std::future<MinidaqStats>> futureVec;
 };
 
 }

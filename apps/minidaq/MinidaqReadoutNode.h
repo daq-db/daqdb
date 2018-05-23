@@ -41,12 +41,15 @@ public:
 	MinidaqReadoutNode(KVStoreBase *kvs);
 	~MinidaqReadoutNode();
 
+	void SetFragmentSize(size_t s);
+
 protected:
-	void Task(int executorId);
+	void Task(int executorId, std::atomic<std::uint64_t> &cnt,
+			  std::atomic<std::uint64_t> &cntErr);
 	void Setup();
 
-private:
 	std::vector<uint64_t> currEventId;
+	size_t fSize = 0;
 };
 
 }

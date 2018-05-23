@@ -30,53 +30,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "MinidaqReadoutNode.h"
+#pragma once
 
-using namespace std;
+#include "MinidaqReadoutNode.h"
 
 namespace FogKV {
 
-MinidaqReadoutNode::MinidaqReadoutNode(KVStoreBase *kvs) :
-	MinidaqNode(kvs)
-{
-}
+class MinidaqAsyncReadoutNode : public MinidaqReadoutNode {
+public:
+	MinidaqAsyncReadoutNode(KVStoreBase *kvs);
+	~MinidaqAsyncReadoutNode();
 
-MinidaqReadoutNode::~MinidaqReadoutNode()
-{
-}
-
-void MinidaqReadoutNode::Setup()
-{
-	int i;
-
-	for (i = 0; i < nTh; i++) {
-		currEventId.push_back(i);
-	}
-}
-
-void MinidaqReadoutNode::SetFragmentSize(size_t s)
-{
-	fSize = s;
-}
-
-void MinidaqReadoutNode::Task(int executorId, std::atomic<std::uint64_t> &cnt,
-							  std::atomic<std::uint64_t> &cntErr)
-{
-	Key key = kvs->AllocKey();
-	MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
-	keyp->subdetector_id = id;
-	keyp->run_id = runId;
-	keyp->event_id = currEventId[executorId];
-	currEventId[executorId] += nTh;
-
-	FogKV::Value value = kvs->Alloc(fSize);
-
-	try {
-		kvs->Put(std::move(key), std::move(value));
-		cnt++;
-	} catch (...) {
-		cntErr;
-	}
-}
+protected:
+	void Task(int executorId, std::atomic<std::uint64_t> &cnt,
+			  std::atomic<std::uint64_t> &cntErr);
+};
 
 }

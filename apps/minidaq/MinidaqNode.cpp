@@ -34,13 +34,14 @@
 #include <thread>
 #include <vector>
 #include <iostream>
+#include <atomic>
 
 #include "MinidaqNode.h"
 
 namespace FogKV {
 
 MinidaqNode::MinidaqNode(KVStoreBase *kvs) :
-	kvs(kvs)
+	kvs(kvs), stopped(false)
 {
 }
 
@@ -63,18 +64,22 @@ void MinidaqNode::SetThreads(int n)
 	nTh= n;
 }
 
-MinidaqResults MinidaqNode::Execute(int executorId)
+MinidaqStats MinidaqNode::Execute(int executorId)
 {
-	MinidaqResults r;
+	std::atomic<std::uint64_t> c_err(0);
+	std::atomic<std::uint64_t> c(0);
+	bool err = false;
 	timespec tStart;
 	timespec tStop;
+	uint64_t n = 0;
+	MinidaqStats r;
 	timespec lat;
 
 	// Ramp up
 	r.SetStartTime();
 	do {
 		try {
-			Task(executorId);
+			Task(executorId, c, c_err);
 		}
 		catch (...) {
 		}
@@ -82,23 +87,33 @@ MinidaqResults MinidaqNode::Execute(int executorId)
 	} while (!r.IsEnough(rampUpSeconds));
 
 	// Record samples
+	c_err = 0;
+	c = 0;
 	r.SetStartTime();
 	do {
+		n++;
 		r.GetTime(tStart);
 		try {
-			Task(executorId);
-			r.RecordSample();
+			Task(executorId, c, c_err);
 		}
 		catch (...) {
-			r.RecordError();
+			err = true;
 		}
 		r.GetTime(tStop);
 		r.GetTimeDiff(tStart, tStop, lat);
-		r.RecordLatency(lat);
+		if (err) {
+			r.RecordErrRequest(lat);
+			err = false;
+		} else {
+			r.RecordRequest(lat);
+		}
 		r.SetElapsed();
 	} while (!r.IsEnough(runSeconds) && !stopped);
 
 	stopped = true;
+	r.SetSamples(n);
+	r.SetCompletions(c);
+	r.SetErrCompletions(c_err);
 
 	return r;
 }
@@ -126,18 +141,18 @@ void MinidaqNode::Wait()
 
 void MinidaqNode::Show()
 {
-	std::vector<MinidaqResults> results;
+	std::vector<MinidaqStats> stats;
 	int i = 0;
 
 	for (auto&& f : futureVec) {
-		std::cout << "Results[" << i++ << "]:" << std::endl;
-		results.push_back(f.get());
-		results.back().Dump();
+		std::cout << "stats[" << i++ << "]:" << std::endl;
+		stats.push_back(f.get());
+		stats.back().Dump();
 		std::cout << std::endl;
 	}
 
-	std::cout << "Results[all]:" << std::endl;
-	MinidaqResults total(results);
+	std::cout << "stats[all]:" << std::endl;
+	MinidaqStats total(stats);
 	total.Dump();
 	std::cout << std::endl;
 }

@@ -30,37 +30,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "MinidaqReadoutNode.h"
+#include "MinidaqAsyncReadoutNode.h"
 
 using namespace std;
 
 namespace FogKV {
 
-MinidaqReadoutNode::MinidaqReadoutNode(KVStoreBase *kvs) :
-	MinidaqNode(kvs)
+MinidaqAsyncReadoutNode::MinidaqAsyncReadoutNode(KVStoreBase *kvs) :
+	MinidaqReadoutNode(kvs)
 {
 }
 
-MinidaqReadoutNode::~MinidaqReadoutNode()
+MinidaqAsyncReadoutNode::~MinidaqAsyncReadoutNode()
 {
 }
 
-void MinidaqReadoutNode::Setup()
-{
-	int i;
-
-	for (i = 0; i < nTh; i++) {
-		currEventId.push_back(i);
-	}
-}
-
-void MinidaqReadoutNode::SetFragmentSize(size_t s)
-{
-	fSize = s;
-}
-
-void MinidaqReadoutNode::Task(int executorId, std::atomic<std::uint64_t> &cnt,
-							  std::atomic<std::uint64_t> &cntErr)
+void MinidaqAsyncReadoutNode::Task(int executorId, std::atomic<std::uint64_t> &cnt,
+								   std::atomic<std::uint64_t> &cntErr)
 {
 	Key key = kvs->AllocKey();
 	MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
@@ -69,13 +55,20 @@ void MinidaqReadoutNode::Task(int executorId, std::atomic<std::uint64_t> &cnt,
 	keyp->event_id = currEventId[executorId];
 	currEventId[executorId] += nTh;
 
-	FogKV::Value value = kvs->Alloc(fSize);
+	FogKV::Value value = kvs->Alloc(1024);
 
 	try {
-		kvs->Put(std::move(key), std::move(value));
-		cnt++;
+		kvs->PutAsync(std::move(key), std::move(value),
+					  [&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
+						   const FogKV::Key &key, const FogKV::Value &val) {
+						if (!status.ok()) {
+							cntErr++;
+							return;
+						}
+						cnt++;
+						});
 	} catch (...) {
-		cntErr;
+		cntErr++;
 	}
 }
 
