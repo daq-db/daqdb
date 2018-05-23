@@ -76,6 +76,16 @@ If using LCG release, set the desired environment first:
 ```
 . /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
 ```
+
+##### SPDK
+FogKV is using SPDK internally so following extra step is required to configure environment.
+
+```
+cd ${fogKVpath}
+sudo . third-party/spdk/scripts/setup
+```
+Note: If using LCG then remember to preserve user LD_LIBRARY_PATH e.g. `sudo LD_LIBRARY_PATH=$LD_LIBRARY_PATH ./clinode -i`
+
 #### Unit Tests
 
 ```
@@ -90,7 +100,7 @@ ctest
 
 #### CLI node example 
 ```
-./cli-node -h
+sudo ./cli-node -h
 Options:
   -h [ --help ]                         Print help messages
   -p [ --port ] arg                     Node Communication port
@@ -108,9 +118,7 @@ Options:
 To enter interactive mode execute cli-node with `--interactive` flag.
 (Remember to allow writing to /mnt/pmem/ if not changing default --pmem-path)
 ```
-./cli_node -i
-DHT node (id=107) is running on 127.0.0.1:11000
-Waiting for requests on port 40401. Press CTRL-C to exit.
+sudo ./cli_node -i
 fogkv> help
 Following commands supported:
 	- get <key>
