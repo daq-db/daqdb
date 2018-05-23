@@ -127,6 +127,7 @@ int main(int argc, const char *argv[])
 			nodeAsyncReadout.SetDuration(nSec);
 			nodeAsyncReadout.SetRampUp(rampUpSec);
 			nodeAsyncReadout.SetThreads(nTh);
+			nodeAsyncReadout.SetFragmentSize(fSize);
 			nodeAsyncReadout.Run();
 			nodes.push_back(&nodeAsyncReadout);
 		}
