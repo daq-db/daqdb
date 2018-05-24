@@ -51,7 +51,7 @@ file(GLOB_RECURSE FOGKV_SOURCES
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Jsoncpp_LIBRARY} libfabric cchord pmemkv spdk)
+target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord pmemkv spdk)
 
 # Build test folder
 add_subdirectory(tests)
