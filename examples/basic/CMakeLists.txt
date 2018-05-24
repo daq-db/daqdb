@@ -16,4 +16,4 @@ set(3RDPARTY ${ROOT_FOGKV_DIR}/third-party)
 
 file(GLOB BASIC_SOURCES *.cpp)
 add_executable(basic ${BASIC_SOURCES})
-target_link_libraries(basic fogkv libpmemobj dpdk dl numa ${CMAKE_THREAD_LIBS_INIT} )
+target_link_libraries(basic fogkv pmemobj dpdk dl numa ${CMAKE_THREAD_LIBS_INIT} )
