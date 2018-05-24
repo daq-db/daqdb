@@ -27,7 +27,10 @@ git submodule update --init --recursive
 
 The dependencies can be installed automatically by scripts/pkgdep.sh.
 ```
-./scripts/pkgdep.sh
+cd ${fogKVpath}
+scripts/pkgdep.sh
+third-party/spdk/scripts/pkgdep.sh
+
 ```
 Following libraries are required:
 <ul>
@@ -84,7 +87,13 @@ FogKV is using SPDK internally so following extra step is required to configure 
 cd ${fogKVpath}
 sudo third-party/spdk/scripts/setup
 ```
-Note: If using LCG then execute as root with LCG initialized or remember to preserve user LD_LIBRARY_PATH in visudo.
+If using LCG then execute as root with LCG initialized or remember to preserve user LD_LIBRARY_PATH in visudo.
+Example:
+
+```
+cd ${fogKVpath}/bin
+sudo LD_LIBRARY_PATH=pwd:$LD_LIBRARY_PATH ./clinode -i
+```
 
 #### Unit Tests
 
