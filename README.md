@@ -30,8 +30,8 @@ The dependencies can be installed automatically by scripts/pkgdep.sh.
 cd ${fogKVpath}
 scripts/pkgdep.sh
 third-party/spdk/scripts/pkgdep.sh
-
 ```
+
 Following libraries are required:
 <ul>
 <li>asio-devel</li>
@@ -92,7 +92,7 @@ Example:
 
 ```
 cd ${fogKVpath}/bin
-sudo LD_LIBRARY_PATH=pwd:$LD_LIBRARY_PATH ./clinode -i
+sudo LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH" ./clinode -i
 ```
 
 #### Unit Tests
