@@ -41,6 +41,7 @@ using namespace std;
 
 namespace po = boost::program_options;
 
+/** @todo move to MinidaqFogServer for distributed version */
 static FogKV::KVStoreBase* openKVS(std::string &pmemPath, size_t pmemSize)
 {
 	// todo remove redundant stuff once initialization is fixed
@@ -65,9 +66,10 @@ int main(int argc, const char *argv[])
 	FogKV::KVStoreBase *kvs;
 	std::string pmem_path;
 	size_t fSize = 10240;
-	int rampUpSec = 1;
 	size_t pmem_size;
-	int nSec = 10;
+	int tTestS = 10;
+	int tIterMS = 1;
+	int tRampS = 2;
 	int nTh = 1;
 
 	po::options_description argumentsDescription{"Options"};
@@ -77,8 +79,9 @@ int main(int argc, const char *argv[])
 			("readout-async", "Run in async readout mode")
 			("fragment-size", po::value<size_t>(&fSize), "Fragment size in bytes in case of readout mode")
 			("threads,t", po::value<int>(&nTh), "Number of worker threads")
-			("duration,d", po::value<int>(&nSec), "Desired test duration in seconds")
-			("ramp", po::value<int>(&rampUpSec), "Desired ramp up time in seconds")
+			("time-test", po::value<int>(&tTestS), "Desired test duration in seconds")
+			("time-iter", po::value<int>(&tIterMS), "Desired iteration duration in milliseconds")
+			("time-ramp", po::value<int>(&tRampS), "Desired ramp up time in seconds")
 			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
 			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
 			;
@@ -115,8 +118,9 @@ int main(int argc, const char *argv[])
 
 		// Start workers
 		if (readoutMode) {
-			nodeReadout.SetDuration(nSec);
-			nodeReadout.SetRampUp(rampUpSec);
+			nodeReadout.SetTimeTest(tTestS);
+			nodeReadout.SetTimeRamp(tRampS);
+			nodeReadout.SetTimeIter(tIterMS);
 			nodeReadout.SetThreads(nTh);
 			nodeReadout.SetFragmentSize(fSize);
 			nodeReadout.Run();
@@ -124,8 +128,9 @@ int main(int argc, const char *argv[])
 		}
 
 		if (asyncReadoutMode) {
-			nodeAsyncReadout.SetDuration(nSec);
-			nodeAsyncReadout.SetRampUp(rampUpSec);
+			nodeAsyncReadout.SetTimeTest(tTestS);
+			nodeAsyncReadout.SetTimeRamp(tRampS);
+			nodeAsyncReadout.SetTimeIter(tIterMS);
 			nodeAsyncReadout.SetThreads(nTh);
 			nodeAsyncReadout.SetFragmentSize(fSize);
 			nodeAsyncReadout.Run();

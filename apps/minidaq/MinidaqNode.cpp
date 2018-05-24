@@ -37,6 +37,9 @@
 #include <atomic>
 
 #include "MinidaqNode.h"
+#include "MinidaqTimerHR.h"
+
+#include <iomanip>
 
 namespace FogKV {
 
@@ -49,14 +52,19 @@ MinidaqNode::~MinidaqNode()
 {
 }
 
-void MinidaqNode::SetRampUp(int t)
+void MinidaqNode::SetTimeTest(int tS)
 {
-	rampUpSeconds = t;
+	tTestS = tS;
 }
 
-void MinidaqNode::SetDuration(int t)
+void MinidaqNode::SetTimeRamp(int tS)
 {
-	runSeconds = t;
+	tRampS = tS;
+}
+
+void MinidaqNode::SetTimeIter(int tMS)
+{
+	tIterMS = tMS;
 }
 
 void MinidaqNode::SetThreads(int n)
@@ -66,56 +74,57 @@ void MinidaqNode::SetThreads(int n)
 
 MinidaqStats MinidaqNode::Execute(int executorId)
 {
-	std::atomic<std::uint64_t> c_err(0);
-	std::atomic<std::uint64_t> c(0);
+	std::atomic<std::uint64_t> c_err;
+	std::atomic<std::uint64_t> c;
+	MinidaqTimerHR timerSample;
+	MinidaqTimerHR timerTest;
+	MinidaqStats stats;
 	bool err = false;
-	timespec tStart;
-	timespec tStop;
-	uint64_t n = 0;
-	MinidaqStats r;
-	timespec lat;
+	uint64_t r_err;
+	uint64_t s = 0;
+	uint64_t n;
+	uint64_t r;
+	int i = 0;
 
 	// Ramp up
-	r.SetStartTime();
-	do {
-		try {
-			Task(executorId, c, c_err);
-		}
-		catch (...) {
-		}
-		r.SetElapsed();
-	} while (!r.IsEnough(rampUpSeconds));
+	timerTest.RestartS(tRampS);
+	while (!timerTest.IsExpired()) {
+		Task(executorId, c, c_err);
+	}
 
 	// Record samples
-	c_err = 0;
-	c = 0;
-	r.SetStartTime();
-	do {
-		n++;
-		r.GetTime(tStart);
-		try {
-			Task(executorId, c, c_err);
+	s = 0;
+	timerTest.RestartS(tTestS);
+	while (!timerTest.IsExpired() && !stopped) {
+		s++;
+		r = 0;
+		c = 0;
+		r_err = 0;
+		c_err = 0;
+		timerSample.RestartMS(tIterMS);
+		while (!timerSample.IsExpired() && !stopped) {
+			n++;
+			try {
+				Task(executorId, c, c_err);
+				r++;
+			}
+			catch (...) {
+				r_err++;
+			}
 		}
-		catch (...) {
-			err = true;
-		}
-		r.GetTime(tStop);
-		r.GetTimeDiff(tStart, tStop, lat);
-		if (err) {
-			r.RecordErrRequest(lat);
-			err = false;
-		} else {
-			r.RecordRequest(lat);
-		}
-		r.SetElapsed();
-	} while (!r.IsEnough(runSeconds) && !stopped);
+		stats.RecordSample();
+	}
 
 	stopped = true;
+
+	/*
 	r.SetSamples(n);
 	r.SetCompletions(c);
 	r.SetErrCompletions(c_err);
+	*/
+	// wait without recording for all completions
 
-	return r;
+	return stats;
 }
 
 void MinidaqNode::Run()

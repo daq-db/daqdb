@@ -58,8 +58,9 @@ public:
 	void Run();
 	void Wait();
 	void Show();
-	void SetDuration(int t);
-	void SetRampUp(int t);
+	void SetTimeTest(int nS);
+	void SetTimeIter(int nMS);
+	void SetTimeRamp(int nS);
 	void SetThreads(int n);
 
 protected:
@@ -76,8 +77,9 @@ protected:
 private:
 	MinidaqStats Execute(int nThreads);
 
-	int runSeconds = 0; // desired duration in seconds
-	int rampUpSeconds = 0; // desired ramp up time in seconds
+	int tTestS = 0; // desired test duration in seconds
+	int tRampS = 0; // desired test ramp duration in seconds
+	int tIterMS = 0; // desired iteration time in seconds
 	std::atomic_bool stopped; // signals first thread stopped execution
 
 	std::vector<std::future<MinidaqStats>> futureVec;

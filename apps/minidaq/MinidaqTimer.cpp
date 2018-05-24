@@ -30,26 +30,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "MinidaqTimer.h"
 
-#include "MinidaqNode.h"
+using namespace std;
 
 namespace FogKV {
 
-class MinidaqReadoutNode : public MinidaqNode {
-public:
-	MinidaqReadoutNode(KVStoreBase *kvs);
-	virtual ~MinidaqReadoutNode();
 
-	void SetFragmentSize(size_t s);
+MinidaqTimer::MinidaqTimer()
+{
+}
 
-protected:
-	void Task(int executorId, std::atomic<std::uint64_t> &cnt,
-			  std::atomic<std::uint64_t> &cntErr);
-	void Setup();
 
-	std::vector<uint64_t> currEventId;
-	size_t fSize = 0;
-};
+MinidaqTimer::~MinidaqTimer()
+{
+}
 
 }

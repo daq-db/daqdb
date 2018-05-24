@@ -30,26 +30,56 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include "MinidaqNode.h"
+#include "MinidaqTimerHR.h"
 
 namespace FogKV {
 
-class MinidaqReadoutNode : public MinidaqNode {
-public:
-	MinidaqReadoutNode(KVStoreBase *kvs);
-	virtual ~MinidaqReadoutNode();
+MinidaqTimerHR::MinidaqTimerHR()
+{
+}
 
-	void SetFragmentSize(size_t s);
 
-protected:
-	void Task(int executorId, std::atomic<std::uint64_t> &cnt,
-			  std::atomic<std::uint64_t> &cntErr);
-	void Setup();
+MinidaqTimerHR::~MinidaqTimerHR()
+{
+}
 
-	std::vector<uint64_t> currEventId;
-	size_t fSize = 0;
-};
+void MinidaqTimerHR::_restart()
+{
+	_expired = false;
+	_start = std::chrono::high_resolution_clock::now();
+}
+
+void MinidaqTimerHR::RestartS(int interval_s)
+{
+	_req_interval = std::chrono::seconds(interval_s);
+	_restart();
+}
+
+void MinidaqTimerHR::RestartMS(int interval_ms)
+{
+	_req_interval = std::chrono::milliseconds(interval_ms);
+	_restart();
+}
+
+bool MinidaqTimerHR::IsExpired()
+{
+	if (_expired) {
+		return _expired;
+	}
+	auto now = std::chrono::high_resolution_clock::now();
+	_curr_interval = std::chrono::duration_cast<std::chrono::nanoseconds>
+					 (now - _start);
+	if (_curr_interval >= _req_interval) {
+		_expired = true;
+	}
+	return _expired;
+}
+
+double MinidaqTimerHR::GetElapsedMS()
+{
+	IsExpired();
+	std::chrono::duration<double, std::milli> fp_ms(_curr_interval);
+	return fp_ms.count();
+}
 
 }

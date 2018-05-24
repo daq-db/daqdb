@@ -44,42 +44,10 @@ public:
 	MinidaqStats(std::vector<MinidaqStats> &rVector);
 	~MinidaqStats();
 
-	static void GetTime(timespec &tCurr);
-	static void GetTimeDiff(const timespec &t1, const timespec &t2, timespec &d);
-
-	void SetStartTime();
-	void SetElapsed();
-	timespec GetStartTime();
-	timespec GetElapsed();
-	timespec GetStopTime();
-	uint64_t GetSamples();
-	uint64_t GetRequests();
-	uint64_t GetErrRequests();
-	uint64_t GetCompletions();
-	uint64_t GetErrCompletions();
-
-	void RecordErrRequest(timespec &lat);
-	void RecordRequest(timespec &lat);
-
-	void SetSamples(uint64_t n);
-	void SetCompletions(uint64_t n);
-	void SetErrCompletions(uint64_t n);
-
-	bool IsEnough(uint64_t desired_time_s);
+	void RecordSample();
 
 	void Dump();
 	void DumpCsv();
-
-private:
-	timespec tStart;
-	timespec tStop;
-	timespec tDiff;
-
-	uint64_t nSamples = 0;
-	uint64_t nRequests = 0;
-	uint64_t nErrRequests = 0;
-	uint64_t nCompletions = 0;
-	uint64_t nErrCompletions = 0;
 };
 
 }

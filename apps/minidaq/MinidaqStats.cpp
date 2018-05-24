@@ -39,20 +39,13 @@ using namespace std;
 
 namespace FogKV {
 
-bool operator <(const timespec& lhs, const timespec& rhs)
-{
-    if (lhs.tv_sec == rhs.tv_sec)
-        return lhs.tv_nsec < rhs.tv_nsec;
-    else
-        return lhs.tv_sec < rhs.tv_sec;
-}
-
 MinidaqStats::MinidaqStats()
 {
 }
 
 MinidaqStats::MinidaqStats(std::vector<MinidaqStats> &rVector)
 {
+	/*
 	tStop.tv_sec = 0;
 	tStop.tv_nsec = 0;
 	GetTime(tStart);
@@ -72,115 +65,20 @@ MinidaqStats::MinidaqStats(std::vector<MinidaqStats> &rVector)
 	}
 
 	GetTimeDiff(tStop, tStart, tDiff);
+	*/
 }
 
 MinidaqStats::~MinidaqStats()
 {
 }
 
-void MinidaqStats::GetTime(timespec &tCurr)
+void MinidaqStats::RecordSample()
 {
-	clock_gettime(CLOCK_MONOTONIC, &tCurr);
-}
-
-void MinidaqStats::GetTimeDiff(const timespec &t1, const timespec &t2, timespec &d)
-{
-	if ((t1.tv_nsec - t2.tv_nsec) < 0) {
-		d.tv_sec = t1.tv_sec - t2.tv_sec - 1;
-		d.tv_nsec = t1.tv_nsec - t2.tv_nsec + 1000000000UL;
-	} else {
-		d.tv_sec = t1.tv_sec - t2.tv_sec;
-		d.tv_nsec = t1.tv_nsec - t2.tv_nsec;
-	}
-}
-
-void MinidaqStats::SetStartTime()
-{
-	GetTime(tStart);
-}
-
-timespec MinidaqStats::GetStartTime()
-{
-	return tStart;
-}
-
-timespec MinidaqStats::GetStopTime()
-{
-	return tStop;
-}
-
-void MinidaqStats::SetElapsed()
-{
-	GetTime(tStop);
-	GetTimeDiff(tStop, tStart, tDiff);
-}
-
-timespec MinidaqStats::GetElapsed()
-{
-	return tDiff;
-}
-
-bool MinidaqStats::IsEnough(uint64_t desired_time_s)
-{
-	return (tDiff.tv_sec >= desired_time_s);
-}
-
-void MinidaqStats::RecordRequest(timespec &lat)
-{
-	nRequests++;
-
-	/** @todo add latency histogram */
-}
-
-void MinidaqStats::RecordErrRequest(timespec &lat)
-{
-	nErrRequests++;
-
-	/** @todo add latency histogram */
-}
-
-void MinidaqStats::SetSamples(uint64_t n)
-{
-	nSamples = n;
-}
-
-void MinidaqStats::SetCompletions(uint64_t n)
-{
-	nCompletions = n;
-}
-
-void MinidaqStats::SetErrCompletions(uint64_t n)
-{
-	nErrCompletions = n;
-}
-
-uint64_t MinidaqStats::GetSamples()
-{
-	return nSamples;
-}
-
-uint64_t MinidaqStats::GetRequests()
-{
-	return nRequests;
-}
-
-uint64_t MinidaqStats::GetErrRequests()
-{
-	return nErrRequests;
-}
-
-uint64_t MinidaqStats::GetCompletions()
-{
-	return nCompletions;
-}
-
-uint64_t MinidaqStats::GetErrCompletions()
-{
-	return nErrCompletions;
 }
 
 void MinidaqStats::Dump()
 {
+	/*
 	double cps;
 	double rps;
 	uint64_t n;
@@ -201,6 +99,7 @@ void MinidaqStats::Dump()
 	std::cout << "Completion errors: " << nErrCompletions << std::endl;
 	std::cout << "Requests per second [1/sec]: " << rps << std::endl;
 	std::cout << "Completions per second [1/sec]: " << cps << std::endl;
+	*/
 }
 
 void MinidaqStats::DumpCsv()

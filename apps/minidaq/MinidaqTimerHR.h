@@ -32,24 +32,29 @@
 
 #pragma once
 
-#include "MinidaqNode.h"
+#include <chrono>
+
+#include "MinidaqTimer.h"
 
 namespace FogKV {
 
-class MinidaqReadoutNode : public MinidaqNode {
+class MinidaqTimerHR : public MinidaqTimer {
 public:
-	MinidaqReadoutNode(KVStoreBase *kvs);
-	virtual ~MinidaqReadoutNode();
+	MinidaqTimerHR();
+	~MinidaqTimerHR();
 
-	void SetFragmentSize(size_t s);
+	void RestartS(int interval_s);
+	void RestartMS(int interval_ms);
+	bool IsExpired();
+	double GetElapsedMS();
 
-protected:
-	void Task(int executorId, std::atomic<std::uint64_t> &cnt,
-			  std::atomic<std::uint64_t> &cntErr);
-	void Setup();
+private:
+	std::chrono::nanoseconds _req_interval;
+	std::chrono::nanoseconds _curr_interval;
+	std::chrono::time_point<std::chrono::high_resolution_clock> _start;
+	bool _expired = true;
 
-	std::vector<uint64_t> currEventId;
-	size_t fSize = 0;
+	void _restart();
 };
 
 }
