@@ -74,22 +74,17 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
 	Free(std::move(val));
 	if (s != OK)
 		throw OperationFailedException(EINVAL);
-
-	/**
-	 * @TODO jradtke: initial implementation, msg format and cpl function needed.
-	 * 			Temporary in this place, will be moved to PutAsync.
-	 */
-	if (mRqstPooler) {
-		mRqstPooler->EnqueueMsg(new RqstMsg());
-	}
 }
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb, const PutOptions &options)
 {
 	std::async(std::launch::async, [&] {
 		try {
-			Put(std::move(key), std::move(value));
-			cb(this, Ok, key, value);
+			if (mRqstPooler) {
+				mRqstPooler->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
+			} else {
+				cb(this, FogKV::Status(FogKV::Code::UnknownError), key, value);
+			}
 		} catch (OperationFailedException e) {
 			cb(this, e.status(), key, value);
 		}

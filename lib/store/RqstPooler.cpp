@@ -38,11 +38,16 @@
 
 namespace FogKV {
 
+RqstMsg::RqstMsg(RqstOperation op, Key *key, Value *value,
+		KVStoreBase::KVStoreBasePutCallback *cb_fn) :
+		op(op), key(key), value(value), cb_fn(cb_fn) {
+}
+
 RqstPooler::RqstPooler() :
 		mState(0), mThread(nullptr) {
 	/** @TODO jradtke: ring size should be configurable? */
 	mSubmitRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
-			SPDK_ENV_SOCKET_ID_ANY);
+	SPDK_ENV_SOCKET_ID_ANY);
 	Start();
 }
 
@@ -61,21 +66,37 @@ void RqstPooler::Start() {
 void RqstPooler::ThreadMain() {
 	while (mState) {
 		DequeueMsg();
+
+		/** @TODO jradtke: Initial implementation, will be removed */
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 }
 
-void RqstPooler::EnqueueMsg(RqstMsg *Message)
-{
-	size_t count = spdk_ring_enqueue(mSubmitRing, (void **)&Message, 1);
+bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
+	size_t count = spdk_ring_enqueue(mSubmitRing, (void **) &Message, 1);
+
+	return (count == 1);
 
 	/** @TODO jradtke: Initial implementation, error handling not implemented */
 }
 
-void RqstPooler::DequeueMsg()
-{
+void RqstPooler::DequeueMsg() {
 	size_t count;
-	count = spdk_ring_dequeue(mSubmitRing, (void **) &mRqstMsgBuffer, 1);
+	count = spdk_ring_dequeue(mSubmitRing, (void **) mRqstMsgBuffer, 1);
+
+	if (count == 1) {
+		if (mRqstMsgBuffer[0]) {
+			switch (mRqstMsgBuffer[0]->op) {
+				case RqstOperation::PUT:
+					/** @TODO jradtke: Add PUT logic here */
+					break;
+				default:
+					break;
+			}
+			(* mRqstMsgBuffer[0]->cb_fn)(nullptr, FogKV::Status(FogKV::Code::Ok),
+					*mRqstMsgBuffer[0]->key, *mRqstMsgBuffer[0]->value);
+		}
+	}
 
 	/** @TODO jradtke: Initial implementation, request handling not implemented */
 }

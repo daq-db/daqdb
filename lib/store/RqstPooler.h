@@ -34,16 +34,28 @@
 
 #include <thread>
 #include <atomic>
+#include <cstdint>
 
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
+#include <FogKV/KVStoreBase.h>
+
 namespace FogKV {
+
+enum class RqstOperation
+	: std::int8_t {NONE = 0, GET = 1, PUT = 2, UPDATE = 3, DELETE = 4
+};
 
 class RqstMsg {
 public:
-	int operation;
+	RqstMsg(RqstOperation op, Key *key, Value *value,
+			KVStoreBase::KVStoreBasePutCallback *cb_fn);
+	Key *key = nullptr;
+	Value *value = nullptr;
+	KVStoreBase::KVStoreBasePutCallback *cb_fn = nullptr;
+	RqstOperation op = RqstOperation::NONE;
 };
 
 class RqstPooler {
@@ -51,7 +63,7 @@ public:
 	RqstPooler();
 	virtual ~RqstPooler();
 	void Start();
-	void EnqueueMsg(RqstMsg *Message);
+	bool EnqueueMsg(RqstMsg *Message);
 
 	/** @TODO jradtke: Change to enum with proper states */
 	std::atomic_int mState;
@@ -66,7 +78,7 @@ private:
 	 * @TODO jradtke: How many messages to store?
 	 * Maybe circular buffer will be better choice here?
 	 */
-	RqstMsg mRqstMsgBuffer[1024];
+	RqstMsg *mRqstMsgBuffer[1024];
 };
 
 } /* namespace FogKV */

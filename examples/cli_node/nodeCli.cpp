@@ -48,7 +48,7 @@ using namespace boost::algorithm;
 using boost::format;
 
 map<string, string> consoleCmd = boost::assign::map_list_of("help", "")("get",
-		" <key>")("put", " <key> <value>")("status", "")("remove", " <key>")(
+		" <key>")("put", " <key> <value>")("aput", " <key> <value>")("status", "")("remove", " <key>")(
 		"quit", "")("node", " <id>");
 
 /*!
@@ -128,6 +128,8 @@ int nodeCli::operator()() {
 			this->cmdGet(strLine);
 		} else if (starts_with(strLine, "p")) {
 			this->cmdPut(strLine);
+		} else if (starts_with(strLine, "ap")) {
+			this->cmdPutAsync(strLine);
 		} else if (starts_with(strLine, "r")) {
 			this->cmdRemove(strLine);
 		} else if (starts_with(strLine, "s")) {
@@ -170,14 +172,15 @@ void nodeCli::cmdGet(const std::string &strLine) {
 
 		FogKV::Value value;
 		try {
-		       	value = _spKVStore->Get(keyBuff);
+			value = _spKVStore->Get(keyBuff);
 			string valuestr(value.data());
 			cout << format("[%1%] = %2%\n") % key % valuestr;
 		} catch (FogKV::OperationFailedException e) {
 			if (e.status()() == FogKV::KeyNotFound) {
 				cout << format("[%1%] not found\n") % key;
 			} else {
-				cout << "Error: cannot get element: " << e.status().to_string() << endl;
+				cout << "Error: cannot get element: " << e.status().to_string()
+						<< endl;
 			}
 		}
 
@@ -185,16 +188,14 @@ void nodeCli::cmdGet(const std::string &strLine) {
 	}
 }
 
-FogKV::Key nodeCli::strToKey(const std::string &key)
-{
+FogKV::Key nodeCli::strToKey(const std::string &key) {
 	FogKV::Key keyBuff = _spKVStore->AllocKey();
 	std::memset(keyBuff.data(), 0, keyBuff.size());
 	std::memcpy(keyBuff.data(), key.c_str(), key.size());
 	return keyBuff;
 }
 
-FogKV::Value nodeCli::strToValue(const std::string &value)
-{
+FogKV::Value nodeCli::strToValue(const std::string &value) {
 	FogKV::Value valBuff = _spKVStore->Alloc(value.size() + 1);
 	std::memcpy(valBuff.data(), value.c_str(), value.size());
 	valBuff.data()[valBuff.size() - 1] = '\0';
@@ -225,7 +226,7 @@ void nodeCli::cmdPut(const std::string &strLine) {
 
 		FogKV::Value valBuff;
 		try {
-		       	valBuff = _spKVStore->Alloc(value.size() + 1);
+			valBuff = _spKVStore->Alloc(value.size() + 1);
 			std::memcpy(valBuff.data(), value.c_str(), value.size());
 			valBuff.data()[valBuff.size() - 1] = '\0';
 		} catch (...) {
@@ -238,7 +239,65 @@ void nodeCli::cmdPut(const std::string &strLine) {
 			_spKVStore->Put(std::move(keyBuff), std::move(valBuff));
 			cout << format("Put: [%1%] = %2%\n") % key % value;
 		} catch (FogKV::OperationFailedException e) {
-			cout << "Error: cannot put element: " << e.status().to_string() << endl;
+			cout << "Error: cannot put element: " << e.status().to_string()
+					<< endl;
+
+			_spKVStore->Free(std::move(keyBuff));
+			_spKVStore->Free(std::move(valBuff));
+		}
+	}
+}
+
+void nodeCli::cmdPutAsync(const std::string &strLine) {
+	vector<string> arguments;
+	split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
+
+	if (arguments.size() != 3) {
+		cout << "Error: expects two arguments" << endl;
+	} else {
+		auto key = arguments[1];
+		if (key.size() > _spKVStore->KeySize()) {
+			cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+			return;
+		}
+
+		FogKV::Key keyBuff;
+		try {
+			keyBuff = strToKey(key);
+		} catch (...) {
+			cout << "Error: cannot allocate key buffer" << endl;
+			return;
+		}
+
+		auto value = arguments[2];
+
+		FogKV::Value valBuff;
+		try {
+			valBuff = _spKVStore->Alloc(value.size() + 1);
+			std::memcpy(valBuff.data(), value.c_str(), value.size());
+			valBuff.data()[valBuff.size() - 1] = '\0';
+		} catch (...) {
+			cout << "Error: cannot allocate value buffer" << endl;
+			_spKVStore->Free(std::move(keyBuff));
+			return;
+		}
+
+		try {
+			_spKVStore->PutAsync(std::move(keyBuff), std::move(valBuff),
+					[&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
+							const FogKV::Key &key, const FogKV::Value &val) {
+						if (!status.ok()) {
+							cout << "Error: cannot put element: " << status.to_string()
+							<< endl;
+							return;
+						} else {
+							/** @TODO jradtke: initial implementation, additional msg functionality needed */
+							cout << "PutAsync completed" << endl;
+						}
+					});
+		} catch (FogKV::OperationFailedException e) {
+			cout << "Error: cannot put element: " << e.status().to_string()
+					<< endl;
 
 			_spKVStore->Free(std::move(keyBuff));
 			_spKVStore->Free(std::move(valBuff));
@@ -266,7 +325,7 @@ void nodeCli::cmdRemove(const std::string &strLine) {
 		try {
 			_spKVStore->Remove(keyBuff);
 			cout << format("Remove: [%1%]\n") % key;
-		} catch (FogKV::OperationFailedException e){
+		} catch (FogKV::OperationFailedException e) {
 			if (e.status()() == FogKV::KeyNotFound) {
 				cout << format("[%1%] not found\n") % key;
 			} else {
