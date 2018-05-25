@@ -47,6 +47,7 @@ public:
 	void RestartMS(int interval_ms);
 	bool IsExpired();
 	double GetElapsedMS();
+	double GetElapsedUS();
 
 private:
 	std::chrono::nanoseconds _req_interval;

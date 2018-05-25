@@ -32,6 +32,8 @@
 
 #include <iostream>
 #include <iomanip>
+#include <numeric>
+#include <algorithm>
 
 #include "MinidaqStats.h"
 
@@ -45,61 +47,134 @@ MinidaqStats::MinidaqStats()
 
 MinidaqStats::MinidaqStats(std::vector<MinidaqStats> &rVector)
 {
-	/*
-	tStop.tv_sec = 0;
-	tStop.tv_nsec = 0;
-	GetTime(tStart);
+	std::vector<double> vec;
 
 	for (auto& r : rVector) {
-		nSamples += r.GetSamples();
-		nRequests += r.GetRequests();
-		nErrRequests += r.GetErrRequests();
-		nCompletions += r.GetCompletions();
-		nErrCompletions += r.GetErrCompletions();
-		if (!(tStart < r.GetStartTime())) {
-			tStart = r.GetStartTime();
-		}
-		if (tStop < r.GetStopTime()) {
-			tStop = r.GetStopTime();
-		}
+		_nIterations += r.GetIterations();
+		_nRequests += r.GetRequests();
+		_nErrRequests += r.GetErrRequests();
+		_nCompletions += r.GetCompletions();
+		_nErrCompletions += r.GetErrCompletions();
+		vec = r.GetRps();
+		_rpsVec.insert(_rpsVec.end(), vec.begin(), vec.end());
+		vec = r.GetRpsErr();
+		_rpsErrVec.insert(_rpsErrVec.end(), vec.begin(), vec.end());
+		vec = r.GetCps();
+		_cpsVec.insert(_cpsVec.end(), vec.begin(), vec.end());
+		vec = r.GetCpsErr();
+		_cpsErrVec.insert(_cpsErrVec.end(), vec.begin(), vec.end());
 	}
-
-	GetTimeDiff(tStop, tStart, tDiff);
-	*/
 }
 
 MinidaqStats::~MinidaqStats()
 {
 }
 
-void MinidaqStats::RecordSample()
+uint64_t MinidaqStats::GetIterations()
 {
+	return _nIterations;
+}
+
+uint64_t MinidaqStats::GetRequests()
+{
+	return _nRequests;
+}
+
+uint64_t MinidaqStats::GetErrRequests()
+{
+	return _nErrRequests;
+}
+
+uint64_t MinidaqStats::GetCompletions()
+{
+	return _nCompletions;
+}
+
+uint64_t MinidaqStats::GetErrCompletions()
+{
+	return _nErrCompletions;
+}
+
+std::vector<double> MinidaqStats::GetRps()
+{
+	return _rpsVec;
+}
+
+std::vector<double> MinidaqStats::GetCps()
+{
+	return _cpsVec;
+}
+
+std::vector<double> MinidaqStats::GetRpsErr()
+{
+	return _rpsErrVec;
+}
+
+std::vector<double> MinidaqStats::GetCpsErr()
+{
+	return _cpsErrVec;
+}
+
+void MinidaqStats::RecordSample(uint64_t nRequests, uint64_t nCompletions,
+								uint64_t nErrRequests, uint64_t nErrCompletions,
+								double interval)
+{
+	if (interval <= 0.0)
+		return;
+
+	/** @todo replace with histogram */
+	_nIterations++;
+	_nRequests += nRequests;
+	_nErrRequests += nErrRequests;
+	_nCompletions += nCompletions;
+	_nErrCompletions += nErrCompletions;
+	_rpsVec.push_back(double(nRequests) / interval);
+	_cpsVec.push_back(double(nCompletions) / interval);
+	_rpsErrVec.push_back(double(nErrRequests) / interval);
+	_cpsErrVec.push_back(double(nErrCompletions) / interval);
 }
 
 void MinidaqStats::Dump()
 {
-	/*
-	double cps;
-	double rps;
-	uint64_t n;
-	double t;
+	double avg;
 
-	t = tDiff.tv_sec + double(tDiff.tv_nsec) / 1000000000.0;
-	cps = double(nCompletions) / t;
-	rps = double(nRequests) / t;
+	std::cout << "Iterations: " << _nIterations << std::endl;
+	std::cout << "Successful requests: " << _nRequests << std::endl;
+	std::cout << "Successful completions: " << _nCompletions << std::endl;
+	std::cout << "Error requests: " << _nErrRequests << std::endl;
+	std::cout << "Error completions: " << _nErrCompletions << std::endl;
 
-	std::cout << "Start time [sec]: " << tStart.tv_sec << "." << setfill('0')
-									  << setw(9) << tStart.tv_nsec << std::endl;
-	std::cout << "Duration [sec]: " << tDiff.tv_sec << "." << setfill('0')
-									<< setw(9) << tDiff.tv_nsec << std::endl;
-	std::cout << "Total samples: " << nSamples << std::endl;
-	std::cout << "Issued requests: " << nRequests << std::endl;
-	std::cout << "Error requests: " << nErrRequests << std::endl;
-	std::cout << "Completions: " << nCompletions << std::endl;
-	std::cout << "Completion errors: " << nErrCompletions << std::endl;
-	std::cout << "Requests per second [1/sec]: " << rps << std::endl;
-	std::cout << "Completions per second [1/sec]: " << cps << std::endl;
-	*/
+	avg = std::accumulate(_rpsVec.begin(), _rpsVec.end(), 0.0) / _rpsVec.size();
+	std::cout << "Requests per second [MOPS] " << std::endl;
+	std::cout << "  avg: " << avg << std::endl;
+	std::cout << "  min: "
+			  << *std::min_element(_rpsVec.begin(), _rpsVec.end()) << std::endl;
+	std::cout << "  max: "
+			  << *std::max_element(_rpsVec.begin(), _rpsVec.end()) << std::endl;
+
+	avg = std::accumulate(_rpsErrVec.begin(), _rpsErrVec.end(), 0.0) / _rpsErrVec.size();
+	std::cout << "Error requests per second [MOPS] " << std::endl;
+	std::cout << "  avg: " << avg << std::endl;
+	std::cout << "  min: "
+			  << *std::min_element(_rpsErrVec.begin(), _rpsErrVec.end()) << std::endl;
+	std::cout << "  max: "
+			  << *std::max_element(_rpsErrVec.begin(), _rpsErrVec.end()) << std::endl;
+
+	avg = std::accumulate(_cpsVec.begin(), _cpsVec.end(), 0.0) / _cpsVec.size();
+	std::cout << "Completions per second [MOPS] " << std::endl;
+	std::cout << "  avg: " << avg << std::endl;
+	std::cout << "  min: "
+			  << *std::min_element(_cpsVec.begin(), _cpsVec.end()) << std::endl;
+	std::cout << "  max: "
+			  << *std::max_element(_cpsVec.begin(), _cpsVec.end()) << std::endl;
+
+	avg = std::accumulate(_cpsErrVec.begin(), _cpsErrVec.end(), 0.0) / _cpsErrVec.size();
+	std::cout << "Error completions per second [MOPS] " << std::endl;
+	std::cout << "  avg: " << avg << std::endl;
+	std::cout << "  min: "
+			  << *std::min_element(_cpsErrVec.begin(), _cpsErrVec.end()) << std::endl;
+	std::cout << "  max: "
+			  << *std::max_element(_cpsErrVec.begin(), _cpsErrVec.end()) << std::endl;
 }
 
 void MinidaqStats::DumpCsv()

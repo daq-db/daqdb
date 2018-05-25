@@ -80,11 +80,16 @@ MinidaqStats MinidaqNode::Execute(int executorId)
 	MinidaqTimerHR timerTest;
 	MinidaqStats stats;
 	bool err = false;
+	double avg_cps;
+	double avg_rps;
+	double avg_cps_err;
+	double avg_rps_err;
 	uint64_t r_err;
 	uint64_t s = 0;
 	uint64_t n;
 	uint64_t r;
 	int i = 0;
+	double t;
 
 	// Ramp up
 	timerTest.RestartS(tRampS);
@@ -112,7 +117,8 @@ MinidaqStats MinidaqNode::Execute(int executorId)
 				r_err++;
 			}
 		}
-		stats.RecordSample();
+		t = timerSample.GetElapsedUS();
+		stats.RecordSample(r, c, r_err, c_err, t);
 	}
 
 	stopped = true;

@@ -82,4 +82,11 @@ double MinidaqTimerHR::GetElapsedMS()
 	return fp_ms.count();
 }
 
+double MinidaqTimerHR::GetElapsedUS()
+{
+	IsExpired();
+	std::chrono::duration<double, std::micro> fp_us(_curr_interval);
+	return fp_us.count();
+}
+
 }

@@ -43,6 +43,7 @@ public:
 	virtual void RestartMS(int interval_ms) = 0;
 	virtual bool IsExpired() = 0;
 	virtual double GetElapsedMS() = 0;
+	virtual double GetElapsedUS() = 0;
 };
 
 }

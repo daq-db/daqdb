@@ -44,10 +44,33 @@ public:
 	MinidaqStats(std::vector<MinidaqStats> &rVector);
 	~MinidaqStats();
 
-	void RecordSample();
+	void RecordSample(uint64_t nRequests, uint64_t nCompletions,
+					  uint64_t nErrRequests, uint64_t nErrCompletions,
+					  double interval);
 
+	uint64_t GetIterations();
+	uint64_t GetRequests();
+	uint64_t GetErrRequests();
+	uint64_t GetCompletions();
+	uint64_t GetErrCompletions();
+	std::vector<double> GetRps(); 
+	std::vector<double> GetCps(); 
+	std::vector<double> GetRpsErr(); 
+	std::vector<double> GetCpsErr(); 
 	void Dump();
 	void DumpCsv();
+
+private:
+	std::vector<double> _rpsVec;
+	std::vector<double> _cpsVec;
+	std::vector<double> _rpsErrVec;
+	std::vector<double> _cpsErrVec;
+
+	uint64_t _nIterations = 0;
+	uint64_t _nRequests = 0;
+	uint64_t _nErrRequests = 0;
+	uint64_t _nCompletions = 0;
+	uint64_t _nErrCompletions = 0;
 };
 
 }
