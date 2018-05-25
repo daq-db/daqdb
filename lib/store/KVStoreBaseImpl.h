@@ -32,12 +32,12 @@
 
 #pragma once
 
+#include <mutex>
+#include "RqstPooler.h"
 #include <FogKV/KVStoreBase.h>
-
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
 #include <pmemkv.h>
-#include <mutex>
 
 namespace FogKV {
 
@@ -84,6 +84,8 @@ protected:
 	std::unique_ptr<FogKV::DhtNode> mDhtNode;
 	std::unique_ptr<pmemkv::KVEngine> mPmemkv;
 	std::mutex mLock;
+
+	std::unique_ptr<RqstPooler> mRqstPooler;
 };
 
 } //namespace FogKV
