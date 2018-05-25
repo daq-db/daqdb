@@ -64,6 +64,7 @@ public:
 
 private:
 	void cmdGet(const std::string &strLine);
+	void cmdGetAsync(const std::string &strLine);
 	void cmdPut(const std::string &strLine);
 	void cmdPutAsync(const std::string &strLine);
 	void cmdRemove(const std::string &strLine);
@@ -74,6 +75,7 @@ private:
 	FogKV::Value strToValue(const std::string &val);
 
 	std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
+	std::vector<std::string> _statusMsgs;
 
 	Json::Value getPeersJson();
 };

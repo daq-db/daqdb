@@ -310,7 +310,7 @@ void KVStoreBaseImpl::init()
 	opts.name = "FogKV";
 	opts.shm_id = 0;
 	if (spdk_env_init(&opts) == 0) {
-		mRqstPooler.reset(new FogKV::RqstPooler());
+		mRqstPooler.reset(new FogKV::RqstPooler(mPmemkv));
 	}
 
 	if (mPmemkv == nullptr)

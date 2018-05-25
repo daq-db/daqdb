@@ -48,8 +48,9 @@ using namespace boost::algorithm;
 using boost::format;
 
 map<string, string> consoleCmd = boost::assign::map_list_of("help", "")("get",
-		" <key>")("put", " <key> <value>")("aput", " <key> <value>")("status", "")("remove", " <key>")(
-		"quit", "")("node", " <id>");
+		" <key>")("aget", " <key>")("put", " <key> <value>")("aput",
+		" <key> <value>")("status", "")("remove", " <key>")("quit", "")("node",
+		" <id>");
 
 /*!
  * Provides completion functionality to dragon shell.
@@ -72,6 +73,12 @@ void completion(const char *buf, linenoiseCompletions *lc) {
 		linenoiseAddCompletion(lc, "node");
 	} else if (buf[0] == 'r') {
 		linenoiseAddCompletion(lc, "remove");
+	} else if (buf[0] == 'a') {
+		if (buf[1] == 'g') {
+			linenoiseAddCompletion(lc, "aget");
+		} else if (buf[1] == 'p') {
+			linenoiseAddCompletion(lc, "aput");
+		}
 	}
 }
 
@@ -130,6 +137,8 @@ int nodeCli::operator()() {
 			this->cmdPut(strLine);
 		} else if (starts_with(strLine, "ap")) {
 			this->cmdPutAsync(strLine);
+		} else if (starts_with(strLine, "ag")) {
+			this->cmdGetAsync(strLine);
 		} else if (starts_with(strLine, "r")) {
 			this->cmdRemove(strLine);
 		} else if (starts_with(strLine, "s")) {
@@ -165,7 +174,7 @@ void nodeCli::cmdGet(const std::string &strLine) {
 			keyBuff = _spKVStore->AllocKey();
 			std::memset(keyBuff.data(), 0, keyBuff.size());
 			std::memcpy(keyBuff.data(), key.c_str(), key.size());
-		} catch (FogKV::OperationFailedException e) {
+		} catch (FogKV::OperationFailedException &e) {
 			cout << "Error: cannot allocate key buffer" << endl;
 			return;
 		}
@@ -175,7 +184,7 @@ void nodeCli::cmdGet(const std::string &strLine) {
 			value = _spKVStore->Get(keyBuff);
 			string valuestr(value.data());
 			cout << format("[%1%] = %2%\n") % key % valuestr;
-		} catch (FogKV::OperationFailedException e) {
+		} catch (FogKV::OperationFailedException &e) {
 			if (e.status()() == FogKV::KeyNotFound) {
 				cout << format("[%1%] not found\n") % key;
 			} else {
@@ -186,6 +195,11 @@ void nodeCli::cmdGet(const std::string &strLine) {
 
 		_spKVStore->Free(std::move(keyBuff));
 	}
+}
+
+void nodeCli::cmdGetAsync(const std::string &strLine) {
+	/** @TODO jradtke: Not implemented */
+	cout << "Error: Not implemented" << endl;
 }
 
 FogKV::Key nodeCli::strToKey(const std::string &key) {
@@ -238,7 +252,7 @@ void nodeCli::cmdPut(const std::string &strLine) {
 		try {
 			_spKVStore->Put(std::move(keyBuff), std::move(valBuff));
 			cout << format("Put: [%1%] = %2%\n") % key % value;
-		} catch (FogKV::OperationFailedException e) {
+		} catch (FogKV::OperationFailedException &e) {
 			cout << "Error: cannot put element: " << e.status().to_string()
 					<< endl;
 
@@ -257,7 +271,7 @@ void nodeCli::cmdPutAsync(const std::string &strLine) {
 	} else {
 		auto key = arguments[1];
 		if (key.size() > _spKVStore->KeySize()) {
-			cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+			cout << "Error: key size is " << _spKVStore->KeySize() << endl;
 			return;
 		}
 
@@ -287,15 +301,14 @@ void nodeCli::cmdPutAsync(const std::string &strLine) {
 					[&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
 							const FogKV::Key &key, const FogKV::Value &val) {
 						if (!status.ok()) {
-							cout << "Error: cannot put element: " << status.to_string()
-							<< endl;
-							return;
+							_statusMsgs.push_back(boost::str(boost::format(
+									"Error: cannot put element: %1%") % status.to_string()));
 						} else {
-							/** @TODO jradtke: initial implementation, additional msg functionality needed */
-							cout << "PutAsync completed" << endl;
+							_statusMsgs.push_back(boost::str(boost::format(
+									"PUT[%1%]=%2% : completed") % key.data() % val.data()));
 						}
 					});
-		} catch (FogKV::OperationFailedException e) {
+		} catch (FogKV::OperationFailedException &e) {
 			cout << "Error: cannot put element: " << e.status().to_string()
 					<< endl;
 
@@ -325,7 +338,7 @@ void nodeCli::cmdRemove(const std::string &strLine) {
 		try {
 			_spKVStore->Remove(keyBuff);
 			cout << format("Remove: [%1%]\n") % key;
-		} catch (FogKV::OperationFailedException e) {
+		} catch (FogKV::OperationFailedException &e) {
 			if (e.status()() == FogKV::KeyNotFound) {
 				cout << format("[%1%] not found\n") % key;
 			} else {
@@ -353,16 +366,22 @@ void nodeCli::cmdStatus() {
 
 	if (!npeers) {
 		cout << format("%1%\tno DHT peer(s)\n") % std::ctime(&currentTime);
-		return;
+	} else {
+		cout << format("%1%\t%2% DHT "
+				"peers found") % std::ctime(&currentTime) % npeers << endl;
+
+		for (int i = 0; i < npeers; i++) {
+			cout << "[" << i << "]: " << peers[i].toStyledString();
+		}
 	}
 
-	cout << format("%1%\t%2% DHT "
-			"peers found") % std::ctime(&currentTime) % npeers << endl;
-
-	for (int i = 0; i < npeers; i++) {
-		cout << "[" << i << "]: " << peers[i].toStyledString();
+	if (_statusMsgs.size() > 0) {
+		cout << "Async operations statuses:" << endl;
+		for (std::string message : _statusMsgs) {
+			cout << "\t- " << message << endl;
+		}
+		_statusMsgs.clear();
 	}
-
 }
 
 void nodeCli::cmdNodeStatus(const std::string &strLine) {
