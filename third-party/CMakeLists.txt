@@ -34,14 +34,11 @@ ExternalProject_Add(project_libfabric
 	BUILD_COMMAND make
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${LIBFABRIC_PATH}
-			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libfabric.so
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libfabric.so.1
 )
 add_library(fabric SHARED IMPORTED GLOBAL)
 add_dependencies(fabric project_libfabric)
-set_target_properties(fabric
-	PROPERTIES
-	IMPORTED_LOCATION ${LIBFABRIC_PATH}
-	INTERFACE_INCLUDE_DIRECTORIES ${3RDPARTY}/libfabric/include)
+set_target_properties(fabric PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libfabric.so.1)
 
 # pmdk
 include_directories(pmdk/src/include)
@@ -53,23 +50,17 @@ ExternalProject_Add(project_pmdk
 	BUILD_COMMAND make install prefix=${PROJECT_SOURCE_DIR}/pmdk
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so
-			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so &&
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so.1 &&
 			${CMAKE_COMMAND} -E copy_if_different
 			${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so
-			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so.1
 )
 add_library(pmem SHARED IMPORTED GLOBAL)
 add_dependencies(pmem project_pmdk)
-set_target_properties(pmem
-	PROPERTIES
-	IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so
-	INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/pmdk/src/include)
+set_target_properties(pmem PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so.1)
 add_library(pmemobj SHARED IMPORTED GLOBAL)
 add_dependencies(pmemobj project_pmdk)
-set_target_properties(pmemobj
-	PROPERTIES
-	IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so
-	INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/pmdk/src/include)
+set_target_properties(pmemobj PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so.1)
 
 # pmemkv
 set(PMEMKV ${PROJECT_SOURCE_DIR}/pmemkv)
