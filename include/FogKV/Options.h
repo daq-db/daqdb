@@ -117,17 +117,17 @@ struct RuntimeOptions {
 		return _io_service;
 	}
 
-	asio::io_service *_io_service;
+	asio::io_service *_io_service = nullptr;
 };
 
 struct DhtOptions {
-	unsigned short Port;
-	NodeId Id;
+	unsigned short Port = 0;
+	NodeId Id = 0;
 };
 
 struct PMEMOptions {
 	std::string Path;
-	size_t Size;
+	size_t Size = 0;
 };
 
 struct Options {
@@ -140,7 +140,7 @@ public:
 	DhtOptions Dht;
 
 	// TODO move to struct ?
-	unsigned short Port;
+	unsigned short Port = 0;
 
 	std::string KVEngine = "kvtree";
 	PMEMOptions PMEM;

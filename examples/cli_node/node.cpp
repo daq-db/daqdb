@@ -139,7 +139,7 @@ main(int argc, const char *argv[])
 	shared_ptr<FogKV::KVStoreBase> spKVStore;
 	try {
 		spKVStore = shared_ptr<FogKV::KVStoreBase>(FogKV::KVStoreBase::Open(options));
-	} catch (FogKV::OperationFailedException e) {
+	} catch (FogKV::OperationFailedException &e) {
 		cerr << "Failed to create KVStore: " << e.what() << endl;
 		return -1;
 	}

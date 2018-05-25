@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,52 +32,56 @@
 
 #pragma once
 
-#include <iostream>
-#include <linenoise.h>
+#include <thread>
+#include <atomic>
+#include <cstdint>
+
+#include "spdk/env.h"
+#include "spdk/io_channel.h"
+#include "spdk/queue.h"
+#include <pmemkv.h>
+
 #include <FogKV/KVStoreBase.h>
-#include <json/json.h>
-#include <memory>
 
-namespace
-{
-const unsigned int consoleHintColor = 35; // dark red
+#define DEQUEUE_RING_LIMIT	256
+
+namespace FogKV {
+
+enum class RqstOperation
+	: std::int8_t {NONE = 0, GET = 1, PUT = 2, UPDATE = 3, DELETE = 4
 };
 
-namespace FogKV
-{
-
-/*!
- * Dragon shell interpreter.
- * Created for test purposes - to allow performing quick testing of the node.
- */
-class nodeCli {
+class RqstMsg {
 public:
-	nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spDragonSrv);
-	virtual ~nodeCli();
-
-	/*!
-	 * Waiting for user input, executes defined commands
-	 *
-	 * @return false if user choose "quit" command, otherwise true
-	 */
-	int operator()();
-
-private:
-	void cmdGet(const std::string &strLine);
-	void cmdGetAsync(const std::string &strLine);
-	void cmdPut(const std::string &strLine);
-	void cmdPutAsync(const std::string &strLine);
-	void cmdRemove(const std::string &strLine);
-	void cmdStatus();
-	void cmdNodeStatus(const std::string &strLine);
-
-	FogKV::Key strToKey(const std::string &key);
-	FogKV::Value strToValue(const std::string &val);
-
-	std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
-	std::vector<std::string> _statusMsgs;
-
-	Json::Value getPeersJson();
+	RqstMsg(RqstOperation op, Key *key, Value *value,
+			KVStoreBase::KVStoreBasePutCallback *cb_fn);
+	Key *key = nullptr;
+	Value *value = nullptr;
+	KVStoreBase::KVStoreBasePutCallback *cb_fn = nullptr;
+	RqstOperation op = RqstOperation::NONE;
 };
 
-}
+class RqstPooler {
+public:
+	RqstPooler(std::shared_ptr<pmemkv::KVEngine> Store);
+	virtual ~RqstPooler();
+	void Start();
+	bool EnqueueMsg(RqstMsg *Message);
+
+	std::atomic_int mIsRunning;
+	/** @TODO jradtke: Do we need completion queue too? */
+	struct spdk_ring *mSubmitRing;
+
+	std::thread *mThread;
+private:
+	void ThreadMain(void);
+	void DequeueMsg();
+	void ProcessMsg();
+
+	std::shared_ptr<pmemkv::KVEngine> mPmemkv;
+
+	RqstMsg *mRqstMsgBuffer[DEQUEUE_RING_LIMIT];
+	unsigned short mDequedCount = 0;
+};
+
+} /* namespace FogKV */

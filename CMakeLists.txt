@@ -4,6 +4,7 @@ project(fogkv)
 
 include(FindPkgConfig)
 include(CTest)
+include(ExternalProject)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
@@ -41,6 +42,7 @@ include_directories(${CCHORD_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
 include_directories(${PMEMKV_INCLUDES_EXPORT})
+include_directories(${3RDPARTY}/spdk/include)
 
 # Build and link fogkv library
 include_directories(include include/db include/dht include/fabric include/FogKV include/store)
@@ -50,7 +52,7 @@ file(GLOB_RECURSE FOGKV_SOURCES
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Jsoncpp_LIBRARY} libfabric cchord pmemkv)
+target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord pmemkv spdk)
 
 # Build test folder
 add_subdirectory(tests)

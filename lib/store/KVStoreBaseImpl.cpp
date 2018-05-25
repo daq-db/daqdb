@@ -80,8 +80,11 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback 
 {
 	std::async(std::launch::async, [&] {
 		try {
-			Put(std::move(key), std::move(value));
-			cb(this, Ok, key, value);
+			if (mRqstPooler) {
+				mRqstPooler->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
+			} else {
+				cb(this, FogKV::Status(FogKV::Code::UnknownError), key, value);
+			}
 		} catch (OperationFailedException e) {
 			cb(this, e.status(), key, value);
 		}
@@ -297,6 +300,18 @@ void KVStoreBaseImpl::init()
 
 	mPmemkv.reset(pmemkv::KVEngine::Open(
 			mOptions.KVEngine, mOptions.PMEM.Path, mOptions.PMEM.Size));
+
+	/**
+	 * @TODO jradtke: initial implementation, will be moved to better place.
+	 * 				  SPDK init messages should be hidden.
+	 */
+	struct spdk_env_opts opts;
+	spdk_env_opts_init(&opts);
+	opts.name = "FogKV";
+	opts.shm_id = 0;
+	if (spdk_env_init(&opts) == 0) {
+		mRqstPooler.reset(new FogKV::RqstPooler(mPmemkv));
+	}
 
 	if (mPmemkv == nullptr)
 		throw OperationFailedException(errno, ::pmemobj_errormsg());
