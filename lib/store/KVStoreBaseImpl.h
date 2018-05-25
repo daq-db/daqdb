@@ -82,7 +82,7 @@ protected:
 	size_t mKeySize;
 	Options mOptions;
 	std::unique_ptr<FogKV::DhtNode> mDhtNode;
-	std::unique_ptr<pmemkv::KVEngine> mPmemkv;
+	std::shared_ptr<pmemkv::KVEngine> mPmemkv;
 	std::mutex mLock;
 
 	std::unique_ptr<RqstPooler> mRqstPooler;

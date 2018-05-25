@@ -38,46 +38,79 @@
 
 namespace FogKV {
 
-RqstPooler::RqstPooler() :
-		mState(0), mThread(nullptr) {
+RqstMsg::RqstMsg(RqstOperation op, Key *key, Value *value,
+		KVStoreBase::KVStoreBasePutCallback *cb_fn) :
+		op(op), key(key), value(value), cb_fn(cb_fn) {
+}
+
+RqstPooler::RqstPooler(std::shared_ptr<pmemkv::KVEngine> Store) :
+		mIsRunning(0), mThread(nullptr), mPmemkv(Store) {
 	/** @TODO jradtke: ring size should be configurable? */
 	mSubmitRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
-			SPDK_ENV_SOCKET_ID_ANY);
+	SPDK_ENV_SOCKET_ID_ANY);
 	Start();
 }
 
 RqstPooler::~RqstPooler() {
 	spdk_ring_free(mSubmitRing);
-	mState = 0;
+	mIsRunning = 0;
 	if (mThread != nullptr)
 		mThread->join();
 }
 
 void RqstPooler::Start() {
-	mState = 1;
+	mIsRunning = 1;
 	mThread = new std::thread(&RqstPooler::ThreadMain, this);
 }
 
 void RqstPooler::ThreadMain() {
-	while (mState) {
+	while (mIsRunning) {
 		DequeueMsg();
+		ProcessMsg();
+
+		/** @TODO jradtke: Initial implementation, will be removed */
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 }
 
-void RqstPooler::EnqueueMsg(RqstMsg *Message)
-{
-	size_t count = spdk_ring_enqueue(mSubmitRing, (void **)&Message, 1);
+bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
+	size_t count = spdk_ring_enqueue(mSubmitRing, (void **) &Message, 1);
+	return (count == 1);
 
 	/** @TODO jradtke: Initial implementation, error handling not implemented */
 }
 
-void RqstPooler::DequeueMsg()
-{
-	size_t count;
-	count = spdk_ring_dequeue(mSubmitRing, (void **) &mRqstMsgBuffer, 1);
+void RqstPooler::DequeueMsg() {
+	mDequedCount = spdk_ring_dequeue(mSubmitRing, (void **) mRqstMsgBuffer, 1);
+	assert(mDequedCount < DEQUEUE_RING_LIMIT);
+}
 
-	/** @TODO jradtke: Initial implementation, request handling not implemented */
+void RqstPooler::ProcessMsg() {
+	for (unsigned short MsgIndex = 0; MsgIndex < mDequedCount; MsgIndex++) {
+		std::string keyStr(mRqstMsgBuffer[MsgIndex]->key->data(),
+				mRqstMsgBuffer[MsgIndex]->key->size());
+
+		switch (mRqstMsgBuffer[MsgIndex]->op) {
+		case RqstOperation::PUT: {
+			/** @TODO jradtke: Not thread safe */
+			std::string valStr(mRqstMsgBuffer[MsgIndex]->value->data(),
+					mRqstMsgBuffer[MsgIndex]->value->size());
+			mPmemkv->Put(keyStr, valStr);
+			break;
+		}
+		case RqstOperation::GET:
+			break;
+		case RqstOperation::UPDATE:
+			break;
+		case RqstOperation::DELETE:
+			break;
+		default:
+			break;
+		}
+
+		(*mRqstMsgBuffer[0]->cb_fn)(nullptr, FogKV::Status(FogKV::Code::Ok),
+				*mRqstMsgBuffer[0]->key, *mRqstMsgBuffer[0]->value);
+	}
 }
 
 } /* namespace FogKV */

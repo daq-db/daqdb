@@ -34,39 +34,54 @@
 
 #include <thread>
 #include <atomic>
+#include <cstdint>
 
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
+#include <pmemkv.h>
+
+#include <FogKV/KVStoreBase.h>
+
+#define DEQUEUE_RING_LIMIT	256
 
 namespace FogKV {
 
+enum class RqstOperation
+	: std::int8_t {NONE = 0, GET = 1, PUT = 2, UPDATE = 3, DELETE = 4
+};
+
 class RqstMsg {
 public:
-	int operation;
+	RqstMsg(RqstOperation op, Key *key, Value *value,
+			KVStoreBase::KVStoreBasePutCallback *cb_fn);
+	Key *key = nullptr;
+	Value *value = nullptr;
+	KVStoreBase::KVStoreBasePutCallback *cb_fn = nullptr;
+	RqstOperation op = RqstOperation::NONE;
 };
 
 class RqstPooler {
 public:
-	RqstPooler();
+	RqstPooler(std::shared_ptr<pmemkv::KVEngine> Store);
 	virtual ~RqstPooler();
 	void Start();
-	void EnqueueMsg(RqstMsg *Message);
+	bool EnqueueMsg(RqstMsg *Message);
 
-	/** @TODO jradtke: Change to enum with proper states */
-	std::atomic_int mState;
+	std::atomic_int mIsRunning;
 	/** @TODO jradtke: Do we need completion queue too? */
 	struct spdk_ring *mSubmitRing;
+
 	std::thread *mThread;
 private:
 	void ThreadMain(void);
 	void DequeueMsg();
+	void ProcessMsg();
 
-	/**
-	 * @TODO jradtke: How many messages to store?
-	 * Maybe circular buffer will be better choice here?
-	 */
-	RqstMsg mRqstMsgBuffer[1024];
+	std::shared_ptr<pmemkv::KVEngine> mPmemkv;
+
+	RqstMsg *mRqstMsgBuffer[DEQUEUE_RING_LIMIT];
+	unsigned short mDequedCount = 0;
 };
 
 } /* namespace FogKV */

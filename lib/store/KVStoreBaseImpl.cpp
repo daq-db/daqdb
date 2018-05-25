@@ -74,22 +74,17 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
 	Free(std::move(val));
 	if (s != OK)
 		throw OperationFailedException(EINVAL);
-
-	/**
-	 * @TODO jradtke: initial implementation, msg format and cpl function needed.
-	 * 			Temporary in this place, will be moved to PutAsync.
-	 */
-	if (mRqstPooler) {
-		mRqstPooler->EnqueueMsg(new RqstMsg());
-	}
 }
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb, const PutOptions &options)
 {
 	std::async(std::launch::async, [&] {
 		try {
-			Put(std::move(key), std::move(value));
-			cb(this, Ok, key, value);
+			if (mRqstPooler) {
+				mRqstPooler->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
+			} else {
+				cb(this, FogKV::Status(FogKV::Code::UnknownError), key, value);
+			}
 		} catch (OperationFailedException e) {
 			cb(this, e.status(), key, value);
 		}
@@ -315,7 +310,7 @@ void KVStoreBaseImpl::init()
 	opts.name = "FogKV";
 	opts.shm_id = 0;
 	if (spdk_env_init(&opts) == 0) {
-		mRqstPooler.reset(new FogKV::RqstPooler());
+		mRqstPooler.reset(new FogKV::RqstPooler(mPmemkv));
 	}
 
 	if (mPmemkv == nullptr)
