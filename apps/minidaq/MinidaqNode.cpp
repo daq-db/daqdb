@@ -75,60 +75,55 @@ void MinidaqNode::SetThreads(int n)
 MinidaqStats MinidaqNode::Execute(int executorId)
 {
 	std::atomic<std::uint64_t> c_err;
+	uint64_t event_id = executorId;
 	std::atomic<std::uint64_t> c;
 	MinidaqTimerHR timerSample;
 	MinidaqTimerHR timerTest;
 	MinidaqStats stats;
-	bool err = false;
-	double avg_cps;
-	double avg_rps;
-	double avg_cps_err;
-	double avg_rps_err;
+	uint64_t avg_r;
 	uint64_t r_err;
-	uint64_t s = 0;
-	uint64_t n;
 	uint64_t r;
-	int i = 0;
 	double t;
 
 	// Ramp up
 	timerTest.RestartS(tRampS);
 	while (!timerTest.IsExpired()) {
+		r++;
 		Task(executorId, c, c_err);
 	}
 
 	// Record samples
-	s = 0;
 	timerTest.RestartS(tTestS);
 	while (!timerTest.IsExpired() && !stopped) {
-		s++;
+		// Timer precision per iteration
+		avg_r = (r + 10) / 10;
 		r = 0;
 		c = 0;
 		r_err = 0;
 		c_err = 0;
 		timerSample.RestartMS(tIterMS);
-		while (!timerSample.IsExpired() && !stopped) {
-			n++;
+		do {
+			event_id += nTh;
 			try {
-				Task(executorId, c, c_err);
+				Task(event_id, c, c_err);
 				r++;
 			}
 			catch (...) {
 				r_err++;
 			}
-		}
+		} while (!stopped && ((r % avg_r) || !timerSample.IsExpired()));
 		t = timerSample.GetElapsedUS();
 		stats.RecordSample(r, c, r_err, c_err, t);
 	}
 
 	stopped = true;
 
-	/*
-	r.SetSamples(n);
-	r.SetCompletions(c);
-	r.SetErrCompletions(c_err);
-	*/
-	// wait without recording for all completions
+	// Wait for all completions
+	while (c || c_err) {
+		c = 0;
+		c_err = 0;
+		std::this_thread::sleep_for(std::chrono::milliseconds(100 * tIterMS));
+	}
 
 	return stats;
 }

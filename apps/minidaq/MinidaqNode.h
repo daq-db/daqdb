@@ -64,7 +64,7 @@ public:
 	void SetThreads(int n);
 
 protected:
-	virtual void Task(int executorId, std::atomic<std::uint64_t> &cnt,
+	virtual void Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 					  std::atomic<std::uint64_t> &cntErr) = 0;
 	virtual void Setup() = 0;
 

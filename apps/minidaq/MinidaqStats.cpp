@@ -139,6 +139,11 @@ void MinidaqStats::Dump()
 	double avg;
 
 	std::cout << "Iterations: " << _nIterations << std::endl;
+
+	if (!_nIterations) {
+		return;
+	}
+
 	std::cout << "Successful requests: " << _nRequests << std::endl;
 	std::cout << "Successful completions: " << _nCompletions << std::endl;
 	std::cout << "Error requests: " << _nErrRequests << std::endl;

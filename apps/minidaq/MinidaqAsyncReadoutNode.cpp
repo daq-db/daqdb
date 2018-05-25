@@ -45,15 +45,14 @@ MinidaqAsyncReadoutNode::~MinidaqAsyncReadoutNode()
 {
 }
 
-void MinidaqAsyncReadoutNode::Task(int executorId, std::atomic<std::uint64_t> &cnt,
+void MinidaqAsyncReadoutNode::Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 								   std::atomic<std::uint64_t> &cntErr)
 {
 	Key key = kvs->AllocKey();
 	MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
 	keyp->subdetector_id = id;
 	keyp->run_id = runId;
-	keyp->event_id = currEventId[executorId];
-	currEventId[executorId] += nTh;
+	keyp->event_id = eventId;
 
 	FogKV::Value value = kvs->Alloc(1024);
 

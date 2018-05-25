@@ -44,7 +44,7 @@ public:
 	void SetFragmentSize(size_t s);
 
 protected:
-	void Task(int executorId, std::atomic<std::uint64_t> &cnt,
+	void Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 			  std::atomic<std::uint64_t> &cntErr);
 	void Setup();
 
