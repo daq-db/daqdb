@@ -57,7 +57,7 @@ namespace FogKV
 
 	class Tree {
 		public:
-			Tree(const string& _path, const size_t size);
+			Tree(const string& path, const size_t size);
 			ValueWrapper * findValueInNode(persistent_ptr<Node> current, int key);
 			void allocateLevel(persistent_ptr<Node> current, int depth, int * count);
 			//persistent_ptr<Node> treeRoot;

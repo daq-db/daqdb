@@ -13,14 +13,12 @@ namespace FogKV
 	RTree::~RTree() {
 		// TODO Auto-generated destructor stub
 	}
-	Tree::Tree(const string& _path, const size_t size) {
-		const char *path = "/mnt/pmem/test.pm";
-
+	Tree::Tree(const string& path, const size_t size) {
 		if (!boost::filesystem::exists(path)) {
 				std::cout << "Creating pool " << std::endl;
 				try {
 					_pm_pool = pool<TreeRoot>::create(
-					path, LAYOUT, 800*PMEMOBJ_MIN_POOL, S_IWUSR | S_IRUSR);
+					path, LAYOUT, size, S_IWUSR | S_IRUSR);
 				} catch (pmem::pool_error &pe) {std::cout << "Error on create" << pe.what();}
 				try {
 					transaction::exec_tx(_pm_pool, [&] {
