@@ -37,7 +37,7 @@
 #include <FogKV/KVStoreBase.h>
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
-#include <pmemkv.h>
+#include "RTreeEngine.h"
 
 namespace FogKV {
 
@@ -82,7 +82,7 @@ protected:
 	size_t mKeySize;
 	Options mOptions;
 	std::unique_ptr<FogKV::DhtNode> mDhtNode;
-	std::shared_ptr<pmemkv::KVEngine> mPmemkv;
+	std::unique_ptr<FogKV::RTreeEngine> mRTree;
 	std::mutex mLock;
 
 	std::vector<RqstPooler*> _rqstPoolers;

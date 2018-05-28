@@ -41,7 +41,6 @@ add_subdirectory(third-party)
 include_directories(${CCHORD_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
-include_directories(${PMEMKV_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/spdk/include)
 
 # Build and link fogkv library
@@ -52,7 +51,7 @@ file(GLOB_RECURSE FOGKV_SOURCES
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord pmemkv spdk)
+target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord spdk)
 
 # Build test folder
 add_subdirectory(tests)

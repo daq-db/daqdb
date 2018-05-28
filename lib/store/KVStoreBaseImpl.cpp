@@ -69,7 +69,7 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
 
 	std::string keyStr(key.data(), mKeySize);
 	std::string valStr(val.data(), val.size());
-	KVStatus s = mPmemkv->Put(keyStr, valStr);
+	KVStatus s = mRTree->Put(keyStr, valStr);
 	Free(std::move(key));
 	Free(std::move(val));
 	if (s != OK)
@@ -98,7 +98,7 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
 
 	std::string keyStr(key.data(), mKeySize);
 	std::string valStr;
-	KVStatus s = mPmemkv->Get(keyStr, &valStr);
+	KVStatus s = mRTree->Get(keyStr, &valStr);
 	if (s != OK) {
 		if (s == NOT_FOUND)
 			throw OperationFailedException(KeyNotFound);
@@ -141,7 +141,7 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val, const UpdateOptions &o
 
 	std::string keyStr(key.data(), mKeySize);
 	std::string valStr(val.data(), val.size());
-	KVStatus s = mPmemkv->Put(keyStr, valStr);
+	KVStatus s = mRTree->Put(keyStr, valStr);
 	Free(std::move(val));
 
 	if (s != OK)
@@ -185,7 +185,7 @@ void KVStoreBaseImpl::Remove(const Key &key)
 	std::unique_lock<std::mutex> l(mLock);
 
 	std::string keyStr(key.data(), mKeySize);
-	KVStatus s = mPmemkv->Remove(keyStr);
+	KVStatus s = mRTree->Remove(keyStr);
 	if (s != OK) {
 		if (s == NOT_FOUND)
 			throw OperationFailedException(KeyNotFound);
@@ -248,8 +248,8 @@ KVStoreBaseImpl::~KVStoreBaseImpl()
 {
 	mDhtNode.reset();
 
-	pmemkv::KVEngine::Close(mPmemkv.get());
-	mPmemkv.reset();
+	FogKV::RTreeEngine::Close(mRTree.get());
+	mRTree.reset();
 
 	for (auto index = 0; index < _rqstPoolers.size(); index++) {
 		delete _rqstPoolers.at(index);
@@ -274,7 +274,7 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name)
 	if (name == "fogkv.pmem.size")
 		return std::to_string(mOptions.PMEM.Size);
 	if (name == "fogkv.KVEngine")
-		return mPmemkv->Engine();
+		return mRTree->Engine();
 	if (name == "fogkv.dht.peers") {
 		Json::Value peers;
 		std::vector<FogKV::PureNode*> peerNodes;
@@ -303,7 +303,7 @@ void KVStoreBaseImpl::init()
 			dhtPort, port,
 			getOptions().Dht.Id));
 
-	mPmemkv.reset(pmemkv::KVEngine::Open(
+	mRTree.reset(FogKV::RTreeEngine::Open(
 			mOptions.KVEngine, mOptions.PMEM.Path, mOptions.PMEM.Size));
 
 	/**
@@ -321,7 +321,7 @@ void KVStoreBaseImpl::init()
 		}
 	}
 
-	if (mPmemkv == nullptr)
+	if (mRTree == nullptr)
 		throw OperationFailedException(errno, ::pmemobj_errormsg());
 }
 
