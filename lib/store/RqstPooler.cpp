@@ -81,7 +81,7 @@ bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
 }
 
 void RqstPooler::DequeueMsg() {
-	_dequedCount = spdk_ring_dequeue(submitRing, (void **) _rqstMsgBuffer, 1);
+	_dequedCount = spdk_ring_dequeue(submitRing, (void **) _rqstMsgBuffer, DEQUEUE_RING_LIMIT);
 	assert(_dequedCount < DEQUEUE_RING_LIMIT);
 }
 
