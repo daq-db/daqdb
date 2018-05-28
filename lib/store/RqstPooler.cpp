@@ -44,27 +44,27 @@ RqstMsg::RqstMsg(RqstOperation op, Key *key, Value *value,
 }
 
 RqstPooler::RqstPooler(std::shared_ptr<pmemkv::KVEngine> Store) :
-		mIsRunning(0), mThread(nullptr), mPmemkv(Store) {
+		isRunning(0), _thread(nullptr), _pmemkv(Store) {
 	/** @TODO jradtke: ring size should be configurable? */
-	mSubmitRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
+	submitRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
 	SPDK_ENV_SOCKET_ID_ANY);
 	Start();
 }
 
 RqstPooler::~RqstPooler() {
-	spdk_ring_free(mSubmitRing);
-	mIsRunning = 0;
-	if (mThread != nullptr)
-		mThread->join();
+	spdk_ring_free(submitRing);
+	isRunning = 0;
+	if (_thread != nullptr)
+		_thread->join();
 }
 
 void RqstPooler::Start() {
-	mIsRunning = 1;
-	mThread = new std::thread(&RqstPooler::ThreadMain, this);
+	isRunning = 1;
+	_thread = new std::thread(&RqstPooler::ThreadMain, this);
 }
 
 void RqstPooler::ThreadMain() {
-	while (mIsRunning) {
+	while (isRunning) {
 		DequeueMsg();
 		ProcessMsg();
 
@@ -74,28 +74,28 @@ void RqstPooler::ThreadMain() {
 }
 
 bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
-	size_t count = spdk_ring_enqueue(mSubmitRing, (void **) &Message, 1);
+	size_t count = spdk_ring_enqueue(submitRing, (void **) &Message, 1);
 	return (count == 1);
 
 	/** @TODO jradtke: Initial implementation, error handling not implemented */
 }
 
 void RqstPooler::DequeueMsg() {
-	mDequedCount = spdk_ring_dequeue(mSubmitRing, (void **) mRqstMsgBuffer, 1);
-	assert(mDequedCount < DEQUEUE_RING_LIMIT);
+	_dequedCount = spdk_ring_dequeue(submitRing, (void **) _rqstMsgBuffer, 1);
+	assert(_dequedCount < DEQUEUE_RING_LIMIT);
 }
 
 void RqstPooler::ProcessMsg() {
-	for (unsigned short MsgIndex = 0; MsgIndex < mDequedCount; MsgIndex++) {
-		std::string keyStr(mRqstMsgBuffer[MsgIndex]->key->data(),
-				mRqstMsgBuffer[MsgIndex]->key->size());
+	for (unsigned short MsgIndex = 0; MsgIndex < _dequedCount; MsgIndex++) {
+		std::string keyStr(_rqstMsgBuffer[MsgIndex]->key->data(),
+				_rqstMsgBuffer[MsgIndex]->key->size());
 
-		switch (mRqstMsgBuffer[MsgIndex]->op) {
+		switch (_rqstMsgBuffer[MsgIndex]->op) {
 		case RqstOperation::PUT: {
 			/** @TODO jradtke: Not thread safe */
-			std::string valStr(mRqstMsgBuffer[MsgIndex]->value->data(),
-					mRqstMsgBuffer[MsgIndex]->value->size());
-			mPmemkv->Put(keyStr, valStr);
+			std::string valStr(_rqstMsgBuffer[MsgIndex]->value->data(),
+					_rqstMsgBuffer[MsgIndex]->value->size());
+			_pmemkv->Put(keyStr, valStr);
 			break;
 		}
 		case RqstOperation::GET:
@@ -108,8 +108,8 @@ void RqstPooler::ProcessMsg() {
 			break;
 		}
 
-		(*mRqstMsgBuffer[0]->cb_fn)(nullptr, FogKV::Status(FogKV::Code::Ok),
-				*mRqstMsgBuffer[0]->key, *mRqstMsgBuffer[0]->value);
+		(*_rqstMsgBuffer[0]->cb_fn)(nullptr, FogKV::Status(FogKV::Code::Ok),
+				*_rqstMsgBuffer[0]->key, *_rqstMsgBuffer[0]->value);
 	}
 }
 

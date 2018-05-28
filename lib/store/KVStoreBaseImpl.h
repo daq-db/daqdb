@@ -85,7 +85,7 @@ protected:
 	std::shared_ptr<pmemkv::KVEngine> mPmemkv;
 	std::mutex mLock;
 
-	std::unique_ptr<RqstPooler> mRqstPooler;
+	std::vector<RqstPooler*> _rqstPoolers;
 };
 
 } //namespace FogKV

@@ -60,6 +60,17 @@ struct UpdateOptions {
 };
 
 struct PutOptions {
+	void poolerId(unsigned short id)
+	{
+		_poolerId = id;
+	}
+
+	unsigned short poolerId() const
+	{
+		return _poolerId;
+	}
+
+	unsigned short _poolerId = 0;
 };
 
 struct GetOptions {
@@ -117,7 +128,19 @@ struct RuntimeOptions {
 		return _io_service;
 	}
 
+	void numOfPoolers(unsigned short count)
+	{
+		_numOfPoolers = count;
+	}
+
+	unsigned short numOfPoolers() const
+	{
+		return _numOfPoolers;
+	}
+
 	asio::io_service *_io_service = nullptr;
+
+	unsigned short _numOfPoolers = 1;
 };
 
 struct DhtOptions {
