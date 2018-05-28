@@ -76,19 +76,20 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
 		throw OperationFailedException(EINVAL);
 }
 
-void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb, const PutOptions &options)
-{
-	std::async(std::launch::async, [&] {
-		try {
-			if (mRqstPooler) {
-				mRqstPooler->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
-			} else {
-				cb(this, FogKV::Status(FogKV::Code::UnknownError), key, value);
-			}
-		} catch (OperationFailedException e) {
-			cb(this, e.status(), key, value);
-		}
-	});
+void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
+		KVStoreBasePutCallback cb, const PutOptions &options) {
+	std::async(std::launch::async,
+			[&] {
+				try {
+					if (options.poolerId() < _rqstPoolers.size()) {
+						_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
+					} else {
+						cb(this, FogKV::Status(FogKV::Code::UnknownError), key, value);
+					}
+				} catch (OperationFailedException &e) {
+					cb(this, e.status(), key, value);
+				}
+			});
 }
 
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
@@ -117,7 +118,7 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb, const 
 		try {
 			Value val = Get(key);
 			cb(this, Ok, key, val);
-		} catch (OperationFailedException e) {
+		} catch (OperationFailedException &e) {
 			Value val;
 			cb(this, e.status(), key, val);
 		}
@@ -158,7 +159,7 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpda
 		try {
 			Update(key, std::move(value));
 			cb(this, Ok, key, value);
-		} catch (OperationFailedException e) {
+		} catch (OperationFailedException &e) {
 			cb(this, e.status(), key, value);
 		}
 	});
@@ -250,6 +251,10 @@ KVStoreBaseImpl::~KVStoreBaseImpl()
 	pmemkv::KVEngine::Close(mPmemkv.get());
 	mPmemkv.reset();
 
+	for (auto index = 0; index < _rqstPoolers.size(); index++) {
+		delete _rqstPoolers.at(index);
+	}
+
 	if (m_io_service)
 		delete m_io_service;
 }
@@ -310,7 +315,10 @@ void KVStoreBaseImpl::init()
 	opts.name = "FogKV";
 	opts.shm_id = 0;
 	if (spdk_env_init(&opts) == 0) {
-		mRqstPooler.reset(new FogKV::RqstPooler(mPmemkv));
+		auto poolerCount = getOptions().Runtime.numOfPoolers();
+		for (auto index = 0; index < poolerCount; index++) {
+			_rqstPoolers.push_back(new FogKV::RqstPooler(mPmemkv));
+		}
 	}
 
 	if (mPmemkv == nullptr)

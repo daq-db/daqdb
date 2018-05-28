@@ -65,23 +65,25 @@ class RqstPooler {
 public:
 	RqstPooler(std::shared_ptr<pmemkv::KVEngine> Store);
 	virtual ~RqstPooler();
+
 	void Start();
 	bool EnqueueMsg(RqstMsg *Message);
 
-	std::atomic_int mIsRunning;
-	/** @TODO jradtke: Do we need completion queue too? */
-	struct spdk_ring *mSubmitRing;
+	std::atomic<int> isRunning;
 
-	std::thread *mThread;
+	/** @TODO jradtke: Do we need completion queue too? */
+	struct spdk_ring *submitRing;
+
 private:
 	void ThreadMain(void);
 	void DequeueMsg();
 	void ProcessMsg();
 
-	std::shared_ptr<pmemkv::KVEngine> mPmemkv;
+	std::thread *_thread;
+	std::shared_ptr<pmemkv::KVEngine> _pmemkv;
 
-	RqstMsg *mRqstMsgBuffer[DEQUEUE_RING_LIMIT];
-	unsigned short mDequedCount = 0;
+	RqstMsg *_rqstMsgBuffer[DEQUEUE_RING_LIMIT];
+	unsigned short _dequedCount = 0;
 };
 
 } /* namespace FogKV */
