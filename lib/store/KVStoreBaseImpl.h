@@ -82,7 +82,7 @@ protected:
 	size_t mKeySize;
 	Options mOptions;
 	std::unique_ptr<FogKV::DhtNode> mDhtNode;
-	std::unique_ptr<FogKV::RTreeEngine> mRTree;
+	std::shared_ptr<FogKV::RTreeEngine> mRTree;
 	std::mutex mLock;
 
 	std::vector<RqstPooler*> _rqstPoolers;

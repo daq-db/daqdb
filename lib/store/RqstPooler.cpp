@@ -43,8 +43,8 @@ RqstMsg::RqstMsg(RqstOperation op, Key *key, Value *value,
 		op(op), key(key), value(value), cb_fn(cb_fn) {
 }
 
-RqstPooler::RqstPooler(std::shared_ptr<pmemkv::KVEngine> Store) :
-		isRunning(0), _thread(nullptr), _pmemkv(Store) {
+RqstPooler::RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store) :
+		isRunning(0), _thread(nullptr), mRTree(Store) {
 	/** @TODO jradtke: ring size should be configurable? */
 	submitRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
 	SPDK_ENV_SOCKET_ID_ANY);
@@ -95,7 +95,7 @@ void RqstPooler::ProcessMsg() {
 			/** @TODO jradtke: Not thread safe */
 			std::string valStr(_rqstMsgBuffer[MsgIndex]->value->data(),
 					_rqstMsgBuffer[MsgIndex]->value->size());
-			_pmemkv->Put(keyStr, valStr);
+			mRTree->Put(keyStr, valStr);
 			break;
 		}
 		case RqstOperation::GET:

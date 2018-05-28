@@ -62,14 +62,6 @@ add_library(pmemobj SHARED IMPORTED GLOBAL)
 add_dependencies(pmemobj project_pmdk)
 set_target_properties(pmemobj PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so.1)
 
-# pmemkv
-set(PMEMKV ${PROJECT_SOURCE_DIR}/pmemkv)
-set(PMEMKV_INCLUDES ${PMEMKV}/src ${PMEMKV}/src/engines)
-set(PMEMKV_INCLUDES_EXPORT ${PMEMKV_INCLUDES} PARENT_SCOPE)
-include_directories(${PMEMKV_INCLUDES})
-file(GLOB_RECURSE PMEMKV_SOURCES ${PMEMKV}/src/pmemkv.cc ${PMEMKV}/src/engines/*.cc)
-add_library(pmemkv SHARED ${PMEMKV_SOURCES})
-
 # spdk
 ExternalProject_Add(project_spdk
 	PREFIX ${PROJECT_SOURCE_DIR}/spdk

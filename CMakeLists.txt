@@ -18,7 +18,7 @@ set(EXAMPLES ${PROJECT_SOURCE_DIR}/examples)
 set(APPS ${PROJECT_SOURCE_DIR}/apps)
 
 find_package(PkgConfig)
-
+find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
 # fogkv lib dependencies
 find_package(Jsoncpp)
 
@@ -51,7 +51,7 @@ file(GLOB_RECURSE FOGKV_SOURCES
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord spdk)
+target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord spdk ${Boost_LIBRARIES})
 
 # Build test folder
 add_subdirectory(tests)

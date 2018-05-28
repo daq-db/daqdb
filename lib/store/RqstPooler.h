@@ -39,7 +39,7 @@
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
-#include <pmemkv.h>
+#include "RTreeEngine.h"
 
 #include <FogKV/KVStoreBase.h>
 
@@ -63,7 +63,7 @@ public:
 
 class RqstPooler {
 public:
-	RqstPooler(std::shared_ptr<pmemkv::KVEngine> Store);
+	RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store);
 	virtual ~RqstPooler();
 
 	void Start();
@@ -80,7 +80,7 @@ private:
 	void ProcessMsg();
 
 	std::thread *_thread;
-	std::shared_ptr<pmemkv::KVEngine> _pmemkv;
+	std::shared_ptr<FogKV::RTreeEngine> mRTree;
 
 	RqstMsg *_rqstMsgBuffer[DEQUEUE_RING_LIMIT];
 	unsigned short _dequedCount = 0;

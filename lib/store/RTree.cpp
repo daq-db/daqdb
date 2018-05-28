@@ -15,11 +15,6 @@ namespace FogKV
 	}
 	Tree::Tree(const string& _path, const size_t size) {
 		const char *path = "/mnt/pmem/test.pm";
-				//pmem::obj::pool<struct root> pop;
-				//persistent_ptr<Node> root;
-		//pool<TreeRoot> _pm_pool;
-		//TreeRoot * treeRoot;
-		//persistent_ptr<Node> treeRoot;
 
 		if (!boost::filesystem::exists(path)) {
 				std::cout << "Creating pool " << std::endl;
@@ -29,13 +24,10 @@ namespace FogKV
 				} catch (pmem::pool_error &pe) {std::cout << "Error on create" << pe.what();}
 				try {
 					transaction::exec_tx(_pm_pool, [&] {
-						//tree = new Tree();
-						std::cout << "Creating tree " << std::endl;
 						treeRoot = _pm_pool.get_root().get();
 						treeRoot->rootNode = make_persistent<Node>(false, 0);
 						treeRoot->level_bits = log2(LEVEL_SIZE);
 						treeRoot->tree_heigh = KEY_SIZE/treeRoot->level_bits;
-						//_pm_pool.get_root()->treeRoot = tree->treeRoot;
 						int count = 0;
 						allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth, &count);
 					});
@@ -64,21 +56,14 @@ namespace FogKV
 	}
 	KVStatus RTree::Get(const string& key,                // append value to std::string
 						string* value) {
-		/*int * val = tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
-		value->append(std::to_string(*val));
-*/
 		ValueWrapper * val = tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
-		std::cout << "get from " << val->value.raw_ptr()->off <<std::endl;
 		value->append(val->value.get());
 
 		return OK;
 	}
 	KVStatus RTree::Put(const string& key,                // copy value from std::string
 						const string& value) {
-		/*int * val;
-		val = tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));*/
 		ValueWrapper * val = tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
-		// = value.c_str();
 		try {
 			transaction::exec_tx(tree->_pm_pool, [&] {
 				val->value = pmemobj_tx_alloc(value.length(),1);
@@ -86,8 +71,6 @@ namespace FogKV
 		} catch (std::exception &e) {
 			std::cout << "Error " << e.what();
 		}
-		std::cout << "put into " << val->value.raw_ptr()->off <<std::endl;
-
 		memcpy(val->value.get(), value.data(), value.length());
 		return OK;
 	}
@@ -98,51 +81,39 @@ namespace FogKV
 	void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int * count) {
 		int i;
 		depth++;
-		//std::cout << "depth=" << depth <<std::endl;
-		//std::cout << "tree_heigh=" << treeRoot->tree_heigh <<std::endl;
 
 		for (i=0; i<LEVEL_SIZE; i++)
 		{
-			//std::cout << "iterating level" << i <<std::endl;
 			bool isLast = false;
 			if(depth==((treeRoot->tree_heigh)-1))
 			{
-				//std::cout << "isLast" <<std::endl;
 				isLast = true;
 			}
 			if(depth==treeRoot->tree_heigh)
 			{
-				//std::cout << "last level " << depth << " count = " << *count << std::endl;
-				//current->values[i] = *count;	// just for tests
-				(*count)++;
+				(*count)++;	//debug only
 			}
 
 			current->children[i] = make_persistent<Node>(isLast,depth);
 
 			if(depth<treeRoot->tree_heigh)
 			{
-				//std::cout << "allocating level: "<< depth << " iter: " << i << std::endl;
 				allocateLevel(current->children[i], depth, count);
 			}
 
 		}
 	}
 
-	//int * Tree::findValueInNode(persistent_ptr<Node> current, int key) {
 	ValueWrapper * Tree::findValueInNode(persistent_ptr<Node> current, int key) {
-		std::cout << "current->depth = "<< current->depth << " tree_heigh="<<treeRoot->tree_heigh << std::endl;
-
 		int key_shift = (2*(treeRoot->tree_heigh - current->depth-1));
 		int key_calc = key >> key_shift;
 		int mask = ~(UINT_MAX << treeRoot->level_bits);
 		key_calc = key_calc & mask;
-		//std::cout << "key_calc = "<< key_calc << std::endl;
 
 		if(current->depth!=(treeRoot->tree_heigh-1))
 		{
 			return findValueInNode(current->children[key_calc], key);
 		}
 		return &(current->valueNode[key_calc]);
-		//return &current->values[key_calc];
 	}
 }

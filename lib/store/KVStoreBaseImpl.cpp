@@ -317,7 +317,7 @@ void KVStoreBaseImpl::init()
 	if (spdk_env_init(&opts) == 0) {
 		auto poolerCount = getOptions().Runtime.numOfPoolers();
 		for (auto index = 0; index < poolerCount; index++) {
-			_rqstPoolers.push_back(new FogKV::RqstPooler(mPmemkv));
+			_rqstPoolers.push_back(new FogKV::RqstPooler(mRTree));
 		}
 	}
 
