@@ -251,6 +251,10 @@ KVStoreBaseImpl::~KVStoreBaseImpl()
 	pmemkv::KVEngine::Close(mPmemkv.get());
 	mPmemkv.reset();
 
+	for (auto index = 0; index < _rqstPoolers.size(); index++) {
+		delete _rqstPoolers.at(index);
+	}
+
 	if (m_io_service)
 		delete m_io_service;
 }
