@@ -67,9 +67,9 @@ int main(int argc, const char *argv[])
 	std::string pmem_path;
 	size_t fSize = 10240;
 	size_t pmem_size;
-	int tTestS = 10;
-	int tIterMS = 1;
-	int tRampS = 2;
+	int tTest_s = 10;
+	int tIter_us = 1;
+	int tRamp_s = 2;
 	int nTh = 1;
 
 	po::options_description argumentsDescription{"Options"};
@@ -79,9 +79,9 @@ int main(int argc, const char *argv[])
 			("readout-async", "Run in async readout mode")
 			("fragment-size", po::value<size_t>(&fSize), "Fragment size in bytes in case of readout mode")
 			("threads,t", po::value<int>(&nTh), "Number of worker threads")
-			("time-test", po::value<int>(&tTestS), "Desired test duration in seconds")
-			("time-iter", po::value<int>(&tIterMS), "Desired iteration duration in milliseconds")
-			("time-ramp", po::value<int>(&tRampS), "Desired ramp up time in seconds")
+			("time-test", po::value<int>(&tTest_s), "Desired test duration in seconds")
+			("time-iter", po::value<int>(&tIter_us), "Desired iteration duration in microseconds")
+			("time-ramp", po::value<int>(&tRamp_s), "Desired ramp up time in seconds")
 			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
 			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
 			;
@@ -118,9 +118,9 @@ int main(int argc, const char *argv[])
 
 		// Start workers
 		if (readoutMode) {
-			nodeReadout.SetTimeTest(tTestS);
-			nodeReadout.SetTimeRamp(tRampS);
-			nodeReadout.SetTimeIter(tIterMS);
+			nodeReadout.SetTimeTest(tTest_s);
+			nodeReadout.SetTimeRamp(tRamp_s);
+			nodeReadout.SetTimeIter(tIter_us);
 			nodeReadout.SetThreads(nTh);
 			nodeReadout.SetFragmentSize(fSize);
 			nodeReadout.Run();
@@ -128,9 +128,9 @@ int main(int argc, const char *argv[])
 		}
 
 		if (asyncReadoutMode) {
-			nodeAsyncReadout.SetTimeTest(tTestS);
-			nodeAsyncReadout.SetTimeRamp(tRampS);
-			nodeAsyncReadout.SetTimeIter(tIterMS);
+			nodeAsyncReadout.SetTimeTest(tTest_s);
+			nodeAsyncReadout.SetTimeRamp(tRamp_s);
+			nodeAsyncReadout.SetTimeIter(tIter_us);
 			nodeAsyncReadout.SetThreads(nTh);
 			nodeAsyncReadout.SetFragmentSize(fSize);
 			nodeAsyncReadout.Run();

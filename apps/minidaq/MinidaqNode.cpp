@@ -52,19 +52,19 @@ MinidaqNode::~MinidaqNode()
 {
 }
 
-void MinidaqNode::SetTimeTest(int tS)
+void MinidaqNode::SetTimeTest(int s)
 {
-	tTestS = tS;
+	tTest_s = s;
 }
 
-void MinidaqNode::SetTimeRamp(int tS)
+void MinidaqNode::SetTimeRamp(int s)
 {
-	tRampS = tS;
+	tRamp_s = s;
 }
 
-void MinidaqNode::SetTimeIter(int tMS)
+void MinidaqNode::SetTimeIter(int us)
 {
-	tIterMS = tMS;
+	tIter_us = us;
 }
 
 void MinidaqNode::SetThreads(int n)
@@ -80,50 +80,49 @@ MinidaqStats MinidaqNode::Execute(int executorId)
 	MinidaqTimerHR timerSample;
 	MinidaqTimerHR timerTest;
 	MinidaqStats stats;
+	MinidaqSample s;
 	uint64_t avg_r;
-	uint64_t r_err;
-	uint64_t r;
-	double t;
 
 	// Ramp up
-	timerTest.RestartS(tRampS);
+	timerTest.Restart_s(tRamp_s);
 	while (!timerTest.IsExpired()) {
-		r++;
+		s.nRequests++;
 		Task(executorId, c, c_err);
 	}
 
 	// Record samples
-	timerTest.RestartS(tTestS);
+	timerTest.Restart_s(tTest_s);
 	while (!timerTest.IsExpired() && !stopped) {
 		// Timer precision per iteration
-		avg_r = (r + 10) / 10;
-		r = 0;
+		avg_r = (s.nRequests + 10) / 10;
+		s.Reset();
 		c = 0;
-		r_err = 0;
 		c_err = 0;
-		timerSample.RestartMS(tIterMS);
+		timerSample.Restart_us(tIter_us);
 		do {
 			event_id += nTh;
 			try {
 				Task(event_id, c, c_err);
-				r++;
+				s.nRequests++;
 			}
 			catch (...) {
-				r_err++;
+				s.nErrRequests++;
 			}
-		} while (!stopped && ((r % avg_r) || !timerSample.IsExpired()));
-		t = timerSample.GetElapsedUS();
-		stats.RecordSample(r, c, r_err, c_err, t);
+		} while (!stopped && ((s.nRequests % avg_r) || !timerSample.IsExpired()));
+		s.nCompletions = c.load();
+		s.nErrCompletions = c_err.load();
+		s.interval_ns = timerSample.GetElapsed_ns();
+		stats.RecordSample(s);
 	}
 
 	stopped = true;
 
 	// Wait for all completions
-	while (c || c_err) {
+	do {
 		c = 0;
 		c_err = 0;
-		std::this_thread::sleep_for(std::chrono::milliseconds(100 * tIterMS));
-	}
+		std::this_thread::sleep_for(std::chrono::nanoseconds(10 * s.interval_ns));
+	} while (c || c_err); 
 
 	return stats;
 }
@@ -134,6 +133,7 @@ void MinidaqNode::Run()
 
 	Setup();
 
+	std::cout << "Starting threads..." << std::endl;
 	for (i = 0; i < nTh; i++) {
 		futureVec.emplace_back(std::async(std::launch::async,
 										  &MinidaqNode::Execute, this, i));
@@ -144,25 +144,31 @@ void MinidaqNode::Wait()
 {
 	int i;
 	
-	for (auto&& f : futureVec) {
+	std::cout << "Waiting..." << std::endl;
+	for (const auto& f : futureVec) {
 		f.wait();
 	}
+	std::cout << "Done!" << std::endl;
 }
 
 void MinidaqNode::Show()
 {
-	std::vector<MinidaqStats> stats;
+	MinidaqStats total;
 	int i = 0;
 
-	for (auto&& f : futureVec) {
-		std::cout << "stats[" << i++ << "]:" << std::endl;
-		stats.push_back(f.get());
-		stats.back().Dump();
+	for (auto& f : futureVec) {
+		std::cout << "########################################" << std::endl;
+		std::cout << "   STATS[" << i++ << "]:" << std::endl;
+		std::cout << "########################################" << std::endl;
+		auto s = f.get();
+		s.Dump();
+		total.Combine(s);
 		std::cout << std::endl;
 	}
 
-	std::cout << "stats[all]:" << std::endl;
-	MinidaqStats total(stats);
+	std::cout << "########################################" << std::endl;
+	std::cout << "   STATS[ALL]:" << std::endl;
+	std::cout << "########################################" << std::endl;
 	total.Dump();
 	std::cout << std::endl;
 }
