@@ -6,6 +6,7 @@ include(FindPkgConfig)
 find_package(PkgConfig)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_LOG_DYN_LINK")
 
 set(ROOT_FOGKV_DIR ${PROJECT_SOURCE_DIR}/../..)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
@@ -13,7 +14,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
 
 set(3RDPARTY ${ROOT_FOGKV_DIR}/third-party)
 
-find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
+find_package(Boost REQUIRED COMPONENTS program_options log log_setup system filesystem thread)
 find_package(Threads REQUIRED)
 find_package(Jsoncpp)
 
