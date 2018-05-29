@@ -35,7 +35,7 @@
 #include <boost/filesystem.hpp>
 
 #include <libpmemobj/pool_base.h>
-#include <pmemkv.h>
+/*#include <pmemkv.h>
 
 using namespace std;
 using namespace pmemkv;
@@ -76,3 +76,4 @@ BOOST_AUTO_TEST_CASE(KVStoreTests_PutGetRemove)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+*/

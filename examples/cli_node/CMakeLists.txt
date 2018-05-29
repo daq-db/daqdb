@@ -25,5 +25,5 @@ add_library(linenoise SHARED linenoise/linenoise.c linenoise/linenoise.h)
 file(GLOB CLINODE_SOURCES ${EXAMPLES}/cli_node/*.cpp ${EXAMPLES}/cli_node/*.h)
 add_executable(clinode ${CLINODE_SOURCES})
 target_link_libraries(clinode ${Jsoncpp_LIBRARY} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-	fabric pmem pmemkv fogkv linenoise pmemobj dpdk dl numa)
+	fabric pmem fogkv linenoise pmemobj dpdk dl numa)
 

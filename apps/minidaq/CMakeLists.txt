@@ -17,4 +17,4 @@ find_package(Threads REQUIRED)
 file(GLOB MINIDAQ_SOURCES *.cpp *.h)
 add_executable(minidaq ${MINIDAQ_SOURCES})
 target_link_libraries(minidaq ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-					  pmem pmemkv fogkv pmemobj dpdk dl numa)
+					  pmem fogkv pmemobj dpdk dl numa)

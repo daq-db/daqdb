@@ -1,9 +1,6 @@
 [submodule "3rd/cChord"]
 	path = third-party/cChord
 	url = https://github.com/FogKV/cChord.git
-[submodule "src/3rd/pmemkv"]
-	path = third-party/pmemkv
-	url = https://github.com/pmem/pmemkv.git
 [submodule "src/3rd/linenoise"]
 	path = examples/cli_node/linenoise
 	url = https://github.com/antirez/linenoise.git

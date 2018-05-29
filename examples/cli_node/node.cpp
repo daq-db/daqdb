@@ -91,8 +91,8 @@ main(int argc, const char *argv[])
 			("nodeid,n", po::value<unsigned short>(&nodeId)->default_value(0) , "Node ID used to match database file. If not set DB file will be removed when node stopped.")
 			("interactive,i", "Enable interactive mode")
 			("log,l", "Enable logging")
-			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
-			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
+			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pool.pm"), "Rtree persistent memory pool file")
+			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "Rtree persistent memory pool size")
 			;
 
 	po::variables_map parsedArguments;

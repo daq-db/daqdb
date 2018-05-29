@@ -32,7 +32,15 @@
 
 #pragma once
 
-#include <pmemkv.h>
+#include <string>
+using std::string;
+using std::to_string;
+
+typedef enum {                                             // status enumeration
+    FAILED = -1,                                           // operation failed
+    NOT_FOUND = 0,                                         // key not located
+    OK = 1                                                 // successful completion
+} KVStatus;
 
 namespace FogKV
 {
