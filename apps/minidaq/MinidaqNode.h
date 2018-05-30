@@ -43,7 +43,7 @@
 namespace FogKV {
 
 struct MinidaqKey {
-	MinidaqKey() = default;
+	MinidaqKey() : event_id(0), subdetector_id(0), run_id(0) {};
 	MinidaqKey(uint64_t e, uint16_t s, uint16_t r) :
 		event_id(e), subdetector_id(s), run_id(r) {}
 	uint64_t event_id;

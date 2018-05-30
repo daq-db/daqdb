@@ -48,10 +48,6 @@ static FogKV::KVStoreBase* openKVS(std::string &pmemPath, size_t pmemSize)
 	FogKV::Options options;
 	options.PMEM.Path = pmemPath;
 	options.PMEM.Size = pmemSize;
-	options.Port = 0;
-	options.Dht.Port = 0;
-	options.Dht.Id = 0;
-	options.Runtime._io_service = nullptr;
 	options.Key.field(0, sizeof(FogKV::MinidaqKey::event_id), true);
 	options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetector_id));
 	options.Key.field(2, sizeof(FogKV::MinidaqKey::run_id));
@@ -73,18 +69,18 @@ int main(int argc, const char *argv[])
 	int nRaTh = 0;
 	int nFfTh = 0;
 	int nEbTh = 0;
-	int nRTh = 0;
+	int nRTh = 1;
 
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()
 			("help,h", "Print help messages")
-			("readout", po::value<int>(&nRTh), "Number of readout threads")
+			("readout", po::value<int>(&nRTh), "Number of readout threads. If no modes are specified, this is the default with one thread.")
 			("readout-async", po::value<int>(&nRaTh), "Number of asynchronous readout threads")
 			("fast-filtering", po::value<int>(&nFfTh), "Number of fast filtering threads")
 			("event-building", po::value<int>(&nEbTh), "Number of event building threads")
 			("fragment-size", po::value<size_t>(&fSize), "Fragment size in bytes in case of readout mode")
 			("time-test", po::value<int>(&tTest_s), "Desired test duration in seconds")
-			("time-iter", po::value<int>(&tIter_us), "Desired iteration duration in microseconds")
+			("time-iter", po::value<int>(&tIter_us), "Desired iteration duration in microseconds (defines measurement time for OPS estimation of a single histogram sample.")
 			("time-ramp", po::value<int>(&tRamp_s), "Desired ramp up time in seconds")
 			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
 			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
