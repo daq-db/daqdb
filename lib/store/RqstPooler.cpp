@@ -44,28 +44,29 @@ RqstMsg::RqstMsg(RqstOperation op, Key *key, Value *value,
 }
 
 RqstPooler::RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store) :
-		isRunning(0), _thread(nullptr), mRTree(Store) {
-	/** @TODO jradtke: ring size should be configurable? */
-	submitRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
-	SPDK_ENV_SOCKET_ID_ANY);
-	Start();
+		isRunning(0), _thread(nullptr), rtree(Store) {
+
+	rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
+			SPDK_ENV_SOCKET_ID_ANY);
+
+	StartThread();
 }
 
 RqstPooler::~RqstPooler() {
-	spdk_ring_free(submitRing);
+	spdk_ring_free(rqstRing);
 	isRunning = 0;
 	if (_thread != nullptr)
 		_thread->join();
 }
 
-void RqstPooler::Start() {
+void RqstPooler::StartThread() {
 	isRunning = 1;
-	_thread = new std::thread(&RqstPooler::ThreadMain, this);
+	_thread = new std::thread(&RqstPooler::_ThreadMain, this);
 }
 
-void RqstPooler::ThreadMain() {
+void RqstPooler::_ThreadMain() {
 	while (isRunning) {
-		DequeueMsg();
+		_DequeueMsg();
 		ProcessMsg();
 
 		/** @TODO jradtke: Initial implementation, will be removed */
@@ -74,19 +75,19 @@ void RqstPooler::ThreadMain() {
 }
 
 bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
-	size_t count = spdk_ring_enqueue(submitRing, (void **) &Message, 1);
+	size_t count = spdk_ring_enqueue(rqstRing, (void **) &Message, 1);
 	return (count == 1);
 
 	/** @TODO jradtke: Initial implementation, error handling not implemented */
 }
 
-void RqstPooler::DequeueMsg() {
-	_dequedCount = spdk_ring_dequeue(submitRing, (void **) _rqstMsgBuffer, DEQUEUE_RING_LIMIT);
-	assert(_dequedCount < DEQUEUE_RING_LIMIT);
+void RqstPooler::_DequeueMsg() {
+	_rqstDequedCount = spdk_ring_dequeue(rqstRing, (void **) _rqstMsgBuffer, DEQUEUE_RING_LIMIT);
+	assert(_rqstDequedCount < DEQUEUE_RING_LIMIT);
 }
 
 void RqstPooler::ProcessMsg() {
-	for (unsigned short MsgIndex = 0; MsgIndex < _dequedCount; MsgIndex++) {
+	for (unsigned short MsgIndex = 0; MsgIndex < _rqstDequedCount; MsgIndex++) {
 		std::string keyStr(_rqstMsgBuffer[MsgIndex]->key->data(),
 				_rqstMsgBuffer[MsgIndex]->key->size());
 
@@ -95,7 +96,7 @@ void RqstPooler::ProcessMsg() {
 			/** @TODO jradtke: Not thread safe */
 			std::string valStr(_rqstMsgBuffer[MsgIndex]->value->data(),
 					_rqstMsgBuffer[MsgIndex]->value->size());
-			mRTree->Put(keyStr, valStr);
+			rtree->Put(keyStr, valStr);
 			break;
 		}
 		case RqstOperation::GET:

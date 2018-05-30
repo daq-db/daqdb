@@ -30,58 +30,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "../../lib/store/RTree.h"
+#include "../../lib/store/RqstPooler.cpp"
 
-#include <thread>
-#include <atomic>
-#include <cstdint>
+#define BOOST_TEST_MAIN
+#include <boost/test/unit_test.hpp>
 
-#include "spdk/env.h"
-#include "spdk/io_channel.h"
-#include "spdk/queue.h"
-#include "RTreeEngine.h"
-#include "OffloadEngine.h"
+#include <fakeit.hpp>
 
-#include <FogKV/KVStoreBase.h>
+namespace ut = boost::unit_test;
 
-#define DEQUEUE_RING_LIMIT	256
+using namespace fakeit;
 
-namespace FogKV {
+BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
+	Mock<FogKV::RqstPooler> poolerMock;
+	Mock<FogKV::RTree> rtreeMock;
+	Fake(Method(rtreeMock, Put));
 
-enum class RqstOperation
-	: std::int8_t {NONE = 0, GET = 1, PUT = 2, UPDATE = 3, DELETE = 4, RETRIEVE = 5, STORE = 6
-};
+	FogKV::RqstPooler& pooler = poolerMock.get();
+	FogKV::RTreeEngine &rtree = rtreeMock.get();
+	pooler.rtree.reset(&rtree);
 
-class RqstMsg {
-public:
-	RqstMsg(RqstOperation op, Key *key, Value *value,
-			KVStoreBase::KVStoreBasePutCallback *cb_fn);
-	Key *key = nullptr;
-	Value *value = nullptr;
-	KVStoreBase::KVStoreBasePutCallback *cb_fn = nullptr;
-	RqstOperation op = RqstOperation::NONE;
-};
-
-class RqstPooler {
-public:
-	RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store);
-	virtual ~RqstPooler();
-
-	bool EnqueueMsg(RqstMsg *Message);
-	void ProcessMsg();
-	void StartThread();
-
-	std::atomic<int> isRunning;
-	std::shared_ptr<FogKV::RTreeEngine> rtree;
-	struct spdk_ring *rqstRing;
-
-private:
-	void _ThreadMain(void);
-	void _DequeueMsg();
-
-	std::thread *_thread;
-	unsigned short _rqstDequedCount = 0;
-	RqstMsg *_rqstMsgBuffer[DEQUEUE_RING_LIMIT];
-};
-
-} /* namespace FogKV */
+	pooler.ProcessMsg();
+	VerifyNoOtherInvocations(Method(rtreeMock, Put));
+}
