@@ -54,7 +54,7 @@ void MinidaqAsyncReadoutNode::Task(uint64_t eventId, std::atomic<std::uint64_t> 
 	keyp->run_id = runId;
 	keyp->event_id = eventId;
 
-	FogKV::Value value = kvs->Alloc(1024);
+	FogKV::Value value = kvs->Alloc(key, 1024);
 
 	try {
 		kvs->PutAsync(std::move(key), std::move(value),
