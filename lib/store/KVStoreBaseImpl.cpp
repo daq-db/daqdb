@@ -323,6 +323,10 @@ void KVStoreBaseImpl::init()
 
 	if (mRTree == nullptr)
 		throw OperationFailedException(errno, ::pmemobj_errormsg());
+
+	if (getOptions().Runtime.logFunc != nullptr) {
+		getOptions().Runtime.logFunc("KVStoreBaseImpl initialization completed");
+	}
 }
 
 asio::io_service &KVStoreBaseImpl::io_service()

@@ -34,6 +34,7 @@
 
 #include <vector>
 #include <asio/io_service.hpp>
+#include <functional>
 
 #include <FogKV/Types.h>
 
@@ -137,6 +138,8 @@ struct RuntimeOptions {
 	{
 		return _numOfPoolers;
 	}
+
+	std::function<void (std::string)> logFunc = nullptr;
 
 	asio::io_service *_io_service = nullptr;
 

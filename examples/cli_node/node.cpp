@@ -41,9 +41,18 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <boost/log/trivial.hpp>
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/timer.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/support/date_time.hpp>
+
 #include <FogKV/KVStoreBase.h>
 
-#include "debug.h"
 #include "nodeCli.h"
 
 using namespace std;
@@ -52,11 +61,15 @@ using namespace boost::algorithm;
 
 namespace po = boost::program_options;
 
-#ifdef FOGKV_USE_LOG4CXX
-LoggerPtr loggerNode(Logger::getLogger( "dragon"));
-#endif
+namespace logging = boost::log;
+namespace bt = logging::trivial;
+namespace attrs = boost::log::attributes;
+namespace keywords = boost::log::keywords;
+namespace src = boost::log::sources;
 
 typedef char KeyType[16];
+
+BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt<logging::trivial::severity_level>)
 
 namespace
 {
@@ -73,14 +86,12 @@ main(int argc, const char *argv[])
 	std::string pmem_path;
 	size_t pmem_size;
 
-#ifdef FOGKV_USE_LOG4CXX
-	log4cxx::ConsoleAppender *consoleAppender =
-		new log4cxx::ConsoleAppender(
-			log4cxx::LayoutPtr(new log4cxx::SimpleLayout()));
-	log4cxx::BasicConfigurator::configure(
-		log4cxx::AppenderPtr(consoleAppender));
-	log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
-#endif
+	logging::add_console_log(std::clog, keywords::format =
+			"%TimeStamp%: %Message%");
+	logging::add_common_attributes();
+	logging::core::get()->add_thread_attribute("Scope", attrs::named_scope());
+	logging::core::get()->set_filter(
+			logging::trivial::severity >= logging::trivial::error);
 
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
@@ -108,11 +119,10 @@ main(int argc, const char *argv[])
 		if (parsedArguments.count("interactive")) {
 			interactiveMode = true;
 		}
-#ifdef FOGKV_USE_LOG4CXX
 		if (parsedArguments.count("log")) {
-			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getDebug());
+			logging::core::get()->set_filter(
+					logging::trivial::severity >= logging::trivial::debug);
 		}
-#endif
 
 		po::notify(parsedArguments);
 	} catch (po::error &parserError) {
@@ -129,6 +139,10 @@ main(int argc, const char *argv[])
 
 	FogKV::Options options;
 	options.Runtime.io_service(&io_service);
+	options.Runtime.logFunc = [](std::string msg) {
+		BOOST_LOG_SEV(lg::get(), bt::debug) << msg << flush;
+	};
+
 	options.Dht.Id = nodeId;
 	options.Dht.Port = dhtPort;
 	options.Port = inputPort;
@@ -144,15 +158,13 @@ main(int argc, const char *argv[])
 		return -1;
 	}
 
-#ifdef FOGKV_USE_LOG4CXX
-	LOG4CXX_INFO(loggerNode,
-		     format("DHT node (id=%1%) is running on %2%:%3%") %
-			     spKVStore->getProperty("fogkv.dht.id") %
-			     spKVStore->getProperty("fogkv.listener.ip") %
-			     spKVStore->getProperty("fogkv.listener.port"));
-	LOG4CXX_INFO(loggerNode, format("Waiting for requests on port %1%.") %
-			     spKVStore->getProperty("fogkv.listener.dht_port"));
-#endif
+	BOOST_LOG_SEV(lg::get(), bt::info) <<
+			format("DHT node (id=%1%) is running on %2%:%3%") %
+				spKVStore->getProperty("fogkv.dht.id") %
+				spKVStore->getProperty("fogkv.listener.ip") %
+				spKVStore->getProperty("fogkv.listener.port") << flush;
+	BOOST_LOG_SEV(lg::get(), bt::info) << format("Waiting for requests on port %1%.") %
+			     spKVStore->getProperty("fogkv.listener.dht_port") << flush;
 
 	if (interactiveMode) {
 		FogKV::nodeCli nodeCli(spKVStore);
@@ -164,13 +176,11 @@ main(int argc, const char *argv[])
 		io_service.run();
 	}
 
-#ifdef FOGKV_USE_LOG4CXX
-	LOG4CXX_INFO(loggerNode,
-		     format("Closing DHT node (id=%1%) on %2%:%3%") %
-			     spKVStore->getProperty("fogkv.dht.id") %
-			     spKVStore->getProperty("fogkv.listener.ip") %
-			     spKVStore->getProperty("fogkv.listener.port"));
-#endif
+	BOOST_LOG_SEV(lg::get(), bt::info) <<
+			format("Closing DHT node (id=%1%) on %2%:%3%") %
+				spKVStore->getProperty("fogkv.dht.id") %
+				spKVStore->getProperty("fogkv.listener.ip") %
+				spKVStore->getProperty("fogkv.listener.port") << flush;
 
 	return 0;
 }
