@@ -157,18 +157,23 @@ void MinidaqNode::Show()
 	int i = 0;
 
 	for (auto& f : futureVec) {
-		std::cout << "########################################" << std::endl;
-		std::cout << "   STATS[" << i++ << "]:" << std::endl;
-		std::cout << "########################################" << std::endl;
+		std::cout << "########################################################"
+				  << std::endl;
+		std::cout << "   STATS[thread-" << i++ << "-" << GetType() << "]:"
+				  << std::endl;
+		std::cout << "########################################################"
+				  << std::endl;
 		auto s = f.get();
 		s.Dump();
 		total.Combine(s);
 		std::cout << std::endl;
 	}
 
-	std::cout << "########################################" << std::endl;
-	std::cout << "   STATS[ALL]:" << std::endl;
-	std::cout << "########################################" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   STATS[all-" << GetType() << "]:" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
 	total.Dump();
 	std::cout << std::endl;
 }

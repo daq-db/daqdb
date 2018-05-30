@@ -47,6 +47,7 @@ protected:
 	void Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 			  std::atomic<std::uint64_t> &cntErr);
 	void Setup();
+	std::string GetType();
 
 	std::vector<uint64_t> currEventId;
 	size_t fSize = 0;

@@ -35,6 +35,7 @@
 #include <vector>
 #include <future>
 #include <atomic>
+#include <string>
 
 #include "MinidaqStats.h"
 #include "FogKV/KVStoreBase.h"
@@ -67,6 +68,7 @@ protected:
 	virtual void Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 					  std::atomic<std::uint64_t> &cntErr) = 0;
 	virtual void Setup() = 0;
+	virtual std::string GetType() = 0;
 
 	KVStoreBase *kvs;
 	int nTh = 0; // number of worker threads

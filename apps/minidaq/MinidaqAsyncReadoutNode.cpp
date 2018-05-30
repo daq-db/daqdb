@@ -45,6 +45,11 @@ MinidaqAsyncReadoutNode::~MinidaqAsyncReadoutNode()
 {
 }
 
+std::string MinidaqAsyncReadoutNode::GetType()
+{
+	return std::string("readout-async");
+}
+
 void MinidaqAsyncReadoutNode::Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 								   std::atomic<std::uint64_t> &cntErr)
 {

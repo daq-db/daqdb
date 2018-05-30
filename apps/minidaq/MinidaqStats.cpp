@@ -183,21 +183,29 @@ void MinidaqStats::Dump()
 			  << 1000.0 * double(_totalTime_ns) / double(_nIterations)
 			  << " us" << std::endl;
 
-	std::cout << "###########################################" << std::endl;
-	std::cout << "### Requests per Second [MOPS]          ###" << std::endl;
-	std::cout << "###########################################" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   Requests per Second [MOPS]" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
 	hdr_percentiles_print(_histogramRps, stdout, 1, 1000000.0, CLASSIC);
-	std::cout << "###########################################" << std::endl;
-	std::cout << "### Completions per Second [MOPS]       ###" << std::endl;
-	std::cout << "###########################################" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   Completions per Second [MOPS]" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
 	hdr_percentiles_print(_histogramCps, stdout, 1, 1000000.0, CLASSIC);
-	std::cout << "###########################################" << std::endl;
-	std::cout << "### Error Requests per Second [MOPS]    ###" << std::endl;
-	std::cout << "###########################################" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   Error Requests per Second [MOPS]" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
 	hdr_percentiles_print(_histogramRpsErr, stdout, 1, 1000000.0, CLASSIC);
-	std::cout << "###########################################" << std::endl;
-	std::cout << "### Error Completions per Second [MOPS] ###" << std::endl;
-	std::cout << "###########################################" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   Error Completions per Second [MOPS]" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
 	hdr_percentiles_print(_histogramCpsErr, stdout, 1, 1000000.0, CLASSIC);
 }
 

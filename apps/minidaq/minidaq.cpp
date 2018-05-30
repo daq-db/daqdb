@@ -70,15 +70,19 @@ int main(int argc, const char *argv[])
 	int tTest_s = 10;
 	int tIter_us = 1;
 	int tRamp_s = 2;
-	int nTh = 1;
+	int nRaTh = 0;
+	int nFfTh = 0;
+	int nEbTh = 0;
+	int nRTh = 0;
 
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()
 			("help,h", "Print help messages")
-			("readout,r", "Run in readout mode")
-			("readout-async", "Run in async readout mode")
+			("readout", po::value<int>(&nRTh), "Number of readout threads")
+			("readout-async", po::value<int>(&nRaTh), "Number of asynchronous readout threads")
+			("fast-filtering", po::value<int>(&nFfTh), "Number of fast filtering threads")
+			("event-building", po::value<int>(&nEbTh), "Number of event building threads")
 			("fragment-size", po::value<size_t>(&fSize), "Fragment size in bytes in case of readout mode")
-			("threads,t", po::value<int>(&nTh), "Number of worker threads")
 			("time-test", po::value<int>(&tTest_s), "Desired test duration in seconds")
 			("time-iter", po::value<int>(&tIter_us), "Desired iteration duration in microseconds")
 			("time-ramp", po::value<int>(&tRamp_s), "Desired ramp up time in seconds")
@@ -95,18 +99,17 @@ int main(int argc, const char *argv[])
 			std::cout << argumentsDescription << endl;
 			return 0;
 		}
-		if (parsedArguments.count("readout")) {
-			readoutMode = true;
-		}
-		if (parsedArguments.count("readout-async")) {
-			asyncReadoutMode = true;
-		}
 
 		po::notify(parsedArguments);
 	} catch (po::error &parserError) {
 		cerr << "Invalid arguments: " << parserError.what() << endl
 		     << endl;
 		cerr << argumentsDescription << endl;
+		return -1;
+	}
+
+	if (nFfTh || nEbTh) {
+		cerr << "Data collectors not supported" << endl;
 		return -1;
 	}
 
@@ -117,21 +120,21 @@ int main(int argc, const char *argv[])
 		std::vector<FogKV::MinidaqNode*> nodes;
 
 		// Start workers
-		if (readoutMode) {
+		if (nRTh) {
 			nodeReadout.SetTimeTest(tTest_s);
 			nodeReadout.SetTimeRamp(tRamp_s);
 			nodeReadout.SetTimeIter(tIter_us);
-			nodeReadout.SetThreads(nTh);
+			nodeReadout.SetThreads(nRTh);
 			nodeReadout.SetFragmentSize(fSize);
 			nodeReadout.Run();
 			nodes.push_back(&nodeReadout);
 		}
 
-		if (asyncReadoutMode) {
+		if (nRaTh) {
 			nodeAsyncReadout.SetTimeTest(tTest_s);
 			nodeAsyncReadout.SetTimeRamp(tRamp_s);
 			nodeAsyncReadout.SetTimeIter(tIter_us);
-			nodeAsyncReadout.SetThreads(nTh);
+			nodeAsyncReadout.SetThreads(nRaTh);
 			nodeAsyncReadout.SetFragmentSize(fSize);
 			nodeAsyncReadout.Run();
 			nodes.push_back(&nodeAsyncReadout);
