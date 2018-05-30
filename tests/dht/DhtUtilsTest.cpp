@@ -34,10 +34,12 @@
 
 #include <asio/io_service.hpp>
 #include <asio/ip/tcp.hpp>
-#include <boost/test/unit_test.hpp>
 
 #include <limits>
 #include <random>
+
+#define BOOST_TEST_MAIN
+#include <boost/test/unit_test.hpp>
 
 namespace ut = boost::unit_test;
 
@@ -76,12 +78,10 @@ unsigned short getFreePortNumber(asio::io_service &io_service) {
 }
 ;
 
-BOOST_AUTO_TEST_SUITE(DhtUtilsTests)
-
 /**
  * Test if Dht::utils::getFreePort give free port as result when no default.
  */
-BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort) {
+BOOST_AUTO_TEST_CASE(GenRandomPort) {
 	asio::io_service io_service;
 
 	auto resultPort = FogKV::utils::getFreePort(io_service, 0);
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort) {
 /**
  * Test if Dht::utils::getFreePort give free port as result when default is given but it is already used
  */
-BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultIsUsed) {
+BOOST_AUTO_TEST_CASE(GenRandomPort_DefaultIsUsed) {
 	asio::io_service io_service;
 
 	auto portThatIsOpened = echoProtocolPort;
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultIsUsed) {
 /**
  * Test if Dht::utils::getFreePort give free port as result when default is given.
  */
-BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultNotUsed) {
+BOOST_AUTO_TEST_CASE(GenRandomPort_DefaultNotUsed) {
 	asio::io_service io_service;
 
 	auto freePort = getRandomPortNumber();
@@ -121,5 +121,3 @@ BOOST_AUTO_TEST_CASE(DhtUtilsTest_GenRandomPort_DefaultNotUsed) {
 	BOOST_CHECK(isFreeResult.value() == 0);
 	BOOST_CHECK_EQUAL(resultPort, freePort);
 }
-
-BOOST_AUTO_TEST_SUITE_END()
