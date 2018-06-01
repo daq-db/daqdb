@@ -45,6 +45,11 @@ MinidaqReadoutNode::~MinidaqReadoutNode()
 {
 }
 
+std::string MinidaqReadoutNode::GetType()
+{
+	return std::string("readout");
+}
+
 void MinidaqReadoutNode::Setup()
 {
 	int i;

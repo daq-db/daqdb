@@ -35,42 +35,52 @@
 #include <vector>
 #include <time.h>
 #include <cstdint>
+#include "hdr_histogram.h"
 
 namespace FogKV {
+
+struct MinidaqSample {
+	MinidaqSample() = default;
+	MinidaqSample(uint64_t r, uint64_t c, uint64_t e_r, uint64_t e_c, uint64_t ns) :
+		nRequests(r), nCompletions(c), nErrRequests(e_r),
+		nErrCompletions(e_c), interval_ns(ns) {};
+	void Reset() {
+		nRequests = 0;
+		nCompletions = 0;
+		nErrRequests = 0;
+		nErrCompletions = 0;
+		interval_ns = 0;
+	}
+	uint64_t nRequests = 0;
+	uint64_t nCompletions = 0;
+	uint64_t nErrRequests = 0;
+	uint64_t nErrCompletions = 0;
+	uint64_t interval_ns = 0;
+};
 
 class MinidaqStats {
 public:
 	MinidaqStats();
-	MinidaqStats(std::vector<MinidaqStats> &rVector);
+	MinidaqStats(const std::vector<MinidaqStats> &rVector);
 	~MinidaqStats();
+	MinidaqStats (const MinidaqStats& other);
+	MinidaqStats operator=(MinidaqStats&& other);
 
-	void RecordSample(uint64_t nRequests, uint64_t nCompletions,
-					  uint64_t nErrRequests, uint64_t nErrCompletions,
-					  double interval);
+	void RecordSample(const MinidaqSample &s);
+	void Combine(const MinidaqStats& stats);
 
-	uint64_t GetIterations();
-	uint64_t GetRequests();
-	uint64_t GetErrRequests();
-	uint64_t GetCompletions();
-	uint64_t GetErrCompletions();
-	std::vector<double> GetRps(); 
-	std::vector<double> GetCps(); 
-	std::vector<double> GetRpsErr(); 
-	std::vector<double> GetCpsErr(); 
 	void Dump();
 	void DumpCsv();
 
 private:
-	std::vector<double> _rpsVec;
-	std::vector<double> _cpsVec;
-	std::vector<double> _rpsErrVec;
-	std::vector<double> _cpsErrVec;
+	struct hdr_histogram* _histogramRps = nullptr;
+	struct hdr_histogram* _histogramCps = nullptr;
+	struct hdr_histogram* _histogramRpsErr = nullptr;
+	struct hdr_histogram* _histogramCpsErr = nullptr;
 
 	uint64_t _nIterations = 0;
-	uint64_t _nRequests = 0;
-	uint64_t _nErrRequests = 0;
-	uint64_t _nCompletions = 0;
-	uint64_t _nErrCompletions = 0;
+	uint64_t _totalTime_ns = 0;
+	uint64_t _nOverflows = 0;
 };
 
 }
