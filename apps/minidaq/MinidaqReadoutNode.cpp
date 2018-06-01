@@ -45,42 +45,42 @@ MinidaqReadoutNode::~MinidaqReadoutNode()
 {
 }
 
-std::string MinidaqReadoutNode::GetType()
+std::string MinidaqReadoutNode::_GetType()
 {
 	return std::string("readout");
 }
 
-void MinidaqReadoutNode::Setup()
+void MinidaqReadoutNode::_Setup()
 {
 	int i;
 
-	for (i = 0; i < nTh; i++) {
-		currEventId.push_back(i);
+	for (i = 0; i < _nTh; i++) {
+		_currEventId.push_back(i);
+	}
+}
+
+void MinidaqReadoutNode::_Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
+							  std::atomic<std::uint64_t> &cntErr)
+{
+	Key key = _kvs->AllocKey();
+	MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
+	keyp->subdetectorId = _id;
+	keyp->runId = _runId;
+	keyp->eventId = eventId;
+
+	FogKV::Value value = _kvs->Alloc(_fSize);
+
+	try {
+		_kvs->Put(std::move(key), std::move(value));
+		cnt++;
+	} catch (...) {
+		cntErr++;
 	}
 }
 
 void MinidaqReadoutNode::SetFragmentSize(size_t s)
 {
-	fSize = s;
-}
-
-void MinidaqReadoutNode::Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
-							  std::atomic<std::uint64_t> &cntErr)
-{
-	Key key = kvs->AllocKey();
-	MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
-	keyp->subdetector_id = id;
-	keyp->run_id = runId;
-	keyp->event_id = eventId;
-
-	FogKV::Value value = kvs->Alloc(fSize);
-
-	try {
-		kvs->Put(std::move(key), std::move(value));
-		cnt++;
-	} catch (...) {
-		cntErr++;
-	}
+	_fSize = s;
 }
 
 }

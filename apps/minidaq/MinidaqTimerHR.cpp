@@ -51,19 +51,19 @@ void MinidaqTimerHR::_restart()
 
 void MinidaqTimerHR::Restart_s(int interval_s)
 {
-	_req_interval = std::chrono::seconds(interval_s);
+	_reqInterval = std::chrono::seconds(interval_s);
 	_restart();
 }
 
 void MinidaqTimerHR::Restart_ms(int interval_ms)
 {
-	_req_interval = std::chrono::milliseconds(interval_ms);
+	_reqInterval = std::chrono::milliseconds(interval_ms);
 	_restart();
 }
 
 void MinidaqTimerHR::Restart_us(int interval_us)
 {
-	_req_interval = std::chrono::microseconds(interval_us);
+	_reqInterval = std::chrono::microseconds(interval_us);
 	_restart();
 }
 
@@ -73,9 +73,9 @@ bool MinidaqTimerHR::IsExpired()
 		return _expired;
 	}
 	auto now = std::chrono::high_resolution_clock::now();
-	_curr_interval = std::chrono::duration_cast<std::chrono::nanoseconds>
+	_currInterval = std::chrono::duration_cast<std::chrono::nanoseconds>
 					 (now - _start);
-	if (_curr_interval >= _req_interval) {
+	if (_currInterval >= _reqInterval) {
 		_expired = true;
 	}
 	return _expired;
@@ -84,7 +84,7 @@ bool MinidaqTimerHR::IsExpired()
 uint64_t MinidaqTimerHR::GetElapsed_ns()
 {
 	IsExpired();
-	std::chrono::duration<uint64_t, std::nano> ns(_curr_interval);
+	std::chrono::duration<uint64_t, std::nano> ns(_currInterval);
 	return ns.count();
 }
 

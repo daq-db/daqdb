@@ -37,7 +37,7 @@ using namespace std;
 namespace FogKV {
 
 MinidaqAsyncReadoutNode::MinidaqAsyncReadoutNode(KVStoreBase *kvs) :
-	MinidaqReadoutNode(kvs)
+	MinidaqReadoutNode(_kvs)
 {
 }
 
@@ -45,32 +45,33 @@ MinidaqAsyncReadoutNode::~MinidaqAsyncReadoutNode()
 {
 }
 
-std::string MinidaqAsyncReadoutNode::GetType()
+std::string MinidaqAsyncReadoutNode::_GetType()
 {
 	return std::string("readout-async");
 }
 
-void MinidaqAsyncReadoutNode::Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
-								   std::atomic<std::uint64_t> &cntErr)
+void MinidaqAsyncReadoutNode::_Task(uint64_t eventId,
+									std::atomic<std::uint64_t> &cnt,
+									std::atomic<std::uint64_t> &cntErr)
 {
-	Key key = kvs->AllocKey();
+	Key key = _kvs->AllocKey();
 	MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
-	keyp->subdetector_id = id;
-	keyp->run_id = runId;
-	keyp->event_id = eventId;
+	keyp->subdetectorId = _id;
+	keyp->runId = _runId;
+	keyp->eventId = eventId;
 
-	FogKV::Value value = kvs->Alloc(fSize);
+	FogKV::Value value = _kvs->Alloc(_fSize);
 
 	try {
-		kvs->PutAsync(std::move(key), std::move(value),
-					  [&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
-						   const FogKV::Key &key, const FogKV::Value &val) {
-						if (!status.ok()) {
-							cntErr++;
-							return;
-						}
-						cnt++;
-						});
+		_kvs->PutAsync(std::move(key), std::move(value),
+					   [&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
+							const FogKV::Key &key, const FogKV::Value &val) {
+							if (!status.ok()) {
+								cntErr++;
+								return;
+					   		}
+							cnt++;
+					    });
 	} catch (...) {
 		cntErr++;
 	}
