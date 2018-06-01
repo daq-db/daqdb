@@ -35,6 +35,7 @@
 #include <vector>
 #include <future>
 #include <atomic>
+#include <string>
 
 #include "MinidaqStats.h"
 #include "FogKV/KVStoreBase.h"
@@ -42,7 +43,7 @@
 namespace FogKV {
 
 struct MinidaqKey {
-	MinidaqKey() = default;
+	MinidaqKey() : event_id(0), subdetector_id(0), run_id(0) {};
 	MinidaqKey(uint64_t e, uint16_t s, uint16_t r) :
 		event_id(e), subdetector_id(s), run_id(r) {}
 	uint64_t event_id;
@@ -58,15 +59,16 @@ public:
 	void Run();
 	void Wait();
 	void Show();
-	void SetTimeTest(int nS);
-	void SetTimeIter(int nMS);
-	void SetTimeRamp(int nS);
+	void SetTimeTest(int s);
+	void SetTimeIter(int us);
+	void SetTimeRamp(int s);
 	void SetThreads(int n);
 
 protected:
 	virtual void Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 					  std::atomic<std::uint64_t> &cntErr) = 0;
 	virtual void Setup() = 0;
+	virtual std::string GetType() = 0;
 
 	KVStoreBase *kvs;
 	int nTh = 0; // number of worker threads
@@ -77,9 +79,9 @@ protected:
 private:
 	MinidaqStats Execute(int nThreads);
 
-	int tTestS = 0; // desired test duration in seconds
-	int tRampS = 0; // desired test ramp duration in seconds
-	int tIterMS = 0; // desired iteration time in seconds
+	int tTest_s = 0; // desired test duration in seconds
+	int tRamp_s = 0; // desired test ramp duration in seconds
+	int tIter_us = 0; // desired iteration time in microseconds
 	std::atomic_bool stopped; // signals first thread stopped execution
 
 	std::vector<std::future<MinidaqStats>> futureVec;

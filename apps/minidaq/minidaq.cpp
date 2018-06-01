@@ -48,10 +48,6 @@ static FogKV::KVStoreBase* openKVS(std::string &pmemPath, size_t pmemSize)
 	FogKV::Options options;
 	options.PMEM.Path = pmemPath;
 	options.PMEM.Size = pmemSize;
-	options.Port = 0;
-	options.Dht.Port = 0;
-	options.Dht.Id = 0;
-	options.Runtime._io_service = nullptr;
 	options.Key.field(0, sizeof(FogKV::MinidaqKey::event_id), true);
 	options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetector_id));
 	options.Key.field(2, sizeof(FogKV::MinidaqKey::run_id));
@@ -67,21 +63,25 @@ int main(int argc, const char *argv[])
 	std::string pmem_path;
 	size_t fSize = 10240;
 	size_t pmem_size;
-	int tTestS = 10;
-	int tIterMS = 1;
-	int tRampS = 2;
-	int nTh = 1;
+	int tTest_s = 10;
+	int tIter_us = 1;
+	int tRamp_s = 2;
+	int nRaTh = 0;
+	int nFfTh = 0;
+	int nEbTh = 0;
+	int nRTh = 1;
 
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()
 			("help,h", "Print help messages")
-			("readout,r", "Run in readout mode")
-			("readout-async", "Run in async readout mode")
+			("readout", po::value<int>(&nRTh), "Number of readout threads. If no modes are specified, this is the default with one thread.")
+			("readout-async", po::value<int>(&nRaTh), "Number of asynchronous readout threads")
+			("fast-filtering", po::value<int>(&nFfTh), "Number of fast filtering threads")
+			("event-building", po::value<int>(&nEbTh), "Number of event building threads")
 			("fragment-size", po::value<size_t>(&fSize), "Fragment size in bytes in case of readout mode")
-			("threads,t", po::value<int>(&nTh), "Number of worker threads")
-			("time-test", po::value<int>(&tTestS), "Desired test duration in seconds")
-			("time-iter", po::value<int>(&tIterMS), "Desired iteration duration in milliseconds")
-			("time-ramp", po::value<int>(&tRampS), "Desired ramp up time in seconds")
+			("time-test", po::value<int>(&tTest_s), "Desired test duration in seconds")
+			("time-iter", po::value<int>(&tIter_us), "Desired iteration duration in microseconds (defines measurement time for OPS estimation of a single histogram sample.")
+			("time-ramp", po::value<int>(&tRamp_s), "Desired ramp up time in seconds")
 			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
 			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
 			;
@@ -95,18 +95,17 @@ int main(int argc, const char *argv[])
 			std::cout << argumentsDescription << endl;
 			return 0;
 		}
-		if (parsedArguments.count("readout")) {
-			readoutMode = true;
-		}
-		if (parsedArguments.count("readout-async")) {
-			asyncReadoutMode = true;
-		}
 
 		po::notify(parsedArguments);
 	} catch (po::error &parserError) {
 		cerr << "Invalid arguments: " << parserError.what() << endl
 		     << endl;
 		cerr << argumentsDescription << endl;
+		return -1;
+	}
+
+	if (nFfTh || nEbTh) {
+		cerr << "Data collectors not supported" << endl;
 		return -1;
 	}
 
@@ -117,21 +116,21 @@ int main(int argc, const char *argv[])
 		std::vector<FogKV::MinidaqNode*> nodes;
 
 		// Start workers
-		if (readoutMode) {
-			nodeReadout.SetTimeTest(tTestS);
-			nodeReadout.SetTimeRamp(tRampS);
-			nodeReadout.SetTimeIter(tIterMS);
-			nodeReadout.SetThreads(nTh);
+		if (nRTh) {
+			nodeReadout.SetTimeTest(tTest_s);
+			nodeReadout.SetTimeRamp(tRamp_s);
+			nodeReadout.SetTimeIter(tIter_us);
+			nodeReadout.SetThreads(nRTh);
 			nodeReadout.SetFragmentSize(fSize);
 			nodeReadout.Run();
 			nodes.push_back(&nodeReadout);
 		}
 
-		if (asyncReadoutMode) {
-			nodeAsyncReadout.SetTimeTest(tTestS);
-			nodeAsyncReadout.SetTimeRamp(tRampS);
-			nodeAsyncReadout.SetTimeIter(tIterMS);
-			nodeAsyncReadout.SetThreads(nTh);
+		if (nRaTh) {
+			nodeAsyncReadout.SetTimeTest(tTest_s);
+			nodeAsyncReadout.SetTimeRamp(tRamp_s);
+			nodeAsyncReadout.SetTimeIter(tIter_us);
+			nodeAsyncReadout.SetThreads(nRaTh);
 			nodeAsyncReadout.SetFragmentSize(fSize);
 			nodeAsyncReadout.Run();
 			nodes.push_back(&nodeAsyncReadout);
