@@ -295,7 +295,7 @@ public:
 	 * @param[in] size Size of allocation.
 	 * @param[in] options Allocation options.
 	 */
-	virtual Value Alloc(size_t size, const AllocOptions &options = AllocOptions()) = 0;
+	virtual Value Alloc(const Key &key, size_t size, const AllocOptions &options = AllocOptions()) = 0;
 
 	/**
 	 * Deallocate a Value buffer.

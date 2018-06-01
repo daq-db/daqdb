@@ -62,7 +62,7 @@ public:
 	virtual void GetAnyAsync(KVStoreBaseGetAnyCallback cb, const GetOptions &options = GetOptions());
 	virtual void Remove(const Key &key);
 	virtual void RemoveRange(const Key &beg, const Key &end);
-	virtual Value Alloc(size_t size, const AllocOptions &options = AllocOptions());
+	virtual Value Alloc(const Key &key, size_t size, const AllocOptions &options = AllocOptions());
 	virtual void Free(Value &&value);
 	virtual void Realloc(Value &value, size_t size, const AllocOptions &options = AllocOptions());
 	virtual void ChangeOptions(Value &value, const AllocOptions &options);

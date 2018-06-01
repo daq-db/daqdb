@@ -38,5 +38,6 @@ public:
     virtual KVStatus Put(const string& key,                // copy value from std::string
                          const string& value) = 0;
     virtual KVStatus Remove(const string& key) = 0;        // remove value for key
+    virtual KVStatus AllocValueForKey(const string& key, size_t size, char** value) = 0;
 };
 }

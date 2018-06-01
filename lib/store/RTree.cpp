@@ -62,19 +62,24 @@ namespace FogKV
 	KVStatus RTree::Put(const string& key,                // copy value from std::string
 						const string& value) {
 		ValueWrapper * val = tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
-		try {
-			transaction::exec_tx(tree->_pm_pool, [&] {
-				val->value = pmemobj_tx_alloc(value.length(),1);
-			});
-		} catch (std::exception &e) {
-			std::cout << "Error " << e.what();
-		}
-		memcpy(val->value.get(), value.data(), value.length());
+		val->location = 1;
 		return OK;
 	}
 	KVStatus RTree::Remove(const string& key) {
 	   return OK;
 	}
+
+	KVStatus RTree::AllocValueForKey(const string& key, size_t size, char** value) {
+			ValueWrapper * val = tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
+			try {
+				pmemobj_zalloc(tree->_pm_pool.get_handle(), val->value.raw_ptr(), size, 1);
+			} catch (std::exception &e) {
+				std::cout << "Error " << e.what();
+				return FAILED;
+			}
+			*value = reinterpret_cast<char *>(pmemobj_direct(*(val->value.raw_ptr())));
+			return OK;
+		}
 
 	void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int * count) {
 		int i;

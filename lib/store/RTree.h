@@ -83,6 +83,7 @@ namespace FogKV
 		KVStatus Put(const string& key,                        // copy value from std::string
 					 const string& value) final;
 		KVStatus Remove(const string& key) final;              // remove value for key
+		KVStatus AllocValueForKey(const string& key, size_t size, char** value) final;
 	private:
 		Tree * tree;
 	};
