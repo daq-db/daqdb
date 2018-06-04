@@ -50,8 +50,8 @@ public:
 	uint64_t GetElapsed_ns();
 
 private:
-	std::chrono::nanoseconds _req_interval;
-	std::chrono::nanoseconds _curr_interval;
+	std::chrono::nanoseconds _reqInterval;
+	std::chrono::nanoseconds _currInterval;
 	std::chrono::time_point<std::chrono::high_resolution_clock> _start;
 	bool _expired = true;
 

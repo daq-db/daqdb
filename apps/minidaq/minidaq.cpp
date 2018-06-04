@@ -41,6 +41,17 @@ using namespace std;
 
 namespace po = boost::program_options;
 
+#define MINIDAQ_DEFAULT_FRAGMENT_SIZE		10240
+#define MINIDAQ_DEFAULT_PMEM_SIZE			512 * 1024 * 1024	
+#define MINIDAQ_DEFAULT_PMEM_PATH			"/mnt/pmem/pmemkv.dat"
+#define MINIDAQ_DEFAULT_T_RAMP_S			2
+#define MINIDAQ_DEFAULT_T_TEST_S			10
+#define MINIDAQ_DEFAULT_T_ITER_US			100
+#define MINIDAQ_DEFAULT_N_THREADS_RO		1
+#define MINIDAQ_DEFAULT_N_THREADS_ARO		0
+#define MINIDAQ_DEFAULT_N_THREADS_FF		0
+#define MINIDAQ_DEFAULT_N_THREADS_EB		0
+
 /** @todo move to MinidaqFogServer for distributed version */
 static FogKV::KVStoreBase* openKVS(std::string &pmemPath, size_t pmemSize)
 {
@@ -48,42 +59,59 @@ static FogKV::KVStoreBase* openKVS(std::string &pmemPath, size_t pmemSize)
 	FogKV::Options options;
 	options.PMEM.Path = pmemPath;
 	options.PMEM.Size = pmemSize;
-	options.Key.field(0, sizeof(FogKV::MinidaqKey::event_id), true);
-	options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetector_id));
-	options.Key.field(2, sizeof(FogKV::MinidaqKey::run_id));
+	options.Key.field(0, sizeof(FogKV::MinidaqKey::eventId), true);
+	options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetectorId));
+	options.Key.field(2, sizeof(FogKV::MinidaqKey::runId));
 
 	return FogKV::KVStoreBase::Open(options);
 }
 
 int main(int argc, const char *argv[])
 {
-	bool asyncReadoutMode = false;
-	bool readoutMode = false;
 	FogKV::KVStoreBase *kvs;
 	std::string pmem_path;
-	size_t fSize = 10240;
 	size_t pmem_size;
-	int tTest_s = 10;
-	int tIter_us = 1;
-	int tRamp_s = 2;
-	int nRaTh = 0;
-	int nFfTh = 0;
-	int nEbTh = 0;
-	int nRTh = 1;
+	size_t fSize;
+	int tIter_us;
+	int tTest_s;
+	int tRamp_s;
+	int nRaTh;
+	int nFfTh;
+	int nEbTh;
+	int nRTh;
 
 	po::options_description argumentsDescription{"Options"};
 	argumentsDescription.add_options()
 			("help,h", "Print help messages")
-			("readout", po::value<int>(&nRTh), "Number of readout threads. If no modes are specified, this is the default with one thread.")
-			("readout-async", po::value<int>(&nRaTh), "Number of asynchronous readout threads")
-			("fast-filtering", po::value<int>(&nFfTh), "Number of fast filtering threads")
-			("event-building", po::value<int>(&nEbTh), "Number of event building threads")
-			("fragment-size", po::value<size_t>(&fSize), "Fragment size in bytes in case of readout mode")
-			("time-test", po::value<int>(&tTest_s), "Desired test duration in seconds")
-			("time-iter", po::value<int>(&tIter_us), "Desired iteration duration in microseconds (defines measurement time for OPS estimation of a single histogram sample.")
-			("time-ramp", po::value<int>(&tRamp_s), "Desired ramp up time in seconds")
-			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pmemkv.dat"), "pmemkv persistent memory pool file")
-			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "pmemkv persistent memory pool size")
+			("readout", po::value<int>(&nRTh)->default_value(
+				MINIDAQ_DEFAULT_N_THREADS_RO),
+			 "Number of readout threads. If no modes are specified, this is the default with one thread.")
+			("readout-async", po::value<int>(&nRaTh)->default_value(
+				MINIDAQ_DEFAULT_N_THREADS_ARO),
+			 "Number of asynchronous readout threads")
+			("fast-filtering", po::value<int>(&nFfTh)->default_value(
+				MINIDAQ_DEFAULT_N_THREADS_FF),
+			 "Number of fast filtering threads")
+			("event-building", po::value<int>(&nEbTh)->default_value(
+				MINIDAQ_DEFAULT_N_THREADS_EB),
+			 "Number of event building threads")
+			("fragment-size", po::value<size_t>(&fSize)->default_value(
+				MINIDAQ_DEFAULT_FRAGMENT_SIZE),
+			 "Fragment size in bytes in case of readout mode")
+			("time-test", po::value<int>(&tTest_s)->default_value(
+				MINIDAQ_DEFAULT_T_TEST_S),
+			 "Desired test duration in seconds")
+			("time-iter", po::value<int>(&tIter_us)->default_value(
+				MINIDAQ_DEFAULT_T_ITER_US),
+			 "Desired iteration duration in microseconds (defines measurement time for OPS estimation of a single histogram sample.")
+			("time-ramp", po::value<int>(&tRamp_s)->default_value(
+				MINIDAQ_DEFAULT_T_RAMP_S),
+			 "Desired ramp up time in seconds")
+			("pmem-path", po::value<std::string>(&pmem_path)->default_value(
+				 MINIDAQ_DEFAULT_PMEM_PATH), "pmemkv persistent memory pool file")
+			("pmem-size", po::value<size_t>(&pmem_size)->default_value(
+				 MINIDAQ_DEFAULT_PMEM_SIZE),
+			 "pmemkv persistent memory pool size")
 			;
 
 	po::variables_map parsedArguments;

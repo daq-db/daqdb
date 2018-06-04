@@ -38,6 +38,8 @@
 
 #include "MinidaqStats.h"
 
+#define NSECS_IN_SEC		1000000000ULL
+
 using namespace std;
 
 namespace FogKV {
@@ -136,28 +138,28 @@ void MinidaqStats::RecordSample(const MinidaqSample &s)
 	}
 
 	if (s.nRequests) {
-		ok = hdr_record_value(_histogramRps, (s.nRequests * 1000000000ULL) /
+		ok = hdr_record_value(_histogramRps, (s.nRequests * NSECS_IN_SEC) /
 											  s.interval_ns); 
 		if (!ok) {
 			_nOverflows++;
 		}
 	}
 	if (s.nCompletions) {
-		ok = hdr_record_value(_histogramCps, (s.nCompletions * 1000000000ULL) /
+		ok = hdr_record_value(_histogramCps, (s.nCompletions * NSECS_IN_SEC) /
 											  s.interval_ns); 
 		if (!ok) {
 			_nOverflows++;
 		}
 	}
 	if (s.nErrRequests) {
-		ok = hdr_record_value(_histogramRpsErr, (s.nErrRequests * 1000000000ULL) /
+		ok = hdr_record_value(_histogramRpsErr, (s.nErrRequests * NSECS_IN_SEC) /
 												 s.interval_ns); 
 		if (!ok) {
 			_nOverflows++;
 		}
 	}
 	if (s.nErrCompletions) {
-		ok = hdr_record_value(_histogramCpsErr, (s.nErrCompletions * 1000000000ULL) /
+		ok = hdr_record_value(_histogramCpsErr, (s.nErrCompletions * NSECS_IN_SEC) /
 												 s.interval_ns); 
 		if (!ok) {
 			_nOverflows++;

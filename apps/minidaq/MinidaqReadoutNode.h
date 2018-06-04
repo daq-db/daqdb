@@ -44,13 +44,13 @@ public:
 	void SetFragmentSize(size_t s);
 
 protected:
-	void Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
+	void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 			  std::atomic<std::uint64_t> &cntErr);
-	void Setup();
-	std::string GetType();
+	void _Setup();
+	std::string _GetType();
 
-	std::vector<uint64_t> currEventId;
-	size_t fSize = 0;
+	std::vector<uint64_t> _currEventId;
+	size_t _fSize = 0;
 };
 
 }
