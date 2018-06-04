@@ -68,7 +68,7 @@ void MinidaqReadoutNode::_Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt
 	keyp->runId = _runId;
 	keyp->eventId = eventId;
 
-	FogKV::Value value = _kvs->Alloc(_fSize);
+	FogKV::Value value = kvs->Alloc(key, fSize);
 
 	try {
 		_kvs->Put(std::move(key), std::move(value));

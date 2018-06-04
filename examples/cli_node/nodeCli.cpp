@@ -210,9 +210,10 @@ FogKV::Key nodeCli::strToKey(const std::string &key) {
 }
 
 FogKV::Value nodeCli::strToValue(const std::string &value) {
-	FogKV::Value valBuff = _spKVStore->Alloc(value.size() + 1);
+/*	FogKV::Value valBuff = _spKVStore->Alloc(value.size() + 1);
 	std::memcpy(valBuff.data(), value.c_str(), value.size());
-	valBuff.data()[valBuff.size() - 1] = '\0';
+	valBuff.data()[valBuff.size() - 1] = '\0';*/
+
 }
 
 void nodeCli::cmdPut(const std::string &strLine) {
@@ -240,7 +241,7 @@ void nodeCli::cmdPut(const std::string &strLine) {
 
 		FogKV::Value valBuff;
 		try {
-			valBuff = _spKVStore->Alloc(value.size() + 1);
+			valBuff = _spKVStore->Alloc(keyBuff, value.size() + 1);
 			std::memcpy(valBuff.data(), value.c_str(), value.size());
 			valBuff.data()[valBuff.size() - 1] = '\0';
 		} catch (...) {
@@ -255,9 +256,9 @@ void nodeCli::cmdPut(const std::string &strLine) {
 		} catch (FogKV::OperationFailedException &e) {
 			cout << "Error: cannot put element: " << e.status().to_string()
 					<< endl;
-
+			/** @TODO jschmieg: free value */
 			_spKVStore->Free(std::move(keyBuff));
-			_spKVStore->Free(std::move(valBuff));
+			//_spKVStore->Free(std::move(valBuff));
 		}
 	}
 }
@@ -287,7 +288,7 @@ void nodeCli::cmdPutAsync(const std::string &strLine) {
 
 		FogKV::Value valBuff;
 		try {
-			valBuff = _spKVStore->Alloc(value.size() + 1);
+			valBuff = _spKVStore->Alloc(keyBuff, value.size() + 1);
 			std::memcpy(valBuff.data(), value.c_str(), value.size());
 			valBuff.data()[valBuff.size() - 1] = '\0';
 		} catch (...) {
