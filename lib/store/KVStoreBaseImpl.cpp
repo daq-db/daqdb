@@ -74,25 +74,28 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
         throw OperationFailedException(EINVAL);
 }
 
-void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
-                               const PutOptions &options) {
-    if (!key.data()) {
-        throw OperationFailedException(EINVAL);
-    }
-    try {
-        RqstMsg *msg = new RqstMsg(RqstOperation::PUT, key.data(), key.size(),
-                                   value.data(), value.size(), cb);
-        if (options.poolerId() < _rqstPoolers.size()) {
-            _rqstPoolers.at(options.poolerId())->EnqueueMsg(msg);
-        } else {
-            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key.data(),
-               key.size(), value.data(), value.size());
-        }
-    } catch (OperationFailedException &e) {
-        cb(this, e.status(), key.data(), key.size(), value.data(),
-           value.size());
-    }
-
+void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
+		KVStoreBasePutCallback cb, const PutOptions &options) {
+	std::async(std::launch::async,
+			[&] {
+				try {
+					if (options.poolerId() < _rqstPoolers.size()) {
+						switch(options.stage)
+						{
+							case options.stages::first:
+							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTPMEM, &key, &value, &cb));
+							break;
+							case options.stages::main:
+							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTDISK, &key, &value, &cb));
+							break;
+						}
+					} else {
+						cb(this, FogKV::Status(FogKV::Code::UnknownError), key, value);
+					}
+				} catch (OperationFailedException &e) {
+					cb(this, e.status(), key, value);
+				}
+			});
 }
 
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
