@@ -81,7 +81,7 @@ int KVStoreBaseExample()
 		keyp->run_id = 2;
 		keyp->event_id = 3;
 
-		FogKV::Value value = kvs->Alloc(1024);
+		FogKV::Value value = kvs->Alloc(key, 1024);
 
 		// Fil the value buffer
 		std::memset(value.data(), 0, value.size());
@@ -104,7 +104,7 @@ int KVStoreBaseExample()
 		keyp->event_id = 3;
 
 
-		FogKV::Value value = kvs->Alloc(1024);
+		FogKV::Value value = kvs->Alloc(key, 1024);
 
 		// Fill the value buffer
 		std::memset(value.data(), 0, value.size());

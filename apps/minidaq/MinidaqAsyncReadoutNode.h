@@ -44,6 +44,7 @@ public:
 protected:
 	void Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
 			  std::atomic<std::uint64_t> &cntErr);
+	std::string GetType();
 };
 
 }

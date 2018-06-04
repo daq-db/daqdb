@@ -42,6 +42,7 @@ include_directories(${CCHORD_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
 include_directories(${3RDPARTY}/spdk/include)
+include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 
 # Build and link fogkv library
 include_directories(include include/db include/dht include/fabric include/FogKV include/store)

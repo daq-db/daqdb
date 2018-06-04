@@ -78,6 +78,14 @@ add_library(dpdk STATIC IMPORTED GLOBAL)
 set_property(TARGET dpdk PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/spdk/libdpdk.a)
 add_dependencies(dpdk project_spdk)
 
+# hdrhistogram
+set(HDRHISTOGRAM ${PROJECT_SOURCE_DIR}/HdrHistogram_c)
+set(HDRHISTOGRAM_INCLUDES ${HDRHISTOGRAM}/src)
+set(HDRHISTOGRAM_INCLUDES_EXPORT ${HDRHISTOGRAM_INCLUDES} PARENT_SCOPE)
+include_directories(${HDRHISTOGRAM_INCLUDES})
+file(GLOB_RECURSE HDRHISTOGRAM_SOURCES ${HDRHISTOGRAM}/src/*.c)
+add_library(hdr_histogram SHARED ${HDRHISTOGRAM_SOURCES})
+
 # Cleanup tasks
 add_custom_target(clean-dep)
 add_custom_target(libpmdk_clean

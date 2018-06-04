@@ -43,11 +43,11 @@ public:
 	MinidaqTimerHR();
 	~MinidaqTimerHR();
 
-	void RestartS(int interval_s);
-	void RestartMS(int interval_ms);
+	void Restart_s(int interval_s);
+	void Restart_ms(int interval_ms);
+	void Restart_us(int interval_us);
 	bool IsExpired();
-	double GetElapsedMS();
-	double GetElapsedUS();
+	uint64_t GetElapsed_ns();
 
 private:
 	std::chrono::nanoseconds _req_interval;

@@ -34,6 +34,7 @@
 #include <iomanip>
 #include <numeric>
 #include <algorithm>
+#include <system_error>
 
 #include "MinidaqStats.h"
 
@@ -43,95 +44,128 @@ namespace FogKV {
 
 MinidaqStats::MinidaqStats()
 {
+	int err;
+
+	err = hdr_init(1, 100000000ULL, 5, &_histogramRps); 	
+	if (err) {
+		throw std::system_error(err, std::system_category());
+	}
+	err = hdr_init(1, 100000000ULL, 5, &_histogramCps); 	
+	if (err) {
+		throw std::system_error(err, std::system_category());
+	}
+	err = hdr_init(1, 100000000ULL, 5, &_histogramRpsErr); 	
+	if (err) {
+		throw std::system_error(err, std::system_category());
+	}
+	err = hdr_init(1, 100000000ULL, 5, &_histogramCpsErr); 	
+	if (err) {
+		throw std::system_error(err, std::system_category());
+	}
 }
 
-MinidaqStats::MinidaqStats(std::vector<MinidaqStats> &rVector)
+MinidaqStats::MinidaqStats(const std::vector<MinidaqStats> &rVector) : MinidaqStats()
 {
-	std::vector<double> vec;
-
-	for (auto& r : rVector) {
-		_nIterations += r.GetIterations();
-		_nRequests += r.GetRequests();
-		_nErrRequests += r.GetErrRequests();
-		_nCompletions += r.GetCompletions();
-		_nErrCompletions += r.GetErrCompletions();
-		vec = r.GetRps();
-		_rpsVec.insert(_rpsVec.end(), vec.begin(), vec.end());
-		vec = r.GetRpsErr();
-		_rpsErrVec.insert(_rpsErrVec.end(), vec.begin(), vec.end());
-		vec = r.GetCps();
-		_cpsVec.insert(_cpsVec.end(), vec.begin(), vec.end());
-		vec = r.GetCpsErr();
-		_cpsErrVec.insert(_cpsErrVec.end(), vec.begin(), vec.end());
+	for (const auto& r : rVector) {
+		Combine(r);
 	}
+	
 }
 
 MinidaqStats::~MinidaqStats()
 {
+	if (_histogramRps) {
+		hdr_close(_histogramRps);
+	}
+	if (_histogramCps) {
+		hdr_close(_histogramCps);
+	}
+	if (_histogramRpsErr) {
+		hdr_close(_histogramRpsErr);
+	}
+	if (_histogramCpsErr) {
+		hdr_close(_histogramCpsErr);
+	}
 }
 
-uint64_t MinidaqStats::GetIterations()
+MinidaqStats::MinidaqStats(const MinidaqStats& other) :
+	MinidaqStats()
 {
-	return _nIterations;
+	hdr_add(_histogramRps, other._histogramRps);
+	hdr_add(_histogramCps, other._histogramCps);
+	hdr_add(_histogramRpsErr, other._histogramRpsErr);
+	hdr_add(_histogramCpsErr, other._histogramCpsErr);
+	_nIterations = other._nIterations;
+	_totalTime_ns = other._totalTime_ns;
 }
 
-uint64_t MinidaqStats::GetRequests()
+MinidaqStats MinidaqStats::operator=(MinidaqStats&& other)
 {
-	return _nRequests;
+	_histogramRps = other._histogramRps;
+	_histogramCps = other._histogramCps;
+	_histogramRpsErr = other._histogramRpsErr;
+	_histogramCpsErr = other._histogramCpsErr;
+	_nIterations = other._nIterations;
+	_totalTime_ns = other._totalTime_ns;
+
+	other._histogramRps = nullptr;
+	other._histogramCps = nullptr;
+	other._histogramRpsErr = nullptr;
+	other._histogramCpsErr = nullptr;
 }
 
-uint64_t MinidaqStats::GetErrRequests()
+void MinidaqStats::Combine(const MinidaqStats& stats)
 {
-	return _nErrRequests;
-}
-
-uint64_t MinidaqStats::GetCompletions()
-{
-	return _nCompletions;
-}
-
-uint64_t MinidaqStats::GetErrCompletions()
-{
-	return _nErrCompletions;
-}
-
-std::vector<double> MinidaqStats::GetRps()
-{
-	return _rpsVec;
-}
-
-std::vector<double> MinidaqStats::GetCps()
-{
-	return _cpsVec;
-}
-
-std::vector<double> MinidaqStats::GetRpsErr()
-{
-	return _rpsErrVec;
-}
-
-std::vector<double> MinidaqStats::GetCpsErr()
-{
-	return _cpsErrVec;
-}
-
-void MinidaqStats::RecordSample(uint64_t nRequests, uint64_t nCompletions,
-								uint64_t nErrRequests, uint64_t nErrCompletions,
-								double interval)
-{
-	if (interval <= 0.0)
+	if (!stats._nIterations) {
 		return;
+	}
+	_nIterations += stats._nIterations;
+	_totalTime_ns += stats._totalTime_ns;
+	hdr_add(_histogramRps, stats._histogramRps);
+	hdr_add(_histogramCps, stats._histogramCps);
+	hdr_add(_histogramRpsErr, stats._histogramRpsErr);
+	hdr_add(_histogramCpsErr, stats._histogramCpsErr);
+}
 
-	/** @todo replace with histogram */
+void MinidaqStats::RecordSample(const MinidaqSample &s)
+{
+	bool ok;
+
+	if (!s.interval_ns) {
+		return;
+	}
+
+	if (s.nRequests) {
+		ok = hdr_record_value(_histogramRps, (s.nRequests * 1000000000ULL) /
+											  s.interval_ns); 
+		if (!ok) {
+			_nOverflows++;
+		}
+	}
+	if (s.nCompletions) {
+		ok = hdr_record_value(_histogramCps, (s.nCompletions * 1000000000ULL) /
+											  s.interval_ns); 
+		if (!ok) {
+			_nOverflows++;
+		}
+	}
+	if (s.nErrRequests) {
+		ok = hdr_record_value(_histogramRpsErr, (s.nErrRequests * 1000000000ULL) /
+												 s.interval_ns); 
+		if (!ok) {
+			_nOverflows++;
+		}
+	}
+	if (s.nErrCompletions) {
+		ok = hdr_record_value(_histogramCpsErr, (s.nErrCompletions * 1000000000ULL) /
+												 s.interval_ns); 
+		if (!ok) {
+			_nOverflows++;
+		}
+	}
 	_nIterations++;
-	_nRequests += nRequests;
-	_nErrRequests += nErrRequests;
-	_nCompletions += nCompletions;
-	_nErrCompletions += nErrCompletions;
-	_rpsVec.push_back(double(nRequests) / interval);
-	_cpsVec.push_back(double(nCompletions) / interval);
-	_rpsErrVec.push_back(double(nErrRequests) / interval);
-	_cpsErrVec.push_back(double(nErrCompletions) / interval);
+	_totalTime_ns += s.interval_ns;
+
 }
 
 void MinidaqStats::Dump()
@@ -139,47 +173,40 @@ void MinidaqStats::Dump()
 	double avg;
 
 	std::cout << "Iterations: " << _nIterations << std::endl;
+	std::cout << "Histogram overflows: " << _nOverflows << std::endl;
 
 	if (!_nIterations) {
 		return;
 	}
 
-	std::cout << "Successful requests: " << _nRequests << std::endl;
-	std::cout << "Successful completions: " << _nCompletions << std::endl;
-	std::cout << "Error requests: " << _nErrRequests << std::endl;
-	std::cout << "Error completions: " << _nErrCompletions << std::endl;
+	std::cout << "Average iteration time: "
+			  << 1000.0 * double(_totalTime_ns) / double(_nIterations)
+			  << " us" << std::endl;
 
-	avg = std::accumulate(_rpsVec.begin(), _rpsVec.end(), 0.0) / _rpsVec.size();
-	std::cout << "Requests per second [MOPS] " << std::endl;
-	std::cout << "  avg: " << avg << std::endl;
-	std::cout << "  min: "
-			  << *std::min_element(_rpsVec.begin(), _rpsVec.end()) << std::endl;
-	std::cout << "  max: "
-			  << *std::max_element(_rpsVec.begin(), _rpsVec.end()) << std::endl;
-
-	avg = std::accumulate(_rpsErrVec.begin(), _rpsErrVec.end(), 0.0) / _rpsErrVec.size();
-	std::cout << "Error requests per second [MOPS] " << std::endl;
-	std::cout << "  avg: " << avg << std::endl;
-	std::cout << "  min: "
-			  << *std::min_element(_rpsErrVec.begin(), _rpsErrVec.end()) << std::endl;
-	std::cout << "  max: "
-			  << *std::max_element(_rpsErrVec.begin(), _rpsErrVec.end()) << std::endl;
-
-	avg = std::accumulate(_cpsVec.begin(), _cpsVec.end(), 0.0) / _cpsVec.size();
-	std::cout << "Completions per second [MOPS] " << std::endl;
-	std::cout << "  avg: " << avg << std::endl;
-	std::cout << "  min: "
-			  << *std::min_element(_cpsVec.begin(), _cpsVec.end()) << std::endl;
-	std::cout << "  max: "
-			  << *std::max_element(_cpsVec.begin(), _cpsVec.end()) << std::endl;
-
-	avg = std::accumulate(_cpsErrVec.begin(), _cpsErrVec.end(), 0.0) / _cpsErrVec.size();
-	std::cout << "Error completions per second [MOPS] " << std::endl;
-	std::cout << "  avg: " << avg << std::endl;
-	std::cout << "  min: "
-			  << *std::min_element(_cpsErrVec.begin(), _cpsErrVec.end()) << std::endl;
-	std::cout << "  max: "
-			  << *std::max_element(_cpsErrVec.begin(), _cpsErrVec.end()) << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   Requests per Second [MOPS]" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	hdr_percentiles_print(_histogramRps, stdout, 1, 1000000.0, CLASSIC);
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   Completions per Second [MOPS]" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	hdr_percentiles_print(_histogramCps, stdout, 1, 1000000.0, CLASSIC);
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   Error Requests per Second [MOPS]" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	hdr_percentiles_print(_histogramRpsErr, stdout, 1, 1000000.0, CLASSIC);
+	std::cout << "########################################################"
+			  << std::endl;
+	std::cout << "   Error Completions per Second [MOPS]" << std::endl;
+	std::cout << "########################################################"
+			  << std::endl;
+	hdr_percentiles_print(_histogramCpsErr, stdout, 1, 1000000.0, CLASSIC);
 }
 
 void MinidaqStats::DumpCsv()

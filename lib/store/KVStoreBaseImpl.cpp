@@ -71,7 +71,7 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
 	std::string valStr(val.data(), val.size());
 	KVStatus s = mRTree->Put(keyStr, valStr);
 	Free(std::move(key));
-	Free(std::move(val));
+	//Free(std::move(val)); /** @TODO jschmieg: free value if needed */
 	if (s != OK)
 		throw OperationFailedException(EINVAL);
 }
@@ -199,9 +199,13 @@ void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end)
 	throw FUNC_NOT_IMPLEMENTED;
 }
 
-Value KVStoreBaseImpl::Alloc(size_t size, const AllocOptions &options)
+Value KVStoreBaseImpl::Alloc(const Key &key, size_t size, const AllocOptions &options)
 {
-	return Value(new char[size], size);
+	std::string keyStr(key.data(), mKeySize);
+	char * val;
+	mRTree->AllocValueForKey(keyStr, size, &val);
+	return Value(val, size);
+
 }
 
 void KVStoreBaseImpl::Free(Value &&value)
