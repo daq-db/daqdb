@@ -87,7 +87,7 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
 							case options.stages::first:
 							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTPMEM, &key, &value, &cb));
 							break;
-							case options.stages::second:
+							case options.stages::main:
 							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTDISK, &key, &value, &cb));
 							break;
 						}
