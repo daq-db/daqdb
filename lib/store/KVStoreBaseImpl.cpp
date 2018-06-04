@@ -82,7 +82,15 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
 			[&] {
 				try {
 					if (options.poolerId() < _rqstPoolers.size()) {
-						_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
+						switch(options.stage)
+						{
+							case options.stages::first:
+							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTPMEM, &key, &value, &cb));
+							break;
+							case options.stages::second:
+							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTDISK, &key, &value, &cb));
+							break;
+						}
 					} else {
 						cb(this, FogKV::Status(FogKV::Code::UnknownError), key, value);
 					}
