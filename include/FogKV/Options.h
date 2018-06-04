@@ -72,6 +72,8 @@ struct PutOptions {
 	}
 
 	unsigned short _poolerId = 0;
+
+	enum stages { first, second } stage;
 };
 
 struct GetOptions {

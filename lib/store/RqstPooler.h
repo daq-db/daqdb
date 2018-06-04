@@ -40,6 +40,7 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 #include "RTreeEngine.h"
+#include "OffloadEngine.h"
 
 #include <FogKV/KVStoreBase.h>
 
@@ -48,7 +49,7 @@
 namespace FogKV {
 
 enum class RqstOperation
-	: std::int8_t {NONE = 0, GET = 1, PUT = 2, UPDATE = 3, DELETE = 4
+	: std::int8_t {NONE = 0, GET = 1, PUTPMEM = 2, UPDATE = 3, DELETE = 4, PUTDISK = 5
 };
 
 class RqstMsg {
@@ -81,6 +82,7 @@ private:
 
 	std::thread *_thread;
 	std::shared_ptr<FogKV::RTreeEngine> mRTree;
+	std::shared_ptr<FogKV::OffloadEngine> mDisk;
 
 	RqstMsg *_rqstMsgBuffer[DEQUEUE_RING_LIMIT];
 	unsigned short _dequedCount = 0;
