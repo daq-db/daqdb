@@ -32,13 +32,24 @@
 
 #include <iostream>
 #include <iomanip>
+#include <stdio.h>
 #include <numeric>
 #include <algorithm>
+#include <iostream>
+#include <fstream>
 #include <system_error>
 
 #include "MinidaqStats.h"
 
 #define NSECS_IN_SEC		1000000000ULL
+#define OPS_IN_MOPS			1000000.0
+#define SHOW_VALUE(x)		std::cout << "|" << std::right <<  std::setw(10) \
+							<< std::setprecision(6) << x << "|"
+#define SHOW_HEADER(x)		std::cout << "|" <<  std::left <<  std::setw(10) \
+							<< x << "|"
+#define SHOW_LINE_SEP(x)	for (int i = 0; i < x; i++) { \
+								std::cout << "|----------|"; \
+							}
 
 using namespace std;
 
@@ -48,19 +59,19 @@ MinidaqStats::MinidaqStats()
 {
 	int err;
 
-	err = hdr_init(1, 100000000ULL, 5, &_histogramRps); 	
+	err = hdr_init(1, 100000000ULL, 5, &_histogramRps);
 	if (err) {
 		throw std::system_error(err, std::system_category());
 	}
-	err = hdr_init(1, 100000000ULL, 5, &_histogramCps); 	
+	err = hdr_init(1, 100000000ULL, 5, &_histogramCps);
 	if (err) {
 		throw std::system_error(err, std::system_category());
 	}
-	err = hdr_init(1, 100000000ULL, 5, &_histogramRpsErr); 	
+	err = hdr_init(1, 100000000ULL, 5, &_histogramRpsErr);
 	if (err) {
 		throw std::system_error(err, std::system_category());
 	}
-	err = hdr_init(1, 100000000ULL, 5, &_histogramCpsErr); 	
+	err = hdr_init(1, 100000000ULL, 5, &_histogramCpsErr);
 	if (err) {
 		throw std::system_error(err, std::system_category());
 	}
@@ -71,7 +82,7 @@ MinidaqStats::MinidaqStats(const std::vector<MinidaqStats> &rVector) : MinidaqSt
 	for (const auto& r : rVector) {
 		Combine(r);
 	}
-	
+
 }
 
 MinidaqStats::~MinidaqStats()
@@ -139,28 +150,28 @@ void MinidaqStats::RecordSample(const MinidaqSample &s)
 
 	if (s.nRequests) {
 		ok = hdr_record_value(_histogramRps, (s.nRequests * NSECS_IN_SEC) /
-											  s.interval_ns); 
+											  s.interval_ns);
 		if (!ok) {
 			_nOverflows++;
 		}
 	}
 	if (s.nCompletions) {
 		ok = hdr_record_value(_histogramCps, (s.nCompletions * NSECS_IN_SEC) /
-											  s.interval_ns); 
+											  s.interval_ns);
 		if (!ok) {
 			_nOverflows++;
 		}
 	}
 	if (s.nErrRequests) {
 		ok = hdr_record_value(_histogramRpsErr, (s.nErrRequests * NSECS_IN_SEC) /
-												 s.interval_ns); 
+												 s.interval_ns);
 		if (!ok) {
 			_nOverflows++;
 		}
 	}
 	if (s.nErrCompletions) {
 		ok = hdr_record_value(_histogramCpsErr, (s.nErrCompletions * NSECS_IN_SEC) /
-												 s.interval_ns); 
+												 s.interval_ns);
 		if (!ok) {
 			_nOverflows++;
 		}
@@ -211,8 +222,174 @@ void MinidaqStats::Dump()
 	hdr_percentiles_print(_histogramCpsErr, stdout, 1, 1000000.0, CLASSIC);
 }
 
-void MinidaqStats::DumpCsv()
+void MinidaqStats::_DumpCsv(const std::string &fp,
+							enum MinidaqMetricType histo_type)
 {
+	struct hdr_histogram *h;
+	std::string h_name;
+	FILE *pFile;
+
+	switch (histo_type) {
+		case MINIDAQ_METRIC_RPS:
+			h = _histogramRps;
+			h_name = "histo-mrps";
+			break;
+		case MINIDAQ_METRIC_RPS_ERR:
+			h = _histogramRpsErr;
+			h_name = "histo-mrps-err";
+			break;
+		case MINIDAQ_METRIC_CPS:
+			h = _histogramRps;
+			h_name = "histo-mcps";
+			break;
+		case MINIDAQ_METRIC_CPS_ERR:
+			h = _histogramCpsErr;
+			h_name = "histo-mcps-err";
+			break;
+		default:
+			return;
+	}
+
+	std::string fn = fp + "-" + h_name + ".csv";
+	pFile = fopen(fn.c_str(), "w");
+	if (pFile == NULL) {
+		std::cout << "Cannot open file: " << fn << std::endl;
+	}
+	hdr_percentiles_print(h, pFile, 1, 1000000.0, CSV);
+	fclose(pFile);
+}
+
+void MinidaqStats::Dump(const std::string& fp)
+{
+	_DumpCsv(fp, MINIDAQ_METRIC_RPS);
+	_DumpCsv(fp, MINIDAQ_METRIC_RPS_ERR);
+	_DumpCsv(fp, MINIDAQ_METRIC_CPS);
+	_DumpCsv(fp, MINIDAQ_METRIC_CPS_ERR);
+}
+
+void MinidaqStats::_DumpSummary(enum MinidaqMetricType histo_type)
+{
+	struct hdr_histogram *h;
+	std::string h_name;
+
+	switch (histo_type) {
+		case MINIDAQ_METRIC_RPS:
+			h = _histogramRps;
+			h_name = "mrps";
+			break;
+		case MINIDAQ_METRIC_RPS_ERR:
+			h = _histogramRpsErr;
+			h_name = "mrps-err";
+			break;
+		case MINIDAQ_METRIC_CPS:
+			h = _histogramRps;
+			h_name = "mcps";
+			break;
+		case MINIDAQ_METRIC_CPS_ERR:
+			h = _histogramCpsErr;
+			h_name = "mcps-err";
+			break;
+		default:
+			return;
+	}
+
+	cout.setf(ios::floatfield,ios::fixed);
+	SHOW_HEADER(h_name);
+	SHOW_VALUE((h->total_count ? hdr_mean(h) / OPS_IN_MOPS : 0));
+	SHOW_VALUE((h->total_count ? hdr_stddev(h) / OPS_IN_MOPS : 0));
+	SHOW_VALUE((h->total_count ? hdr_min(h) / OPS_IN_MOPS : 0));
+	SHOW_VALUE((h->total_count ? hdr_max(h) / OPS_IN_MOPS : 0));
+	SHOW_VALUE((h->total_count));
+	std::cout << std::endl;
+}
+
+void MinidaqStats::_DumpSummaryCsv(std::fstream &f,
+								   enum MinidaqMetricType histo_type)
+{
+	struct hdr_histogram *h;
+
+	switch (histo_type) {
+		case MINIDAQ_METRIC_RPS:
+			h = _histogramRps;
+			break;
+		case MINIDAQ_METRIC_RPS_ERR:
+			h = _histogramRpsErr;
+			break;
+		case MINIDAQ_METRIC_CPS:
+			h = _histogramRps;
+			break;
+		case MINIDAQ_METRIC_CPS_ERR:
+			h = _histogramCpsErr;
+			break;
+		default:
+			return;
+	}
+
+	f << (h->total_count ? hdr_mean(h) / OPS_IN_MOPS : 0) << ","
+	  << (h->total_count ? hdr_stddev(h) / OPS_IN_MOPS : 0) << ","
+	  << (h->total_count ? hdr_min(h) / OPS_IN_MOPS : 0) << ","
+	  << (h->total_count ? hdr_max(h) / OPS_IN_MOPS : 0);
+}
+
+void MinidaqStats::DumpSummary()
+{
+	std::stringstream ss;
+
+	_DumpSummary(MINIDAQ_METRIC_RPS);
+	_DumpSummary(MINIDAQ_METRIC_CPS);
+	_DumpSummary(MINIDAQ_METRIC_RPS_ERR);
+	_DumpSummary(MINIDAQ_METRIC_CPS_ERR);
+	SHOW_LINE_SEP(6);
+	std::cout << std::endl;
+}
+
+void MinidaqStats::DumpSummaryHeader()
+{
+	std::cout <<  "Iterations: " << _nIterations << std::endl;
+	std::cout <<  "Overflows: " << _nOverflows << std::endl;
+
+	std::vector<std::string> f;
+
+	SHOW_HEADER("Metric");
+	SHOW_HEADER("Mean");
+	SHOW_HEADER("StdDev");
+	SHOW_HEADER("Min");
+	SHOW_HEADER("Max");
+	SHOW_HEADER("TotalCnt");
+	std::cout << std::endl;
+	SHOW_LINE_SEP(6);
+	std::cout << std::endl;
+}
+
+void MinidaqStats::DumpSummary(const std::string& file, const std::string &name)
+{
+	fstream f;
+
+	f.open(file, ios_base::out | ios_base::in);
+	if (f.is_open()) {
+		f.close();
+		f.open(file, ios_base::app);
+	} else {
+		f.clear();
+		f.open(file, ios_base::out);
+		f << "TestName,"
+		  << "mrps-Mean,mrps-StdDev,mrps-Min,mrps-Max,"
+		  << "mcps-Mean,mcps-StdDev,mcps-Min,mcps-Max,"
+		  << "mrps-e-Mean,mrps-e-StdDev,mrps-e-Min,mrps-e-Max,"
+		  << "mcps-e-Mean,mcps-e-StdDev,mcps-e-Min,mcps-e-Max"
+		  << std::endl;
+	}
+	f << name << ",";
+	_DumpSummaryCsv(f, MINIDAQ_METRIC_RPS);
+	f << ",";
+	_DumpSummaryCsv(f, MINIDAQ_METRIC_CPS);
+	f << ",";
+	_DumpSummaryCsv(f, MINIDAQ_METRIC_RPS_ERR);
+	f << ",";
+	_DumpSummaryCsv(f, MINIDAQ_METRIC_CPS_ERR);
+	f << std::endl;
+
+	f.close();
 }
 
 }
