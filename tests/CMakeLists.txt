@@ -15,4 +15,7 @@ set(ROOT_FOGKV_DIR ${PROJECT_SOURCE_DIR}/..)
 find_package(Boost REQUIRED COMPONENTS unit_test_framework program_options system filesystem)
 find_package(Threads REQUIRED)
 
+include_directories(mock)
+
 add_boost_test(dht/DhtUtilsTest.cpp)
+add_boost_test(store/RqstPoolerTest.cpp)
