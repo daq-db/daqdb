@@ -31,338 +31,235 @@
  */
 
 #include "KVStoreBaseImpl.h"
-#include <FogKV/Types.h>
-#include <json/json.h>
-#include "common.h"
 #include "../dht/DhtUtils.h"
+#include "common.h"
+#include <FogKV/Types.h>
 #include <future>
+#include <json/json.h>
 
 namespace FogKV {
 
-KVStoreBase *KVStoreBase::Open(const Options &options)
-{
-	return KVStoreBaseImpl::Open(options);
+KVStoreBase *KVStoreBase::Open(const Options &options) {
+    return KVStoreBaseImpl::Open(options);
 }
 
-KVStoreBase *KVStoreBaseImpl::Open(const Options &options)
-{
-	KVStoreBaseImpl *kvs = new KVStoreBaseImpl(options);
+KVStoreBase *KVStoreBaseImpl::Open(const Options &options) {
+    KVStoreBaseImpl *kvs = new KVStoreBaseImpl(options);
 
-	kvs->init();
+    kvs->init();
 
-	return kvs;
+    return kvs;
 }
 
-size_t KVStoreBaseImpl::KeySize()
-{
-	return mKeySize;
+size_t KVStoreBaseImpl::KeySize() { return mKeySize; }
+
+const Options &KVStoreBaseImpl::getOptions() { return mOptions; }
+
+void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
+    std::unique_lock<std::mutex> l(mLock);
+
+    std::string keyStr(key.data(), mKeySize);
+    std::string valStr(val.data(), val.size());
+    StatusCode rc = mRTree->Put(keyStr, valStr);
+    Free(std::move(key));
+    // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
+    if (rc != StatusCode::Ok)
+        throw OperationFailedException(EINVAL);
 }
 
-const Options & KVStoreBaseImpl::getOptions()
-{
-	return mOptions;
+void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
+                                  const GetOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options)
-{
-	std::unique_lock<std::mutex> l(mLock);
+void KVStoreBaseImpl::Update(const Key &key, Value &&val,
+                             const UpdateOptions &options) {
+    std::unique_lock<std::mutex> l(mLock);
 
-	std::string keyStr(key.data(), mKeySize);
-	std::string valStr(val.data(), val.size());
-	KVStatus s = mRTree->Put(keyStr, valStr);
-	Free(std::move(key));
-	//Free(std::move(val)); /** @TODO jschmieg: free value if needed */
-	if (s != OK)
-		throw OperationFailedException(EINVAL);
+    std::string keyStr(key.data(), mKeySize);
+    std::string valStr(val.data(), val.size());
+    StatusCode rc = mRTree->Put(keyStr, valStr);
+    Free(std::move(val));
+
+    if (rc != StatusCode::Ok)
+        throw OperationFailedException(EINVAL);
 }
 
-void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
-		KVStoreBasePutCallback cb, const PutOptions &options) {
-	std::async(std::launch::async,
-			[&] {
-				try {
-					if (options.poolerId() < _rqstPoolers.size()) {
-						switch(options.stage)
-						{
-							case options.stages::first:
-							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
-							break;
-							case options.stages::main:
-							_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
-							break;
-						}
-					} else {
-						cb(this, FogKV::Status(FogKV::Code::UnknownError), key, value);
-					}
-				} catch (OperationFailedException &e) {
-					cb(this, e.status(), key, value);
-				}
-			});
+void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options)
-{
-	std::unique_lock<std::mutex> l(mLock);
-
-	std::string keyStr(key.data(), mKeySize);
-	std::string valStr;
-	KVStatus s = mRTree->Get(keyStr, &valStr);
-	if (s != OK) {
-		if (s == NOT_FOUND)
-			throw OperationFailedException(KeyNotFound);
-
-		throw OperationFailedException(EINVAL);
-	}
-
-	Value value(new char [valStr.length() + 1], valStr.length() + 1);
-	std::memcpy(value.data(), valStr.c_str(), value.size());
-	value.data()[value.size() - 1] = '\0';
-	return value;
+void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
+                                  KVStoreBaseUpdateCallback cb,
+                                  const UpdateOptions &options) {
+    std::async(std::launch::async, [&] {
+        try {
+            Update(key, std::move(value));
+            cb(this, StatusCode::Ok, key, value);
+        } catch (OperationFailedException &e) {
+            cb(this, e.status(), key, value);
+        }
+    });
 }
 
-void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb, const GetOptions &options)
-{
-	std::async(std::launch::async, [&] {
-		try {
-			Value val = Get(key);
-			cb(this, Ok, key, val);
-		} catch (OperationFailedException &e) {
-			Value val;
-			cb(this, e.status(), key, val);
-		}
-	});
+void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
+                                  KVStoreBaseUpdateCallback cb) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-Key KVStoreBaseImpl::GetAny(const GetOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
+std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end,
+                                              const GetOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb, const GetOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
+void KVStoreBaseImpl::GetRangeAsync(const Key &beg, const Key &end,
+                                    KVStoreBaseRangeCallback cb,
+                                    const GetOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::Update(const Key &key, Value &&val, const UpdateOptions &options)
-{
-	std::unique_lock<std::mutex> l(mLock);
+void KVStoreBaseImpl::Remove(const Key &key) {
+    std::unique_lock<std::mutex> l(mLock);
 
-	std::string keyStr(key.data(), mKeySize);
-	std::string valStr(val.data(), val.size());
-	KVStatus s = mRTree->Put(keyStr, valStr);
-	Free(std::move(val));
+    std::string keyStr(key.data(), mKeySize);
+    StatusCode rc = mRTree->Remove(keyStr);
+    if (rc != StatusCode::Ok) {
+        if (rc == StatusCode::KeyNotFound)
+            throw OperationFailedException(KeyNotFound);
 
-	if (s != OK)
-		throw OperationFailedException(EINVAL);
+        throw OperationFailedException(EINVAL);
+    }
 }
 
-void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
+void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options)
-{
-	std::async(std::launch::async, [&] {
-		try {
-			Update(key, std::move(value));
-			cb(this, Ok, key, value);
-		} catch (OperationFailedException &e) {
-			cb(this, e.status(), key, value);
-		}
-	});
+Value KVStoreBaseImpl::Alloc(const Key &key, size_t size,
+                             const AllocOptions &options) {
+    std::string keyStr(key.data(), mKeySize);
+    char *val;
+    mRTree->AllocValueForKey(keyStr, size, &val);
+    return Value(val, size);
 }
 
-void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb)
-{
-	std::async(std::launch::async,
-			[&] {
-				try {
-					switch(options.stage)
-					{
-						case options.stages::first:
-						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::RETRIEVE, &key, NULL, &cb));
-						break;
-						case options.stages::main:
-						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::STORE, &key, NULL, &cb));
-						break;
-					}
-				} catch (OperationFailedException &e) {
-					cb(this, e.status(), key, NULL);
-				}
-			});
+void KVStoreBaseImpl::Free(Value &&value) { delete[] value.data(); }
+
+void KVStoreBaseImpl::Realloc(Value &value, size_t size,
+                              const AllocOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end, const GetOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
+void KVStoreBaseImpl::ChangeOptions(Value &value, const AllocOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::GetRangeAsync(const Key &beg, const Key &end, KVStoreBaseRangeCallback cb, const GetOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
+Key KVStoreBaseImpl::AllocKey(const AllocOptions &options) {
+    return Key(new char[mKeySize], mKeySize);
 }
 
-void KVStoreBaseImpl::Remove(const Key &key)
-{
-	std::unique_lock<std::mutex> l(mLock);
+void KVStoreBaseImpl::Free(Key &&key) { delete[] key.data(); }
 
-	std::string keyStr(key.data(), mKeySize);
-	KVStatus s = mRTree->Remove(keyStr);
-	if (s != OK) {
-		if (s == NOT_FOUND)
-			throw OperationFailedException(KeyNotFound);
-
-		throw OperationFailedException(EINVAL);
-	}
+void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end)
-{
-	throw FUNC_NOT_IMPLEMENTED;
+KVStoreBaseImpl::KVStoreBaseImpl(const Options &options)
+    : mOptions(options), mKeySize(0) {
+    if (mOptions.Runtime.io_service() == nullptr)
+        m_io_service = new asio::io_service();
+
+    for (size_t i = 0; i < options.Key.nfields(); i++)
+        mKeySize += options.Key.field(i).Size;
 }
 
-Value KVStoreBaseImpl::Alloc(const Key &key, size_t size, const AllocOptions &options)
-{
-	std::string keyStr(key.data(), mKeySize);
-	char * val;
-	mRTree->AllocValueForKey(keyStr, size, &val);
-	return Value(val, size);
+KVStoreBaseImpl::~KVStoreBaseImpl() {
+    mDhtNode.reset();
 
+    FogKV::RTreeEngine::Close(mRTree.get());
+    mRTree.reset();
+
+    for (auto index = 0; index < _rqstPoolers.size(); index++) {
+        delete _rqstPoolers.at(index);
+    }
+
+    if (m_io_service)
+        delete m_io_service;
 }
 
-void KVStoreBaseImpl::Free(Value &&value)
-{
-	delete [] value.data();
+std::string KVStoreBaseImpl::getProperty(const std::string &name) {
+    if (name == "fogkv.dht.id")
+        return std::to_string(mDhtNode->getDhtId());
+    if (name == "fogkv.listener.ip")
+        return mDhtNode->getIp();
+    if (name == "fogkv.listener.port")
+        return std::to_string(mDhtNode->getPort());
+    if (name == "fogkv.listener.dht_port")
+        return std::to_string(mDhtNode->getDragonPort());
+    if (name == "fogkv.pmem.path")
+        return mOptions.PMEM.Path;
+    if (name == "fogkv.pmem.size")
+        return std::to_string(mOptions.PMEM.Size);
+    if (name == "fogkv.KVEngine")
+        return mRTree->Engine();
+    if (name == "fogkv.dht.peers") {
+        Json::Value peers;
+        std::vector<FogKV::PureNode *> peerNodes;
+        mDhtNode->getPeerList(peerNodes);
+
+        int i = 0;
+        for (auto peer : peerNodes) {
+            peers[i]["id"] = std::to_string(peer->getDhtId());
+            peers[i]["port"] = std::to_string(peer->getPort());
+            peers[i]["ip"] = peer->getIp();
+            peers[i]["dht_port"] = std::to_string(peer->getDragonPort());
+        }
+
+        Json::FastWriter writer;
+        return writer.write(peers);
+    }
+    return "";
 }
 
-void KVStoreBaseImpl::Realloc(Value &value, size_t size, const AllocOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
+void KVStoreBaseImpl::init() {
+    auto dhtPort =
+        getOptions().Dht.Port ?: FogKV::utils::getFreePort(io_service(), 0);
+    auto port = getOptions().Port ?: FogKV::utils::getFreePort(io_service(), 0);
+
+    mDhtNode.reset(new FogKV::CChordAdapter(io_service(), dhtPort, port,
+                                            getOptions().Dht.Id));
+
+    mRTree.reset(FogKV::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
+                                          mOptions.PMEM.Size));
+
+    /**
+     * @TODO jradtke: initial implementation, will be moved to better place.
+     * 				  SPDK init messages should be hidden.
+     */
+    struct spdk_env_opts opts;
+    spdk_env_opts_init(&opts);
+    opts.name = "FogKV";
+    opts.shm_id = 0;
+    if (spdk_env_init(&opts) == 0) {
+        auto poolerCount = getOptions().Runtime.numOfPoolers();
+        for (auto index = 0; index < poolerCount; index++) {
+            _rqstPoolers.push_back(new FogKV::RqstPooler(mRTree));
+        }
+    }
+
+    if (mRTree == nullptr)
+        throw OperationFailedException(errno, ::pmemobj_errormsg());
+
+    if (getOptions().Runtime.logFunc != nullptr) {
+        getOptions().Runtime.logFunc(
+            "KVStoreBaseImpl initialization completed");
+    }
 }
 
-void KVStoreBaseImpl::ChangeOptions(Value &value, const AllocOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-Key KVStoreBaseImpl::AllocKey(const AllocOptions &options)
-{
-	return Key(new char[mKeySize], mKeySize);
-}
-
-void KVStoreBaseImpl::Free(Key &&key)
-{
-	delete [] key.data();
-}
-
-void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options)
-{
-	throw FUNC_NOT_IMPLEMENTED;
-}
-
-KVStoreBaseImpl::KVStoreBaseImpl(const Options &options):
-	mOptions(options), mKeySize(0)
-{
-	if (mOptions.Runtime.io_service() == nullptr)
-		m_io_service = new asio::io_service();
-
-	for (size_t i = 0; i < options.Key.nfields(); i++)
-		mKeySize += options.Key.field(i).Size;
-}
-
-KVStoreBaseImpl::~KVStoreBaseImpl()
-{
-	mDhtNode.reset();
-
-	FogKV::RTreeEngine::Close(mRTree.get());
-	mRTree.reset();
-
-	for (auto index = 0; index < _rqstPoolers.size(); index++) {
-		delete _rqstPoolers.at(index);
-	}
-	delete _spdkPooler;
-
-	if (m_io_service)
-		delete m_io_service;
-}
-
-std::string KVStoreBaseImpl::getProperty(const std::string &name)
-{
-	if (name == "fogkv.dht.id")
-		return std::to_string(mDhtNode->getDhtId());
-	if (name == "fogkv.listener.ip")
-		return mDhtNode->getIp();
-	if (name == "fogkv.listener.port")
-		return std::to_string(mDhtNode->getPort());
-	if (name == "fogkv.listener.dht_port")
-		return std::to_string(mDhtNode->getDragonPort());
-	if (name == "fogkv.pmem.path")
-		return mOptions.PMEM.Path;
-	if (name == "fogkv.pmem.size")
-		return std::to_string(mOptions.PMEM.Size);
-	if (name == "fogkv.KVEngine")
-		return mRTree->Engine();
-	if (name == "fogkv.dht.peers") {
-		Json::Value peers;
-		std::vector<FogKV::PureNode*> peerNodes;
-		mDhtNode->getPeerList(peerNodes);
-
-		int i = 0;
-		for (auto peer: peerNodes) {
-			peers[i]["id"] = std::to_string(peer->getDhtId());
-			peers[i]["port"] = std::to_string(peer->getPort());
-			peers[i]["ip"] = peer->getIp();
-			peers[i]["dht_port"] = std::to_string(peer->getDragonPort());
-		}
-
-		Json::FastWriter writer;
-		return writer.write(peers);
-	}
-	return "";
-}
-
-void KVStoreBaseImpl::init()
-{
-	auto dhtPort = getOptions().Dht.Port ? : FogKV::utils::getFreePort(io_service(), 0);
-	auto port = getOptions().Port ? : FogKV::utils::getFreePort(io_service(), 0);
-
-	mDhtNode.reset(new FogKV::CChordAdapter(io_service(),
-			dhtPort, port,
-			getOptions().Dht.Id));
-
-	mRTree.reset(FogKV::RTreeEngine::Open(
-			mOptions.KVEngine, mOptions.PMEM.Path, mOptions.PMEM.Size));
-
-	/**
-	 * @TODO jradtke: initial implementation, will be moved to better place.
-	 * 				  SPDK init messages should be hidden.
-	 */
-	struct spdk_env_opts opts;
-	spdk_env_opts_init(&opts);
-	opts.name = "FogKV";
-	opts.shm_id = 0;
-	if (spdk_env_init(&opts) == 0) {
-		auto poolerCount = getOptions().Runtime.numOfPoolers();
-		for (auto index = 0; index < poolerCount; index++) {
-			_rqstPoolers.push_back(new FogKV::RqstPooler(mRTree));
-		}
-		_spdkPooler = new FogKV::RqstPooler(mRTree);
-	}
-
-	if (mRTree == nullptr)
-		throw OperationFailedException(errno, ::pmemobj_errormsg());
-
-	if (getOptions().Runtime.logFunc != nullptr) {
-		getOptions().Runtime.logFunc("KVStoreBaseImpl initialization completed");
-	}
-}
-
-asio::io_service &KVStoreBaseImpl::io_service()
-{
-	if (mOptions.Runtime.io_service())
-		return *mOptions.Runtime.io_service();
-	return *m_io_service;
+asio::io_service &KVStoreBaseImpl::io_service() {
+    if (mOptions.Runtime.io_service())
+        return *mOptions.Runtime.io_service();
+    return *m_io_service;
 }
 
 } // namespace FogKV

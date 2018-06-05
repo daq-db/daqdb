@@ -43,14 +43,20 @@ namespace ut = boost::unit_test;
 using namespace fakeit;
 
 BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
-	Mock<FogKV::RqstPooler> poolerMock;
-	Mock<FogKV::RTree> rtreeMock;
-	Fake(Method(rtreeMock, Put));
+    Mock<FogKV::RqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
 
-	FogKV::RqstPooler& pooler = poolerMock.get();
-	FogKV::RTreeEngine &rtree = rtreeMock.get();
-	pooler.rtree.reset(&rtree);
+    When(OverloadedMethod(
+             rtreeMock, Put,
+             FogKV::StatusCode(const char *, int32_t, const char *, int32_t)))
+        .Return(FogKV::StatusCode::Ok);
 
-	pooler.ProcessMsg();
-	VerifyNoOtherInvocations(Method(rtreeMock, Put));
+    FogKV::RqstPooler &pooler = poolerMock.get();
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+
+    pooler.ProcessMsg();
+    VerifyNoOtherInvocations(OverloadedMethod(
+        rtreeMock, Put,
+        FogKV::StatusCode(const char *, int32_t, const char *, int32_t)));
 }
