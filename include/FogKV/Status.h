@@ -31,51 +31,47 @@
  */
 #pragma once
 
-#include <string>
 #include <cstring>
 #include <limits>
+#include <string>
 
 namespace FogKV {
 
-enum Code : long {
-	Ok = 0,
+enum StatusCode : long {
+    Ok = 0,
 
-	_max_errno = std::numeric_limits<int>::max(),
-	KeyNotFound,
+    _max_errno = std::numeric_limits<int>::max(),
+    KeyNotFound,
 
-	NotImplemented,
-	UnknownError,
+    NotImplemented,
+    UnknownError,
 };
 
 struct Status {
 
-	Status() : _code(Ok)
-	{ }
+    Status() : _code(Ok) {}
 
-	Status(int errnum) : _code(static_cast<Code>(errnum))
-	{ }
+    Status(int errnum) : _code(static_cast<StatusCode>(errnum)) {}
 
-	Status(Code c) : _code(c)
-	{ }
-	
-	bool ok() const { return _code == Ok; }
+    Status(StatusCode c) : _code(c) {}
 
-	Code operator()() { return _code; }
+    bool ok() const { return _code == Ok; }
 
-	std::string to_string()
-	{
-		if (_code < _max_errno)
-			return ::strerror((int)_code);
+    StatusCode operator()() { return _code; }
 
-		switch (_code) {
-		case NotImplemented:
-			return "Not Implemented";
-		default:
-			return "code = " + std::to_string(_code);
-		}
-	}
+    std::string to_string() {
+        if (_code < _max_errno)
+            return ::strerror((int)_code);
 
-	Code _code;
+        switch (_code) {
+        case NotImplemented:
+            return "Not Implemented";
+        default:
+            return "code = " + std::to_string(_code);
+        }
+    }
+
+    StatusCode _code;
 };
 
 Status errno2status(int err);

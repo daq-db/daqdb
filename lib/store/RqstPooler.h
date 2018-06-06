@@ -32,55 +32,63 @@
 
 #pragma once
 
-#include <thread>
 #include <atomic>
 #include <cstdint>
+#include <thread>
 
+#include "RTreeEngine.h"
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
-#include "RTreeEngine.h"
 
 #include <FogKV/KVStoreBase.h>
 
-#define DEQUEUE_RING_LIMIT	256
+#define DEQUEUE_RING_LIMIT 256
 
 namespace FogKV {
 
-enum class RqstOperation
-	: std::int8_t {NONE = 0, GET = 1, PUT = 2, UPDATE = 3, DELETE = 4
-};
+enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2 };
 
 class RqstMsg {
-public:
-	RqstMsg(RqstOperation op, Key *key, Value *value,
-			KVStoreBase::KVStoreBasePutCallback *cb_fn);
-	Key *key = nullptr;
-	Value *value = nullptr;
-	KVStoreBase::KVStoreBasePutCallback *cb_fn = nullptr;
-	RqstOperation op = RqstOperation::NONE;
+  public:
+    RqstMsg(const RqstOperation op, const Key *key, const Value *value,
+            void *cb_fn);
+    const Key *key = nullptr;
+    const Value *value = nullptr;
+    const RqstOperation op = RqstOperation::NONE;
+
+    void *cb_fn = nullptr;
 };
 
-class RqstPooler {
-public:
-	RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store);
-	virtual ~RqstPooler();
+class RqstPoolerInterface {
+    virtual void StartThread() = 0;
 
-	bool EnqueueMsg(RqstMsg *Message);
-	void ProcessMsg();
-	void StartThread();
+    virtual bool EnqueueMsg(RqstMsg *Message) = 0;
+    virtual void DequeueMsg() = 0;
 
-	std::atomic<int> isRunning;
-	std::shared_ptr<FogKV::RTreeEngine> rtree;
-	struct spdk_ring *rqstRing;
+    virtual void ProcessMsg() = 0;
+};
 
-private:
-	void _ThreadMain(void);
-	void _DequeueMsg();
+class RqstPooler : public RqstPoolerInterface {
+  public:
+    RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store);
+    virtual ~RqstPooler();
 
-	std::thread *_thread;
-	unsigned short _rqstDequedCount = 0;
-	RqstMsg *_rqstMsgBuffer[DEQUEUE_RING_LIMIT];
+    bool EnqueueMsg(RqstMsg *Message);
+    void DequeueMsg();
+    void ProcessMsg() final;
+    void StartThread();
+
+    std::atomic<int> isRunning;
+    std::shared_ptr<FogKV::RTreeEngine> rtree;
+    struct spdk_ring *rqstRing;
+
+  private:
+    void _ThreadMain(void);
+
+    std::thread *_thread;
+    unsigned short _rqstDequedCount = 0;
+    RqstMsg *_rqstMsgBuffer[DEQUEUE_RING_LIMIT];
 };
 
 } /* namespace FogKV */

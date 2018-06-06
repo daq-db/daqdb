@@ -38,80 +38,88 @@
 
 namespace FogKV {
 
-RqstMsg::RqstMsg(RqstOperation op, Key *key, Value *value,
-		KVStoreBase::KVStoreBasePutCallback *cb_fn) :
-		op(op), key(key), value(value), cb_fn(cb_fn) {
-}
+RqstMsg::RqstMsg(const RqstOperation op, const Key *key, const Value *value,
+                 void *cb_fn)
+    : op(op), key(key), value(value), cb_fn(cb_fn) {}
 
-RqstPooler::RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store) :
-		isRunning(0), _thread(nullptr), rtree(Store) {
+RqstPooler::RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store)
+    : isRunning(0), _thread(nullptr), rtree(Store) {
 
-	rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
-			SPDK_ENV_SOCKET_ID_ANY);
+    rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
+                                SPDK_ENV_SOCKET_ID_ANY);
 
-	StartThread();
+    StartThread();
 }
 
 RqstPooler::~RqstPooler() {
-	spdk_ring_free(rqstRing);
-	isRunning = 0;
-	if (_thread != nullptr)
-		_thread->join();
+    spdk_ring_free(rqstRing);
+    isRunning = 0;
+    if (_thread != nullptr)
+        _thread->join();
 }
 
 void RqstPooler::StartThread() {
-	isRunning = 1;
-	_thread = new std::thread(&RqstPooler::_ThreadMain, this);
+    isRunning = 1;
+    _thread = new std::thread(&RqstPooler::_ThreadMain, this);
 }
 
 void RqstPooler::_ThreadMain() {
-	while (isRunning) {
-		_DequeueMsg();
-		ProcessMsg();
+    while (isRunning) {
+        DequeueMsg();
+        ProcessMsg();
 
-		/** @TODO jradtke: Initial implementation, will be removed */
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-	}
+        /** @TODO jradtke: Initial implementation, will be removed */
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 }
 
 bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
-	size_t count = spdk_ring_enqueue(rqstRing, (void **) &Message, 1);
-	return (count == 1);
+    size_t count = spdk_ring_enqueue(rqstRing, (void **)&Message, 1);
+    return (count == 1);
 
-	/** @TODO jradtke: Initial implementation, error handling not implemented */
+    /** @TODO jradtke: Initial implementation, error handling not implemented */
 }
 
-void RqstPooler::_DequeueMsg() {
-	_rqstDequedCount = spdk_ring_dequeue(rqstRing, (void **) _rqstMsgBuffer, DEQUEUE_RING_LIMIT);
-	assert(_rqstDequedCount < DEQUEUE_RING_LIMIT);
+void RqstPooler::DequeueMsg() {
+    _rqstDequedCount = spdk_ring_dequeue(rqstRing, (void **)_rqstMsgBuffer,
+                                         DEQUEUE_RING_LIMIT);
+    assert(_rqstDequedCount < DEQUEUE_RING_LIMIT);
 }
 
 void RqstPooler::ProcessMsg() {
-	for (unsigned short MsgIndex = 0; MsgIndex < _rqstDequedCount; MsgIndex++) {
-		std::string keyStr(_rqstMsgBuffer[MsgIndex]->key->data(),
-				_rqstMsgBuffer[MsgIndex]->key->size());
+    for (unsigned short MsgIndex = 0; MsgIndex < _rqstDequedCount; MsgIndex++) {
+        auto key = _rqstMsgBuffer[MsgIndex]->key;
+        auto cb_fn = _rqstMsgBuffer[0]->cb_fn;
 
-		switch (_rqstMsgBuffer[MsgIndex]->op) {
-		case RqstOperation::PUT: {
-			/** @TODO jradtke: Not thread safe */
-			std::string valStr(_rqstMsgBuffer[MsgIndex]->value->data(),
-					_rqstMsgBuffer[MsgIndex]->value->size());
-			rtree->Put(keyStr, valStr);
-			break;
-		}
-		case RqstOperation::GET:
-			break;
-		case RqstOperation::UPDATE:
-			break;
-		case RqstOperation::DELETE:
-			break;
-		default:
-			break;
-		}
+        switch (_rqstMsgBuffer[MsgIndex]->op) {
+        case RqstOperation::PUT: {
+            auto val = _rqstMsgBuffer[MsgIndex]->value;
 
-		(*_rqstMsgBuffer[0]->cb_fn)(nullptr, FogKV::Status(FogKV::Code::Ok),
-				*_rqstMsgBuffer[0]->key, *_rqstMsgBuffer[0]->value);
-	}
+            StatusCode rc =
+                rtree->Put(key->data(), key->size(), val->data(), val->size());
+            KVStoreBase::KVStoreBasePutCallback *clb_fn =
+                reinterpret_cast<KVStoreBase::KVStoreBasePutCallback *>(cb_fn);
+            (*clb_fn)(nullptr, Status(rc), *key, *val);
+            break;
+        }
+        case RqstOperation::GET: {
+            /** @TODO jradtke: value buffer not implemented */
+            char *resultValBuffer = nullptr;
+            int32_t resultValSize = 0;
+
+            StatusCode rc = rtree->Get(0, key->data(), key->size(),
+                                       resultValBuffer, &resultValSize);
+            KVStoreBase::KVStoreBaseGetCallback *clb_fn =
+                reinterpret_cast<KVStoreBase::KVStoreBaseGetCallback *>(cb_fn);
+
+            FogKV::Value resultVal(resultValBuffer, resultValSize);
+            (*clb_fn)(nullptr, Status(rc), *key, resultVal);
+            break;
+        }
+        default:
+            break;
+        }
+    }
 }
 
 } /* namespace FogKV */
