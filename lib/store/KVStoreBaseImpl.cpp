@@ -67,6 +67,63 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
         throw OperationFailedException(EINVAL);
 }
 
+void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
+                               KVStoreBasePutCallback cb,
+                               const PutOptions &options) {
+    try {
+        if (options.poolerId() < _rqstPoolers.size()) {
+            _rqstPoolers.at(options.poolerId())
+                ->EnqueueMsg(
+                    new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
+        } else {
+            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key,
+               value);
+        }
+    } catch (OperationFailedException &e) {
+        cb(this, e.status(), key, value);
+    }
+}
+
+Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
+    std::unique_lock<std::mutex> l(mLock);
+
+    std::string keyStr(key.data(), mKeySize);
+    std::string valStr;
+    StatusCode rc = mRTree->Get(keyStr, &valStr);
+    if (rc != StatusCode::Ok) {
+        if (rc == StatusCode::KeyNotFound)
+            throw OperationFailedException(KeyNotFound);
+
+        throw OperationFailedException(EINVAL);
+    }
+
+    Value value(new char[valStr.length() + 1], valStr.length() + 1);
+    std::memcpy(value.data(), valStr.c_str(), value.size());
+    value.data()[value.size() - 1] = '\0';
+    return value;
+}
+
+void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb,
+                               const GetOptions &options) {
+    try {
+        if (options.poolerId() < _rqstPoolers.size()) {
+            _rqstPoolers.at(options.poolerId())
+                ->EnqueueMsg(new RqstMsg(RqstOperation::GET, &key, nullptr,
+                                         reinterpret_cast<void *>(&cb)));
+        } else {
+            Value val;
+            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key, val);
+        }
+    } catch (OperationFailedException &e) {
+        Value val;
+        cb(this, e.status(), key, val);
+    }
+}
+
+Key KVStoreBaseImpl::GetAny(const GetOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
+}
+
 void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
                                   const GetOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
