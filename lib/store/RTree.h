@@ -100,9 +100,7 @@ class RTree : public FogKV::RTreeEngine {
     RTree(const string &path, const size_t size);
     virtual ~RTree();
     string Engine() final { return "RTree"; }
-    StatusCode Get(int32_t limit, // copy value to fixed-size buffer
-                   const char *key, int32_t keybytes, char *value,
-                   int32_t *valuebytes) final;
+    StatusCode Get(const char *key, int32_t keybytes, string *value) final;
     StatusCode Get(const string &key, // append value to std::string
                    string *value) final;
     StatusCode Put(const string &key, // copy value from std::string

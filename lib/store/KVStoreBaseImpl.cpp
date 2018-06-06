@@ -70,20 +70,18 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
                                KVStoreBasePutCallback cb,
                                const PutOptions &options) {
-    std::async(std::launch::async, [&] {
-        try {
-            if (options.poolerId() < _rqstPoolers.size()) {
-                _rqstPoolers.at(options.poolerId())
-                    ->EnqueueMsg(
-                        new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
-            } else {
-                cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key,
-                   value);
-            }
-        } catch (OperationFailedException &e) {
-            cb(this, e.status(), key, value);
+    try {
+        if (options.poolerId() < _rqstPoolers.size()) {
+            _rqstPoolers.at(options.poolerId())
+                ->EnqueueMsg(
+                    new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
+        } else {
+            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key,
+               value);
         }
-    });
+    } catch (OperationFailedException &e) {
+        cb(this, e.status(), key, value);
+    }
 }
 
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
@@ -107,22 +105,19 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
 
 void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb,
                                const GetOptions &options) {
-    std::async(std::launch::async, [&] {
-        try {
-            if (options.poolerId() < _rqstPoolers.size()) {
-                _rqstPoolers.at(options.poolerId())
-                    ->EnqueueMsg(new RqstMsg(RqstOperation::GET, &key, nullptr,
-                                             reinterpret_cast<void *>(&cb)));
-            } else {
-                Value val;
-                cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key,
-                   val);
-            }
-        } catch (OperationFailedException &e) {
+    try {
+        if (options.poolerId() < _rqstPoolers.size()) {
+            _rqstPoolers.at(options.poolerId())
+                ->EnqueueMsg(new RqstMsg(RqstOperation::GET, &key, nullptr,
+                                         reinterpret_cast<void *>(&cb)));
+        } else {
             Value val;
-            cb(this, e.status(), key, val);
+            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key, val);
         }
-    });
+    } catch (OperationFailedException &e) {
+        Value val;
+        cb(this, e.status(), key, val);
+    }
 }
 
 Key KVStoreBaseImpl::GetAny(const GetOptions &options) {

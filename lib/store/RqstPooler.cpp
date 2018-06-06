@@ -103,17 +103,16 @@ void RqstPooler::ProcessMsg() {
             break;
         }
         case RqstOperation::GET: {
-            /** @TODO jradtke: value buffer not implemented */
-            char *resultValBuffer = nullptr;
-            int32_t resultValSize = 0;
-
-            StatusCode rc = rtree->Get(0, key->data(), key->size(),
-                                       resultValBuffer, &resultValSize);
+            std::string valStr;
+            StatusCode rc = rtree->Get(key->data(), key->size(), &valStr);
             KVStoreBase::KVStoreBaseGetCallback *clb_fn =
                 reinterpret_cast<KVStoreBase::KVStoreBaseGetCallback *>(cb_fn);
 
-            FogKV::Value resultVal(resultValBuffer, resultValSize);
-            (*clb_fn)(nullptr, Status(rc), *key, resultVal);
+            Value value(new char[valStr.length() + 1], valStr.length() + 1);
+            std::memcpy(value.data(), valStr.c_str(), value.size());
+            value.data()[value.size() - 1] = '\0';
+
+            (*clb_fn)(nullptr, Status(rc), *key, value);
             break;
         }
         default:
