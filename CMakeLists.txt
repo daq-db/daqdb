@@ -63,3 +63,7 @@ add_subdirectory(${EXAMPLES}/basic)
 
 # Build apps folder
 add_subdirectory(${APPS}/minidaq)
+
+# Initiate githooks for clang-format
+ADD_CUSTOM_TARGET(do_always ALL COMMAND git config core.hooksPath "${PROJECT_SOURCE_DIR}/scripts/githooks")
+
