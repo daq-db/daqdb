@@ -32,64 +32,63 @@
 
 #pragma once
 
-#include <vector>
-#include <future>
 #include <atomic>
+#include <future>
 #include <string>
+#include <vector>
 
-#include "MinidaqStats.h"
 #include "FogKV/KVStoreBase.h"
+#include "MinidaqStats.h"
 
 namespace FogKV {
 
 struct MinidaqKey {
-	MinidaqKey() : eventId(0), subdetectorId(0), runId(0) {};
-	MinidaqKey(uint64_t e, uint16_t s, uint16_t r) :
-		eventId(e), subdetectorId(s), runId(r) {}
-	uint64_t eventId;
-	uint16_t subdetectorId;
-	uint16_t runId;
+    MinidaqKey() : eventId(0), subdetectorId(0), runId(0){};
+    MinidaqKey(uint64_t e, uint16_t s, uint16_t r)
+        : eventId(e), subdetectorId(s), runId(r) {}
+    uint64_t eventId;
+    uint16_t subdetectorId;
+    uint16_t runId;
 };
 
 class MinidaqNode {
-public:
-	MinidaqNode(KVStoreBase *kvs);
-	virtual ~MinidaqNode();
+  public:
+    MinidaqNode(KVStoreBase *kvs);
+    virtual ~MinidaqNode();
 
-	void Run();
-	void Wait();
-	void Show();
-	void Save(std::string& fp);
-	void SaveSummary(std::string& fs, std::string& tname);
-	void SetTimeTest(int s);
-	void SetTimeIter(int us);
-	void SetTimeRamp(int s);
-	void SetThreads(int n);
+    void Run();
+    void Wait();
+    void Show();
+    void Save(std::string &fp);
+    void SaveSummary(std::string &fs, std::string &tname);
+    void SetTimeTest(int s);
+    void SetTimeIter(int us);
+    void SetTimeRamp(int s);
+    void SetThreads(int n);
 
-protected:
-	virtual void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
-					  std::atomic<std::uint64_t> &cntErr) = 0;
-	virtual void _Setup() = 0;
-	virtual std::string _GetType() = 0;
+  protected:
+    virtual void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
+                       std::atomic<std::uint64_t> &cntErr) = 0;
+    virtual void _Setup() = 0;
+    virtual std::string _GetType() = 0;
 
-	KVStoreBase *_kvs;
-	int _nTh = 0; // number of worker threads
-	int _id = 1; // global ID of the node
-	int _nReadoutNodes = 1; // global number of Readout Nodes;
-	int _runId = 599;
+    KVStoreBase *_kvs;
+    int _nTh = 0;           // number of worker threads
+    int _id = 1;            // global ID of the node
+    int _nReadoutNodes = 1; // global number of Readout Nodes;
+    int _runId = 599;
 
-private:
-	MinidaqStats _Execute(int nThreads);
+  private:
+    MinidaqStats _Execute(int nThreads);
 
-	int _tTest_s = 0; // desired test duration in seconds
-	int _tRamp_s = 0; // desired test ramp duration in seconds
-	int _tIter_us = 0; // desired iteration time in microseconds
-	std::atomic_bool _stopped; // signals first thread stopped execution
-	std::atomic_bool _statsReady; // signals all results are available
+    int _tTest_s = 0;             // desired test duration in seconds
+    int _tRamp_s = 0;             // desired test ramp duration in seconds
+    int _tIter_us = 0;            // desired iteration time in microseconds
+    std::atomic_bool _stopped;    // signals first thread stopped execution
+    std::atomic_bool _statsReady; // signals all results are available
 
-	std::vector<std::future<MinidaqStats>> _futureVec;
-	std::vector<MinidaqStats> _statsVec;
-	MinidaqStats _statsAll;
+    std::vector<std::future<MinidaqStats>> _futureVec;
+    std::vector<MinidaqStats> _statsVec;
+    MinidaqStats _statsAll;
 };
-
 }

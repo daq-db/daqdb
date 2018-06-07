@@ -36,14 +36,7 @@ using namespace std;
 
 namespace FogKV {
 
+MinidaqTimer::MinidaqTimer() {}
 
-MinidaqTimer::MinidaqTimer()
-{
-}
-
-
-MinidaqTimer::~MinidaqTimer()
-{
-}
-
+MinidaqTimer::~MinidaqTimer() {}
 }

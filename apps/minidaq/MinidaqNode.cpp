@@ -30,11 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <atomic>
 #include <future>
+#include <iostream>
 #include <thread>
 #include <vector>
-#include <iostream>
-#include <atomic>
 
 #include "MinidaqNode.h"
 #include "MinidaqTimerHR.h"
@@ -43,166 +43,144 @@
 
 namespace FogKV {
 
-MinidaqNode::MinidaqNode(KVStoreBase *kvs) :
-	_kvs(kvs), _stopped(false), _statsReady(false)
-{
+MinidaqNode::MinidaqNode(KVStoreBase *kvs)
+    : _kvs(kvs), _stopped(false), _statsReady(false) {}
+
+MinidaqNode::~MinidaqNode() {}
+
+void MinidaqNode::SetTimeTest(int s) { _tTest_s = s; }
+
+void MinidaqNode::SetTimeRamp(int s) { _tRamp_s = s; }
+
+void MinidaqNode::SetTimeIter(int us) { _tIter_us = us; }
+
+void MinidaqNode::SetThreads(int n) { _nTh = n; }
+
+MinidaqStats MinidaqNode::_Execute(int executorId) {
+    std::atomic<std::uint64_t> c_err;
+    uint64_t event_id = executorId;
+    std::atomic<std::uint64_t> c;
+    MinidaqTimerHR timerSample;
+    MinidaqTimerHR timerTest;
+    MinidaqStats stats;
+    MinidaqSample s;
+    uint64_t avg_r;
+
+    // Ramp up
+    timerTest.Restart_s(_tRamp_s);
+    while (!timerTest.IsExpired()) {
+        s.nRequests++;
+        _Task(executorId, c, c_err);
+    }
+
+    // Record samples
+    timerTest.Restart_s(_tTest_s);
+    while (!timerTest.IsExpired() && !_stopped) {
+        // Timer precision per iteration
+        avg_r = (s.nRequests + 10) / 10;
+        s.Reset();
+        c = 0;
+        c_err = 0;
+        timerSample.Restart_us(_tIter_us);
+        do {
+            event_id += _nTh;
+            try {
+                _Task(event_id, c, c_err);
+                s.nRequests++;
+            } catch (...) {
+                s.nErrRequests++;
+            }
+        } while (!_stopped &&
+                 ((s.nRequests % avg_r) || !timerSample.IsExpired()));
+        s.nCompletions = c;
+        s.nErrCompletions = c_err;
+        s.interval_ns = timerSample.GetElapsed_ns();
+        stats.RecordSample(s);
+    }
+
+    _stopped = true;
+
+    // Wait for all completions
+    do {
+        c = 0;
+        c_err = 0;
+        std::this_thread::sleep_for(
+            std::chrono::nanoseconds(10 * s.interval_ns));
+    } while (c || c_err);
+
+    return stats;
 }
 
-MinidaqNode::~MinidaqNode()
-{
+void MinidaqNode::Run() {
+    int i;
+
+    _Setup();
+
+    std::cout << "Starting threads..." << std::endl;
+    for (i = 0; i < _nTh; i++) {
+        _futureVec.emplace_back(
+            std::async(std::launch::async, &MinidaqNode::_Execute, this, i));
+    }
 }
 
-void MinidaqNode::SetTimeTest(int s)
-{
-	_tTest_s = s;
+void MinidaqNode::Wait() {
+    int i;
+
+    std::cout << "Waiting..." << std::endl;
+    for (const auto &f : _futureVec) {
+        f.wait();
+    }
+
+    for (auto &f : _futureVec) {
+        auto s = f.get();
+        _statsVec.push_back(s);
+        _statsAll.Combine(s);
+    }
+    _statsReady = true;
+
+    std::cout << "Done!" << std::endl;
 }
 
-void MinidaqNode::SetTimeRamp(int s)
-{
-	_tRamp_s = s;
+void MinidaqNode::Show() {
+    int i = 0;
+
+    if (!_statsReady) {
+        return;
+    }
+
+    _statsAll.DumpSummaryHeader();
+
+    for (auto &s : _statsVec) {
+        std::cout << "th-" << i++ << "-" << _GetType() << std::endl;
+        s.DumpSummary();
+    }
+
+    std::cout << "all-" << _GetType() << std::endl;
+    _statsAll.DumpSummary();
 }
 
-void MinidaqNode::SetTimeIter(int us)
-{
-	_tIter_us = us;
+void MinidaqNode::Save(std::string &fp) {
+    int i = 0;
+
+    if (!_statsReady || fp.empty()) {
+        return;
+    }
+
+    for (auto &s : _statsVec) {
+        std::stringstream ss;
+        ss << fp << "-thread-" << i++ << "-" << _GetType();
+        s.Dump(ss.str());
+    }
+    std::stringstream ss;
+    ss << fp << "-thread-all-" << _GetType();
+    _statsAll.Dump(ss.str());
 }
 
-void MinidaqNode::SetThreads(int n)
-{
-	_nTh= n;
+void MinidaqNode::SaveSummary(std::string &fs, std::string &tname) {
+    if (!_statsReady || fs.empty()) {
+        return;
+    }
+
+    _statsAll.DumpSummary(fs, tname);
 }
-
-MinidaqStats MinidaqNode::_Execute(int executorId)
-{
-	std::atomic<std::uint64_t> c_err;
-	uint64_t event_id = executorId;
-	std::atomic<std::uint64_t> c;
-	MinidaqTimerHR timerSample;
-	MinidaqTimerHR timerTest;
-	MinidaqStats stats;
-	MinidaqSample s;
-	uint64_t avg_r;
-
-	// Ramp up
-	timerTest.Restart_s(_tRamp_s);
-	while (!timerTest.IsExpired()) {
-		s.nRequests++;
-		_Task(executorId, c, c_err);
-	}
-
-	// Record samples
-	timerTest.Restart_s(_tTest_s);
-	while (!timerTest.IsExpired() && !_stopped) {
-		// Timer precision per iteration
-		avg_r = (s.nRequests + 10) / 10;
-		s.Reset();
-		c = 0;
-		c_err = 0;
-		timerSample.Restart_us(_tIter_us);
-		do {
-			event_id += _nTh;
-			try {
-				_Task(event_id, c, c_err);
-				s.nRequests++;
-			}
-			catch (...) {
-				s.nErrRequests++;
-			}
-		} while (!_stopped && ((s.nRequests % avg_r) || !timerSample.IsExpired()));
-		s.nCompletions = c;
-		s.nErrCompletions = c_err;
-		s.interval_ns = timerSample.GetElapsed_ns();
-		stats.RecordSample(s);
-	}
-
-	_stopped = true;
-
-	// Wait for all completions
-	do {
-		c = 0;
-		c_err = 0;
-		std::this_thread::sleep_for(std::chrono::nanoseconds(10 * s.interval_ns));
-	} while (c || c_err); 
-
-	return stats;
-}
-
-void MinidaqNode::Run()
-{
-	int i;
-
-	_Setup();
-
-	std::cout << "Starting threads..." << std::endl;
-	for (i = 0; i < _nTh; i++) {
-		_futureVec.emplace_back(std::async(std::launch::async,
-										  &MinidaqNode::_Execute, this, i));
-	}
-}
-
-void MinidaqNode::Wait()
-{
-	int i;
-	
-	std::cout << "Waiting..." << std::endl;
-	for (const auto& f : _futureVec) {
-		f.wait();
-	}
-
-	for (auto& f : _futureVec) {
-		auto s = f.get();
-		_statsVec.push_back(s);
-		_statsAll.Combine(s);
-	}
-	_statsReady = true;
-
-	std::cout << "Done!" << std::endl;
-}
-
-void MinidaqNode::Show()
-{
-	int i = 0;
-
-	if (!_statsReady) {
-		return;
-	}
-
-	_statsAll.DumpSummaryHeader();
-
-	for (auto& s : _statsVec) {
-		std::cout << "th-" << i++ << "-" << _GetType() << std::endl;
-		s.DumpSummary();
-	}
-
-	std::cout << "all-" << _GetType() << std::endl;
-	_statsAll.DumpSummary();
-}
-
-void MinidaqNode::Save(std::string& fp)
-{
-	int i = 0;
-
-	if (!_statsReady || fp.empty()) {
-		return;
-	}
-
-	for (auto& s : _statsVec) {
-		std::stringstream ss;
-		ss << fp << "-thread-" << i++ << "-" << _GetType();
-		s.Dump(ss.str());
-	}
-	std::stringstream ss;
-	ss << fp << "-thread-all-" << _GetType();
-	_statsAll.Dump(ss.str());
-}
-
-void MinidaqNode::SaveSummary(std::string& fs, std::string& tname)
-{
-	if (!_statsReady || fs.empty()) {
-		return;
-	}
-
-	_statsAll.DumpSummary(fs, tname);
-}
-
 }
