@@ -60,8 +60,8 @@ namespace FogKV {
 struct ValueWrapper {
     p<int> location;
     persistent_ptr<char> value;
-    struct pobj_action (* actionValue)[1];
-    struct pobj_action (* actionKey)[2];
+    struct pobj_action (*actionValue)[1];
+    struct pobj_action (*actionKey)[2];
     string getString();
 };
 
@@ -118,5 +118,5 @@ class RTree : public FogKV::RTreeEngine {
   private:
     Tree *tree;
 };
-}
+} // namespace FogKV
 #endif /* LIB_STORE_RTREE_H_ */
