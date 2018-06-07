@@ -115,10 +115,12 @@ StatusCode RTree::AllocValueForKey(const string &key, size_t size,
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
     try {
-        //pmemobj_zalloc(tree->_pm_pool.get_handle(), val->value.raw_ptr(), size,
+        // pmemobj_zalloc(tree->_pm_pool.get_handle(), val->value.raw_ptr(),
+        // size,
         //               1);
         val->actionValue = new pobj_action[1];
-        val->value.raw_ptr() = pmemobj_reserve(tree->_pm_pool.get_handle(), &(val->actionValue)[0], size, 0);
+        val->value.raw_ptr() = pmemobj_reserve(tree->_pm_pool.get_handle(),
+                                               &(val->actionValue)[0], size, 0);
 
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
@@ -160,4 +162,4 @@ ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current, int key) {
     }
     return &(current->valueNode[key_calc]);
 }
-}
+} // namespace FogKV
