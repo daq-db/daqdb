@@ -42,6 +42,8 @@
 #include "MinidaqStats.h"
 
 #define NSECS_IN_SEC		1000000000ULL
+#define OPS_MIN				1
+#define OPS_MAX				100000000ULL
 #define OPS_IN_MOPS			1000000.0
 #define SHOW_VALUE(x)		std::cout << "|" << std::right <<  std::setw(10) \
 							<< std::setprecision(6) << x << "|"
@@ -59,19 +61,19 @@ MinidaqStats::MinidaqStats()
 {
 	int err;
 
-	err = hdr_init(1, 100000000ULL, 5, &_histogramRps);
+	err = hdr_init(OPS_MIN, OPS_MAX, 5, &_histogramRps);
 	if (err) {
 		throw std::system_error(err, std::system_category());
 	}
-	err = hdr_init(1, 100000000ULL, 5, &_histogramCps);
+	err = hdr_init(OPS_MIN, OPS_MAX, 5, &_histogramCps);
 	if (err) {
 		throw std::system_error(err, std::system_category());
 	}
-	err = hdr_init(1, 100000000ULL, 5, &_histogramRpsErr);
+	err = hdr_init(OPS_MIN, OPS_MAX, 5, &_histogramRpsErr);
 	if (err) {
 		throw std::system_error(err, std::system_category());
 	}
-	err = hdr_init(1, 100000000ULL, 5, &_histogramCpsErr);
+	err = hdr_init(OPS_MIN, OPS_MAX, 5, &_histogramCpsErr);
 	if (err) {
 		throw std::system_error(err, std::system_category());
 	}
