@@ -76,9 +76,11 @@ Tree::Tree(const string &path, const size_t size) {
     std::cout << "Tree constructor " << std::endl;
 }
 
-StatusCode RTree::Get(int32_t limit, // copy value to fixed-size buffer
-                      const char *key, int32_t keybytes, char *value,
-                      int32_t *valuebytes) {
+StatusCode RTree::Get(const char *key, int32_t keybytes, string *value) {
+    ValueWrapper *val =
+        tree->findValueInNode(tree->treeRoot->rootNode, atoi(key));
+    value->append(val->value.get());
+
     return StatusCode::Ok;
 }
 
