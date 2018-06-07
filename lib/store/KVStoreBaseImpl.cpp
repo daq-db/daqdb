@@ -83,10 +83,10 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
 						switch(options.stage)
 						{
 							case options.stages::first:
-							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTPMEM, &key, &value, &cb));
+							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
 							break;
 							case options.stages::main:
-							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTDISK, &key, &value, &cb));
+							_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
 							break;
 						}
 					} else {
@@ -252,9 +252,16 @@ KVStoreBaseImpl::~KVStoreBaseImpl() {
     FogKV::RTreeEngine::Close(mRTree.get());
     mRTree.reset();
 
+<<<<<<< HEAD
     for (auto index = 0; index < _rqstPoolers.size(); index++) {
         delete _rqstPoolers.at(index);
     }
+=======
+	for (auto index = 0; index < _rqstPoolers.size(); index++) {
+		delete _rqstPoolers.at(index);
+	}
+	delete _spdkPooler;
+>>>>>>> fogkv: add serparate pooler for spdk
 
     if (m_io_service)
         delete m_io_service;
@@ -294,6 +301,7 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
     return "";
 }
 
+<<<<<<< HEAD
 void KVStoreBaseImpl::init() {
 
     if (getOptions().Runtime.logFunc)
@@ -325,6 +333,42 @@ void KVStoreBaseImpl::init() {
     }
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");
+=======
+void KVStoreBaseImpl::init()
+{
+	auto dhtPort = getOptions().Dht.Port ? : FogKV::utils::getFreePort(io_service(), 0);
+	auto port = getOptions().Port ? : FogKV::utils::getFreePort(io_service(), 0);
+
+	mDhtNode.reset(new FogKV::CChordAdapter(io_service(),
+			dhtPort, port,
+			getOptions().Dht.Id));
+
+	mRTree.reset(FogKV::RTreeEngine::Open(
+			mOptions.KVEngine, mOptions.PMEM.Path, mOptions.PMEM.Size));
+
+	/**
+	 * @TODO jradtke: initial implementation, will be moved to better place.
+	 * 				  SPDK init messages should be hidden.
+	 */
+	struct spdk_env_opts opts;
+	spdk_env_opts_init(&opts);
+	opts.name = "FogKV";
+	opts.shm_id = 0;
+	if (spdk_env_init(&opts) == 0) {
+		auto poolerCount = getOptions().Runtime.numOfPoolers();
+		for (auto index = 0; index < poolerCount; index++) {
+			_rqstPoolers.push_back(new FogKV::RqstPooler(mRTree));
+		}
+		_spdkPooler = new FogKV::RqstPooler(mRTree);
+	}
+
+	if (mRTree == nullptr)
+		throw OperationFailedException(errno, ::pmemobj_errormsg());
+
+	if (getOptions().Runtime.logFunc != nullptr) {
+		getOptions().Runtime.logFunc("KVStoreBaseImpl initialization completed");
+	}
+>>>>>>> fogkv: add serparate pooler for spdk
 }
 
 asio::io_service &KVStoreBaseImpl::io_service() {

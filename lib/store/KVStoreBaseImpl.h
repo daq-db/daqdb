@@ -91,11 +91,17 @@ class KVStoreBaseImpl : public KVStoreBase {
     KVStoreBaseImpl(const Options &options);
     virtual ~KVStoreBaseImpl();
 
+<<<<<<< HEAD
     void init();
     void registerProperties();
 
     asio::io_service &io_service();
     asio::io_service *m_io_service;
+=======
+	std::vector<RqstPooler*> _rqstPoolers;
+	RqstPooler* _spdkPooler;
+};
+>>>>>>> fogkv: add serparate pooler for spdk
 
     size_t mKeySize;
     Options mOptions;
