@@ -36,45 +36,38 @@ using namespace std;
 
 namespace FogKV {
 
-MinidaqAsyncReadoutNode::MinidaqAsyncReadoutNode(KVStoreBase *kvs) :
-	MinidaqReadoutNode(_kvs)
-{
-}
+MinidaqAsyncReadoutNode::MinidaqAsyncReadoutNode(KVStoreBase *kvs)
+    : MinidaqReadoutNode(_kvs) {}
 
-MinidaqAsyncReadoutNode::~MinidaqAsyncReadoutNode()
-{
-}
+MinidaqAsyncReadoutNode::~MinidaqAsyncReadoutNode() {}
 
-std::string MinidaqAsyncReadoutNode::_GetType()
-{
-	return std::string("readout-async");
+std::string MinidaqAsyncReadoutNode::_GetType() {
+    return std::string("readout-async");
 }
 
 void MinidaqAsyncReadoutNode::_Task(uint64_t eventId,
-									std::atomic<std::uint64_t> &cnt,
-									std::atomic<std::uint64_t> &cntErr)
-{
-	Key key = _kvs->AllocKey();
-	MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
-	keyp->subdetectorId = _id;
-	keyp->runId = _runId;
-	keyp->eventId = eventId;
+                                    std::atomic<std::uint64_t> &cnt,
+                                    std::atomic<std::uint64_t> &cntErr) {
+    Key key = _kvs->AllocKey();
+    MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
+    keyp->subdetectorId = _id;
+    keyp->runId = _runId;
+    keyp->eventId = eventId;
 
-	FogKV::Value value = _kvs->Alloc(key, _fSize);
+    FogKV::Value value = _kvs->Alloc(key, _fSize);
 
-	try {
-		_kvs->PutAsync(std::move(key), std::move(value),
-					   [&] (FogKV::KVStoreBase *kvs, FogKV::Status status,
-							const FogKV::Key &key, const FogKV::Value &val) {
-							if (!status.ok()) {
-								cntErr++;
-								return;
-					   		}
-							cnt++;
-					    });
-	} catch (...) {
-		cntErr++;
-	}
+    try {
+        _kvs->PutAsync(std::move(key), std::move(value),
+                       [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                           const FogKV::Key &key, const FogKV::Value &val) {
+                           if (!status.ok()) {
+                               cntErr++;
+                               return;
+                           }
+                           cnt++;
+                       });
+    } catch (...) {
+        cntErr++;
+    }
 }
-
 }

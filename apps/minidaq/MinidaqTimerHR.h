@@ -39,23 +39,22 @@
 namespace FogKV {
 
 class MinidaqTimerHR : public MinidaqTimer {
-public:
-	MinidaqTimerHR();
-	~MinidaqTimerHR();
+  public:
+    MinidaqTimerHR();
+    ~MinidaqTimerHR();
 
-	void Restart_s(int interval_s);
-	void Restart_ms(int interval_ms);
-	void Restart_us(int interval_us);
-	bool IsExpired();
-	uint64_t GetElapsed_ns();
+    void Restart_s(int interval_s);
+    void Restart_ms(int interval_ms);
+    void Restart_us(int interval_us);
+    bool IsExpired();
+    uint64_t GetElapsed_ns();
 
-private:
-	std::chrono::nanoseconds _reqInterval;
-	std::chrono::nanoseconds _currInterval;
-	std::chrono::time_point<std::chrono::high_resolution_clock> _start;
-	bool _expired = true;
+  private:
+    std::chrono::nanoseconds _reqInterval;
+    std::chrono::nanoseconds _currInterval;
+    std::chrono::time_point<std::chrono::high_resolution_clock> _start;
+    bool _expired = true;
 
-	void _restart();
+    void _restart();
 };
-
 }

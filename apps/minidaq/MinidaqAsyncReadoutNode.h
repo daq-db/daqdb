@@ -37,14 +37,13 @@
 namespace FogKV {
 
 class MinidaqAsyncReadoutNode : public MinidaqReadoutNode {
-public:
-	MinidaqAsyncReadoutNode(KVStoreBase *kvs);
-	~MinidaqAsyncReadoutNode();
+  public:
+    MinidaqAsyncReadoutNode(KVStoreBase *kvs);
+    ~MinidaqAsyncReadoutNode();
 
-protected:
-	void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
-			  std::atomic<std::uint64_t> &cntErr);
-	std::string _GetType();
+  protected:
+    void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
+               std::atomic<std::uint64_t> &cntErr);
+    std::string _GetType();
 };
-
 }
