@@ -59,6 +59,8 @@ public:
 	void Run();
 	void Wait();
 	void Show();
+	void Save(std::string& fp);
+	void SaveSummary(std::string& fs, std::string& tname);
 	void SetTimeTest(int s);
 	void SetTimeIter(int us);
 	void SetTimeRamp(int s);
@@ -83,8 +85,11 @@ private:
 	int _tRamp_s = 0; // desired test ramp duration in seconds
 	int _tIter_us = 0; // desired iteration time in microseconds
 	std::atomic_bool _stopped; // signals first thread stopped execution
+	std::atomic_bool _statsReady; // signals all results are available
 
 	std::vector<std::future<MinidaqStats>> _futureVec;
+	std::vector<MinidaqStats> _statsVec;
+	MinidaqStats _statsAll;
 };
 
 }
