@@ -86,6 +86,7 @@ protected:
 	std::mutex mLock;
 
 	std::vector<RqstPooler*> _rqstPoolers;
+	RqstPooler* _spdkPooler;
 };
 
 } //namespace FogKV

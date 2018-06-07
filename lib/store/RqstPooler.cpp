@@ -98,22 +98,6 @@ void RqstPooler::ProcessMsg() {
 			mRTree->Put(keyStr, valStr);
 			break;
 		}
-			break;
-		}
-               case RqstOperation::PUTDISK: {
-                       unsigned int cluster = 0;
-                       std::string valStr(_rqstMsgBuffer[MsgIndex]->value->data(),
-                                       _rqstMsgBuffer[MsgIndex]->value->size());
-                       /** @TODO: ppelplin: get free cluster for data */
-                       /*              cluster = get_free_cluster(); */
-                       /** @TODO: ppelplin: send i/o */
-
-//                     mDisk->Store(valStr, cluster, [&] {
-                           /** @TODO: ppelplin: Update metadata in cb:
-                            * value points to the used cluster
-                            * location points to disk */
-                           /*mRTree->Update(keyStr, cluster, disk);*/
-//                     });
 		case RqstOperation::GET:
 			break;
 		case RqstOperation::UPDATE:

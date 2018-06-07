@@ -85,10 +85,10 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
 						switch(options.stage)
 						{
 							case options.stages::first:
-							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTPMEM, &key, &value, &cb));
+							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
 							break;
 							case options.stages::main:
-							_rqstPoolers.at(options.poolerId())->EnqueueMsg(new RqstMsg(RqstOperation::PUTDISK, &key, &value, &cb));
+							_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
 							break;
 						}
 					} else {
@@ -266,6 +266,7 @@ KVStoreBaseImpl::~KVStoreBaseImpl()
 	for (auto index = 0; index < _rqstPoolers.size(); index++) {
 		delete _rqstPoolers.at(index);
 	}
+	delete _spdkPooler;
 
 	if (m_io_service)
 		delete m_io_service;
@@ -331,6 +332,7 @@ void KVStoreBaseImpl::init()
 		for (auto index = 0; index < poolerCount; index++) {
 			_rqstPoolers.push_back(new FogKV::RqstPooler(mRTree));
 		}
+		_spdkPooler = new FogKV::RqstPooler(mRTree);
 	}
 
 	if (mRTree == nullptr)
