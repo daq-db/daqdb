@@ -44,7 +44,7 @@
 namespace FogKV {
 
 MinidaqNode::MinidaqNode(KVStoreBase *kvs) :
-	_kvs(kvs), _stopped(false)
+	_kvs(kvs), _stopped(false), _statsReady(false)
 {
 }
 
@@ -148,34 +148,61 @@ void MinidaqNode::Wait()
 	for (const auto& f : _futureVec) {
 		f.wait();
 	}
+
+	for (auto& f : _futureVec) {
+		auto s = f.get();
+		_statsVec.push_back(s);
+		_statsAll.Combine(s);
+	}
+	_statsReady = true;
+
 	std::cout << "Done!" << std::endl;
 }
 
 void MinidaqNode::Show()
 {
-	MinidaqStats total;
 	int i = 0;
 
-	for (auto& f : _futureVec) {
-		std::cout << "########################################################"
-				  << std::endl;
-		std::cout << "   STATS[thread-" << i++ << "-" << _GetType() << "]:"
-				  << std::endl;
-		std::cout << "########################################################"
-				  << std::endl;
-		auto s = f.get();
-		s.Dump();
-		total.Combine(s);
-		std::cout << std::endl;
+	if (!_statsReady) {
+		return;
 	}
 
-	std::cout << "########################################################"
-			  << std::endl;
-	std::cout << "   STATS[all-" << _GetType() << "]:" << std::endl;
-	std::cout << "########################################################"
-			  << std::endl;
-	total.Dump();
-	std::cout << std::endl;
+	_statsAll.DumpSummaryHeader();
+
+	for (auto& s : _statsVec) {
+		std::cout << "th-" << i++ << "-" << _GetType() << std::endl;
+		s.DumpSummary();
+	}
+
+	std::cout << "all-" << _GetType() << std::endl;
+	_statsAll.DumpSummary();
+}
+
+void MinidaqNode::Save(std::string& fp)
+{
+	int i = 0;
+
+	if (!_statsReady || fp.empty()) {
+		return;
+	}
+
+	for (auto& s : _statsVec) {
+		std::stringstream ss;
+		ss << fp << "-thread-" << i++ << "-" << _GetType();
+		s.Dump(ss.str());
+	}
+	std::stringstream ss;
+	ss << fp << "-thread-all-" << _GetType();
+	_statsAll.Dump(ss.str());
+}
+
+void MinidaqNode::SaveSummary(std::string& fs, std::string& tname)
+{
+	if (!_statsReady || fs.empty()) {
+		return;
+	}
+
+	_statsAll.DumpSummary(fs, tname);
 }
 
 }

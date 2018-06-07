@@ -39,6 +39,13 @@
 
 namespace FogKV {
 
+enum MinidaqMetricType {
+	MINIDAQ_METRIC_RPS,
+	MINIDAQ_METRIC_RPS_ERR,
+	MINIDAQ_METRIC_CPS,
+	MINIDAQ_METRIC_CPS_ERR,
+};
+
 struct MinidaqSample {
 	MinidaqSample() = default;
 	MinidaqSample(uint64_t r, uint64_t c, uint64_t e_r, uint64_t e_c, uint64_t ns) :
@@ -70,9 +77,16 @@ public:
 	void Combine(const MinidaqStats& stats);
 
 	void Dump();
-	void DumpCsv();
+	void Dump(const std::string& fp);
+	void DumpSummary();
+	void DumpSummary(const std::string& fp, const std::string& name);
+	void DumpSummaryHeader();
 
 private:
+	void _DumpCsv(const std::string &fp, enum MinidaqMetricType histo_type);
+	void _DumpSummary(enum MinidaqMetricType histo_type);
+	void _DumpSummaryCsv(std::fstream &f, enum MinidaqMetricType histo_type);
+
 	struct hdr_histogram* _histogramRps = nullptr;
 	struct hdr_histogram* _histogramCps = nullptr;
 	struct hdr_histogram* _histogramRpsErr = nullptr;

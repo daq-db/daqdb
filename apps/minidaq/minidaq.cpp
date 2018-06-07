@@ -31,6 +31,7 @@
  */
 
 #include <iostream>
+#include <memory>
 #include <boost/program_options.hpp>
 
 #include "FogKV/KVStoreBase.h"
@@ -42,7 +43,7 @@ using namespace std;
 namespace po = boost::program_options;
 
 #define MINIDAQ_DEFAULT_FRAGMENT_SIZE		10240
-#define MINIDAQ_DEFAULT_PMEM_SIZE			512 * 1024 * 1024	
+#define MINIDAQ_DEFAULT_PMEM_SIZE			512 * 1024 * 1024
 #define MINIDAQ_DEFAULT_PMEM_PATH			"/mnt/pmem/pmemkv.dat"
 #define MINIDAQ_DEFAULT_T_RAMP_S			2
 #define MINIDAQ_DEFAULT_T_TEST_S			10
@@ -68,8 +69,11 @@ static FogKV::KVStoreBase* openKVS(std::string &pmemPath, size_t pmemSize)
 
 int main(int argc, const char *argv[])
 {
+	std::string results_prefix;
+	std::string results_all;
 	FogKV::KVStoreBase *kvs;
 	std::string pmem_path;
+	std::string tname;
 	size_t pmem_size;
 	size_t fSize;
 	int tIter_us;
@@ -88,30 +92,37 @@ int main(int argc, const char *argv[])
 			 "Number of readout threads. If no modes are specified, this is the default with one thread.")
 			("readout-async", po::value<int>(&nRaTh)->default_value(
 				MINIDAQ_DEFAULT_N_THREADS_ARO),
-			 "Number of asynchronous readout threads")
+			 "Number of asynchronous readout threads.")
 			("fast-filtering", po::value<int>(&nFfTh)->default_value(
 				MINIDAQ_DEFAULT_N_THREADS_FF),
-			 "Number of fast filtering threads")
+			 "Number of fast filtering threads.")
 			("event-building", po::value<int>(&nEbTh)->default_value(
 				MINIDAQ_DEFAULT_N_THREADS_EB),
-			 "Number of event building threads")
+			 "Number of event building threads.")
 			("fragment-size", po::value<size_t>(&fSize)->default_value(
 				MINIDAQ_DEFAULT_FRAGMENT_SIZE),
-			 "Fragment size in bytes in case of readout mode")
+			 "Fragment size in bytes in case of readout mode.")
 			("time-test", po::value<int>(&tTest_s)->default_value(
 				MINIDAQ_DEFAULT_T_TEST_S),
-			 "Desired test duration in seconds")
+			 "Desired test duration in seconds.")
 			("time-iter", po::value<int>(&tIter_us)->default_value(
 				MINIDAQ_DEFAULT_T_ITER_US),
 			 "Desired iteration duration in microseconds (defines measurement time for OPS estimation of a single histogram sample.")
 			("time-ramp", po::value<int>(&tRamp_s)->default_value(
 				MINIDAQ_DEFAULT_T_RAMP_S),
-			 "Desired ramp up time in seconds")
+			 "Desired ramp up time in seconds.")
 			("pmem-path", po::value<std::string>(&pmem_path)->default_value(
-				 MINIDAQ_DEFAULT_PMEM_PATH), "pmemkv persistent memory pool file")
+				 MINIDAQ_DEFAULT_PMEM_PATH),
+			 "Persistent memory pool file.")
 			("pmem-size", po::value<size_t>(&pmem_size)->default_value(
 				 MINIDAQ_DEFAULT_PMEM_SIZE),
-			 "pmemkv persistent memory pool size")
+			 "Persistent memory pool size.")
+			("out-prefix", po::value<std::string>(&results_prefix),
+			 "If set CSV result files will be generated with the desired prefix and path.")
+			("out-summary", po::value<std::string>(&results_all),
+			 "If set CSV line will be appended to the specified file.")
+			("test-name", po::value<std::string>(&tname),
+			 "Test name.")
 			;
 
 	po::variables_map parsedArguments;
@@ -139,29 +150,32 @@ int main(int argc, const char *argv[])
 
 	try {
 		kvs = openKVS(pmem_path, pmem_size);
-		FogKV::MinidaqReadoutNode nodeReadout(kvs);
-		FogKV::MinidaqAsyncReadoutNode nodeAsyncReadout(kvs);
-		std::vector<FogKV::MinidaqNode*> nodes;
-
-		// Start workers
+		std::vector<std::unique_ptr<FogKV::MinidaqNode>> nodes; // Configure nodes
 		if (nRTh) {
-			nodeReadout.SetTimeTest(tTest_s);
-			nodeReadout.SetTimeRamp(tRamp_s);
-			nodeReadout.SetTimeIter(tIter_us);
-			nodeReadout.SetThreads(nRTh);
-			nodeReadout.SetFragmentSize(fSize);
-			nodeReadout.Run();
-			nodes.push_back(&nodeReadout);
+			unique_ptr<FogKV::MinidaqReadoutNode> nodeReadout(
+					new FogKV::MinidaqReadoutNode(kvs));
+			nodeReadout->SetThreads(nRTh);
+			nodeReadout->SetFragmentSize(fSize);
+			nodes.push_back(std::move(nodeReadout));
 		}
 
 		if (nRaTh) {
-			nodeAsyncReadout.SetTimeTest(tTest_s);
-			nodeAsyncReadout.SetTimeRamp(tRamp_s);
-			nodeAsyncReadout.SetTimeIter(tIter_us);
-			nodeAsyncReadout.SetThreads(nRaTh);
-			nodeAsyncReadout.SetFragmentSize(fSize);
-			nodeAsyncReadout.Run();
-			nodes.push_back(&nodeAsyncReadout);
+			unique_ptr<FogKV::MinidaqAsyncReadoutNode> nodeAsyncReadout(
+					new FogKV::MinidaqAsyncReadoutNode(kvs));
+			nodeAsyncReadout->SetThreads(nRaTh);
+			nodeAsyncReadout->SetFragmentSize(fSize);
+			nodes.push_back(std::move(nodeAsyncReadout));
+		}
+
+		for (auto& n : nodes) {
+			n->SetTimeTest(tTest_s);
+			n->SetTimeRamp(tRamp_s);
+			n->SetTimeIter(tIter_us);
+		}
+
+		// Run
+		for (auto& n : nodes) {
+			n->Run();
 		}
 
 		// Wait for results
@@ -172,6 +186,12 @@ int main(int argc, const char *argv[])
 		// Show results
 		for (auto& n : nodes) {
 			n->Show();
+			if (!results_prefix.empty()) {
+				n->Save(results_prefix);
+			}
+			if (!results_all.empty()) {
+				n->SaveSummary(results_all, tname);
+			}
 		}
 	} catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
