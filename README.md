@@ -41,7 +41,6 @@ Following libraries are optional (needed for examples and unit tests):
 <ul>
 <li>boost-devel (1.63+)</li>
 <li>boost-test (1.63+)</li>
-<li>log4cxx-devel (log4cxx-dev)</li>
 <li>doxygen</li>
 </ul>
 
@@ -79,6 +78,8 @@ If using LCG release, set the desired environment first:
 ```
 . /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
 ```
+
+Note: `. scripts/setup_env_lcg.sh` can be called to setup environment with LCG and SPDK.
 
 ##### SPDK
 FogKV is using SPDK internally so following extra step is required to configure environment.

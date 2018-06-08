@@ -38,9 +38,11 @@
 
 namespace FogKV {
 
-RqstMsg::RqstMsg(const RqstOperation op, const Key *key, const Value *value,
-                 void *cb_fn)
-    : op(op), key(key), value(value), cb_fn(cb_fn) {}
+RqstMsg::RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
+                 const char *value, size_t valueSize,
+                 KVStoreBase::KVStoreBaseCallback clb)
+    : op(op), key(key), keySize(keySize), value(value), valueSize(valueSize),
+      clb(clb) {}
 
 RqstPooler::RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store)
     : isRunning(0), _thread(nullptr), rtree(Store) {
@@ -67,9 +69,6 @@ void RqstPooler::_ThreadMain() {
     while (isRunning) {
         DequeueMsg();
         ProcessMsg();
-
-        /** @TODO jradtke: Initial implementation, will be removed */
-        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
 
@@ -83,42 +82,44 @@ bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
 void RqstPooler::DequeueMsg() {
     _rqstDequedCount = spdk_ring_dequeue(rqstRing, (void **)_rqstMsgBuffer,
                                          DEQUEUE_RING_LIMIT);
-    assert(_rqstDequedCount < DEQUEUE_RING_LIMIT);
+    assert(_rqstDequedCount <= DEQUEUE_RING_LIMIT);
 }
 
 void RqstPooler::ProcessMsg() {
     for (unsigned short MsgIndex = 0; MsgIndex < _rqstDequedCount; MsgIndex++) {
-        auto key = _rqstMsgBuffer[MsgIndex]->key;
-        auto cb_fn = _rqstMsgBuffer[0]->cb_fn;
+        const char *key = _rqstMsgBuffer[MsgIndex]->key;
+        const size_t keySize = _rqstMsgBuffer[MsgIndex]->keySize;
+
+        auto cb_fn = _rqstMsgBuffer[MsgIndex]->clb;
 
         switch (_rqstMsgBuffer[MsgIndex]->op) {
         case RqstOperation::PUT: {
-            auto val = _rqstMsgBuffer[MsgIndex]->value;
+            const char *val = _rqstMsgBuffer[MsgIndex]->value;
+            const size_t valSize = _rqstMsgBuffer[MsgIndex]->valueSize;
 
-            StatusCode rc =
-                rtree->Put(key->data(), key->size(), val->data(), val->size());
-            KVStoreBase::KVStoreBasePutCallback *clb_fn =
-                reinterpret_cast<KVStoreBase::KVStoreBasePutCallback *>(cb_fn);
-            (*clb_fn)(nullptr, Status(rc), *key, *val);
+            StatusCode rc = rtree->Put(key, keySize, val, valSize);
+
+            cb_fn(nullptr, Status(rc), key, keySize, val, valSize);
             break;
         }
         case RqstOperation::GET: {
             std::string valStr;
-            StatusCode rc = rtree->Get(key->data(), key->size(), &valStr);
-            KVStoreBase::KVStoreBaseGetCallback *clb_fn =
-                reinterpret_cast<KVStoreBase::KVStoreBaseGetCallback *>(cb_fn);
+            StatusCode rc = rtree->Get(key, keySize, &valStr);
 
             Value value(new char[valStr.length() + 1], valStr.length() + 1);
             std::memcpy(value.data(), valStr.c_str(), value.size());
             value.data()[value.size() - 1] = '\0';
 
-            (*clb_fn)(nullptr, Status(rc), *key, value);
+            cb_fn(nullptr, Status(rc), key, keySize, value.data(),
+                      value.size());
             break;
         }
         default:
             break;
         }
+        delete _rqstMsgBuffer[MsgIndex];
     }
+    _rqstDequedCount = 0;
 }
 
 } /* namespace FogKV */
