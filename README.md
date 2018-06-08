@@ -40,7 +40,7 @@ Following libraries are required:
 Following libraries are optional (needed for examples and unit tests):
 <ul>
 <li>boost-devel (1.63+)</li>
-<li>boost-test (1.63+)</li>2
+<li>boost-test (1.63+)</li>
 <li>doxygen</li>
 </ul>
 
