@@ -67,20 +67,20 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
         throw OperationFailedException(EINVAL);
 }
 
-void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
-                               KVStoreBasePutCallback cb,
+void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                                const PutOptions &options) {
     try {
+        RqstMsg *msg = new RqstMsg(RqstOperation::PUT, key.data(), key.size(),
+                                   value.data(), value.size(), cb);
         if (options.poolerId() < _rqstPoolers.size()) {
-            _rqstPoolers.at(options.poolerId())
-                ->EnqueueMsg(
-                    new RqstMsg(RqstOperation::PUT, &key, &value, &cb));
+            _rqstPoolers.at(options.poolerId())->EnqueueMsg(msg);
         } else {
-            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key,
-               value);
+            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key.data(),
+               key.size(), value.data(), value.size());
         }
     } catch (OperationFailedException &e) {
-        cb(this, e.status(), key, value);
+        cb(this, e.status(), key.data(), key.size(), value.data(),
+           value.size());
     }
 }
 
@@ -103,20 +103,21 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
     return value;
 }
 
-void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseGetCallback cb,
+void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
                                const GetOptions &options) {
     try {
         if (options.poolerId() < _rqstPoolers.size()) {
             _rqstPoolers.at(options.poolerId())
-                ->EnqueueMsg(new RqstMsg(RqstOperation::GET, &key, nullptr,
-                                         reinterpret_cast<void *>(&cb)));
+                ->EnqueueMsg(new RqstMsg(RqstOperation::GET, key.data(),
+                                         key.size(), nullptr, 0, cb));
         } else {
             Value val;
-            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key, val);
+            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key.data(),
+               key.size(), val.data(), val.size());
         }
     } catch (OperationFailedException &e) {
         Value val;
-        cb(this, e.status(), key, val);
+        cb(this, e.status(), key.data(), key.size(), val.data(), val.size());
     }
 }
 
