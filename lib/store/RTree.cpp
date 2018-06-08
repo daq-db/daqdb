@@ -137,9 +137,9 @@ void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
 
         make_persistent_atomic<Node>(_pm_pool, current->children[i], isLast,
                                      depth);
-        if(isLast) {
-		make_persistent_atomic<ValueWrapper[]>(
-            _pm_pool, current->children[i]->valueNode, LEVEL_SIZE);
+        if (isLast) {
+            make_persistent_atomic<ValueWrapper[]>(
+                _pm_pool, current->children[i]->valueNode, LEVEL_SIZE);
         }
         if (depth < (treeRoot->tree_heigh - 1)) {
             allocateLevel(current->children[i], depth, count);
