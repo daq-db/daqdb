@@ -35,48 +35,61 @@
 
 #include "RTreeEngine.h"
 
-#include <libpmemobj++/make_persistent.hpp>
-#include <libpmemobj++/make_persistent_array.hpp>
+#include <libpmemobj++/make_persistent_array_atomic.hpp>
+#include <libpmemobj++/make_persistent_atomic.hpp>
 #include <libpmemobj++/p.hpp>
 #include <libpmemobj++/persistent_ptr.hpp>
 #include <libpmemobj++/pool.hpp>
 #include <libpmemobj++/transaction.hpp>
+#include <libpmemobj++/utils.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <climits>
 #include <cmath>
+#include <iostream>
 
 using namespace pmem::obj;
 
 // Number of keys slots inside Node (not key bits)
 #define LEVEL_SIZE 4
 // Number of key bits
-#define KEY_SIZE 16
+#define KEY_SIZE 20
 
 namespace FogKV {
 
 struct ValueWrapper {
+    explicit ValueWrapper() : actionValue(nullptr) {
+        // std::cout << "ValueWrapper construct"<< std::endl;
+    }
     p<int> location;
     persistent_ptr<char> value;
-    struct pobj_action (*actionValue)[1];
-    struct pobj_action (*actionKey)[2];
+    struct pobj_action *actionValue;
+    // struct pobj_action (*actionKey)[2];
     string getString();
 };
 
 struct Node {
     explicit Node(bool _isEnd, int _depth) : isEnd(_isEnd), depth(_depth) {
         // children = make_persistent<Node[LEVEL_SIZE]>();
+        // std::cout << "Node construct, _depth= "<< depth<< " this ="<< this<<
+        // std::endl;
         if (isEnd) {
-            valueNode = make_persistent<ValueWrapper[LEVEL_SIZE]>();
+            // valueNode =
+            // std::cout << "Node construct, _depth= "<< depth<< " this ="<<
+            // this<< std::endl;
+
+            // auto pool = pool_by_vptr(this);
+            // make_persistent_atomic<ValueWrapper[]>(pool, valueNode,
+            // LEVEL_SIZE); std::cout << "Node construct done"<< std::endl;
         }
     }
     persistent_ptr<Node> children[LEVEL_SIZE];
     bool isEnd;
     int depth;
     // persistent_ptr<int[LEVEL_SIZE]> values;		//only for leaves
-    persistent_ptr<ValueWrapper[LEVEL_SIZE]> valueNode; // only for leaves
+    persistent_ptr<ValueWrapper[]> valueNode; // only for leaves
 };
 
 struct TreeRoot {
