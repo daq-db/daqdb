@@ -55,7 +55,7 @@ using namespace pmem::obj;
 // Number of keys slots inside Node (not key bits)
 #define LEVEL_SIZE 4
 // Number of key bits
-#define KEY_SIZE 20			/** @TODO jschmieg: target value is 24 bits */
+#define KEY_SIZE 20 /** @TODO jschmieg: target value is 24 bits */
 
 namespace FogKV {
 
