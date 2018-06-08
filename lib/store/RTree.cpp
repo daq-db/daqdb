@@ -37,7 +37,6 @@ namespace FogKV {
 #define LAYOUT "rtree"
 
 RTree::RTree(const string &_path, const size_t size) {
-    std::cout << "Creating RTree " << std::endl;
     tree = new Tree(_path, size);
 }
 
@@ -46,7 +45,6 @@ RTree::~RTree() {
 }
 Tree::Tree(const string &path, const size_t size) {
     if (!boost::filesystem::exists(path)) {
-        std::cout << "Creating pool " << std::endl;
         try {
             _pm_pool =
                 pool<TreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
@@ -54,25 +52,16 @@ Tree::Tree(const string &path, const size_t size) {
             std::cout << "Error on create" << pe.what();
         }
         try {
-            // transaction::exec_tx(_pm_pool, [&] {
             treeRoot = _pm_pool.get_root().get();
-            // treeRoot->rootNode =
             make_persistent_atomic<Node>(_pm_pool, treeRoot->rootNode, false,
                                          0);
-            std::cout << "root, node = " << treeRoot->rootNode << std::endl;
             treeRoot->level_bits = log2(LEVEL_SIZE);
             treeRoot->tree_heigh = KEY_SIZE / treeRoot->level_bits;
             int count = 0;
             allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth,
                           &count);
-            std::cout << "Allocated =" << count << std::endl;
-            //});
-            std::cout << "Allocated " << std::endl;
-
-        } catch (pmem::transaction_error &e) {
-            std::cout << "Transaction error " << e.what();
         } catch (std::exception &e) {
-            std::cout << "Error 1" << e.what();
+            std::cout << "Error " << e.what();
         }
 
     } else {
@@ -80,8 +69,6 @@ Tree::Tree(const string &path, const size_t size) {
         _pm_pool = pool<TreeRoot>::open(path, LAYOUT);
         treeRoot = _pm_pool.get_root().get();
     }
-
-    std::cout << "Tree constructor " << std::endl;
 }
 
 StatusCode RTree::Get(int32_t limit, // copy value to fixed-size buffer
@@ -120,7 +107,6 @@ StatusCode RTree::AllocValueForKey(const string &key, size_t size,
                                    char **value) {
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
-    // std::cout << "Alloc " << key << std::endl;
     try {
         val->actionValue = new pobj_action[1];
         pmemoid poid;
@@ -132,14 +118,12 @@ StatusCode RTree::AllocValueForKey(const string &key, size_t size,
         return StatusCode::UnknownError;
     }
     *value = reinterpret_cast<char *>(pmemobj_direct(*(val->value.raw_ptr())));
-    // std::cout << "Allocated AllocValueForKey" << key << std::endl;
     return StatusCode::Ok;
 }
 
 void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
     int i;
     depth++;
-    // std::cout << "allocateLevel depth="<<depth << std::endl;
     for (i = 0; i < LEVEL_SIZE; i++) {
         bool isLast = false;
         if (depth == (treeRoot->tree_heigh - 1)) {
@@ -149,40 +133,27 @@ void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
             (*count)++; // debug only
         }
 
-        // current->children[i] = make_persistent<Node>(isLast, depth);
-        // std::cout << "before make last=" <<isLast << " i="<< i<< std::endl;
         make_persistent_atomic<Node>(_pm_pool, current->children[i], isLast,
                                      depth);
-
-        make_persistent_atomic<ValueWrapper[]>(
+        if(isLast) {
+        	make_persistent_atomic<ValueWrapper[]>(
             _pm_pool, current->children[i]->valueNode, LEVEL_SIZE);
-        // std::cout << "after make" << std::endl;
-        // std::cout << "after make, node = "<<current->children[i]<< " depth =
-        // " <<current->children[i]->depth  << std::endl;
+        }
         if (depth < (treeRoot->tree_heigh - 1)) {
-            // std::cout << "allocating next"<< std::endl;
             allocateLevel(current->children[i], depth, count);
         }
     }
 }
 
 ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current, int key) {
-    // std::cout << "findValueInNode="<<current << std::endl;
-    // std::cout << "findValueInNode, depth="<<current->depth << std::endl;
     int key_shift = (2 * (treeRoot->tree_heigh - current->depth - 1));
     int key_calc = key >> key_shift;
     int mask = ~(UINT_MAX << treeRoot->level_bits);
     key_calc = key_calc & mask;
-    // std::cout << "current->depth="<<current->depth << std::endl;
 
     if (current->depth != (treeRoot->tree_heigh - 1)) {
-        // std::cout << "findInNext, current->depth="<<current->depth <<"
-        // treeRoot->tree_heigh"<< treeRoot->tree_heigh<< std::endl;
         return findValueInNode(current->children[key_calc], key);
     }
-    // std::cout << "found, current->depth="<<current->depth <<"
-    // treeRoot->tree_heigh"<< treeRoot->tree_heigh<< std::endl;
-    // std::cout << "found=" << &(current->valueNode[key_calc])<< std::endl;
     return &(current->valueNode[key_calc]);
 }
 } // namespace FogKV
