@@ -37,7 +37,6 @@ namespace FogKV {
 #define LAYOUT "rtree"
 
 RTree::RTree(const string &_path, const size_t size) {
-    std::cout << "Creating RTree " << std::endl;
     tree = new Tree(_path, size);
 }
 
@@ -46,7 +45,6 @@ RTree::~RTree() {
 }
 Tree::Tree(const string &path, const size_t size) {
     if (!boost::filesystem::exists(path)) {
-        std::cout << "Creating pool " << std::endl;
         try {
             _pm_pool =
                 pool<TreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
@@ -54,15 +52,14 @@ Tree::Tree(const string &path, const size_t size) {
             std::cout << "Error on create" << pe.what();
         }
         try {
-            transaction::exec_tx(_pm_pool, [&] {
-                treeRoot = _pm_pool.get_root().get();
-                treeRoot->rootNode = make_persistent<Node>(false, 0);
-                treeRoot->level_bits = log2(LEVEL_SIZE);
-                treeRoot->tree_heigh = KEY_SIZE / treeRoot->level_bits;
-                int count = 0;
-                allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth,
-                              &count);
-            });
+            treeRoot = _pm_pool.get_root().get();
+            make_persistent_atomic<Node>(_pm_pool, treeRoot->rootNode, false,
+                                         0);
+            treeRoot->level_bits = log2(LEVEL_SIZE);
+            treeRoot->tree_heigh = KEY_SIZE / treeRoot->level_bits;
+            int count = 0;
+            allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth,
+                          &count);
         } catch (std::exception &e) {
             std::cout << "Error " << e.what();
         }
@@ -72,8 +69,6 @@ Tree::Tree(const string &path, const size_t size) {
         _pm_pool = pool<TreeRoot>::open(path, LAYOUT);
         treeRoot = _pm_pool.get_root().get();
     }
-
-    std::cout << "Tree constructor " << std::endl;
 }
 
 StatusCode RTree::Get(const char *key, int32_t keybytes, string *value) {
@@ -115,8 +110,11 @@ StatusCode RTree::AllocValueForKey(const string &key, size_t size,
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
     try {
-        pmemobj_zalloc(tree->_pm_pool.get_handle(), val->value.raw_ptr(), size,
-                       1);
+        val->actionValue = new pobj_action[1];
+        pmemoid poid;
+        poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
+                               &(val->actionValue[0]), size, 0);
+        val->value = reinterpret_cast<char *>(pmemobj_direct(poid));
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
         return StatusCode::UnknownError;
@@ -128,19 +126,22 @@ StatusCode RTree::AllocValueForKey(const string &key, size_t size,
 void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
     int i;
     depth++;
-
     for (i = 0; i < LEVEL_SIZE; i++) {
         bool isLast = false;
-        if (depth == ((treeRoot->tree_heigh) - 1)) {
+        if (depth == (treeRoot->tree_heigh - 1)) {
             isLast = true;
         }
-        if (depth == treeRoot->tree_heigh) {
+        if (depth == (treeRoot->tree_heigh - 1)) {
             (*count)++; // debug only
         }
 
-        current->children[i] = make_persistent<Node>(isLast, depth);
-
-        if (depth < treeRoot->tree_heigh) {
+        make_persistent_atomic<Node>(_pm_pool, current->children[i], isLast,
+                                     depth);
+        if (isLast) {
+            make_persistent_atomic<ValueWrapper[]>(
+                _pm_pool, current->children[i]->valueNode, LEVEL_SIZE);
+        }
+        if (depth < (treeRoot->tree_heigh - 1)) {
             allocateLevel(current->children[i], depth, count);
         }
     }
@@ -157,4 +158,4 @@ ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current, int key) {
     }
     return &(current->valueNode[key_calc]);
 }
-}
+} // namespace FogKV

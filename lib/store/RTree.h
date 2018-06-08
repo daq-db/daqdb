@@ -35,46 +35,46 @@
 
 #include "RTreeEngine.h"
 
-#include <libpmemobj++/make_persistent.hpp>
-#include <libpmemobj++/make_persistent_array.hpp>
+#include <libpmemobj++/make_persistent_array_atomic.hpp>
+#include <libpmemobj++/make_persistent_atomic.hpp>
 #include <libpmemobj++/p.hpp>
 #include <libpmemobj++/persistent_ptr.hpp>
 #include <libpmemobj++/pool.hpp>
 #include <libpmemobj++/transaction.hpp>
+#include <libpmemobj++/utils.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <climits>
 #include <cmath>
+#include <iostream>
 
 using namespace pmem::obj;
 
 // Number of keys slots inside Node (not key bits)
 #define LEVEL_SIZE 4
 // Number of key bits
-#define KEY_SIZE 16
+#define KEY_SIZE 20 /** @TODO jschmieg: target value is 24 bits */
 
 namespace FogKV {
 
 struct ValueWrapper {
+    explicit ValueWrapper() : actionValue(nullptr) {
+    }
     p<int> location;
     persistent_ptr<char> value;
+    struct pobj_action *actionValue;
     string getString();
 };
 
 struct Node {
     explicit Node(bool _isEnd, int _depth) : isEnd(_isEnd), depth(_depth) {
-        // children = make_persistent<Node[LEVEL_SIZE]>();
-        if (isEnd) {
-            valueNode = make_persistent<ValueWrapper[LEVEL_SIZE]>();
-        }
     }
     persistent_ptr<Node> children[LEVEL_SIZE];
     bool isEnd;
     int depth;
-    // persistent_ptr<int[LEVEL_SIZE]> values;		//only for leaves
-    persistent_ptr<ValueWrapper[LEVEL_SIZE]> valueNode; // only for leaves
+    persistent_ptr<ValueWrapper[]> valueNode; // only for leaves
 };
 
 struct TreeRoot {
@@ -88,7 +88,6 @@ class Tree {
     Tree(const string &path, const size_t size);
     ValueWrapper *findValueInNode(persistent_ptr<Node> current, int key);
     void allocateLevel(persistent_ptr<Node> current, int depth, int *count);
-    // persistent_ptr<Node> treeRoot;
     TreeRoot *treeRoot;
     pool<TreeRoot> _pm_pool;
 
@@ -114,5 +113,5 @@ class RTree : public FogKV::RTreeEngine {
   private:
     Tree *tree;
 };
-}
+} // namespace FogKV
 #endif /* LIB_STORE_RTREE_H_ */
