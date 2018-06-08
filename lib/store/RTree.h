@@ -55,40 +55,25 @@ using namespace pmem::obj;
 // Number of keys slots inside Node (not key bits)
 #define LEVEL_SIZE 4
 // Number of key bits
-#define KEY_SIZE 20
+#define KEY_SIZE 20			/** @TODO jschmieg: target value is 24 bits */
 
 namespace FogKV {
 
 struct ValueWrapper {
     explicit ValueWrapper() : actionValue(nullptr) {
-        // std::cout << "ValueWrapper construct"<< std::endl;
     }
     p<int> location;
     persistent_ptr<char> value;
     struct pobj_action *actionValue;
-    // struct pobj_action (*actionKey)[2];
     string getString();
 };
 
 struct Node {
     explicit Node(bool _isEnd, int _depth) : isEnd(_isEnd), depth(_depth) {
-        // children = make_persistent<Node[LEVEL_SIZE]>();
-        // std::cout << "Node construct, _depth= "<< depth<< " this ="<< this<<
-        // std::endl;
-        if (isEnd) {
-            // valueNode =
-            // std::cout << "Node construct, _depth= "<< depth<< " this ="<<
-            // this<< std::endl;
-
-            // auto pool = pool_by_vptr(this);
-            // make_persistent_atomic<ValueWrapper[]>(pool, valueNode,
-            // LEVEL_SIZE); std::cout << "Node construct done"<< std::endl;
-        }
     }
     persistent_ptr<Node> children[LEVEL_SIZE];
     bool isEnd;
     int depth;
-    // persistent_ptr<int[LEVEL_SIZE]> values;		//only for leaves
     persistent_ptr<ValueWrapper[]> valueNode; // only for leaves
 };
 
@@ -103,7 +88,6 @@ class Tree {
     Tree(const string &path, const size_t size);
     ValueWrapper *findValueInNode(persistent_ptr<Node> current, int key);
     void allocateLevel(persistent_ptr<Node> current, int depth, int *count);
-    // persistent_ptr<Node> treeRoot;
     TreeRoot *treeRoot;
     pool<TreeRoot> _pm_pool;
 
