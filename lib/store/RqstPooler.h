@@ -43,7 +43,7 @@
 
 #include <FogKV/KVStoreBase.h>
 
-#define DEQUEUE_RING_LIMIT 256
+#define DEQUEUE_RING_LIMIT 1024
 
 namespace FogKV {
 
@@ -51,13 +51,18 @@ enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2 };
 
 class RqstMsg {
   public:
-    RqstMsg(const RqstOperation op, const Key *key, const Value *value,
-            void *cb_fn);
-    const Key *key = nullptr;
-    const Value *value = nullptr;
-    const RqstOperation op = RqstOperation::NONE;
+    RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
+            const char *value, size_t valueSize,
+            KVStoreBase::KVStoreBaseCallback clb);
 
-    void *cb_fn = nullptr;
+    const RqstOperation op = RqstOperation::NONE;
+    const char *key = nullptr;
+    size_t keySize = 0;
+    const char *value = nullptr;
+    size_t valueSize = 0;
+
+    /** @TODO jradtke copying std:function in every msg might be not good idea */
+    KVStoreBase::KVStoreBaseCallback clb;
 };
 
 class RqstPoolerInterface {
@@ -65,7 +70,6 @@ class RqstPoolerInterface {
 
     virtual bool EnqueueMsg(RqstMsg *Message) = 0;
     virtual void DequeueMsg() = 0;
-
     virtual void ProcessMsg() = 0;
 };
 

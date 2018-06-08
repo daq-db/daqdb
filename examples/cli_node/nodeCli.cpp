@@ -219,7 +219,8 @@ void nodeCli::cmdGetAsync(const std::string &strLine) {
 
         _spKVStore->GetAsync(
             std::move(keyBuff),
-            [&](KVStoreBase *kvs, Status status, const Key &key, Value value) {
+            [&](KVStoreBase *kvs, Status status, const char *key,
+                size_t keySize, const char *value, size_t valueSize) {
                 if (!status.ok()) {
                     _statusMsgs.push_back(boost::str(
                         boost::format("Error: cannot get element: %1%") %
@@ -227,7 +228,7 @@ void nodeCli::cmdGetAsync(const std::string &strLine) {
                 } else {
                     _statusMsgs.push_back(
                         boost::str(boost::format("GET[%1%]=%2% : completed") %
-                                   key.data() % value.data()));
+                                   key % value));
                 }
 
             });
@@ -334,15 +335,16 @@ void nodeCli::cmdPutAsync(const std::string &strLine) {
             _spKVStore->PutAsync(
                 std::move(keyBuff), std::move(valBuff),
                 [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
-                    const FogKV::Key &key, const FogKV::Value &val) {
+                    const char *key, const size_t keySize, const char *value,
+                    const size_t valueSize) {
                     if (!status.ok()) {
                         _statusMsgs.push_back(boost::str(
                             boost::format("Error: cannot put element: %1%") %
                             status.to_string()));
                     } else {
                         _statusMsgs.push_back(boost::str(
-                            boost::format("PUT[%1%]=%2% : completed") %
-                            key.data() % val.data()));
+                            boost::format("PUT[%1%]=%2% : completed") % key %
+                            value));
                     }
                 });
         } catch (FogKV::OperationFailedException &e) {

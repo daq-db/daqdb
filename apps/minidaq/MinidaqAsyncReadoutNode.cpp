@@ -31,13 +31,12 @@
  */
 
 #include "MinidaqAsyncReadoutNode.h"
-
 using namespace std;
 
 namespace FogKV {
 
 MinidaqAsyncReadoutNode::MinidaqAsyncReadoutNode(KVStoreBase *kvs)
-    : MinidaqReadoutNode(_kvs) {}
+    : MinidaqReadoutNode(kvs) {}
 
 MinidaqAsyncReadoutNode::~MinidaqAsyncReadoutNode() {}
 
@@ -58,8 +57,9 @@ void MinidaqAsyncReadoutNode::_Task(uint64_t eventId,
 
     try {
         _kvs->PutAsync(std::move(key), std::move(value),
-                       [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
-                           const FogKV::Key &key, const FogKV::Value &val) {
+                       [&](KVStoreBase *kvs, Status status, const char *key,
+                           const size_t keySize, const char *value,
+                           const size_t valueSize) {
                            if (!status.ok()) {
                                cntErr++;
                                return;

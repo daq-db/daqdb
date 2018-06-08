@@ -51,10 +51,10 @@ class KVStoreBaseImpl : public KVStoreBase {
     virtual std::string getProperty(const std::string &name);
     virtual void Put(Key &&key, Value &&value,
                      const PutOptions &options = PutOptions());
-    virtual void PutAsync(Key &&key, Value &&value, KVStoreBasePutCallback cb,
+    virtual void PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                           const PutOptions &options = PutOptions());
     virtual Value Get(const Key &key, const GetOptions &options = GetOptions());
-    virtual void GetAsync(const Key &key, KVStoreBaseGetCallback cb,
+    virtual void GetAsync(const Key &key, KVStoreBaseCallback cb,
                           const GetOptions &options = GetOptions());
     virtual void Update(const Key &key, Value &&value,
                         const UpdateOptions &options = UpdateOptions());
