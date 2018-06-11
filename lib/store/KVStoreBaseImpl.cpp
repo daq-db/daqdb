@@ -69,6 +69,9 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                                const PutOptions &options) {
+    if (!key.data()) {
+        throw OperationFailedException(EINVAL);
+    }
     try {
         RqstMsg *msg = new RqstMsg(RqstOperation::PUT, key.data(), key.size(),
                                    value.data(), value.size(), cb);
@@ -105,6 +108,9 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
 
 void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
                                const GetOptions &options) {
+    if (!key.data()) {
+        throw OperationFailedException(EINVAL);
+    }
     try {
         if (options.poolerId() < _rqstPoolers.size()) {
             _rqstPoolers.at(options.poolerId())
