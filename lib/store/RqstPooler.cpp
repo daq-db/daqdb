@@ -105,13 +105,8 @@ void RqstPooler::ProcessMsg() {
         case RqstOperation::GET: {
             std::string valStr;
             StatusCode rc = rtree->Get(key, keySize, &valStr);
-
-            Value value(new char[valStr.length() + 1], valStr.length() + 1);
-            std::memcpy(value.data(), valStr.c_str(), value.size());
-            value.data()[value.size() - 1] = '\0';
-
-            cb_fn(nullptr, Status(rc), key, keySize, value.data(),
-                      value.size());
+            cb_fn(nullptr, Status(rc), key, keySize, valStr.c_str(),
+                  valStr.length());
             break;
         }
         default:
