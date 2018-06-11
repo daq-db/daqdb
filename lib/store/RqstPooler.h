@@ -87,12 +87,12 @@ class RqstPooler : public RqstPoolerInterface {
     std::shared_ptr<FogKV::RTreeEngine> rtree;
     struct spdk_ring *rqstRing;
 
+    unsigned short processArrayCount = 0;
+    RqstMsg *processArray[DEQUEUE_RING_LIMIT];
+
   private:
     void _ThreadMain(void);
-
     std::thread *_thread;
-    unsigned short _rqstDequedCount = 0;
-    RqstMsg *_rqstMsgBuffer[DEQUEUE_RING_LIMIT];
 };
 
 } /* namespace FogKV */

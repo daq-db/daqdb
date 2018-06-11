@@ -80,41 +80,43 @@ bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
 }
 
 void RqstPooler::DequeueMsg() {
-    _rqstDequedCount = spdk_ring_dequeue(rqstRing, (void **)_rqstMsgBuffer,
-                                         DEQUEUE_RING_LIMIT);
-    assert(_rqstDequedCount <= DEQUEUE_RING_LIMIT);
+    processArrayCount =
+        spdk_ring_dequeue(rqstRing, (void **)processArray, DEQUEUE_RING_LIMIT);
+    assert(processArrayCount <= DEQUEUE_RING_LIMIT);
 }
 
 void RqstPooler::ProcessMsg() {
-    for (unsigned short MsgIndex = 0; MsgIndex < _rqstDequedCount; MsgIndex++) {
-        const char *key = _rqstMsgBuffer[MsgIndex]->key;
-        const size_t keySize = _rqstMsgBuffer[MsgIndex]->keySize;
+    for (unsigned short MsgIndex = 0; MsgIndex < processArrayCount;
+         MsgIndex++) {
+        const char *key = processArray[MsgIndex]->key;
+        const size_t keySize = processArray[MsgIndex]->keySize;
 
-        auto cb_fn = _rqstMsgBuffer[MsgIndex]->clb;
+        auto cb_fn = processArray[MsgIndex]->clb;
 
-        switch (_rqstMsgBuffer[MsgIndex]->op) {
+        switch (processArray[MsgIndex]->op) {
         case RqstOperation::PUT: {
-            const char *val = _rqstMsgBuffer[MsgIndex]->value;
-            const size_t valSize = _rqstMsgBuffer[MsgIndex]->valueSize;
+            const char *val = processArray[MsgIndex]->value;
+            const size_t valSize = processArray[MsgIndex]->valueSize;
 
             StatusCode rc = rtree->Put(key, keySize, val, valSize);
-
-            cb_fn(nullptr, Status(rc), key, keySize, val, valSize);
+            if (cb_fn)
+                cb_fn(nullptr, Status(rc), key, keySize, val, valSize);
             break;
         }
         case RqstOperation::GET: {
             std::string valStr;
             StatusCode rc = rtree->Get(key, keySize, &valStr);
-            cb_fn(nullptr, Status(rc), key, keySize, valStr.c_str(),
-                  valStr.length());
+            if (cb_fn)
+                cb_fn(nullptr, Status(rc), key, keySize, valStr.c_str(),
+                      valStr.length());
             break;
         }
         default:
             break;
         }
-        delete _rqstMsgBuffer[MsgIndex];
+        delete processArray[MsgIndex];
     }
-    _rqstDequedCount = 0;
+    processArrayCount = 0;
 }
 
 } /* namespace FogKV */
