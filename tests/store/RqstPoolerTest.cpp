@@ -42,6 +42,13 @@ namespace ut = boost::unit_test;
 
 using namespace fakeit;
 
+static const char *expectedKey = "key123";
+static const size_t expectedKeySize = 6;
+static const char *expectedVal = "val123";
+static const size_t expectedValSize = 6;
+
+#define BOOST_TEST_DETECT_MEMORY_LEAK 1
+
 BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     Mock<FogKV::RqstPooler> poolerMock;
     Mock<FogKV::RTree> rtreeMock;
@@ -59,4 +66,206 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     VerifyNoOtherInvocations(OverloadedMethod(
         rtreeMock, Put,
         FogKV::StatusCode(const char *, int32_t, const char *, int32_t)));
+}
+
+BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
+
+    Mock<FogKV::RqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+
+    When(OverloadedMethod(
+             rtreeMock, Put,
+             FogKV::StatusCode(const char *, int32_t, const char *, int32_t))
+             .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
+        .Return(FogKV::StatusCode::Ok);
+
+    FogKV::RqstPooler &pooler = poolerMock.get();
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+
+    pooler.processArray[0] = new FogKV::RqstMsg(
+        FogKV::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
+        expectedValSize, nullptr);
+    pooler.processArrayCount = 1;
+
+    pooler.ProcessMsg();
+
+    Verify(OverloadedMethod(
+               rtreeMock, Put,
+               FogKV::StatusCode(const char *, int32_t, const char *, int32_t)))
+        .Exactly(1);
+}
+
+BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
+
+    Mock<FogKV::RqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+
+    When(OverloadedMethod(
+             rtreeMock, Put,
+             FogKV::StatusCode(const char *, int32_t, const char *, int32_t))
+             .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
+        .AlwaysReturn(FogKV::StatusCode::Ok);
+
+    FogKV::RqstPooler &pooler = poolerMock.get();
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+
+    for (int index = 0; index < DEQUEUE_RING_LIMIT; index++) {
+        pooler.processArray[index] = new FogKV::RqstMsg(
+            FogKV::RqstOperation::PUT, expectedKey, expectedKeySize,
+            expectedVal, expectedValSize, nullptr);
+    }
+    pooler.processArrayCount = DEQUEUE_RING_LIMIT;
+
+    pooler.ProcessMsg();
+
+    Verify(OverloadedMethod(
+               rtreeMock, Put,
+               FogKV::StatusCode(const char *, int32_t, const char *, int32_t)))
+        .Exactly(DEQUEUE_RING_LIMIT);
+}
+
+BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
+
+    Mock<FogKV::RqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+
+    When(OverloadedMethod(rtreeMock, Get,
+                          FogKV::StatusCode(const char *, int32_t, string *))
+             .Using(expectedKey, expectedKeySize, _))
+        .Return(FogKV::StatusCode::Ok);
+
+    FogKV::RqstPooler &pooler = poolerMock.get();
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+
+    pooler.processArray[0] =
+        new FogKV::RqstMsg(FogKV::RqstOperation::GET, expectedKey,
+                           expectedKeySize, nullptr, 0, nullptr);
+    pooler.processArrayCount = 1;
+
+    pooler.ProcessMsg();
+
+    Verify(OverloadedMethod(rtreeMock, Get,
+                            FogKV::StatusCode(const char *, int32_t, string *)))
+        .Exactly(1);
+}
+
+BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
+
+    Mock<FogKV::RqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+
+    When(OverloadedMethod(rtreeMock, Get,
+                          FogKV::StatusCode(const char *, int32_t, string *))
+             .Using(expectedKey, expectedKeySize, _))
+        .AlwaysReturn(FogKV::StatusCode::Ok);
+
+    FogKV::RqstPooler &pooler = poolerMock.get();
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+
+    for (int index = 0; index < DEQUEUE_RING_LIMIT; index++) {
+        pooler.processArray[index] =
+            new FogKV::RqstMsg(FogKV::RqstOperation::GET, expectedKey,
+                               expectedKeySize, nullptr, 0, nullptr);
+    }
+    pooler.processArrayCount = DEQUEUE_RING_LIMIT;
+
+    pooler.ProcessMsg();
+
+    Verify(OverloadedMethod(rtreeMock, Get,
+                            FogKV::StatusCode(const char *, int32_t, string *)))
+        .Exactly(DEQUEUE_RING_LIMIT);
+}
+
+BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
+
+    Mock<FogKV::RqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+
+    When(OverloadedMethod(
+             rtreeMock, Put,
+             FogKV::StatusCode(const char *, int32_t, const char *, int32_t))
+             .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
+        .Return(FogKV::StatusCode::Ok)
+        .Return(FogKV::StatusCode::UnknownError);
+
+    FogKV::RqstPooler &pooler = poolerMock.get();
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+
+    pooler.processArray[0] = new FogKV::RqstMsg(
+        FogKV::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
+        expectedValSize,
+        [&](FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key,
+            const size_t keySize, const char *value, const size_t valueSize) {
+            BOOST_REQUIRE(status.ok());
+            BOOST_CHECK_EQUAL(key, expectedKey);
+            BOOST_CHECK_EQUAL(keySize, expectedKeySize);
+            BOOST_CHECK_EQUAL(value, expectedVal);
+            BOOST_CHECK_EQUAL(valueSize, expectedValSize);
+        });
+
+    pooler.processArray[1] = new FogKV::RqstMsg(
+        FogKV::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
+        expectedKeySize,
+        [&](FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key,
+            const size_t keySize, const char *value, const size_t valueSize) {
+            BOOST_REQUIRE(!status.ok());
+            BOOST_CHECK_EQUAL(key, expectedKey);
+            BOOST_CHECK_EQUAL(keySize, expectedKeySize);
+            BOOST_CHECK_EQUAL(value, expectedVal);
+            BOOST_CHECK_EQUAL(valueSize, expectedValSize);
+        });
+    pooler.processArrayCount = 2;
+
+    pooler.ProcessMsg();
+
+    Verify(OverloadedMethod(
+               rtreeMock, Put,
+               FogKV::StatusCode(const char *, int32_t, const char *, int32_t)))
+        .Exactly(2);
+}
+
+BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
+
+    Mock<FogKV::RqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+
+    When(OverloadedMethod(rtreeMock, Get,
+                          FogKV::StatusCode(const char *, int32_t, string *))
+             .Using(expectedKey, expectedKeySize, _))
+        .Return(FogKV::StatusCode::Ok)
+        .Return(FogKV::StatusCode::KeyNotFound);
+
+    FogKV::RqstPooler &pooler = poolerMock.get();
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+
+    pooler.processArray[0] = new FogKV::RqstMsg(
+        FogKV::RqstOperation::GET, expectedKey, expectedKeySize, nullptr, 0,
+        [&](FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key,
+            const size_t keySize, const char *value, const size_t valueSize) {
+            BOOST_REQUIRE(status.ok());
+            BOOST_CHECK_EQUAL(key, expectedKey);
+            BOOST_CHECK_EQUAL(keySize, expectedKeySize);
+        });
+
+    pooler.processArray[1] = new FogKV::RqstMsg(
+        FogKV::RqstOperation::GET, expectedKey, expectedKeySize, nullptr, 0,
+        [&](FogKV::KVStoreBase *kvs, FogKV::Status status, const char *key,
+            const size_t keySize, const char *value, const size_t valueSize) {
+            BOOST_REQUIRE(!status.ok());
+            BOOST_CHECK_EQUAL(key, expectedKey);
+            BOOST_CHECK_EQUAL(keySize, expectedKeySize);
+        });
+    pooler.processArrayCount = 2;
+
+    pooler.ProcessMsg();
+
+    Verify(OverloadedMethod(rtreeMock, Get,
+                            FogKV::StatusCode(const char *, int32_t, string *)))
+        .Exactly(2);
 }
