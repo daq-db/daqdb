@@ -45,17 +45,18 @@ std::string MinidaqReadoutNode::_GetType() { return std::string("readout"); }
 void MinidaqReadoutNode::_Setup() {
     int i;
 
-    for (i = 0; i < _nTh; i++) {
+    for (i = 0; i < _nSubdetectors; i++) {
         _currEventId.push_back(i);
     }
+    _SetThreads(_nSubdetectors);
 }
 
-void MinidaqReadoutNode::_Task(uint64_t eventId,
+void MinidaqReadoutNode::_Task(uint64_t eventId, int executorId,
                                std::atomic<std::uint64_t> &cnt,
                                std::atomic<std::uint64_t> &cntErr) {
     Key key = _kvs->AllocKey();
     MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
-    keyp->subdetectorId = _id;
+    keyp->subdetectorId = _baseSubdetectorId + executorId;
     keyp->runId = _runId;
     keyp->eventId = eventId;
 

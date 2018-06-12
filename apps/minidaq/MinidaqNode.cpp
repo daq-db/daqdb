@@ -54,7 +54,11 @@ void MinidaqNode::SetTimeRamp(int s) { _tRamp_s = s; }
 
 void MinidaqNode::SetTimeIter(int us) { _tIter_us = us; }
 
-void MinidaqNode::SetThreads(int n) { _nTh = n; }
+void MinidaqNode::SetBaseSubdetectorId(int id) { _baseSubdetectorId = id; }
+
+void MinidaqNode::SetSubdetectors(int n) { _nSubdetectors = n; }
+
+void MinidaqNode::_SetThreads(int n) { _nTh = n; }
 
 MinidaqStats MinidaqNode::_Execute(int executorId) {
     std::atomic<std::uint64_t> c_err;
@@ -70,7 +74,8 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     timerTest.Restart_s(_tRamp_s);
     while (!timerTest.IsExpired()) {
         s.nRequests++;
-        _Task(executorId, c, c_err);
+        event_id += _nTh;
+        _Task(event_id, executorId, c, c_err);
     }
 
     // Record samples
@@ -85,7 +90,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         do {
             event_id += _nTh;
             try {
-                _Task(event_id, c, c_err);
+                _Task(event_id, executorId, c, c_err);
                 s.nRequests++;
             } catch (...) {
                 s.nErrRequests++;
@@ -116,7 +121,6 @@ void MinidaqNode::Run() {
 
     _Setup();
 
-    std::cout << "Starting threads..." << std::endl;
     for (i = 0; i < _nTh; i++) {
         _futureVec.emplace_back(
             std::async(std::launch::async, &MinidaqNode::_Execute, this, i));
@@ -126,7 +130,6 @@ void MinidaqNode::Run() {
 void MinidaqNode::Wait() {
     int i;
 
-    std::cout << "Waiting..." << std::endl;
     for (const auto &f : _futureVec) {
         f.wait();
     }

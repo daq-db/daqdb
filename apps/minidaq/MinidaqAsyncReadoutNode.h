@@ -42,7 +42,8 @@ class MinidaqAsyncReadoutNode : public MinidaqReadoutNode {
     ~MinidaqAsyncReadoutNode();
 
   protected:
-    void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
+    void _Task(uint64_t eventId, int executorId,
+               std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
     std::string _GetType();
 };

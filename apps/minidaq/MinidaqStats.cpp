@@ -131,10 +131,11 @@ void MinidaqStats::Combine(const MinidaqStats &stats) {
     }
     _nIterations += stats._nIterations;
     _totalTime_ns += stats._totalTime_ns;
-    hdr_add(_histogramRps, stats._histogramRps);
-    hdr_add(_histogramCps, stats._histogramCps);
-    hdr_add(_histogramRpsErr, stats._histogramRpsErr);
-    hdr_add(_histogramCpsErr, stats._histogramCpsErr);
+    _nOverflows += hdr_add(_histogramRps, stats._histogramRps);
+    _nOverflows += hdr_add(_histogramCps, stats._histogramCps);
+    _nOverflows += hdr_add(_histogramRpsErr, stats._histogramRpsErr);
+    _nOverflows += hdr_add(_histogramCpsErr, stats._histogramCpsErr);
+    _nOverflows += stats._nOverflows;
 }
 
 void MinidaqStats::RecordSample(const MinidaqSample &s) {
