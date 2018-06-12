@@ -48,10 +48,12 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_T_RAMP_S 2
 #define MINIDAQ_DEFAULT_T_TEST_S 10
 #define MINIDAQ_DEFAULT_T_ITER_US 100
-#define MINIDAQ_DEFAULT_N_THREADS_RO 1
-#define MINIDAQ_DEFAULT_N_THREADS_ARO 0
+#define MINIDAQ_DEFAULT_N_SUBDETECTORS_RO 0
+#define MINIDAQ_DEFAULT_N_SUBDETECTORS_ARO 0
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
+#define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
+#define MINIDAQ_DEFAULT_START_SUB_ID 100
 
 /** @todo move to MinidaqFogServer for distributed version */
 static FogKV::KVStoreBase *openKVS(std::string &pmemPath, size_t pmemSize) {
@@ -77,26 +79,34 @@ int main(int argc, const char *argv[]) {
     int tIter_us;
     int tTest_s;
     int tRamp_s;
-    int nRaTh;
+    int nSubAR;
     int nFfTh;
     int nEbTh;
-    int nRTh;
+    int nSubR;
+    int subId;
+    int nSub;
 
     po::options_description argumentsDescription{"Options"};
     argumentsDescription.add_options()("help,h", "Print help messages")(
-        "readout",
-        po::value<int>(&nRTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_RO),
-        "Number of readout threads. If no modes are specified, this is the "
-        "default with one thread.")(
-        "readout-async",
-        po::value<int>(&nRaTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_ARO),
-        "Number of asynchronous readout threads.")(
-        "fast-filtering",
-        po::value<int>(&nFfTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_FF),
-        "Number of fast filtering threads.")(
-        "event-building",
+        "n-sub-ro", po::value<int>(&nSubR)->default_value(
+                        MINIDAQ_DEFAULT_N_SUBDETECTORS_RO),
+        "Number of subdetectors served in synchronous readout threads. "
+        "Separate thread is used for each subdector.")(
+        "n-sub-aro", po::value<int>(&nSubAR)->default_value(
+                         MINIDAQ_DEFAULT_N_SUBDETECTORS_ARO),
+        "Number of subdetectors served in asynchronous readout threads. "
+        "Separate thread is used for each subdector.")(
+        "n-eb",
         po::value<int>(&nEbTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_EB),
         "Number of event building threads.")(
+        "n-ff",
+        po::value<int>(&nFfTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_FF),
+        "Number of fast filtering threads.")(
+        "start-sub-id",
+        po::value<int>(&subId)->default_value(MINIDAQ_DEFAULT_START_SUB_ID),
+        "Start subdector ID.")("n-sub", po::value<int>(&nSub)->default_value(
+                                            MINIDAQ_DEFAULT_N_SUBDETECTORS),
+                               "Global number of subdetectors.")(
         "fragment-size",
         po::value<size_t>(&fSize)->default_value(MINIDAQ_DEFAULT_FRAGMENT_SIZE),
         "Fragment size in bytes in case of readout mode.")(
@@ -145,23 +155,38 @@ int main(int argc, const char *argv[]) {
     }
 
     try {
+        std::cout << "### Opening FogKV..." << endl;
         kvs = openKVS(pmem_path, pmem_size);
+        std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>
             nodes; // Configure nodes
-        if (nRTh) {
+        if (nSubR) {
+            std::cout << "### Configuring readout nodes..." << endl;
             unique_ptr<FogKV::MinidaqReadoutNode> nodeReadout(
                 new FogKV::MinidaqReadoutNode(kvs));
-            nodeReadout->SetThreads(nRTh);
+            nodeReadout->SetSubdetectors(nSubR);
+            nodeReadout->SetBaseSubdetectorId(subId);
             nodeReadout->SetFragmentSize(fSize);
             nodes.push_back(std::move(nodeReadout));
+            std::cout << "### Done." << endl;
         }
 
-        if (nRaTh) {
+        if (nSubAR) {
+            std::cout << "### Configuring asynchronous readout nodes..."
+                      << endl;
             unique_ptr<FogKV::MinidaqAsyncReadoutNode> nodeAsyncReadout(
                 new FogKV::MinidaqAsyncReadoutNode(kvs));
-            nodeAsyncReadout->SetThreads(nRaTh);
+            nodeAsyncReadout->SetSubdetectors(nSubAR);
+            nodeAsyncReadout->SetBaseSubdetectorId(subId + nSubR);
             nodeAsyncReadout->SetFragmentSize(fSize);
             nodes.push_back(std::move(nodeAsyncReadout));
+            std::cout << "### Done." << endl;
+        }
+
+        if (!nodes.size()) {
+            std::cout << "Nothing to do. Specify at least one operation mode."
+                      << endl;
+            return 0;
         }
 
         for (auto &n : nodes) {
@@ -170,6 +195,7 @@ int main(int argc, const char *argv[]) {
             n->SetTimeIter(tIter_us);
         }
 
+        std::cout << "### Benchmarking..." << endl;
         // Run
         for (auto &n : nodes) {
             n->Run();
@@ -180,7 +206,10 @@ int main(int argc, const char *argv[]) {
             n->Wait();
         }
 
+        std::cout << "### Done." << endl;
+
         // Show results
+        std::cout << "### Results:" << endl;
         for (auto &n : nodes) {
             n->Show();
             if (!results_prefix.empty()) {

@@ -64,23 +64,26 @@ class MinidaqNode {
     void SetTimeTest(int s);
     void SetTimeIter(int us);
     void SetTimeRamp(int s);
-    void SetThreads(int n);
+    void SetSubdetectors(int n);
+    void SetBaseSubdetectorId(int id);
 
   protected:
-    virtual void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
+    virtual void _Task(uint64_t eventId, int executorID,
+                       std::atomic<std::uint64_t> &cnt,
                        std::atomic<std::uint64_t> &cntErr) = 0;
     virtual void _Setup() = 0;
     virtual std::string _GetType() = 0;
+    void _SetThreads(int n);
 
     KVStoreBase *_kvs;
-    int _nTh = 0;           // number of worker threads
-    int _id = 1;            // global ID of the node
-    int _nReadoutNodes = 1; // global number of Readout Nodes;
+    int _baseSubdetectorId = 1; // base subdetector ID in use by this node
+    int _nSubdetectors = 0; // the number of subdetectors in use by this node
     int _runId = 599;
 
   private:
-    MinidaqStats _Execute(int nThreads);
+    MinidaqStats _Execute(int executorId);
 
+    int _nTh = 0;                 // number of worker threads
     int _tTest_s = 0;             // desired test duration in seconds
     int _tRamp_s = 0;             // desired test ramp duration in seconds
     int _tIter_us = 0;            // desired iteration time in microseconds
