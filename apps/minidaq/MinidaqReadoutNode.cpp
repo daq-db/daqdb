@@ -42,13 +42,7 @@ MinidaqReadoutNode::~MinidaqReadoutNode() {}
 
 std::string MinidaqReadoutNode::_GetType() { return std::string("readout"); }
 
-void MinidaqReadoutNode::_Setup() {
-    int i;
-
-    for (i = 0; i < _nTh; i++) {
-        _currEventId.push_back(i);
-    }
-}
+void MinidaqReadoutNode::_Setup() {}
 
 void MinidaqReadoutNode::_Task(uint64_t eventId,
                                std::atomic<std::uint64_t> &cnt,
@@ -61,13 +55,11 @@ void MinidaqReadoutNode::_Task(uint64_t eventId,
 
     FogKV::Value value = _kvs->Alloc(key, _fSize);
 
-    try {
-        _kvs->Put(std::move(key), std::move(value));
-        cnt++;
-    } catch (...) {
-        cntErr++;
-    }
+    _kvs->Put(std::move(key), std::move(value));
+    cnt++;
 }
 
 void MinidaqReadoutNode::SetFragmentSize(size_t s) { _fSize = s; }
+
+void MinidaqReadoutNode::SetSubdetectorId(int id) { _id = id; }
 }
