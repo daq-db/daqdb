@@ -49,6 +49,7 @@ Following libraries are optional (needed for examples and unit tests):
 Another option is building against LHC Computing Grid (LCG) release. Steps to configure the LCG environemt:
 ```
 sudo yum install -y https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm
+sudo yum install cvmfs -y
 sudo cvmfs_config setup
 echo "CVMFS_REPOSITORIES=sft.cern.ch" | sudo tee -a /etc/cvmfs/default.local
 echo "CVMFS_HTTP_PROXY=http://your-proxy.com:proxy-port | sudo tee -a /etc/cvmfs/default.local
@@ -84,10 +85,18 @@ Note: `. scripts/setup_env_lcg.sh` can be called to setup environment with LCG a
 ##### SPDK
 FogKV is using SPDK internally so following extra step is required to configure environment.
 
+To be called once:
+```
+cd ${fogKVpath}
+sudo third-party/spdk/scripts/pkgdep.sh
+```
+
+To be called each time:
 ```
 cd ${fogKVpath}
 sudo third-party/spdk/scripts/setup
 ```
+
 If using LCG then execute as root with LCG initialized or remember to preserve user LD_LIBRARY_PATH in visudo.
 Example:
 
