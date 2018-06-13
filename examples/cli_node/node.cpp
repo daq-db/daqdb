@@ -135,7 +135,7 @@ main(int argc, const char *argv[])
             cerr << "Invalid arguments: " << parserError.what() << endl << endl;
             cerr << argumentsDescription << endl;
             return -1;
-	}
+        }
 #endif
 
 	asio::io_service io_service;
