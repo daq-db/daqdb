@@ -58,10 +58,7 @@ const Options &KVStoreBaseImpl::getOptions() { return mOptions; }
 void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
-    std::string keyStr(key.data(), mKeySize);
-    std::string valStr(val.data(), val.size());
-    StatusCode rc = mRTree->Put(keyStr, valStr);
-    Free(std::move(key));
+    StatusCode rc = mRTree->Put(key.data(), val.data());
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
     if (rc != StatusCode::Ok)
         throw OperationFailedException(EINVAL);
@@ -90,9 +87,8 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
-    std::string keyStr(key.data(), mKeySize);
     std::string valStr;
-    StatusCode rc = mRTree->Get(keyStr, &valStr);
+    StatusCode rc = mRTree->Get(key.data(), &valStr);
     if (rc != StatusCode::Ok) {
         if (rc == StatusCode::KeyNotFound)
             throw OperationFailedException(KeyNotFound);
@@ -140,10 +136,7 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
                              const UpdateOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
-    std::string keyStr(key.data(), mKeySize);
-    std::string valStr(val.data(), val.size());
-    StatusCode rc = mRTree->Put(keyStr, valStr);
-    Free(std::move(val));
+    StatusCode rc = mRTree->Put(key.data(), val.data());
 
     if (rc != StatusCode::Ok)
         throw OperationFailedException(EINVAL);
@@ -201,9 +194,8 @@ void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end) {
 
 Value KVStoreBaseImpl::Alloc(const Key &key, size_t size,
                              const AllocOptions &options) {
-    std::string keyStr(key.data(), mKeySize);
     char *val;
-    mRTree->AllocValueForKey(keyStr, size, &val);
+    mRTree->AllocValueForKey(key.data(), size, &val);
     return Value(val, size);
 }
 

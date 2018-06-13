@@ -95,42 +95,47 @@ main(int argc, const char *argv[])
 
 #if (1) // Cmd line parsing region
 	po::options_description argumentsDescription{"Options"};
-	argumentsDescription.add_options()
-			("help,h", "Print help messages")
-			("port,p", po::value<unsigned short>(&inputPort), "Node Communication port")
-			("dht,d", po::value<unsigned short>(&dhtPort), "DHT Communication port")
-			("nodeid,n", po::value<unsigned short>(&nodeId)->default_value(0) , "Node ID used to match database file. If not set DB file will be removed when node stopped.")
-			("interactive,i", "Enable interactive mode")
-			("log,l", "Enable logging")
-			("pmem-path", po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pool.pm"), "Rtree persistent memory pool file")
-			("pmem-size", po::value<size_t>(&pmem_size)->default_value(512 * 1024 * 1024), "Rtree persistent memory pool size")
-			;
+        argumentsDescription.add_options()("help,h", "Print help messages")(
+            "port,p", po::value<unsigned short>(&inputPort),
+            "Node Communication port")("dht,d",
+                                       po::value<unsigned short>(&dhtPort),
+                                       "DHT Communication port")(
+            "nodeid,n", po::value<unsigned short>(&nodeId)->default_value(0),
+            "Node ID used to match database file. If not set DB file will be "
+            "removed when node stopped.")("interactive,i",
+                                          "Enable interactive mode")(
+            "log,l", "Enable logging")("pmem-path",
+                                       po::value<std::string>(&pmem_path)
+                                           ->default_value("/mnt/pmem/pool.pm"),
+                                       "Rtree persistent memory pool file")(
+            "pmem-size",
+            po::value<size_t>(&pmem_size)
+                ->default_value(2ull * 1024 * 1024 * 1024),
+            "Rtree persistent memory pool size");
 
-	po::variables_map parsedArguments;
-	try {
-		po::store(po::parse_command_line(argc, argv,
-						 argumentsDescription),
-			  parsedArguments);
+        po::variables_map parsedArguments;
+        try {
+            po::store(po::parse_command_line(argc, argv, argumentsDescription),
+                      parsedArguments);
 
-		if (parsedArguments.count("help")) {
-			std::cout << argumentsDescription << endl;
-			return 0;
-		}
-		if (parsedArguments.count("interactive")) {
-			interactiveMode = true;
-		}
-		if (parsedArguments.count("log")) {
-			logging::core::get()->set_filter(
-					logging::trivial::severity >= logging::trivial::debug);
-		}
+            if (parsedArguments.count("help")) {
+                std::cout << argumentsDescription << endl;
+                return 0;
+            }
+            if (parsedArguments.count("interactive")) {
+                interactiveMode = true;
+            }
+            if (parsedArguments.count("log")) {
+                logging::core::get()->set_filter(logging::trivial::severity >=
+                                                 logging::trivial::debug);
+            }
 
-		po::notify(parsedArguments);
-	} catch (po::error &parserError) {
-		cerr << "Invalid arguments: " << parserError.what() << endl
-		     << endl;
-		cerr << argumentsDescription << endl;
-		return -1;
-	}
+            po::notify(parsedArguments);
+        } catch (po::error &parserError) {
+            cerr << "Invalid arguments: " << parserError.what() << endl << endl;
+            cerr << argumentsDescription << endl;
+            return -1;
+        }
 #endif
 
 	asio::io_service io_service;
