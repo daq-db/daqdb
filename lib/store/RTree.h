@@ -101,7 +101,7 @@ class RTree : public FogKV::RTreeEngine {
     virtual ~RTree();
     string Engine() final { return "RTree"; }
     StatusCode Get(const char *key, int32_t keybytes, string *value) final;
-    StatusCode Get(const string &key, // append value to std::string
+    StatusCode Get(const char *key, // append value to std::string
                    string *value) final;
     StatusCode Put(const char *key, // copy value from std::string
                    char *value) final;

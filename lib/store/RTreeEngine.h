@@ -55,7 +55,7 @@ class RTreeEngine {
 
     virtual string Engine() = 0;          // engine identifier
     virtual StatusCode Get(const char *key, int32_t keybytes, string *value) = 0;
-    virtual StatusCode Get(const string &key, // append value to std::string
+    virtual StatusCode Get(const char *key, // append value to std::string
                            string *value) = 0;
     virtual StatusCode Put(const char *key, // copy value from std::string
                            char *value) = 0;

@@ -73,15 +73,17 @@ Tree::Tree(const string &path, const size_t size) {
 
 StatusCode RTree::Get(const char *key, int32_t keybytes, string *value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
+    if (val->location != 1) {
+    	return StatusCode::KeyNotFound;
+    }
     value->append(val->value.get());
-
     return StatusCode::Ok;
 }
 
-StatusCode RTree::Get(const string &key, // append value to std::string
+StatusCode RTree::Get(const char *key, // append value to std::string
                       string *value) {
     ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key.c_str());
+        tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location != 1) {
         return StatusCode::KeyNotFound;
     }
