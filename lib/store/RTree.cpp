@@ -105,10 +105,9 @@ StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
 
 StatusCode RTree::Remove(const string &key) { return StatusCode::Ok; }
 
-StatusCode RTree::AllocValueForKey(const string &key, size_t size,
-                                   char **value) {
+StatusCode RTree::AllocValueForKey(int key, size_t size, char **value) {
     ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
+        tree->findValueInNode(tree->treeRoot->rootNode, key);
     try {
         val->actionValue = new pobj_action[1];
         pmemoid poid;

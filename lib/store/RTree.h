@@ -107,8 +107,7 @@ class RTree : public FogKV::RTreeEngine {
     StatusCode Put(const char *key, int32_t keybytes, const char *value,
                    int32_t valuebytes) final;
     StatusCode Remove(const string &key) final; // remove value for key
-    StatusCode AllocValueForKey(const string &key, size_t size,
-                                char **value) final;
+    StatusCode AllocValueForKey(int key, size_t size, char **value) final;
 
   private:
     Tree *tree;
