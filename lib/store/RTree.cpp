@@ -31,7 +31,6 @@
  */
 
 #include "RTree.h"
-#include <bitset>
 #include <iostream>
 
 namespace FogKV {
