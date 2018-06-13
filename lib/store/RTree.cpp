@@ -31,6 +31,7 @@
  */
 
 #include "RTree.h"
+#include <bitset>
 #include <iostream>
 
 namespace FogKV {
@@ -72,8 +73,7 @@ Tree::Tree(const string &path, const size_t size) {
 }
 
 StatusCode RTree::Get(const char *key, int32_t keybytes, string *value) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, atoi(key));
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     value->append(val->value.get());
 
     return StatusCode::Ok;
@@ -82,33 +82,32 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, string *value) {
 StatusCode RTree::Get(const string &key, // append value to std::string
                       string *value) {
     ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
+        tree->findValueInNode(tree->treeRoot->rootNode, key.c_str());
+    if (val->location != 1) {
+        return StatusCode::KeyNotFound;
+    }
     value->append(val->value.get());
 
     return StatusCode::Ok;
 }
-StatusCode RTree::Put(const string &key, // copy value from std::string
-                      const string &value) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
+StatusCode RTree::Put(const char *key, // copy value from std::string
+                      char *value) {
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = 1;
     return StatusCode::Ok;
 }
 
 StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
                       int32_t valuebytes) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, atoi(key));
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = 1;
     return StatusCode::Ok;
 }
 
 StatusCode RTree::Remove(const string &key) { return StatusCode::Ok; }
 
-StatusCode RTree::AllocValueForKey(const string &key, size_t size,
-                                   char **value) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, atoi(key.c_str()));
+StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     try {
         val->actionValue = new pobj_action[1];
         pmemoid poid;
@@ -147,15 +146,17 @@ void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
     }
 }
 
-ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current, int key) {
-    int key_shift = (2 * (treeRoot->tree_heigh - current->depth - 1));
-    int key_calc = key >> key_shift;
-    int mask = ~(UINT_MAX << treeRoot->level_bits);
-    key_calc = key_calc & mask;
+ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
+                                    const char *key) {
 
+    int byteIndex = (current->depth * treeRoot->level_bits) / 8;
+    int positionInByte = (current->depth * treeRoot->level_bits) % 8;
+    int keyCalc = key[byteIndex] >> positionInByte;
+    int mask = 0x02;
+    keyCalc = keyCalc & mask;
     if (current->depth != (treeRoot->tree_heigh - 1)) {
-        return findValueInNode(current->children[key_calc], key);
+        return findValueInNode(current->children[keyCalc], key);
     }
-    return &(current->valueNode[key_calc]);
+    return &(current->valueNode[keyCalc]);
 }
 } // namespace FogKV

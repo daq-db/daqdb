@@ -57,12 +57,12 @@ class RTreeEngine {
     virtual StatusCode Get(const char *key, int32_t keybytes, string *value) = 0;
     virtual StatusCode Get(const string &key, // append value to std::string
                            string *value) = 0;
-    virtual StatusCode Put(const string &key, // copy value from std::string
-                           const string &value) = 0;
+    virtual StatusCode Put(const char *key, // copy value from std::string
+                           char *value) = 0;
     virtual StatusCode Put(const char *key, int32_t keybytes, const char *value,
                            int32_t valuebytes) = 0;
     virtual StatusCode Remove(const string &key) = 0; // remove value for key
-    virtual StatusCode AllocValueForKey(const string &key, size_t size,
+    virtual StatusCode AllocValueForKey(const char *key, size_t size,
                                         char **value) = 0;
 };
 }

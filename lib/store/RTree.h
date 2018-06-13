@@ -55,7 +55,7 @@ using namespace pmem::obj;
 // Number of keys slots inside Node (not key bits)
 #define LEVEL_SIZE 4
 // Number of key bits
-#define KEY_SIZE 20 /** @TODO jschmieg: target value is 24 bits */
+#define KEY_SIZE 24 /** @TODO jschmieg: target value is 24 bits */
 
 namespace FogKV {
 
@@ -86,7 +86,8 @@ struct TreeRoot {
 class Tree {
   public:
     Tree(const string &path, const size_t size);
-    ValueWrapper *findValueInNode(persistent_ptr<Node> current, int key);
+    ValueWrapper *findValueInNode(persistent_ptr<Node> current,
+                                  const char *key);
     void allocateLevel(persistent_ptr<Node> current, int depth, int *count);
     TreeRoot *treeRoot;
     pool<TreeRoot> _pm_pool;
@@ -102,12 +103,12 @@ class RTree : public FogKV::RTreeEngine {
     StatusCode Get(const char *key, int32_t keybytes, string *value) final;
     StatusCode Get(const string &key, // append value to std::string
                    string *value) final;
-    StatusCode Put(const string &key, // copy value from std::string
-                   const string &value) final;
+    StatusCode Put(const char *key, // copy value from std::string
+                   char *value) final;
     StatusCode Put(const char *key, int32_t keybytes, const char *value,
                    int32_t valuebytes) final;
     StatusCode Remove(const string &key) final; // remove value for key
-    StatusCode AllocValueForKey(const string &key, size_t size,
+    StatusCode AllocValueForKey(const char *key, size_t size,
                                 char **value) final;
 
   private:
