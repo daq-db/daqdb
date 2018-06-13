@@ -201,9 +201,8 @@ void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end) {
 
 Value KVStoreBaseImpl::Alloc(const Key &key, size_t size,
                              const AllocOptions &options) {
-    std::string keyStr(key.data(), mKeySize);
     char *val;
-    mRTree->AllocValueForKey(keyStr, size, &val);
+    mRTree->AllocValueForKey((int)(*key.data()), size, &val);
     return Value(val, size);
 }
 
