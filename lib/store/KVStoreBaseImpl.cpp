@@ -87,9 +87,8 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
-    std::string keyStr(key.data(), mKeySize);
     std::string valStr;
-    StatusCode rc = mRTree->Get(keyStr, &valStr);
+    StatusCode rc = mRTree->Get(key.data(), &valStr);
     if (rc != StatusCode::Ok) {
         if (rc == StatusCode::KeyNotFound)
             throw OperationFailedException(KeyNotFound);
