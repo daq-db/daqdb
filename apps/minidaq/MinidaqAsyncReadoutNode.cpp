@@ -55,19 +55,15 @@ void MinidaqAsyncReadoutNode::_Task(uint64_t eventId,
 
     FogKV::Value value = _kvs->Alloc(key, _fSize);
 
-    try {
-        _kvs->PutAsync(std::move(key), std::move(value),
-                       [&](KVStoreBase *kvs, Status status, const char *key,
-                           const size_t keySize, const char *value,
-                           const size_t valueSize) {
-                           if (!status.ok()) {
-                               cntErr++;
-                               return;
-                           }
-                           cnt++;
-                       });
-    } catch (...) {
-        cntErr++;
-    }
+    _kvs->PutAsync(std::move(key), std::move(value),
+                   [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                       const char *key, const size_t keySize, const char *value,
+                       const size_t valueSize) {
+                       if (!status.ok()) {
+                           cntErr++;
+                           return;
+                       }
+                       cnt++;
+                   });
 }
 }

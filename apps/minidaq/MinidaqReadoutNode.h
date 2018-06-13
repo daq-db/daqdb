@@ -42,6 +42,7 @@ class MinidaqReadoutNode : public MinidaqNode {
     virtual ~MinidaqReadoutNode();
 
     void SetFragmentSize(size_t s);
+    void SetSubdetectorId(int id);
 
   protected:
     void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
@@ -49,7 +50,7 @@ class MinidaqReadoutNode : public MinidaqNode {
     void _Setup();
     std::string _GetType();
 
-    std::vector<uint64_t> _currEventId;
     size_t _fSize = 0;
+    int _id = 0;
 };
 }
