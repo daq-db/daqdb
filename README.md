@@ -49,8 +49,8 @@ Following libraries are optional (needed for examples and unit tests):
 Another option is building against LHC Computing Grid (LCG) release. Steps to configure the LCG environemt:
 ```
 sudo yum install -y https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm
-sudo cvmfs_config setup
 sudo yum install cvmfs -y
+sudo cvmfs_config setup
 echo "CVMFS_REPOSITORIES=sft.cern.ch" | sudo tee -a /etc/cvmfs/default.local
 echo "CVMFS_HTTP_PROXY=http://your-proxy.com:proxy-port | sudo tee -a /etc/cvmfs/default.local
 cvmfs_config probe
