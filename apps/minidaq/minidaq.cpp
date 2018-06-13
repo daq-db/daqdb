@@ -48,10 +48,12 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_T_RAMP_S 2
 #define MINIDAQ_DEFAULT_T_TEST_S 10
 #define MINIDAQ_DEFAULT_T_ITER_US 100
-#define MINIDAQ_DEFAULT_N_THREADS_RO 1
-#define MINIDAQ_DEFAULT_N_THREADS_ARO 0
+#define MINIDAQ_DEFAULT_N_SUBDETECTORS_RO 0
+#define MINIDAQ_DEFAULT_N_SUBDETECTORS_ARO 0
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
+#define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
+#define MINIDAQ_DEFAULT_START_SUB_ID 100
 
 /** @todo move to MinidaqFogServer for distributed version */
 static FogKV::KVStoreBase *openKVS(std::string &pmemPath, size_t pmemSize) {
@@ -77,29 +79,15 @@ int main(int argc, const char *argv[]) {
     int tIter_us;
     int tTest_s;
     int tRamp_s;
-    int nRaTh;
+    int nAroTh;
+    int nRoTh;
     int nFfTh;
     int nEbTh;
-    int nRTh;
+    int subId;
+    int nSub;
 
-    po::options_description argumentsDescription{"Options"};
-    argumentsDescription.add_options()("help,h", "Print help messages")(
-        "readout",
-        po::value<int>(&nRTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_RO),
-        "Number of readout threads. If no modes are specified, this is the "
-        "default with one thread.")(
-        "readout-async",
-        po::value<int>(&nRaTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_ARO),
-        "Number of asynchronous readout threads.")(
-        "fast-filtering",
-        po::value<int>(&nFfTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_FF),
-        "Number of fast filtering threads.")(
-        "event-building",
-        po::value<int>(&nEbTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_EB),
-        "Number of event building threads.")(
-        "fragment-size",
-        po::value<size_t>(&fSize)->default_value(MINIDAQ_DEFAULT_FRAGMENT_SIZE),
-        "Fragment size in bytes in case of readout mode.")(
+    po::options_description genericOpts("Generic options");
+    genericOpts.add_options()("help,h", "Print help messages")(
         "time-test",
         po::value<int>(&tTest_s)->default_value(MINIDAQ_DEFAULT_T_TEST_S),
         "Desired test duration in seconds.")(
@@ -122,6 +110,35 @@ int main(int argc, const char *argv[]) {
                  "If set CSV line will be appended to the specified file.")(
         "test-name", po::value<std::string>(&tname), "Test name.");
 
+    po::options_description readoutOpts("Readout-specific options");
+    readoutOpts.add_options()("n-ro", po::value<int>(&nRoTh)->default_value(
+                                          MINIDAQ_DEFAULT_N_SUBDETECTORS_RO),
+                              "Number of readout threads.")(
+        "n-aro", po::value<int>(&nAroTh)->default_value(
+                     MINIDAQ_DEFAULT_N_SUBDETECTORS_ARO),
+        "Number of asynchronous readout threads.")(
+        "sub-id",
+        po::value<int>(&subId)->default_value(MINIDAQ_DEFAULT_START_SUB_ID),
+        "Unique subdetector ID.")(
+        "fragment-size",
+        po::value<size_t>(&fSize)->default_value(MINIDAQ_DEFAULT_FRAGMENT_SIZE),
+        "Single fragment size in bytes.");
+
+    po::options_description filteringOpts("Filtering-specific options");
+    filteringOpts.add_options()("n-eb", po::value<int>(&nEbTh)->default_value(
+                                            MINIDAQ_DEFAULT_N_THREADS_EB),
+                                "Number of event building threads.")(
+        "n-ff",
+        po::value<int>(&nFfTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_FF),
+        "Number of fast filtering threads.")(
+        "start-sub-id",
+        po::value<int>(&subId)->default_value(MINIDAQ_DEFAULT_START_SUB_ID),
+        "Start subdetector ID.")("n-sub", po::value<int>(&nSub)->default_value(
+                                              MINIDAQ_DEFAULT_N_SUBDETECTORS),
+                                 "Total number of subdetectors.");
+
+    po::options_description argumentsDescription;
+    argumentsDescription.add(genericOpts).add(readoutOpts).add(filteringOpts);
     po::variables_map parsedArguments;
     try {
         po::store(po::parse_command_line(argc, argv, argumentsDescription),
@@ -145,23 +162,46 @@ int main(int argc, const char *argv[]) {
     }
 
     try {
+        std::cout << "### Opening FogKV..." << endl;
         kvs = openKVS(pmem_path, pmem_size);
+        std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>
             nodes; // Configure nodes
-        if (nRTh) {
+        if (nRoTh) {
+            std::cout << "### Configuring readout nodes..." << endl;
+            if (nAroTh) {
+                std::cout << "Cannot mix readout modes." << endl;
+                return 0;
+            }
             unique_ptr<FogKV::MinidaqReadoutNode> nodeReadout(
                 new FogKV::MinidaqReadoutNode(kvs));
-            nodeReadout->SetThreads(nRTh);
+            nodeReadout->SetSubdetectorId(subId);
+            nodeReadout->SetThreads(nRoTh);
             nodeReadout->SetFragmentSize(fSize);
             nodes.push_back(std::move(nodeReadout));
+            std::cout << "### Done." << endl;
         }
 
-        if (nRaTh) {
+        if (nAroTh) {
+            std::cout << "### Configuring asynchronous readout nodes..."
+                      << endl;
+            if (nRoTh) {
+                std::cout << "Cannot mix readout modes." << endl;
+                return 0;
+            }
             unique_ptr<FogKV::MinidaqAsyncReadoutNode> nodeAsyncReadout(
                 new FogKV::MinidaqAsyncReadoutNode(kvs));
-            nodeAsyncReadout->SetThreads(nRaTh);
+            nodeAsyncReadout->SetSubdetectorId(subId);
             nodeAsyncReadout->SetFragmentSize(fSize);
+            nodeAsyncReadout->SetThreads(nAroTh);
             nodes.push_back(std::move(nodeAsyncReadout));
+            std::cout << "### Done." << endl;
+        }
+
+        if (!nodes.size()) {
+            std::cout << "Nothing to do. Specify at least one worker thread."
+                      << endl;
+            return 0;
         }
 
         for (auto &n : nodes) {
@@ -170,6 +210,7 @@ int main(int argc, const char *argv[]) {
             n->SetTimeIter(tIter_us);
         }
 
+        std::cout << "### Benchmarking..." << endl;
         // Run
         for (auto &n : nodes) {
             n->Run();
@@ -180,7 +221,10 @@ int main(int argc, const char *argv[]) {
             n->Wait();
         }
 
+        std::cout << "### Done." << endl;
+
         // Show results
+        std::cout << "### Results:" << endl;
         for (auto &n : nodes) {
             n->Show();
             if (!results_prefix.empty()) {

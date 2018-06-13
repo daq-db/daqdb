@@ -70,7 +70,11 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     timerTest.Restart_s(_tRamp_s);
     while (!timerTest.IsExpired()) {
         s.nRequests++;
-        _Task(executorId, c, c_err);
+        event_id += _nTh;
+        try {
+            _Task(event_id, c, c_err);
+        } catch (...) {
+        }
     }
 
     // Record samples
@@ -84,9 +88,9 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         timerSample.Restart_us(_tIter_us);
         do {
             event_id += _nTh;
+            s.nRequests++;
             try {
                 _Task(event_id, c, c_err);
-                s.nRequests++;
             } catch (...) {
                 s.nErrRequests++;
             }
@@ -105,7 +109,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         c = 0;
         c_err = 0;
         std::this_thread::sleep_for(
-            std::chrono::nanoseconds(10 * s.interval_ns));
+            std::chrono::nanoseconds(1000 * s.interval_ns));
     } while (c || c_err);
 
     return stats;
@@ -116,7 +120,6 @@ void MinidaqNode::Run() {
 
     _Setup();
 
-    std::cout << "Starting threads..." << std::endl;
     for (i = 0; i < _nTh; i++) {
         _futureVec.emplace_back(
             std::async(std::launch::async, &MinidaqNode::_Execute, this, i));
@@ -126,7 +129,6 @@ void MinidaqNode::Run() {
 void MinidaqNode::Wait() {
     int i;
 
-    std::cout << "Waiting..." << std::endl;
     for (const auto &f : _futureVec) {
         f.wait();
     }
