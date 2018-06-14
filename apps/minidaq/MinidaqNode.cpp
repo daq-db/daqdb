@@ -83,6 +83,8 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         minidaqKey.eventId += _nTh;
         try {
             _Task(minidaqKey, c, c_err);
+        } catch (OperationFailedException) {
+            minidaqKey.eventId -= _nTh;
         } catch (...) {
         }
     }
