@@ -30,20 +30,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include "MinidaqReadoutNode.h"
+#include "MinidaqAroNode.h"
 
 namespace FogKV {
 
-class MinidaqAsyncReadoutNode : public MinidaqReadoutNode {
-  public:
-    MinidaqAsyncReadoutNode(KVStoreBase *kvs);
-    ~MinidaqAsyncReadoutNode();
+MinidaqAroNode::MinidaqAroNode(KVStoreBase *kvs) : MinidaqRoNode(kvs) {}
 
-  protected:
-    void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
-               std::atomic<std::uint64_t> &cntErr);
-    std::string _GetType();
-};
+MinidaqAroNode::~MinidaqAroNode() {}
+
+std::string MinidaqAroNode::_GetType() { return std::string("readout-async"); }
+
+void MinidaqAroNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+                           std::atomic<std::uint64_t> &cntErr) {
+
+    MinidaqKey *keyTmp = new MinidaqKey;
+    *keyTmp = key;
+    Key fogKey(reinterpret_cast<char *>(keyTmp), sizeof(*keyTmp));
+    FogKV::Value value = _kvs->Alloc(fogKey, _fSize);
+    try {
+        _kvs->PutAsync(std::move(fogKey), std::move(value),
+                       [keyTmp, &cnt,
+                        &cntErr](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                                 const char *key, const size_t keySize,
+                                 const char *value, const size_t valueSize) {
+                           if (!status.ok()) {
+                               cntErr++;
+                           } else {
+                               cnt++;
+                           }
+                           delete keyTmp;
+                       });
+    } catch (...) {
+        delete keyTmp;
+        throw;
+    }
+}
 }
