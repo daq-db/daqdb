@@ -36,6 +36,7 @@
 #include <pthread.h>
 #include <string>
 
+#include "../debug/Logger.h"
 #include "spdk/env.h"
 
 namespace FogKV {
@@ -75,8 +76,10 @@ void RqstPooler::StartThread() {
         // @TODO jradtke: Should be replaced with spdk_env_thread_launch_pinned
         const int set_result = pthread_setaffinity_np(
             _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
-        assert(set_result != 0);
+        assert(set_result == 0);
     }
+    FOG_DEBUG("Started RqstPooler on CPU core [" + std::to_string(_cpuCore) +
+              "]");
 }
 
 void RqstPooler::_ThreadMain() {
@@ -89,8 +92,6 @@ void RqstPooler::_ThreadMain() {
 bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
     size_t count = spdk_ring_enqueue(rqstRing, (void **)&Message, 1);
     return (count == 1);
-
-    // @TODO jradtke: Initial implementation, error handling not implemented
 }
 
 void RqstPooler::DequeueMsg() {

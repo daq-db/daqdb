@@ -47,7 +47,7 @@ include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 # Build and link fogkv library
 include_directories(include include/db include/dht include/fabric include/FogKV include/store)
 file(GLOB_RECURSE FOGKV_SOURCES
-	lib/db/*.cpp lib/db/*.h 
+	lib/debug/*.cpp lib/debug/*.h
 	lib/dht/*.cpp lib/dht/*.h 
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
