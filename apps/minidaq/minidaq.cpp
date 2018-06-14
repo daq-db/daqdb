@@ -35,8 +35,8 @@
 #include <memory>
 
 #include "FogKV/KVStoreBase.h"
-#include "MinidaqAsyncReadoutNode.h"
-#include "MinidaqReadoutNode.h"
+#include "MinidaqAroNode.h"
+#include "MinidaqRoNode.h"
 
 using namespace std;
 
@@ -173,12 +173,12 @@ int main(int argc, const char *argv[]) {
                 std::cout << "Cannot mix readout modes." << endl;
                 return 0;
             }
-            unique_ptr<FogKV::MinidaqReadoutNode> nodeReadout(
-                new FogKV::MinidaqReadoutNode(kvs));
-            nodeReadout->SetSubdetectorId(subId);
-            nodeReadout->SetThreads(nRoTh);
-            nodeReadout->SetFragmentSize(fSize);
-            nodes.push_back(std::move(nodeReadout));
+            unique_ptr<FogKV::MinidaqRoNode> nodeRo(
+                new FogKV::MinidaqRoNode(kvs));
+            nodeRo->SetSubdetectorId(subId);
+            nodeRo->SetThreads(nRoTh);
+            nodeRo->SetFragmentSize(fSize);
+            nodes.push_back(std::move(nodeRo));
             std::cout << "### Done." << endl;
         }
 
@@ -189,12 +189,12 @@ int main(int argc, const char *argv[]) {
                 std::cout << "Cannot mix readout modes." << endl;
                 return 0;
             }
-            unique_ptr<FogKV::MinidaqAsyncReadoutNode> nodeAsyncReadout(
-                new FogKV::MinidaqAsyncReadoutNode(kvs));
-            nodeAsyncReadout->SetSubdetectorId(subId);
-            nodeAsyncReadout->SetFragmentSize(fSize);
-            nodeAsyncReadout->SetThreads(nAroTh);
-            nodes.push_back(std::move(nodeAsyncReadout));
+            unique_ptr<FogKV::MinidaqAroNode> nodeAro(
+                new FogKV::MinidaqAroNode(kvs));
+            nodeAro->SetSubdetectorId(subId);
+            nodeAro->SetFragmentSize(fSize);
+            nodeAro->SetThreads(nAroTh);
+            nodes.push_back(std::move(nodeAro));
             std::cout << "### Done." << endl;
         }
 

@@ -30,23 +30,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "MinidaqReadoutNode.h"
+#include "MinidaqRoNode.h"
 
 namespace FogKV {
 
-MinidaqReadoutNode::MinidaqReadoutNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
+MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
-MinidaqReadoutNode::~MinidaqReadoutNode() {}
+MinidaqRoNode::~MinidaqRoNode() {}
 
-std::string MinidaqReadoutNode::_GetType() { return std::string("readout"); }
+std::string MinidaqRoNode::_GetType() { return std::string("readout"); }
 
-void MinidaqReadoutNode::_Setup(MinidaqKey &key) {
+void MinidaqRoNode::_Setup(MinidaqKey &key) {
     key.subdetectorId = _id;
     key.runId = _runId;
 }
 
-void MinidaqReadoutNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
-                               std::atomic<std::uint64_t> &cntErr) {
+void MinidaqRoNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+                          std::atomic<std::uint64_t> &cntErr) {
     Key fogKey(reinterpret_cast<char *>(&key), sizeof(key));
     FogKV::Value value = _kvs->Alloc(fogKey, _fSize);
     *(reinterpret_cast<uint64_t *>(value.data())) = key.eventId;
@@ -54,7 +54,7 @@ void MinidaqReadoutNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
     cnt++;
 }
 
-void MinidaqReadoutNode::SetFragmentSize(size_t s) { _fSize = s; }
+void MinidaqRoNode::SetFragmentSize(size_t s) { _fSize = s; }
 
-void MinidaqReadoutNode::SetSubdetectorId(int id) { _id = id; }
+void MinidaqRoNode::SetSubdetectorId(int id) { _id = id; }
 }
