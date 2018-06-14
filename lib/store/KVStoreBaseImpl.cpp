@@ -37,6 +37,9 @@
 #include <future>
 #include <json/json.h>
 
+/** @TODO jradtke: should be taken from configuration file */
+#define POOLER_CPU_CORE_BASE 20
+
 namespace FogKV {
 
 KVStoreBase *KVStoreBase::Open(const Options &options) {
@@ -54,6 +57,12 @@ KVStoreBase *KVStoreBaseImpl::Open(const Options &options) {
 size_t KVStoreBaseImpl::KeySize() { return mKeySize; }
 
 const Options &KVStoreBaseImpl::getOptions() { return mOptions; }
+
+void KVStoreBaseImpl::LogMsg(std::string msg) {
+    if (getOptions().Runtime.logFunc) {
+        getOptions().Runtime.logFunc(msg);
+    }
+}
 
 void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
@@ -302,17 +311,15 @@ void KVStoreBaseImpl::init() {
     if (spdk_env_init(&opts) == 0) {
         auto poolerCount = getOptions().Runtime.numOfPoolers();
         for (auto index = 0; index < poolerCount; index++) {
-            _rqstPoolers.push_back(new FogKV::RqstPooler(mRTree));
+            _rqstPoolers.push_back(
+                new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
         }
     }
 
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    if (getOptions().Runtime.logFunc != nullptr) {
-        getOptions().Runtime.logFunc(
-            "KVStoreBaseImpl initialization completed");
-    }
+    LogMsg("KVStoreBaseImpl initialization completed");
 }
 
 asio::io_service &KVStoreBaseImpl::io_service() {
