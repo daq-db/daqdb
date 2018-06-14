@@ -71,24 +71,25 @@ Tree::Tree(const string &path, const size_t size) {
     }
 }
 
-StatusCode RTree::Get(const char *key, int32_t keybytes, string *value) {
+StatusCode RTree::Get(const char *key, int32_t keybytes, char **value,
+                      size_t *size) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location != 1) {
 	return StatusCode::KeyNotFound;
     }
-    value->append(val->value.get());
+    *value = val->value.get();
+    *size = val->size;
     return StatusCode::Ok;
 }
 
-StatusCode RTree::Get(const char *key, // append value to std::string
-                      string *value) {
+StatusCode RTree::Get(const char *key, char **value, size_t *size) {
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location != 1) {
         return StatusCode::KeyNotFound;
     }
-    value->append(val->value.get());
-
+    *value = val->value.get();
+    *size = val->size;
     return StatusCode::Ok;
 }
 StatusCode RTree::Put(const char *key, // copy value from std::string
@@ -115,6 +116,7 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
         poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
                                &(val->actionValue[0]), size, 0);
         val->value = reinterpret_cast<char *>(pmemobj_direct(poid));
+        val->size = size;
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
         return StatusCode::UnknownError;
