@@ -145,34 +145,25 @@ void MinidaqStats::RecordSample(const MinidaqSample &s) {
         return;
     }
 
-    if (s.nRequests) {
-        ok = hdr_record_value(_histogramRps,
-                              (s.nRequests * NSECS_IN_SEC) / s.interval_ns);
-        if (!ok) {
-            _nOverflows++;
-        }
+    ok = hdr_record_value(_histogramRps,
+                          (s.nRequests * NSECS_IN_SEC) / s.interval_ns);
+    if (!ok) {
+        _nOverflows++;
     }
-    if (s.nCompletions) {
-        ok = hdr_record_value(_histogramCps,
-                              (s.nCompletions * NSECS_IN_SEC) / s.interval_ns);
-        if (!ok) {
-            _nOverflows++;
-        }
+    ok = hdr_record_value(_histogramCps,
+                          (s.nCompletions * NSECS_IN_SEC) / s.interval_ns);
+    if (!ok) {
+        _nOverflows++;
     }
-    if (s.nErrRequests) {
-        ok = hdr_record_value(_histogramRpsErr,
-                              (s.nErrRequests * NSECS_IN_SEC) / s.interval_ns);
-        if (!ok) {
-            _nOverflows++;
-        }
+    ok = hdr_record_value(_histogramRpsErr,
+                          (s.nErrRequests * NSECS_IN_SEC) / s.interval_ns);
+    if (!ok) {
+        _nOverflows++;
     }
-    if (s.nErrCompletions) {
-        ok = hdr_record_value(_histogramCpsErr,
-                              (s.nErrCompletions * NSECS_IN_SEC) /
-                                  s.interval_ns);
-        if (!ok) {
-            _nOverflows++;
-        }
+    ok = hdr_record_value(_histogramCpsErr,
+                          (s.nErrCompletions * NSECS_IN_SEC) / s.interval_ns);
+    if (!ok) {
+        _nOverflows++;
     }
     _nIterations++;
     _totalTime_ns += s.interval_ns;

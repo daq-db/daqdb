@@ -67,9 +67,9 @@ class MinidaqNode {
     void SetThreads(int n);
 
   protected:
-    virtual void _Task(uint64_t eventId, std::atomic<std::uint64_t> &cnt,
+    virtual void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                        std::atomic<std::uint64_t> &cntErr) = 0;
-    virtual void _Setup() = 0;
+    virtual void _Setup(MinidaqKey &key) = 0;
     virtual std::string _GetType() = 0;
 
     KVStoreBase *_kvs;
