@@ -31,6 +31,7 @@
  */
 
 #include "KVStoreBaseImpl.h"
+#include "../debug/Logger.h"
 #include "../dht/DhtUtils.h"
 #include "common.h"
 #include <FogKV/Types.h>
@@ -290,6 +291,9 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
 }
 
 void KVStoreBaseImpl::init() {
+    if (getOptions().Runtime.logFunc)
+        gLog.setLogFunc(getOptions().Runtime.logFunc);
+
     auto dhtPort =
         getOptions().Dht.Port ?: FogKV::utils::getFreePort(io_service(), 0);
     auto port = getOptions().Port ?: FogKV::utils::getFreePort(io_service(), 0);
@@ -300,11 +304,8 @@ void KVStoreBaseImpl::init() {
     mRTree.reset(FogKV::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
                                           mOptions.PMEM.Size));
 
-    /**
-     * @TODO jradtke: initial implementation, will be moved to better place.
-     * 				  SPDK init messages should be hidden.
-     */
     struct spdk_env_opts opts;
+    // @TODO jradtke: SPDK init messages should be hidden.
     spdk_env_opts_init(&opts);
     opts.name = "FogKV";
     opts.shm_id = 0;
@@ -319,7 +320,7 @@ void KVStoreBaseImpl::init() {
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    LogMsg("KVStoreBaseImpl initialization completed");
+    FOG_DEBUG("KVStoreBaseImpl initialization completed");
 }
 
 asio::io_service &KVStoreBaseImpl::io_service() {
