@@ -64,6 +64,7 @@ struct ValueWrapper {
     }
     p<int> location;
     persistent_ptr<char> value;
+    size_t size;
     struct pobj_action *actionValue;
     string getString();
 };
@@ -100,9 +101,9 @@ class RTree : public FogKV::RTreeEngine {
     RTree(const string &path, const size_t size);
     virtual ~RTree();
     string Engine() final { return "RTree"; }
-    StatusCode Get(const char *key, int32_t keybytes, string *value) final;
-    StatusCode Get(const char *key, // append value to std::string
-                   string *value) final;
+    StatusCode Get(const char *key, int32_t keybytes, char **value,
+                   size_t *size) final;
+    StatusCode Get(const char *key, char **value, size_t *size) final;
     StatusCode Put(const char *key, // copy value from std::string
                    char *value) final;
     StatusCode Put(const char *key, int32_t keybytes, const char *value,

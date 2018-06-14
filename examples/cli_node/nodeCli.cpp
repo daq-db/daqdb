@@ -170,6 +170,7 @@ void nodeCli::cmdGet(const std::string &strLine) {
         FogKV::Key keyBuff;
         try {
             keyBuff = _spKVStore->AllocKey();
+            /** @todo memleak - keyBuff.data */
             std::memset(keyBuff.data(), 0, keyBuff.size());
             std::memcpy(keyBuff.data(), key.c_str(), key.size());
         } catch (FogKV::OperationFailedException &e) {
@@ -180,6 +181,7 @@ void nodeCli::cmdGet(const std::string &strLine) {
         FogKV::Value value;
         try {
             value = _spKVStore->Get(keyBuff);
+            /** @todo memleak - value.data */
             string valuestr(value.data());
             cout << format("[%1%] = %2%\n") % key % valuestr;
         } catch (FogKV::OperationFailedException &e) {
@@ -229,7 +231,9 @@ void nodeCli::cmdGetAsync(const std::string &strLine) {
                     _statusMsgs.push_back(
                         boost::str(boost::format("GET[%1%]=%2% : completed") %
                                    key % value));
+                    /** @todo memleak - value.data */
                 }
+                /** @todo memleak - keyBuff.data */
 
             });
 
