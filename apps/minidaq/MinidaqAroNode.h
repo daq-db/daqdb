@@ -32,25 +32,18 @@
 
 #pragma once
 
-#include "MinidaqNode.h"
+#include "MinidaqRoNode.h"
 
 namespace FogKV {
 
-class MinidaqReadoutNode : public MinidaqNode {
+class MinidaqAroNode : public MinidaqRoNode {
   public:
-    MinidaqReadoutNode(KVStoreBase *kvs);
-    virtual ~MinidaqReadoutNode();
-
-    void SetFragmentSize(size_t s);
-    void SetSubdetectorId(int id);
+    MinidaqAroNode(KVStoreBase *kvs);
+    ~MinidaqAroNode();
 
   protected:
     void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
-    void _Setup(MinidaqKey &key);
     std::string _GetType();
-
-    size_t _fSize = 0;
-    int _id = 0;
 };
 }
