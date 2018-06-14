@@ -42,6 +42,7 @@ enum StatusCode : long {
 
     _max_errno = std::numeric_limits<int>::max(),
     KeyNotFound,
+    AllocationError,
 
     NotImplemented,
     UnknownError,
