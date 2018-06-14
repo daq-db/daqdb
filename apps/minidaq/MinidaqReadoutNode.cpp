@@ -32,8 +32,6 @@
 
 #include "MinidaqReadoutNode.h"
 
-using namespace std;
-
 namespace FogKV {
 
 MinidaqReadoutNode::MinidaqReadoutNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
@@ -42,20 +40,16 @@ MinidaqReadoutNode::~MinidaqReadoutNode() {}
 
 std::string MinidaqReadoutNode::_GetType() { return std::string("readout"); }
 
-void MinidaqReadoutNode::_Setup() {}
+void MinidaqReadoutNode::_Setup(MinidaqKey &key) {
+    key.subdetectorId = _id;
+    key.runId = _runId;
+}
 
-void MinidaqReadoutNode::_Task(uint64_t eventId,
-                               std::atomic<std::uint64_t> &cnt,
+void MinidaqReadoutNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                                std::atomic<std::uint64_t> &cntErr) {
-    Key key = _kvs->AllocKey();
-    MinidaqKey *keyp = reinterpret_cast<MinidaqKey *>(key.data());
-    keyp->subdetectorId = _id;
-    keyp->runId = _runId;
-    keyp->eventId = eventId;
-
-    FogKV::Value value = _kvs->Alloc(key, _fSize);
-
-    _kvs->Put(std::move(key), std::move(value));
+    Key fogKey(reinterpret_cast<char *>(&key), sizeof(key));
+    // FogKV::Value value = _kvs->Alloc(fogKey, _fSize);
+    //_kvs->Put(std::move(fogKey), std::move(value));
     cnt++;
 }
 

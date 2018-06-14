@@ -32,14 +32,15 @@
 
 #include <atomic>
 #include <future>
+#include <iomanip>
 #include <iostream>
+#include <sys/syscall.h>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 #include "MinidaqNode.h"
 #include "MinidaqTimerHR.h"
-
-#include <iomanip>
 
 namespace FogKV {
 
@@ -58,7 +59,6 @@ void MinidaqNode::SetThreads(int n) { _nTh = n; }
 
 MinidaqStats MinidaqNode::_Execute(int executorId) {
     std::atomic<std::uint64_t> c_err;
-    uint64_t event_id = executorId;
     std::atomic<std::uint64_t> c;
     MinidaqTimerHR timerSample;
     MinidaqTimerHR timerTest;
@@ -66,39 +66,49 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     MinidaqSample s;
     uint64_t avg_r;
 
+    std::stringstream msg;
+    msg << "Executor " << executorId << ": " << _GetType()
+        << ", thread id: " << syscall(__NR_gettid) << std::endl;
+    std::cout << msg.str();
+
+    // Prepare reusable key
+    MinidaqKey minidaqKey;
+    minidaqKey.eventId = executorId;
+    _Setup(minidaqKey);
+
     // Ramp up
     timerTest.Restart_s(_tRamp_s);
     while (!timerTest.IsExpired()) {
         s.nRequests++;
-        event_id += _nTh;
+        minidaqKey.eventId += _nTh;
         try {
-            _Task(event_id, c, c_err);
+            _Task(minidaqKey, c, c_err);
         } catch (...) {
         }
     }
 
     // Record samples
     timerTest.Restart_s(_tTest_s);
+    c = 0;
+    c_err = 0;
     while (!timerTest.IsExpired() && !_stopped) {
         // Timer precision per iteration
         avg_r = (s.nRequests + 10) / 10;
         s.Reset();
-        c = 0;
-        c_err = 0;
         timerSample.Restart_us(_tIter_us);
         do {
-            event_id += _nTh;
+            minidaqKey.eventId += _nTh;
             s.nRequests++;
             try {
-                _Task(event_id, c, c_err);
+                _Task(minidaqKey, c, c_err);
             } catch (...) {
                 s.nErrRequests++;
             }
         } while (!_stopped &&
                  ((s.nRequests % avg_r) || !timerSample.IsExpired()));
-        s.nCompletions = c;
-        s.nErrCompletions = c_err;
         s.interval_ns = timerSample.GetElapsed_ns();
+        s.nCompletions = c.fetch_and(0ULL);
+        s.nErrCompletions = c_err.fetch_and(0ULL);
         stats.RecordSample(s);
     }
 
@@ -117,8 +127,6 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
 
 void MinidaqNode::Run() {
     int i;
-
-    _Setup();
 
     for (i = 0; i < _nTh; i++) {
         _futureVec.emplace_back(

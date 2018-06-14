@@ -48,8 +48,8 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_T_RAMP_S 2
 #define MINIDAQ_DEFAULT_T_TEST_S 10
 #define MINIDAQ_DEFAULT_T_ITER_US 100
-#define MINIDAQ_DEFAULT_N_SUBDETECTORS_RO 0
-#define MINIDAQ_DEFAULT_N_SUBDETECTORS_ARO 0
+#define MINIDAQ_DEFAULT_N_THREADS_RO 0
+#define MINIDAQ_DEFAULT_N_THREADS_ARO 0
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
@@ -112,10 +112,10 @@ int main(int argc, const char *argv[]) {
 
     po::options_description readoutOpts("Readout-specific options");
     readoutOpts.add_options()("n-ro", po::value<int>(&nRoTh)->default_value(
-                                          MINIDAQ_DEFAULT_N_SUBDETECTORS_RO),
+                                          MINIDAQ_DEFAULT_N_THREADS_RO),
                               "Number of readout threads.")(
-        "n-aro", po::value<int>(&nAroTh)->default_value(
-                     MINIDAQ_DEFAULT_N_SUBDETECTORS_ARO),
+        "n-aro",
+        po::value<int>(&nAroTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_ARO),
         "Number of asynchronous readout threads.")(
         "sub-id",
         po::value<int>(&subId)->default_value(MINIDAQ_DEFAULT_START_SUB_ID),
