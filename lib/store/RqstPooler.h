@@ -61,7 +61,7 @@ class RqstMsg {
     const char *value = nullptr;
     size_t valueSize = 0;
 
-    /** @TODO jradtke copying std:function in every msg might be not good idea */
+    // @TODO jradtke copying std:function in every msg might be not good idea
     KVStoreBase::KVStoreBaseCallback clb;
 };
 
@@ -75,7 +75,8 @@ class RqstPoolerInterface {
 
 class RqstPooler : public RqstPoolerInterface {
   public:
-    RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store);
+    RqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+               const size_t cpuCore = 0);
     virtual ~RqstPooler();
 
     bool EnqueueMsg(RqstMsg *Message);
@@ -92,7 +93,9 @@ class RqstPooler : public RqstPoolerInterface {
 
   private:
     void _ThreadMain(void);
+
     std::thread *_thread;
+    size_t _cpuCore = 0;
 };
 
 } /* namespace FogKV */
