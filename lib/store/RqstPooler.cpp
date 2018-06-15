@@ -122,18 +122,18 @@ void RqstPooler::ProcessMsg() {
         }
         case RqstOperation::GET: {
             size_t size;
-            char* pVal;
+            char *pVal;
 
             StatusCode rc = rtree->Get(key, keySize, &pVal, &size);
-            if (rc != StatusCode::Ok) {
+            if (rc != StatusCode::Ok || !pVal) {
                 if (cb_fn)
                     cb_fn(nullptr, Status(rc), key, keySize, nullptr, 0);
                 break;
             }
             Value value(new char[size], size);
             std::memcpy(value.data(), pVal, size);
-                if (cb_fn)
-                    cb_fn(nullptr, Status(rc), key, keySize, value.data(), size);
+            if (cb_fn)
+                cb_fn(nullptr, Status(rc), key, keySize, value.data(), size);
             break;
         }
         default:
