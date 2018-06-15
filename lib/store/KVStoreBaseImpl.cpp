@@ -88,9 +88,9 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
     size_t size;
-    char* pVal;
+    char *pVal;
     StatusCode rc = mRTree->Get(key.data(), &pVal, &size);
-    if (rc != StatusCode::Ok) {
+    if (rc != StatusCode::Ok || !pVal) {
         if (rc == StatusCode::KeyNotFound)
             throw OperationFailedException(KeyNotFound);
 
