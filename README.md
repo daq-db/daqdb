@@ -79,8 +79,13 @@ If using LCG release, set the desired environment first:
 ```
 . /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
 ```
+or
+```
+. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_latest x86_64-centos7-gcc7-opt
+```
 
 Note: `. scripts/setup_env_lcg.sh` can be called to setup environment with LCG and SPDK.
+Note2: LCG_93 contains CMake 3.7 that may show warnings if BOOST library version is 1.64+.
 
 ##### SPDK
 FogKV is using SPDK internally so following extra step is required to configure environment.
