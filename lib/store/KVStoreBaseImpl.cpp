@@ -31,11 +31,15 @@
  */
 
 #include "KVStoreBaseImpl.h"
+#include "../debug/Logger.h"
 #include "../dht/DhtUtils.h"
 #include "common.h"
 #include <FogKV/Types.h>
 #include <future>
 #include <json/json.h>
+
+/** @TODO jradtke: should be taken from configuration file */
+#define POOLER_CPU_CORE_BASE 20
 
 namespace FogKV {
 
@@ -54,6 +58,12 @@ KVStoreBase *KVStoreBaseImpl::Open(const Options &options) {
 size_t KVStoreBaseImpl::KeySize() { return mKeySize; }
 
 const Options &KVStoreBaseImpl::getOptions() { return mOptions; }
+
+void KVStoreBaseImpl::LogMsg(std::string msg) {
+    if (getOptions().Runtime.logFunc) {
+        getOptions().Runtime.logFunc(msg);
+    }
+}
 
 void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
@@ -281,6 +291,9 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
 }
 
 void KVStoreBaseImpl::init() {
+    if (getOptions().Runtime.logFunc)
+        gLog.setLogFunc(getOptions().Runtime.logFunc);
+
     auto dhtPort =
         getOptions().Dht.Port ?: FogKV::utils::getFreePort(io_service(), 0);
     auto port = getOptions().Port ?: FogKV::utils::getFreePort(io_service(), 0);
@@ -291,28 +304,23 @@ void KVStoreBaseImpl::init() {
     mRTree.reset(FogKV::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
                                           mOptions.PMEM.Size));
 
-    /**
-     * @TODO jradtke: initial implementation, will be moved to better place.
-     * 				  SPDK init messages should be hidden.
-     */
     struct spdk_env_opts opts;
+    // @TODO jradtke: SPDK init messages should be hidden.
     spdk_env_opts_init(&opts);
     opts.name = "FogKV";
     opts.shm_id = 0;
     if (spdk_env_init(&opts) == 0) {
         auto poolerCount = getOptions().Runtime.numOfPoolers();
         for (auto index = 0; index < poolerCount; index++) {
-            _rqstPoolers.push_back(new FogKV::RqstPooler(mRTree));
+            _rqstPoolers.push_back(
+                new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
         }
     }
 
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    if (getOptions().Runtime.logFunc != nullptr) {
-        getOptions().Runtime.logFunc(
-            "KVStoreBaseImpl initialization completed");
-    }
+    FOG_DEBUG("KVStoreBaseImpl initialization completed");
 }
 
 asio::io_service &KVStoreBaseImpl::io_service() {

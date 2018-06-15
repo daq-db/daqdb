@@ -85,6 +85,8 @@ class KVStoreBaseImpl : public KVStoreBase {
     virtual void Free(Key &&key);
     virtual void ChangeOptions(Key &key, const AllocOptions &options);
 
+    void LogMsg(std::string msg);
+
   protected:
     KVStoreBaseImpl(const Options &options);
     virtual ~KVStoreBaseImpl();

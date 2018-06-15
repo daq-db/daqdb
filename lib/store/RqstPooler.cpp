@@ -33,7 +33,10 @@
 #include "RqstPooler.h"
 
 #include <iostream>
+#include <pthread.h>
+#include <string>
 
+#include "../debug/Logger.h"
 #include "spdk/env.h"
 
 namespace FogKV {
@@ -44,8 +47,9 @@ RqstMsg::RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
     : op(op), key(key), keySize(keySize), value(value), valueSize(valueSize),
       clb(clb) {}
 
-RqstPooler::RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store)
-    : isRunning(0), _thread(nullptr), rtree(Store) {
+RqstPooler::RqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+                       const size_t cpuCore)
+    : isRunning(0), _thread(nullptr), rtree(rtree), _cpuCore(cpuCore) {
 
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
@@ -63,6 +67,19 @@ RqstPooler::~RqstPooler() {
 void RqstPooler::StartThread() {
     isRunning = 1;
     _thread = new std::thread(&RqstPooler::_ThreadMain, this);
+
+    if (_cpuCore) {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(_cpuCore, &cpuset);
+
+        // @TODO jradtke: Should be replaced with spdk_env_thread_launch_pinned
+        const int set_result = pthread_setaffinity_np(
+            _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
+        assert(set_result == 0);
+    }
+    FOG_DEBUG("Started RqstPooler on CPU core [" + std::to_string(_cpuCore) +
+              "]");
 }
 
 void RqstPooler::_ThreadMain() {
@@ -75,8 +92,6 @@ void RqstPooler::_ThreadMain() {
 bool RqstPooler::EnqueueMsg(RqstMsg *Message) {
     size_t count = spdk_ring_enqueue(rqstRing, (void **)&Message, 1);
     return (count == 1);
-
-    /** @TODO jradtke: Initial implementation, error handling not implemented */
 }
 
 void RqstPooler::DequeueMsg() {

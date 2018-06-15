@@ -30,72 +30,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include <atomic>
-#include <cstdint>
-#include <thread>
-
-#include "RTreeEngine.h"
-#include "spdk/env.h"
-#include "spdk/io_channel.h"
-#include "spdk/queue.h"
-
-#include <FogKV/KVStoreBase.h>
-
-#define DEQUEUE_RING_LIMIT 1024
+#include "Logger.h"
 
 namespace FogKV {
 
-enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2 };
+FogKV::Logger gLog;
 
-class RqstMsg {
-  public:
-    RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
-            const char *value, size_t valueSize,
-            KVStoreBase::KVStoreBaseCallback clb);
+Logger::Logger() {}
 
-    const RqstOperation op = RqstOperation::NONE;
-    const char *key = nullptr;
-    size_t keySize = 0;
-    const char *value = nullptr;
-    size_t valueSize = 0;
+Logger::~Logger() {}
 
-    // @TODO jradtke copying std:function in every msg might be not good idea
-    KVStoreBase::KVStoreBaseCallback clb;
-};
+void Logger::setLogFunc(std::function<void(std::string)> fn) { _logFunc = fn; }
 
-class RqstPoolerInterface {
-    virtual void StartThread() = 0;
-
-    virtual bool EnqueueMsg(RqstMsg *Message) = 0;
-    virtual void DequeueMsg() = 0;
-    virtual void ProcessMsg() = 0;
-};
-
-class RqstPooler : public RqstPoolerInterface {
-  public:
-    RqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
-               const size_t cpuCore = 0);
-    virtual ~RqstPooler();
-
-    bool EnqueueMsg(RqstMsg *Message);
-    void DequeueMsg();
-    void ProcessMsg() final;
-    void StartThread();
-
-    std::atomic<int> isRunning;
-    std::shared_ptr<FogKV::RTreeEngine> rtree;
-    struct spdk_ring *rqstRing;
-
-    unsigned short processArrayCount = 0;
-    RqstMsg *processArray[DEQUEUE_RING_LIMIT];
-
-  private:
-    void _ThreadMain(void);
-
-    std::thread *_thread;
-    size_t _cpuCore = 0;
-};
+void Logger::Log(std::string msg) {
+    if (_logFunc) {
+        _logFunc(msg);
+    }
+}
 
 } /* namespace FogKV */
