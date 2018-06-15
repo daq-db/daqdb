@@ -30,9 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <random>
 #include "MinidaqFfNode.h"
 
 namespace FogKV {
+
+/** @todo conisder moving to a new MinidaqSelector class */
+thread_local std::mt19937 _generator;
 
 MinidaqFfNode::MinidaqFfNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
@@ -40,19 +44,57 @@ MinidaqFfNode::~MinidaqFfNode() {}
 
 std::string MinidaqFfNode::_GetType() { return std::string("fast-filtering"); }
 
-void MinidaqFfNode::_Setup(MinidaqKey &key) { key.runId = _runId; }
+void MinidaqFfNode::_Setup(int executorId, MinidaqKey &key) {
+    key.runId = _runId;
+    key.eventId = executorId;
+}
+
+void MinidaqFfNode::_NextKey(MinidaqKey &key) {
+    /** @todo getNext */
+    /** @todo fixed next with distributed version
+     *  (node_id, executor_id, n_global_executors)
+     */
+    key.eventId += _nTh;
+}
+
+bool MinidaqFfNode::_Accept() {
+    bool accept = false;
+    if (_acceptLevel >= 1.0) {
+        accept = true;
+    } else if (_acceptLevel > 0.0) {
+        static thread_local std::bernoulli_distribution distro(_acceptLevel);
+        accept = distro(_generator);
+    }
+    return accept;
+}
+
+int MinidaqFfNode::_PickSubdetector() {
+    /** @todo add distro */
+    return _baseId;
+}
+
+int MinidaqFfNode::_PickNFragments() {
+    /** @todo add distro */
+    return _nSubdetectors;
+}
 
 void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
+    int baseId = _PickSubdetector();
     Key fogKey(reinterpret_cast<char *>(&key), sizeof(key));
-    /** @todo change to GetRange once implemented */
-    for (int i = 0; i < _nSubdetectors; i++) {
-        key.subdetectorId = i;
+    for (int i = 0; i < _PickNFragments(); i++) {
+        /** @todo change to GetRange once implemented */
+        key.subdetectorId = baseId + i;
         FogKV::Value value = _kvs->Get(fogKey);
         if (*(reinterpret_cast<uint64_t *>(value.data())) != key.eventId) {
             cntErr++;
         } else {
             cnt++;
+            if (_Accept()) {
+                /** @todo update */
+            } else {
+                //_kvs->Remove(fogKey);
+            }
         }
         delete value.data();
     }
@@ -61,4 +103,6 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
 void MinidaqFfNode::SetBaseSubdetectorId(int id) { _baseId = id; }
 
 void MinidaqFfNode::SetSubdetectors(int n) { _nSubdetectors = n; }
+
+void MinidaqFfNode::SetAcceptLevel(double p) { _acceptLevel = p; }
 }

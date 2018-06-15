@@ -43,14 +43,22 @@ class MinidaqFfNode : public MinidaqNode {
 
     void SetSubdetectors(int n);
     void SetBaseSubdetectorId(int id);
+    void SetAcceptLevel(double p);
 
   protected:
     void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
-    void _Setup(MinidaqKey &key);
+    void _Setup(int executorId, MinidaqKey &key);
+    void _NextKey(MinidaqKey &key);
     std::string _GetType();
+    bool _Accept();
+    int _PickSubdetector();
+    int _PickNFragments();
 
     int _baseId = 0;
     int _nSubdetectors = 0;
+
+  private:
+    double _acceptLevel = 1.0; // desired acceptance level for filtering nodes
 };
 }

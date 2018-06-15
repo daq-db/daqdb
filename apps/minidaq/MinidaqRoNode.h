@@ -47,7 +47,8 @@ class MinidaqRoNode : public MinidaqNode {
   protected:
     void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
-    void _Setup(MinidaqKey &key);
+    void _Setup(int executorId, MinidaqKey &key);
+    void _NextKey(MinidaqKey &key);
     std::string _GetType();
 
     size_t _fSize = 0;

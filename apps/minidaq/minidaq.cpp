@@ -56,6 +56,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
 #define MINIDAQ_DEFAULT_PARALLEL "true"
+#define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
 
 std::string results_prefix;
 std::string results_all;
@@ -115,6 +116,7 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
 int main(int argc, const char *argv[]) {
     FogKV::KVStoreBase *kvs;
     std::string pmem_path;
+    double acceptLevel;
     size_t pmem_size;
     bool isParallel;
     int startSubId;
@@ -179,7 +181,10 @@ int main(int argc, const char *argv[]) {
         "parallel",
         po::value<bool>(&isParallel)->default_value(MINIDAQ_DEFAULT_PARALLEL),
         "If true, readout and collector threads will run in parellel. "
-        "Otherwise, collector nodes will wait until readout threads complete.");
+        "Otherwise, collector nodes will wait until readout threads complete.")(
+        "acceptance", po::value<double>(&acceptLevel)
+                          ->default_value(MINIDAQ_DEFAULT_ACCEPT_LEVEL),
+        "Event acceptance level.");
 
     po::options_description argumentsDescription;
     argumentsDescription.add(genericOpts).add(readoutOpts).add(filteringOpts);
@@ -195,7 +200,8 @@ int main(int argc, const char *argv[]) {
 
         po::notify(parsedArguments);
     } catch (po::error &parserError) {
-        cerr << "Invalid arguments: " << parserError.what() << endl << endl;
+        cerr << "Invalid arguments: " << parserError.what() << endl
+             << endl;
         cerr << argumentsDescription << endl;
         return -1;
     }
@@ -213,7 +219,7 @@ int main(int argc, const char *argv[]) {
 
     try {
         std::cout << "### Opening FogKV..." << endl;
-        kvs = openKVS(pmem_path, pmem_size);
+        // kvs = openKVS(pmem_path, pmem_size);
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>
             nodes; // Configure nodes
@@ -260,6 +266,7 @@ int main(int argc, const char *argv[]) {
                 new FogKV::MinidaqFfNode(kvs));
             nodeFf->SetBaseSubdetectorId(startSubId);
             nodeFf->SetSubdetectors(nSub);
+            nodeFf->SetAcceptLevel(acceptLevel);
             nodeFf->SetThreads(nFfTh);
             nodes.push_back(std::move(nodeFf));
             std::cout << "### Done." << endl;
