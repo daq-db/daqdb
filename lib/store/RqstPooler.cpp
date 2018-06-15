@@ -76,10 +76,12 @@ void RqstPooler::StartThread() {
         // @TODO jradtke: Should be replaced with spdk_env_thread_launch_pinned
         const int set_result = pthread_setaffinity_np(
             _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
-        assert(set_result == 0);
+        if (set_result == 0) {
+            FOG_DEBUG("Started RqstPooler on CPU core [" + std::to_string(_cpuCore) + "]");
+        } else {
+            FOG_DEBUG("Cannot set affinity on CPU core [" + std::to_string(_cpuCore) + "]");
+        }
     }
-    FOG_DEBUG("Started RqstPooler on CPU core [" + std::to_string(_cpuCore) +
-              "]");
 }
 
 void RqstPooler::_ThreadMain() {
