@@ -32,7 +32,11 @@
 
 #pragma once
 
+#ifdef NDEBUG
+#define FOG_DEBUG(msg)
+#else
 #define FOG_DEBUG(msg) gLog.Log(msg)
+#endif
 
 #include <functional>
 
