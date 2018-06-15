@@ -40,10 +40,13 @@ MinidaqRoNode::~MinidaqRoNode() {}
 
 std::string MinidaqRoNode::_GetType() { return std::string("readout"); }
 
-void MinidaqRoNode::_Setup(MinidaqKey &key) {
+void MinidaqRoNode::_Setup(int executorId, MinidaqKey &key) {
     key.subdetectorId = _id;
     key.runId = _runId;
+    key.eventId = executorId;
 }
+
+void MinidaqRoNode::_NextKey(MinidaqKey &key) { key.eventId += _nTh; }
 
 void MinidaqRoNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {

@@ -73,8 +73,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
 
     // Prepare reusable key
     MinidaqKey minidaqKey;
-    minidaqKey.eventId = executorId;
-    _Setup(minidaqKey);
+    _Setup(executorId, minidaqKey);
 
     // Ramp up
     timerTest.Restart_s(_tRamp_s);
@@ -83,6 +82,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         minidaqKey.eventId += _nTh;
         try {
             _Task(minidaqKey, c, c_err);
+            _NextKey(minidaqKey);
         } catch (...) {
         }
     }
@@ -97,10 +97,10 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         s.Reset();
         timerSample.Restart_us(_tIter_us);
         do {
-            minidaqKey.eventId += _nTh;
             s.nRequests++;
             try {
                 _Task(minidaqKey, c, c_err);
+                _NextKey(minidaqKey);
             } catch (...) {
                 s.nErrRequests++;
             }
@@ -119,7 +119,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         c = 0;
         c_err = 0;
         std::this_thread::sleep_for(
-            std::chrono::nanoseconds(1000 * s.interval_ns));
+            std::chrono::nanoseconds(100 * s.interval_ns));
     } while (c || c_err);
 
     return stats;

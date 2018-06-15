@@ -69,16 +69,17 @@ class MinidaqNode {
   protected:
     virtual void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                        std::atomic<std::uint64_t> &cntErr) = 0;
-    virtual void _Setup(MinidaqKey &key) = 0;
+    virtual void _Setup(int executorId, MinidaqKey &key) = 0;
+    virtual void _NextKey(MinidaqKey &key) = 0;
     virtual std::string _GetType() = 0;
 
     KVStoreBase *_kvs;
     int _runId = 599;
+    int _nTh = 1; // number of worker threads
 
   private:
     MinidaqStats _Execute(int executorId);
 
-    int _nTh = 1;                 // number of worker threads
     int _tTest_s = 0;             // desired test duration in seconds
     int _tRamp_s = 0;             // desired test ramp duration in seconds
     int _tIter_us = 0;            // desired iteration time in microseconds

@@ -36,13 +36,14 @@
 
 namespace FogKV {
 
-class MinidaqRoNode : public MinidaqNode {
+class MinidaqFfNode : public MinidaqNode {
   public:
-    MinidaqRoNode(KVStoreBase *kvs);
-    virtual ~MinidaqRoNode();
+    MinidaqFfNode(KVStoreBase *kvs);
+    virtual ~MinidaqFfNode();
 
-    void SetFragmentSize(size_t s);
-    void SetSubdetectorId(int id);
+    void SetSubdetectors(int n);
+    void SetBaseSubdetectorId(int id);
+    void SetAcceptLevel(double p);
 
   protected:
     void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
@@ -50,8 +51,14 @@ class MinidaqRoNode : public MinidaqNode {
     void _Setup(int executorId, MinidaqKey &key);
     void _NextKey(MinidaqKey &key);
     std::string _GetType();
+    bool _Accept();
+    int _PickSubdetector();
+    int _PickNFragments();
 
-    size_t _fSize = 0;
-    int _id = 0;
+    int _baseId = 0;
+    int _nSubdetectors = 0;
+
+  private:
+    double _acceptLevel = 1.0; // desired acceptance level for filtering nodes
 };
 }

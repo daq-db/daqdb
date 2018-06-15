@@ -36,6 +36,7 @@
 
 #include "FogKV/KVStoreBase.h"
 #include "MinidaqAroNode.h"
+#include "MinidaqFfNode.h"
 #include "MinidaqRoNode.h"
 
 using namespace std;
@@ -54,6 +55,15 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
+#define MINIDAQ_DEFAULT_PARALLEL "true"
+#define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
+
+std::string results_prefix;
+std::string results_all;
+std::string tname;
+int tIter_us;
+int tTest_s;
+int tRamp_s;
 
 /** @todo move to MinidaqFogServer for distributed version */
 static FogKV::KVStoreBase *openKVS(std::string &pmemPath, size_t pmemSize) {
@@ -68,17 +78,49 @@ static FogKV::KVStoreBase *openKVS(std::string &pmemPath, size_t pmemSize) {
     return FogKV::KVStoreBase::Open(options);
 }
 
+static void
+runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
+    // Configure
+    std::cout << "### Configuring..." << endl;
+    for (auto &n : nodes) {
+        n->SetTimeTest(tTest_s);
+        n->SetTimeRamp(tRamp_s);
+        n->SetTimeIter(tIter_us);
+    }
+
+    // Run
+    std::cout << "### Benchmarking..." << endl;
+    for (auto &n : nodes) {
+        n->Run();
+    }
+
+    // Wait for results
+    for (auto &n : nodes) {
+        n->Wait();
+    }
+    std::cout << "### Done." << endl;
+
+    // Show results
+    std::cout << "### Results:" << endl;
+    for (auto &n : nodes) {
+        n->Show();
+        if (!results_prefix.empty()) {
+            n->Save(results_prefix);
+        }
+        if (!results_all.empty()) {
+            n->SaveSummary(results_all, tname);
+        }
+    }
+}
+
 int main(int argc, const char *argv[]) {
-    std::string results_prefix;
-    std::string results_all;
     FogKV::KVStoreBase *kvs;
     std::string pmem_path;
-    std::string tname;
+    double acceptLevel;
     size_t pmem_size;
+    bool isParallel;
+    int startSubId;
     size_t fSize;
-    int tIter_us;
-    int tTest_s;
-    int tRamp_s;
     int nAroTh;
     int nRoTh;
     int nFfTh;
@@ -131,11 +173,18 @@ int main(int argc, const char *argv[]) {
         "n-ff",
         po::value<int>(&nFfTh)->default_value(MINIDAQ_DEFAULT_N_THREADS_FF),
         "Number of fast filtering threads.")(
-        "start-sub-id",
-        po::value<int>(&subId)->default_value(MINIDAQ_DEFAULT_START_SUB_ID),
+        "start-sub-id", po::value<int>(&startSubId)
+                            ->default_value(MINIDAQ_DEFAULT_START_SUB_ID),
         "Start subdetector ID.")("n-sub", po::value<int>(&nSub)->default_value(
                                               MINIDAQ_DEFAULT_N_SUBDETECTORS),
-                                 "Total number of subdetectors.");
+                                 "Total number of subdetectors.")(
+        "parallel",
+        po::value<bool>(&isParallel)->default_value(MINIDAQ_DEFAULT_PARALLEL),
+        "If true, readout and collector threads will run in parellel. "
+        "Otherwise, collector nodes will wait until readout threads complete.")(
+        "acceptance", po::value<double>(&acceptLevel)
+                          ->default_value(MINIDAQ_DEFAULT_ACCEPT_LEVEL),
+        "Event acceptance level.");
 
     po::options_description argumentsDescription;
     argumentsDescription.add(genericOpts).add(readoutOpts).add(filteringOpts);
@@ -151,19 +200,26 @@ int main(int argc, const char *argv[]) {
 
         po::notify(parsedArguments);
     } catch (po::error &parserError) {
-        cerr << "Invalid arguments: " << parserError.what() << endl << endl;
+        cerr << "Invalid arguments: " << parserError.what() << endl
+             << endl;
         cerr << argumentsDescription << endl;
         return -1;
     }
 
-    if (nFfTh || nEbTh) {
-        cerr << "Data collectors not supported" << endl;
+    if (nEbTh) {
+        cerr << "Event builders not supported" << endl;
         return -1;
+    }
+
+    if (!nRoTh && !nAroTh && !nFfTh && !nEbTh) {
+        std::cout << "Nothing to do. Specify at least one worker thread."
+                  << endl;
+        return 0;
     }
 
     try {
         std::cout << "### Opening FogKV..." << endl;
-        kvs = openKVS(pmem_path, pmem_size);
+        // kvs = openKVS(pmem_path, pmem_size);
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>
             nodes; // Configure nodes
@@ -198,42 +254,26 @@ int main(int argc, const char *argv[]) {
             std::cout << "### Done." << endl;
         }
 
-        if (!nodes.size()) {
-            std::cout << "Nothing to do. Specify at least one worker thread."
-                      << endl;
-            return 0;
+        // Run readout nodes only, if requested
+        if (!isParallel) {
+            runBenchmark(nodes);
+            nodes.clear();
         }
 
-        for (auto &n : nodes) {
-            n->SetTimeTest(tTest_s);
-            n->SetTimeRamp(tRamp_s);
-            n->SetTimeIter(tIter_us);
+        if (nFfTh) {
+            std::cout << "### Configuring fast-filtering nodes..." << endl;
+            unique_ptr<FogKV::MinidaqFfNode> nodeFf(
+                new FogKV::MinidaqFfNode(kvs));
+            nodeFf->SetBaseSubdetectorId(startSubId);
+            nodeFf->SetSubdetectors(nSub);
+            nodeFf->SetAcceptLevel(acceptLevel);
+            nodeFf->SetThreads(nFfTh);
+            nodes.push_back(std::move(nodeFf));
+            std::cout << "### Done." << endl;
         }
 
-        std::cout << "### Benchmarking..." << endl;
-        // Run
-        for (auto &n : nodes) {
-            n->Run();
-        }
-
-        // Wait for results
-        for (auto &n : nodes) {
-            n->Wait();
-        }
-
-        std::cout << "### Done." << endl;
-
-        // Show results
-        std::cout << "### Results:" << endl;
-        for (auto &n : nodes) {
-            n->Show();
-            if (!results_prefix.empty()) {
-                n->Save(results_prefix);
-            }
-            if (!results_all.empty()) {
-                n->SaveSummary(results_all, tname);
-            }
-        }
+        // Run remaining nodes
+        runBenchmark(nodes);
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return 0;
