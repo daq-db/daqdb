@@ -118,8 +118,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     do {
         c = 0;
         c_err = 0;
-        std::this_thread::sleep_for(
-            std::chrono::nanoseconds(100 * s.interval_ns));
+        std::this_thread::sleep_for(std::chrono::nanoseconds(s.interval_ns));
     } while (c || c_err);
 
     return stats;

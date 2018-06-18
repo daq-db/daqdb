@@ -30,8 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <random>
 #include "MinidaqFfNode.h"
+#include <random>
 
 namespace FogKV {
 
@@ -93,7 +93,7 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
             if (_Accept()) {
                 /** @todo update */
             } else {
-                //_kvs->Remove(fogKey);
+                _kvs->Remove(fogKey);
             }
         }
         delete value.data();
