@@ -154,8 +154,8 @@ ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
 
     int byteIndex = (current->depth * treeRoot->level_bits) / 8;
     int positionInByte = (current->depth * treeRoot->level_bits) % 8;
-    int keyCalc = key[byteIndex] >> positionInByte;
-    int mask = 0x02;
+    int keyCalc = key[byteIndex] >> (8 - treeRoot->level_bits - positionInByte);
+    int mask = ~(~0 << treeRoot->level_bits);
     keyCalc = keyCalc & mask;
     if (current->depth != (treeRoot->tree_heigh - 1)) {
         return findValueInNode(current->children[keyCalc], key);
