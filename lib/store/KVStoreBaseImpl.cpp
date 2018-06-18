@@ -39,7 +39,7 @@
 #include <json/json.h>
 
 /** @TODO jradtke: should be taken from configuration file */
-#define POOLER_CPU_CORE_BASE 20
+#define POOLER_CPU_CORE_BASE 1
 
 namespace FogKV {
 
@@ -291,6 +291,7 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
 }
 
 void KVStoreBaseImpl::init() {
+
     if (getOptions().Runtime.logFunc)
         gLog.setLogFunc(getOptions().Runtime.logFunc);
 
@@ -303,6 +304,8 @@ void KVStoreBaseImpl::init() {
 
     mRTree.reset(FogKV::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
                                           mOptions.PMEM.Size));
+    if (mRTree == nullptr)
+        throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     struct spdk_env_opts opts;
     // @TODO jradtke: SPDK init messages should be hidden.
@@ -316,9 +319,6 @@ void KVStoreBaseImpl::init() {
                 new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
         }
     }
-
-    if (mRTree == nullptr)
-        throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");
 }
