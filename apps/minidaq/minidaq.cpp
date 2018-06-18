@@ -43,9 +43,9 @@ using namespace std;
 
 namespace po = boost::program_options;
 
-#define MINIDAQ_DEFAULT_FRAGMENT_SIZE 10240
-#define MINIDAQ_DEFAULT_PMEM_SIZE 2ull * 1024 * 1024 * 1024
-#define MINIDAQ_DEFAULT_PMEM_PATH "/mnt/pmem/pmemkv.dat"
+#define MINIDAQ_DEFAULT_FRAGMENT_SIZE 1024
+#define MINIDAQ_DEFAULT_PMEM_SIZE 4ull * 1024 * 1024 * 1024
+#define MINIDAQ_DEFAULT_PMEM_PATH "/mnt/pmem/fogkv_minidaq.pm"
 #define MINIDAQ_DEFAULT_T_RAMP_S 2
 #define MINIDAQ_DEFAULT_T_TEST_S 10
 #define MINIDAQ_DEFAULT_T_ITER_US 100
@@ -200,8 +200,7 @@ int main(int argc, const char *argv[]) {
 
         po::notify(parsedArguments);
     } catch (po::error &parserError) {
-        cerr << "Invalid arguments: " << parserError.what() << endl
-             << endl;
+        cerr << "Invalid arguments: " << parserError.what() << endl << endl;
         cerr << argumentsDescription << endl;
         return -1;
     }
@@ -219,7 +218,7 @@ int main(int argc, const char *argv[]) {
 
     try {
         std::cout << "### Opening FogKV..." << endl;
-        // kvs = openKVS(pmem_path, pmem_size);
+        kvs = openKVS(pmem_path, pmem_size);
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>
             nodes; // Configure nodes
