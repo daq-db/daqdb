@@ -43,8 +43,8 @@ using namespace std;
 
 namespace po = boost::program_options;
 
-#define MINIDAQ_DEFAULT_FRAGMENT_SIZE 10240
-#define MINIDAQ_DEFAULT_PMEM_SIZE 2ull * 1024 * 1024 * 1024
+#define MINIDAQ_DEFAULT_FRAGMENT_SIZE 1024
+#define MINIDAQ_DEFAULT_PMEM_SIZE 4ull * 1024 * 1024 * 1024
 #define MINIDAQ_DEFAULT_PMEM_PATH "/mnt/pmem/fogkv_minidaq.pm"
 #define MINIDAQ_DEFAULT_T_RAMP_S 2
 #define MINIDAQ_DEFAULT_T_TEST_S 10

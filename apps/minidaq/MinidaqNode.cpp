@@ -79,7 +79,6 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     timerTest.Restart_s(_tRamp_s);
     while (!timerTest.IsExpired()) {
         s.nRequests++;
-        minidaqKey.eventId += _nTh;
         try {
             _Task(minidaqKey, c, c_err);
             _NextKey(minidaqKey);
