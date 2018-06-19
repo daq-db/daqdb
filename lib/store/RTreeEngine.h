@@ -61,7 +61,7 @@ class RTreeEngine {
                            char *value) = 0;
     virtual StatusCode Put(const char *key, int32_t keybytes, const char *value,
                            int32_t valuebytes) = 0;
-    virtual StatusCode Remove(const string &key) = 0; // remove value for key
+    virtual StatusCode Remove(const char *key) = 0; // remove value for key
     virtual StatusCode AllocValueForKey(const char *key, size_t size,
                                         char **value) = 0;
 };

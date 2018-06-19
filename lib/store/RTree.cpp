@@ -106,7 +106,17 @@ StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
     return StatusCode::Ok;
 }
 
-StatusCode RTree::Remove(const string &key) { return StatusCode::Ok; }
+StatusCode RTree::Remove(const char *key) {
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
+    try {
+        pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+        val->location = 0;
+    } catch (std::exception &e) {
+        std::cout << "Error " << e.what();
+        return StatusCode::UnknownError;
+    }
+    return StatusCode::Ok;
+}
 
 StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
