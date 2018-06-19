@@ -188,8 +188,7 @@ void KVStoreBaseImpl::GetRangeAsync(const Key &beg, const Key &end,
 void KVStoreBaseImpl::Remove(const Key &key) {
     std::unique_lock<std::mutex> l(mLock);
 
-    std::string keyStr(key.data(), mKeySize);
-    StatusCode rc = mRTree->Remove(keyStr);
+    StatusCode rc = mRTree->Remove(key.data());
     if (rc != StatusCode::Ok) {
         if (rc == StatusCode::KeyNotFound)
             throw OperationFailedException(KeyNotFound);
