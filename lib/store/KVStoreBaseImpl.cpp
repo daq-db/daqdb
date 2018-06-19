@@ -175,7 +175,22 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpda
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb)
 {
-	throw FUNC_NOT_IMPLEMENTED;
+	std::async(std::launch::async,
+			[&] {
+				try {
+					switch(options.stage)
+					{
+						case options.stages::first:
+						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::RETRIEVE, &key, NULL, &cb));
+						break;
+						case options.stages::main:
+						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::STORE, &key, NULL, &cb));
+						break;
+					}
+				} catch (OperationFailedException &e) {
+					cb(this, e.status(), key, NULL);
+				}
+			});
 }
 
 std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end, const GetOptions &options)

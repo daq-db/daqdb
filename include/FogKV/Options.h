@@ -53,11 +53,16 @@ inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a, PrimaryKeyAttribute 
 struct AllocOptions {
 };
 
+enum stages { first, main };
+
+
 struct UpdateOptions {
 	UpdateOptions() { }
 	UpdateOptions(PrimaryKeyAttribute attr) : Attr(attr) { }
 
 	PrimaryKeyAttribute Attr;
+
+	enum stages { first, main } stage;
 };
 
 struct PutOptions {
