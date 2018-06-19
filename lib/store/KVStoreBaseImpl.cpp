@@ -101,95 +101,37 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value,
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
-    size_t size;
-    char *pVal;
-    StatusCode rc = mRTree->Get(key.data(), &pVal, &size);
-    if (rc != StatusCode::Ok || !pVal) {
-        if (rc == StatusCode::KeyNotFound)
-            throw OperationFailedException(KeyNotFound);
-
-        throw OperationFailedException(EINVAL);
-    }
-
-    Value value(new char[size], size);
-    std::memcpy(value.data(), pVal, size);
-    return value;
+void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options)
+{
+	throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
-                               const GetOptions &options) {
-    if (!key.data()) {
-        throw OperationFailedException(EINVAL);
-    }
-    try {
-        if (options.poolerId() < _rqstPoolers.size()) {
-            _rqstPoolers.at(options.poolerId())
-                ->EnqueueMsg(new RqstMsg(RqstOperation::GET, key.data(),
-                                         key.size(), nullptr, 0, cb));
-        } else {
-            Value val;
-            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key.data(),
-               key.size(), val.data(), val.size());
-        }
-    } catch (OperationFailedException &e) {
-        Value val;
-        cb(this, e.status(), key.data(), key.size(), val.data(), val.size());
-    }
+void KVStoreBaseImpl::UpdateAsync(const Key &&key, Value &&value, KVStoreBaseUpdateCallback cb, const UpdateOptions &options)
+{
+	std::async(std::launch::async, [&] {
+		try {
+			Update(key, std::move(value));
+			cb(this, Ok, key, value);
+		} catch (OperationFailedException &e) {
+			cb(this, e.status(), key, value);
+		}
+	});
 }
 
-Key KVStoreBaseImpl::GetAny(const GetOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
-}
-
-void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
-                                  const GetOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
-}
-
-void KVStoreBaseImpl::Update(const Key &key, Value &&val,
-                             const UpdateOptions &options) {
-    std::unique_lock<std::mutex> l(mLock);
-
-    StatusCode rc = mRTree->Put(key.data(), val.data());
-
-    if (rc != StatusCode::Ok)
-        throw OperationFailedException(EINVAL);
-}
-
-void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
-}
-
-void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
-                                  KVStoreBaseUpdateCallback cb,
-                                  const UpdateOptions &options) {
-    std::async(std::launch::async, [&] {
-        try {
-            Update(key, std::move(value));
-            cb(this, StatusCode::Ok, key, value);
-        } catch (OperationFailedException &e) {
-            cb(this, e.status(), key, value);
-        }
-    });
-}
-
-void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb)
+void KVStoreBaseImpl::UpdateAsync(const Key &&key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb)
 {
 	std::async(std::launch::async,
 			[&] {
-				try {
 					switch(options.stage)
 					{
 						case options.stages::first:
-						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::RETRIEVE, &key, NULL, &cb));
+						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::RETRIEVE, NULL,  NULL, &cb));
 						break;
 						case options.stages::main:
-						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::STORE, &key, NULL, &cb));
+						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::STORE, NULL, NULL, &cb));
 						break;
 					}
-				} catch (OperationFailedException &e) {
-					cb(this, e.status(), key, NULL);
-				}
+
 			});
 }
 
