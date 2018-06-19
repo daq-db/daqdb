@@ -34,6 +34,7 @@
 #include <future>
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 #include <sys/syscall.h>
 #include <thread>
 #include <unistd.h>
@@ -57,6 +58,10 @@ void MinidaqNode::SetTimeIter(int us) { _tIter_us = us; }
 
 void MinidaqNode::SetThreads(int n) { _nTh = n; }
 
+void MinidaqNode::SetDelay(int s) { _delay_s = s; }
+
+void MinidaqNode::SetTidFile(std::string &tidFile) { _tidFile = tidFile; }
+
 MinidaqStats MinidaqNode::_Execute(int executorId) {
     std::atomic<std::uint64_t> c_err;
     std::atomic<std::uint64_t> c;
@@ -66,10 +71,23 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     MinidaqSample s;
     uint64_t avg_r;
 
+    // Pre-test
     std::stringstream msg;
+    int tid = syscall(__NR_gettid);
     msg << "Executor " << executorId << ": " << _GetType()
-        << ", thread id: " << syscall(__NR_gettid) << std::endl;
+        << ", thread id: " << tid << std::endl;
     std::cout << msg.str();
+    if (!_tidFile.empty()) {
+        msg.str("");
+        msg << tid << std::endl;
+        std::ofstream ofs;
+        ofs.open(_tidFile, std::ios_base::app);
+        ofs << msg.str();
+        ofs.close();
+    }
+    if (_delay_s) {
+        std::this_thread::sleep_for(std::chrono::seconds(_delay_s));
+    }
 
     // Prepare reusable key
     MinidaqKey minidaqKey;
@@ -125,6 +143,13 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
 
 void MinidaqNode::Run() {
     int i;
+
+    // Clear file with thread IDs
+    if (!_tidFile.empty()) {
+        std::ofstream ofs;
+        ofs.open(_tidFile, std::ofstream::out | std::ofstream::trunc);
+        ofs.close();
+    }
 
     for (i = 0; i < _nTh; i++) {
         _futureVec.emplace_back(

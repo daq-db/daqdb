@@ -54,26 +54,33 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
+#define MINIDAQ_DEFAULT_N_POOLERS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
 #define MINIDAQ_DEFAULT_PARALLEL "true"
 #define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
+#define MINIDAQ_DEFAULT_DELAY 0
 
 std::string results_prefix;
 std::string results_all;
 std::string tname;
+std::string pmem_path;
+std::string tid_file;
+size_t pmem_size;
+int nPoolers;
 int tIter_us;
 int tTest_s;
 int tRamp_s;
+int delay;
 
 /** @todo move to MinidaqFogServer for distributed version */
-static FogKV::KVStoreBase *openKVS(std::string &pmemPath, size_t pmemSize) {
-    // todo remove redundant stuff once initialization is fixed
+static FogKV::KVStoreBase *openKVS() {
     FogKV::Options options;
-    options.PMEM.Path = pmemPath;
-    options.PMEM.Size = pmemSize;
+    options.PMEM.Path = pmem_path;
+    options.PMEM.Size = pmem_size;
     options.Key.field(0, sizeof(FogKV::MinidaqKey::eventId), true);
     options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetectorId));
     options.Key.field(2, sizeof(FogKV::MinidaqKey::runId));
+    options.Runtime.numOfPoolers(nPoolers);
 
     return FogKV::KVStoreBase::Open(options);
 }
@@ -86,6 +93,8 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
         n->SetTimeTest(tTest_s);
         n->SetTimeRamp(tRamp_s);
         n->SetTimeIter(tIter_us);
+        n->SetDelay(delay);
+        n->SetTidFile(tid_file);
     }
 
     // Run
@@ -115,9 +124,7 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
 
 int main(int argc, const char *argv[]) {
     FogKV::KVStoreBase *kvs;
-    std::string pmem_path;
     double acceptLevel;
-    size_t pmem_size;
     bool isParallel;
     int startSubId;
     size_t fSize;
@@ -150,7 +157,16 @@ int main(int argc, const char *argv[]) {
         "If set CSV result files will be generated with the desired prefix and "
         "path.")("out-summary", po::value<std::string>(&results_all),
                  "If set CSV line will be appended to the specified file.")(
-        "test-name", po::value<std::string>(&tname), "Test name.");
+        "test-name", po::value<std::string>(&tname), "Test name.")(
+        "n-poolers",
+        po::value<int>(&nPoolers)->default_value(MINIDAQ_DEFAULT_N_POOLERS),
+        "Number of FogKV pooler threads.")(
+        "start-delay",
+        po::value<int>(&delay)->default_value(MINIDAQ_DEFAULT_DELAY),
+        "Delays start of the test on each worker thread.")(
+        "tid-file", po::value<std::string>(&tid_file),
+        "If set a file with thread IDs of benchmark worker threads will be "
+        "generated.");
 
     po::options_description readoutOpts("Readout-specific options");
     readoutOpts.add_options()("n-ro", po::value<int>(&nRoTh)->default_value(
@@ -200,7 +216,8 @@ int main(int argc, const char *argv[]) {
 
         po::notify(parsedArguments);
     } catch (po::error &parserError) {
-        cerr << "Invalid arguments: " << parserError.what() << endl << endl;
+        cerr << "Invalid arguments: " << parserError.what() << endl
+             << endl;
         cerr << argumentsDescription << endl;
         return -1;
     }
@@ -218,7 +235,7 @@ int main(int argc, const char *argv[]) {
 
     try {
         std::cout << "### Opening FogKV..." << endl;
-        kvs = openKVS(pmem_path, pmem_size);
+        kvs = openKVS();
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>
             nodes; // Configure nodes
