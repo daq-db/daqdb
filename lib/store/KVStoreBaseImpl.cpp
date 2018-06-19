@@ -92,6 +92,7 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
         cb(this, e.status(), key.data(), key.size(), value.data(),
            value.size());
     }
+
 }
 
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {

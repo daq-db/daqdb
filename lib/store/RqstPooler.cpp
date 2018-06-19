@@ -103,45 +103,49 @@ void RqstPooler::DequeueMsg() {
 }
 
 void RqstPooler::ProcessMsg() {
-    for (unsigned short MsgIndex = 0; MsgIndex < processArrayCount;
-         MsgIndex++) {
-        const char *key = processArray[MsgIndex]->key;
-        const size_t keySize = processArray[MsgIndex]->keySize;
+	for (unsigned short MsgIndex = 0; MsgIndex < _dequedCount; MsgIndex++) {
+		std::string keyStr(_rqstMsgBuffer[MsgIndex]->key->data(),
+				_rqstMsgBuffer[MsgIndex]->key->size());
 
-        auto cb_fn = processArray[MsgIndex]->clb;
+		switch (_rqstMsgBuffer[MsgIndex]->op) {
+		case RqstOperation::PUTPMEM: {
+			/** @TODO jradtke: Not thread safe */
+			std::string valStr(_rqstMsgBuffer[MsgIndex]->value->data(),
+					_rqstMsgBuffer[MsgIndex]->value->size());
+			mRTree->Put(keyStr, valStr);
+			break;
+		}
+		case RqstOperation::PUTDISK: {
+			unsigned int cluster = 0;
+			std::string valStr(_rqstMsgBuffer[MsgIndex]->value->data(),
+					_rqstMsgBuffer[MsgIndex]->value->size());
+			/** @TODO: ppelplin: get free cluster for data */
+			/*		cluster = get_free_cluster(); */
+			/** @TODO: ppelplin: send i/o */
 
-        switch (processArray[MsgIndex]->op) {
-        case RqstOperation::PUT: {
-            const char *val = processArray[MsgIndex]->value;
-            const size_t valSize = processArray[MsgIndex]->valueSize;
+//			mDisk->Store(valStr, cluster, [&] {
+			    /** @TODO: ppelplin: Update metadata in cb:
+			     * value points to the used cluster
+			     * location points to disk */
+			    /*mRTree->Update(keyStr, cluster, disk);*/
+//			});
 
-            StatusCode rc = rtree->Put(key, keySize, val, valSize);
-            if (cb_fn)
-                cb_fn(nullptr, Status(rc), key, keySize, val, valSize);
-            break;
-        }
-        case RqstOperation::GET: {
-            size_t size;
-            char *pVal;
 
-            StatusCode rc = rtree->Get(key, keySize, &pVal, &size);
-            if (rc != StatusCode::Ok || !pVal) {
-                if (cb_fn)
-                    cb_fn(nullptr, Status(rc), key, keySize, nullptr, 0);
-                break;
-            }
-            Value value(new char[size], size);
-            std::memcpy(value.data(), pVal, size);
-            if (cb_fn)
-                cb_fn(nullptr, Status(rc), key, keySize, value.data(), size);
-            break;
-        }
-        default:
-            break;
-        }
-        delete processArray[MsgIndex];
-    }
-    processArrayCount = 0;
+			break;
+		}
+		case RqstOperation::GET:
+			break;
+		case RqstOperation::UPDATE:
+			break;
+		case RqstOperation::DELETE:
+			break;
+		default:
+			break;
+		}
+
+		(*_rqstMsgBuffer[0]->cb_fn)(nullptr, FogKV::Status(FogKV::Code::Ok),
+				*_rqstMsgBuffer[0]->key, *_rqstMsgBuffer[0]->value);
+	}
 }
 
 } /* namespace FogKV */

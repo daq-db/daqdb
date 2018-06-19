@@ -40,6 +40,7 @@
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
+#include "OffloadEngine.h"
 
 #include <FogKV/KVStoreBase.h>
 
@@ -47,22 +48,8 @@
 
 namespace FogKV {
 
-enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2 };
-
-class RqstMsg {
-  public:
-    RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
-            const char *value, size_t valueSize,
-            KVStoreBase::KVStoreBaseCallback clb);
-
-    const RqstOperation op = RqstOperation::NONE;
-    const char *key = nullptr;
-    size_t keySize = 0;
-    const char *value = nullptr;
-    size_t valueSize = 0;
-
-    // @TODO jradtke copying std:function in every msg might be not good idea
-    KVStoreBase::KVStoreBaseCallback clb;
+enum class RqstOperation
+	: std::int8_t {NONE = 0, GET = 1, PUTPMEM = 2, UPDATE = 3, DELETE = 4, PUTDISK = 5
 };
 
 class RqstPoolerInterface {
@@ -73,26 +60,27 @@ class RqstPoolerInterface {
     virtual void ProcessMsg() = 0;
 };
 
-class RqstPooler : public RqstPoolerInterface {
-  public:
-    RqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
-               const size_t cpuCore = 0);
-    virtual ~RqstPooler();
+class RqstPooler {
+public:
+	RqstPooler(std::shared_ptr<FogKV::RTreeEngine> Store);
+	virtual ~RqstPooler();
 
-    bool EnqueueMsg(RqstMsg *Message);
-    void DequeueMsg();
-    void ProcessMsg() final;
-    void StartThread();
+	void Start();
+	bool EnqueueMsg(RqstMsg *Message);
 
-    std::atomic<int> isRunning;
-    std::shared_ptr<FogKV::RTreeEngine> rtree;
-    struct spdk_ring *rqstRing;
+	std::atomic<int> isRunning;
 
-    unsigned short processArrayCount = 0;
-    RqstMsg *processArray[DEQUEUE_RING_LIMIT];
+	/** @TODO jradtke: Do we need completion queue too? */
+	struct spdk_ring *submitRing;
 
-  private:
-    void _ThreadMain(void);
+private:
+	void ThreadMain(void);
+	void DequeueMsg();
+	void ProcessMsg();
+
+	std::thread *_thread;
+	std::shared_ptr<FogKV::RTreeEngine> mRTree;
+	std::shared_ptr<FogKV::OffloadEngine> mDisk;
 
     std::thread *_thread;
     size_t _cpuCore = 0;
