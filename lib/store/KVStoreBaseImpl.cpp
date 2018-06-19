@@ -173,9 +173,24 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
     });
 }
 
-void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
-                                  KVStoreBaseUpdateCallback cb) {
-    throw FUNC_NOT_IMPLEMENTED;
+void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options, KVStoreBaseUpdateCallback cb)
+{
+	std::async(std::launch::async,
+			[&] {
+				try {
+					switch(options.stage)
+					{
+						case options.stages::first:
+						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::RETRIEVE, &key, NULL, &cb));
+						break;
+						case options.stages::main:
+						_spdkPooler->EnqueueMsg(new RqstMsg(RqstOperation::STORE, &key, NULL, &cb));
+						break;
+					}
+				} catch (OperationFailedException &e) {
+					cb(this, e.status(), key, NULL);
+				}
+			});
 }
 
 std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end,
@@ -252,11 +267,6 @@ KVStoreBaseImpl::~KVStoreBaseImpl() {
     FogKV::RTreeEngine::Close(mRTree.get());
     mRTree.reset();
 
-<<<<<<< HEAD
-    for (auto index = 0; index < _rqstPoolers.size(); index++) {
-        delete _rqstPoolers.at(index);
-    }
-=======
 	for (auto index = 0; index < _rqstPoolers.size(); index++) {
 		delete _rqstPoolers.at(index);
 	}
@@ -267,70 +277,40 @@ KVStoreBaseImpl::~KVStoreBaseImpl() {
         delete m_io_service;
 }
 
-std::string KVStoreBaseImpl::getProperty(const std::string &name) {
-    if (name == "fogkv.dht.id")
-        return std::to_string(mDhtNode->getDhtId());
-    if (name == "fogkv.listener.ip")
-        return mDhtNode->getIp();
-    if (name == "fogkv.listener.port")
-        return std::to_string(mDhtNode->getPort());
-    if (name == "fogkv.listener.dht_port")
-        return std::to_string(mDhtNode->getDragonPort());
-    if (name == "fogkv.pmem.path")
-        return mOptions.PMEM.Path;
-    if (name == "fogkv.pmem.size")
-        return std::to_string(mOptions.PMEM.Size);
-    if (name == "fogkv.KVEngine")
-        return mRTree->Engine();
-    if (name == "fogkv.dht.peers") {
-        Json::Value peers;
-        std::vector<FogKV::PureNode *> peerNodes;
-        mDhtNode->getPeerList(peerNodes);
+std::string KVStoreBaseImpl::getProperty(const std::string &name)
+{
+	if (name == "fogkv.dht.id")
+		return std::to_string(mDhtNode->getDhtId());
+	if (name == "fogkv.listener.ip")
+		return mDhtNode->getIp();
+	if (name == "fogkv.listener.port")
+		return std::to_string(mDhtNode->getPort());
+	if (name == "fogkv.listener.dht_port")
+		return std::to_string(mDhtNode->getDragonPort());
+	if (name == "fogkv.pmem.path")
+		return mOptions.PMEM.Path;
+	if (name == "fogkv.pmem.size")
+		return std::to_string(mOptions.PMEM.Size);
+	if (name == "fogkv.KVEngine")
+		return mRTree->Engine();
+	if (name == "fogkv.dht.peers") {
+		Json::Value peers;
+		std::vector<FogKV::PureNode*> peerNodes;
+		mDhtNode->getPeerList(peerNodes);
 
-        int i = 0;
-        for (auto peer : peerNodes) {
-            peers[i]["id"] = std::to_string(peer->getDhtId());
-            peers[i]["port"] = std::to_string(peer->getPort());
-            peers[i]["ip"] = peer->getIp();
-            peers[i]["dht_port"] = std::to_string(peer->getDragonPort());
-        }
+		int i = 0;
+		for (auto peer: peerNodes) {
+			peers[i]["id"] = std::to_string(peer->getDhtId());
+			peers[i]["port"] = std::to_string(peer->getPort());
+			peers[i]["ip"] = peer->getIp();
+			peers[i]["dht_port"] = std::to_string(peer->getDragonPort());
+		}
 
-        Json::FastWriter writer;
-        return writer.write(peers);
-    }
-    return "";
+		Json::FastWriter writer;
+		return writer.write(peers);
+	}
+	return "";
 }
-
-<<<<<<< HEAD
-void KVStoreBaseImpl::init() {
-
-    if (getOptions().Runtime.logFunc)
-        gLog.setLogFunc(getOptions().Runtime.logFunc);
-
-    auto dhtPort =
-        getOptions().Dht.Port ?: FogKV::utils::getFreePort(io_service(), 0);
-    auto port = getOptions().Port ?: FogKV::utils::getFreePort(io_service(), 0);
-
-    mDhtNode.reset(new FogKV::CChordAdapter(io_service(), dhtPort, port,
-                                            getOptions().Dht.Id));
-
-    mRTree.reset(FogKV::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
-                                          mOptions.PMEM.Size));
-    if (mRTree == nullptr)
-        throw OperationFailedException(errno, ::pmemobj_errormsg());
-
-    struct spdk_env_opts opts;
-    // @TODO jradtke: SPDK init messages should be hidden.
-    spdk_env_opts_init(&opts);
-    opts.name = "FogKV";
-    opts.shm_id = 0;
-    if (spdk_env_init(&opts) == 0) {
-        auto poolerCount = getOptions().Runtime.numOfPoolers();
-        for (auto index = 0; index < poolerCount; index++) {
-            _rqstPoolers.push_back(
-                new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
-        }
-    }
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");
 =======

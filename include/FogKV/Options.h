@@ -60,7 +60,9 @@ struct UpdateOptions {
     UpdateOptions() {}
     UpdateOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
 
-    PrimaryKeyAttribute Attr;
+	PrimaryKeyAttribute Attr;
+
+	enum stages { first, main } stage;
 };
 
 struct PutOptions {
