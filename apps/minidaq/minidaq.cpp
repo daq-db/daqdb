@@ -54,13 +54,13 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
-#define MINIDAQ_DEFAULT_N_POOLERS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
-#define MINIDAQ_DEFAULT_PARALLEL "true"
+#define MINIDAQ_DEFAULT_PARALLEL true
 #define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
 #define MINIDAQ_DEFAULT_DELAY 0
 #define MINIDAQ_DEFAULT_BASE_CORE_ID 10
 #define MINIDAQ_DEFAULT_N_CORES 10
+#define MINIDAQ_DEFAULT_LOG false
 
 #define MS_IN_US 1000
 
@@ -77,6 +77,12 @@ int tRamp_s;
 int delay;
 int nCores;
 int bCoreId;
+bool enableLog = MINIDAQ_DEFAULT_LOG;
+
+static void logStd(std::string m) {
+    m.append("\n");
+    std::cout << m;
+}
 
 /** @todo move to MinidaqFogServer for distributed version */
 static FogKV::KVStoreBase *openKVS() {
@@ -87,6 +93,9 @@ static FogKV::KVStoreBase *openKVS() {
     options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetectorId));
     options.Key.field(2, sizeof(FogKV::MinidaqKey::runId));
     options.Runtime.numOfPoolers(nPoolers);
+    if (enableLog) {
+        options.Runtime.logFunc = logStd;
+    }
 
     return FogKV::KVStoreBase::Open(options);
 }
@@ -138,9 +147,9 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
 }
 
 int main(int argc, const char *argv[]) {
+    bool isParallel = MINIDAQ_DEFAULT_PARALLEL;
     FogKV::KVStoreBase *kvs;
     double acceptLevel;
-    bool isParallel;
     int startSubId;
     size_t fSize;
     int nAroTh;
@@ -173,9 +182,6 @@ int main(int argc, const char *argv[]) {
         "path.")("out-summary", po::value<std::string>(&results_all),
                  "If set CSV line will be appended to the specified file.")(
         "test-name", po::value<std::string>(&tname), "Test name.")(
-        "n-poolers",
-        po::value<int>(&nPoolers)->default_value(MINIDAQ_DEFAULT_N_POOLERS),
-        "Number of FogKV pooler threads.")(
         "base-core-id",
         po::value<int>(&bCoreId)->default_value(MINIDAQ_DEFAULT_BASE_CORE_ID),
         "Base core ID for minidaq worker threads.")(
@@ -187,7 +193,7 @@ int main(int argc, const char *argv[]) {
         "Delays start of the test on each worker thread.")(
         "tid-file", po::value<std::string>(&tid_file),
         "If set a file with thread IDs of benchmark worker threads will be "
-        "generated.");
+        "generated.")("log,l", "Enable logging");
 
     po::options_description readoutOpts("Readout-specific options");
     readoutOpts.add_options()("n-ro", po::value<int>(&nRoTh)->default_value(
@@ -215,9 +221,8 @@ int main(int argc, const char *argv[]) {
         "Start subdetector ID.")("n-sub", po::value<int>(&nSub)->default_value(
                                               MINIDAQ_DEFAULT_N_SUBDETECTORS),
                                  "Total number of subdetectors.")(
-        "parallel",
-        po::value<bool>(&isParallel)->default_value(MINIDAQ_DEFAULT_PARALLEL),
-        "If true, readout and collector threads will run in parellel. "
+        "serial,s",
+        "If set, readout and collector threads will run in parellel. "
         "Otherwise, collector nodes will wait until readout threads complete.")(
         "acceptance", po::value<double>(&acceptLevel)
                           ->default_value(MINIDAQ_DEFAULT_ACCEPT_LEVEL),
@@ -242,6 +247,13 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
+    if (parsedArguments.count("log")) {
+        enableLog = true;
+    }
+    if (parsedArguments.count("serial")) {
+        isParallel = false;
+    }
+
     if (nEbTh) {
         cerr << "Event builders not supported" << endl;
         return -1;
@@ -255,6 +267,8 @@ int main(int argc, const char *argv[]) {
 
     try {
         std::cout << "### Opening FogKV..." << endl;
+        // Single pooler per asynchronous worker
+        nPoolers = nAroTh;
         kvs = openKVS();
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>
