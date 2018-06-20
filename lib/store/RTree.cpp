@@ -175,7 +175,7 @@ StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
                       reinterpret_cast<uint64_t>(ptr));
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
-                      STORAGE);
+                      DISK);
     pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 3);
     pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
     delete val->actionValue;

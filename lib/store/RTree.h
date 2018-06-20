@@ -59,7 +59,7 @@ using namespace pmem::obj;
 
 enum OBJECT_TYPES { VALUE, IOV };
 
-enum LOCATIONS { EMPTY, PMEM, STORAGE };
+enum LOCATIONS { EMPTY, PMEM, DISK };
 
 namespace FogKV {
 
