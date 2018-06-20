@@ -54,38 +54,60 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
+#define MINIDAQ_DEFAULT_N_POOLERS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
 #define MINIDAQ_DEFAULT_PARALLEL "true"
 #define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
+#define MINIDAQ_DEFAULT_DELAY 0
+#define MINIDAQ_DEFAULT_BASE_CORE_ID 10
+#define MINIDAQ_DEFAULT_N_CORES 10
 
 std::string results_prefix;
 std::string results_all;
 std::string tname;
+std::string pmem_path;
+std::string tid_file;
+size_t pmem_size;
+int nPoolers;
 int tIter_us;
 int tTest_s;
 int tRamp_s;
+int delay;
+int nCores;
+int bCoreId;
 
 /** @todo move to MinidaqFogServer for distributed version */
-static FogKV::KVStoreBase *openKVS(std::string &pmemPath, size_t pmemSize) {
-    // todo remove redundant stuff once initialization is fixed
+static FogKV::KVStoreBase *openKVS() {
     FogKV::Options options;
-    options.PMEM.Path = pmemPath;
-    options.PMEM.Size = pmemSize;
+    options.PMEM.Path = pmem_path;
+    options.PMEM.Size = pmem_size;
     options.Key.field(0, sizeof(FogKV::MinidaqKey::eventId), true);
     options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetectorId));
     options.Key.field(2, sizeof(FogKV::MinidaqKey::runId));
+    options.Runtime.numOfPoolers(nPoolers);
 
     return FogKV::KVStoreBase::Open(options);
 }
 
 static void
 runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
+    int nCoresUsed = 0;
+
     // Configure
     std::cout << "### Configuring..." << endl;
     for (auto &n : nodes) {
         n->SetTimeTest(tTest_s);
         n->SetTimeRamp(tRamp_s);
         n->SetTimeIter(tIter_us);
+        n->SetDelay(delay);
+        n->SetTidFile(tid_file);
+        n->SetBaseCoreId(bCoreId + nCoresUsed);
+        nCoresUsed += n->GetThreads();
+        n->SetCores(n->GetThreads());
+        if (nCoresUsed > nCores) {
+            std::cout << "Not enough CPU cores." << endl;
+            exit(1);
+        }
     }
 
     // Run
@@ -115,9 +137,7 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
 
 int main(int argc, const char *argv[]) {
     FogKV::KVStoreBase *kvs;
-    std::string pmem_path;
     double acceptLevel;
-    size_t pmem_size;
     bool isParallel;
     int startSubId;
     size_t fSize;
@@ -150,7 +170,22 @@ int main(int argc, const char *argv[]) {
         "If set CSV result files will be generated with the desired prefix and "
         "path.")("out-summary", po::value<std::string>(&results_all),
                  "If set CSV line will be appended to the specified file.")(
-        "test-name", po::value<std::string>(&tname), "Test name.");
+        "test-name", po::value<std::string>(&tname), "Test name.")(
+        "n-poolers",
+        po::value<int>(&nPoolers)->default_value(MINIDAQ_DEFAULT_N_POOLERS),
+        "Number of FogKV pooler threads.")(
+        "base-core-id",
+        po::value<int>(&bCoreId)->default_value(MINIDAQ_DEFAULT_BASE_CORE_ID),
+        "Base core ID for minidaq worker threads.")(
+        "n-cores",
+        po::value<int>(&nCores)->default_value(MINIDAQ_DEFAULT_N_CORES),
+        "Number of cores for minidaq worker threads.")(
+        "start-delay",
+        po::value<int>(&delay)->default_value(MINIDAQ_DEFAULT_DELAY),
+        "Delays start of the test on each worker thread.")(
+        "tid-file", po::value<std::string>(&tid_file),
+        "If set a file with thread IDs of benchmark worker threads will be "
+        "generated.");
 
     po::options_description readoutOpts("Readout-specific options");
     readoutOpts.add_options()("n-ro", po::value<int>(&nRoTh)->default_value(
@@ -218,7 +253,7 @@ int main(int argc, const char *argv[]) {
 
     try {
         std::cout << "### Opening FogKV..." << endl;
-        kvs = openKVS(pmem_path, pmem_size);
+        kvs = openKVS();
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>
             nodes; // Configure nodes
@@ -247,8 +282,8 @@ int main(int argc, const char *argv[]) {
             unique_ptr<FogKV::MinidaqAroNode> nodeAro(
                 new FogKV::MinidaqAroNode(kvs));
             nodeAro->SetSubdetectorId(subId);
-            nodeAro->SetFragmentSize(fSize);
             nodeAro->SetThreads(nAroTh);
+            nodeAro->SetFragmentSize(fSize);
             nodes.push_back(std::move(nodeAro));
             std::cout << "### Done." << endl;
         }
@@ -265,8 +300,8 @@ int main(int argc, const char *argv[]) {
                 new FogKV::MinidaqFfNode(kvs));
             nodeFf->SetBaseSubdetectorId(startSubId);
             nodeFf->SetSubdetectors(nSub);
-            nodeFf->SetAcceptLevel(acceptLevel);
             nodeFf->SetThreads(nFfTh);
+            nodeFf->SetAcceptLevel(acceptLevel);
             nodes.push_back(std::move(nodeFf));
             std::cout << "### Done." << endl;
         }
