@@ -57,15 +57,25 @@ using namespace pmem::obj;
 // Number of key bits
 #define KEY_SIZE 24 /** @TODO jschmieg: target value is 24 bits */
 
+enum OBJECT_TYPES { VALUE, IOV };
+
+enum LOCATIONS { EMPTY, PMEM, STORAGE };
+
 namespace FogKV {
 
 struct ValueWrapper {
-    explicit ValueWrapper() : actionValue(nullptr) {
-    }
+    explicit ValueWrapper()
+        : actionValue(nullptr), actionUpdate(nullptr), location(EMPTY) {}
     p<int> location;
-    persistent_ptr<char> value;
+    union locationPtr {
+        persistent_ptr<char> value; // for location == PMEM
+        persistent_ptr<uint64_t> IOVptr;
+        locationPtr() : value(nullptr){};
+    } locationPtr;
+
     size_t size;
     struct pobj_action *actionValue;
+    struct pobj_action *actionUpdate;
     string getString();
 };
 
@@ -111,6 +121,10 @@ class RTree : public FogKV::RTreeEngine {
     StatusCode Remove(const char *key) final; // remove value for key
     StatusCode AllocValueForKey(const char *key, size_t size,
                                 char **value) final;
+    StatusCode AllocateIOVForKey(const char *key, uint64_t **ptr,
+                                 size_t size) final;
+    StatusCode UpdateValueWrapper(const char *key, uint64_t *ptr,
+                                  size_t size) final;
 
   private:
     Tree *tree;

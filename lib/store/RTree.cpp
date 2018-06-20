@@ -74,10 +74,11 @@ Tree::Tree(const string &path, const size_t size) {
 StatusCode RTree::Get(const char *key, int32_t keybytes, char **value,
                       size_t *size) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    if (val->location != 1) {
-    	return StatusCode::KeyNotFound;
+    if (val->location == EMPTY) {
+        return StatusCode::KeyNotFound;
+    } else if (val->location == PMEM) {
+        *value = val->locationPtr.value.get();
     }
-    *value = val->value.get();
     *size = val->size;
     return StatusCode::Ok;
 }
@@ -85,24 +86,25 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, char **value,
 StatusCode RTree::Get(const char *key, char **value, size_t *size) {
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, key);
-    if (val->location != 1) {
+    if (val->location == EMPTY) {
         return StatusCode::KeyNotFound;
+    } else if (val->location == PMEM) {
+        *value = val->locationPtr.value.get();
     }
-    *value = val->value.get();
     *size = val->size;
     return StatusCode::Ok;
 }
 StatusCode RTree::Put(const char *key, // copy value from std::string
                       char *value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    val->location = 1;
+    val->location = PMEM;
     return StatusCode::Ok;
 }
 
 StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
                       int32_t valuebytes) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    val->location = 1;
+    val->location = PMEM;
     return StatusCode::Ok;
 }
 
@@ -110,7 +112,7 @@ StatusCode RTree::Remove(const char *key) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     try {
         pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
-        val->location = 0;
+        val->location = EMPTY;
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
         return StatusCode::UnknownError;
@@ -124,14 +126,63 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
         val->actionValue = new pobj_action[1];
         pmemoid poid;
         poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
-                               &(val->actionValue[0]), size, 0);
-        val->value = reinterpret_cast<char *>(pmemobj_direct(poid));
+                               &(val->actionValue[0]), size, VALUE);
+        val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
         val->size = size;
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
         return StatusCode::UnknownError;
     }
-    *value = reinterpret_cast<char *>(pmemobj_direct(*(val->value.raw_ptr())));
+    *value = reinterpret_cast<char *>(
+        pmemobj_direct(*(val->locationPtr.value.raw_ptr())));
+    return StatusCode::Ok;
+}
+
+/*
+ * Allocate IOV Vector for given Key.
+ * Vector is reserved and it's address is returned.
+ * Action related to reservation is stored in ValueWrapper in actionUpdate
+ */
+StatusCode RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
+                                    size_t size) {
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
+    try {
+        val->actionUpdate = new pobj_action[3];
+        pmemoid poid;
+        poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
+                               &(val->actionUpdate[0]), size, IOV);
+        *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
+        std::cout << "AllocateIOVForKey poid=" << std::hex << poid.off
+                  << " ptrIOV=" << *ptrIOV << std::endl;
+    } catch (std::exception &e) {
+        std::cout << "Error " << e.what();
+        return StatusCode::UnknownError;
+    }
+    return StatusCode::Ok;
+}
+/*
+ *
+ */
+StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
+                                     size_t size) {
+    std::cout << "UpdateValueWrapper ptr destination=" << *ptr
+              << " pointer value=" << ptr
+              << " reinterpret_cast<uint64_t>=" << std::hex
+              << reinterpret_cast<uint64_t>(ptr) << std::endl;
+
+    pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
+                      reinterpret_cast<uint64_t *>(pmemobj_direct(
+                          *((val->locationPtr.IOVptr).raw_ptr()))),
+                      reinterpret_cast<uint64_t>(ptr));
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
+                      reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
+                      STORAGE);
+    pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 3);
+    pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+    std::cout << "UpdateValueWrapper val->locationPtr="
+              << (val->locationPtr.IOVptr).raw_ptr()->off << std::endl;
     return StatusCode::Ok;
 }
 

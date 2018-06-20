@@ -64,5 +64,10 @@ class RTreeEngine {
     virtual StatusCode Remove(const char *key) = 0; // remove value for key
     virtual StatusCode AllocValueForKey(const char *key, size_t size,
                                         char **value) = 0;
+    virtual StatusCode
+    AllocateIOVForKey(const char *key, uint64_t **ptr,
+                      size_t size) = 0; // allocate IOV vector for given Key
+    virtual StatusCode UpdateValueWrapper(const char *key, uint64_t *ptr,
+                                          size_t size) = 0;
 };
 }
