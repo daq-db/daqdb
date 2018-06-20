@@ -44,11 +44,11 @@ using namespace std;
 namespace po = boost::program_options;
 
 #define MINIDAQ_DEFAULT_FRAGMENT_SIZE 1024
-#define MINIDAQ_DEFAULT_PMEM_SIZE 4ull * 1024 * 1024 * 1024
+#define MINIDAQ_DEFAULT_PMEM_SIZE 2ull * 1024 * 1024 * 1024
 #define MINIDAQ_DEFAULT_PMEM_PATH "/mnt/pmem/fogkv_minidaq.pm"
-#define MINIDAQ_DEFAULT_T_RAMP_S 2
-#define MINIDAQ_DEFAULT_T_TEST_S 10
-#define MINIDAQ_DEFAULT_T_ITER_US 100
+#define MINIDAQ_DEFAULT_T_RAMP_S 5
+#define MINIDAQ_DEFAULT_T_TEST_S 60
+#define MINIDAQ_DEFAULT_T_ITER_MS 10
 #define MINIDAQ_DEFAULT_N_THREADS_RO 0
 #define MINIDAQ_DEFAULT_N_THREADS_ARO 0
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
@@ -62,6 +62,8 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_BASE_CORE_ID 10
 #define MINIDAQ_DEFAULT_N_CORES 10
 
+#define MS_IN_US 1000
+
 std::string results_prefix;
 std::string results_all;
 std::string tname;
@@ -69,7 +71,7 @@ std::string pmem_path;
 std::string tid_file;
 size_t pmem_size;
 int nPoolers;
-int tIter_us;
+int tIter_ms;
 int tTest_s;
 int tRamp_s;
 int delay;
@@ -98,7 +100,7 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
     for (auto &n : nodes) {
         n->SetTimeTest(tTest_s);
         n->SetTimeRamp(tRamp_s);
-        n->SetTimeIter(tIter_us);
+        n->SetTimeIter(tIter_ms * MS_IN_US);
         n->SetDelay(delay);
         n->SetTidFile(tid_file);
         n->SetBaseCoreId(bCoreId + nCoresUsed);
@@ -154,8 +156,8 @@ int main(int argc, const char *argv[]) {
         po::value<int>(&tTest_s)->default_value(MINIDAQ_DEFAULT_T_TEST_S),
         "Desired test duration in seconds.")(
         "time-iter",
-        po::value<int>(&tIter_us)->default_value(MINIDAQ_DEFAULT_T_ITER_US),
-        "Desired iteration duration in microseconds (defines measurement time "
+        po::value<int>(&tIter_ms)->default_value(MINIDAQ_DEFAULT_T_ITER_MS),
+        "Desired iteration duration in milliseconds (defines measurement time "
         "for OPS estimation of a single histogram sample.")(
         "time-ramp",
         po::value<int>(&tRamp_s)->default_value(MINIDAQ_DEFAULT_T_RAMP_S),
