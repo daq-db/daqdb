@@ -67,6 +67,9 @@ class MinidaqNode {
     void SetThreads(int n);
     void SetDelay(int s);
     void SetTidFile(std::string &tidFile);
+    void SetCores(int n);
+    void SetBaseCoreId(int id);
+    int GetThreads();
 
   protected:
     virtual void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
@@ -81,6 +84,7 @@ class MinidaqNode {
 
   private:
     MinidaqStats _Execute(int executorId);
+    void _Affinity(int executorId);
 
     int _tTest_s = 0;          // desired test duration in seconds
     int _tRamp_s = 0;          // desired test ramp duration in seconds
@@ -89,6 +93,8 @@ class MinidaqNode {
     std::atomic_bool _stopped; // signals first thread stopped execution
     std::atomic_bool _statsReady; // signals all results are available
     std::string _tidFile;         // file to store worker thread IDs
+    int _nCores = 1;     // number of cores available for minidaq workers
+    int _baseCoreId = 0; // base core id for minidaq workers
 
     std::vector<std::future<MinidaqStats>> _futureVec;
     std::vector<MinidaqStats> _statsVec;

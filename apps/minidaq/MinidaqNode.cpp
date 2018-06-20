@@ -31,10 +31,10 @@
  */
 
 #include <atomic>
+#include <fstream>
 #include <future>
 #include <iomanip>
 #include <iostream>
-#include <fstream>
 #include <sys/syscall.h>
 #include <thread>
 #include <unistd.h>
@@ -62,6 +62,35 @@ void MinidaqNode::SetDelay(int s) { _delay_s = s; }
 
 void MinidaqNode::SetTidFile(std::string &tidFile) { _tidFile = tidFile; }
 
+void MinidaqNode::SetCores(int n) { _nCores = n; }
+
+void MinidaqNode::SetBaseCoreId(int id) { _baseCoreId = id; }
+
+int MinidaqNode::GetThreads() { return _nTh; }
+
+void MinidaqNode::_Affinity(int executorId) {
+    int cid = _baseCoreId + (executorId % _nCores);
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cid, &cpuset);
+    pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+
+    std::stringstream msg;
+    int tid = syscall(__NR_gettid);
+    msg << "Executor " << executorId << ": " << _GetType()
+        << ", thread id: " << tid << ", core id: " << cid << std::endl;
+    std::cout << msg.str();
+    if (!_tidFile.empty()) {
+        msg.str("");
+        msg << tid << std::endl;
+        std::ofstream ofs;
+        ofs.open(_tidFile, std::ios_base::app);
+        ofs << msg.str();
+        ofs.close();
+    }
+}
+
 MinidaqStats MinidaqNode::_Execute(int executorId) {
     std::atomic<std::uint64_t> c_err;
     std::atomic<std::uint64_t> c;
@@ -72,19 +101,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     uint64_t avg_r;
 
     // Pre-test
-    std::stringstream msg;
-    int tid = syscall(__NR_gettid);
-    msg << "Executor " << executorId << ": " << _GetType()
-        << ", thread id: " << tid << std::endl;
-    std::cout << msg.str();
-    if (!_tidFile.empty()) {
-        msg.str("");
-        msg << tid << std::endl;
-        std::ofstream ofs;
-        ofs.open(_tidFile, std::ios_base::app);
-        ofs << msg.str();
-        ofs.close();
-    }
+    _Affinity(executorId);
     if (_delay_s) {
         std::this_thread::sleep_for(std::chrono::seconds(_delay_s));
     }
