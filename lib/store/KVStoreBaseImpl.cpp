@@ -72,6 +72,15 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
     if (rc != StatusCode::Ok)
         throw OperationFailedException(EINVAL);
+    uint64_t *pVal;
+    size_t size = 8;
+    rc = mRTree->AllocateIOVForKey(key.data(), &pVal, size);
+    std::cout << "Put1 ptr destination=" << *pVal << " pointer value=" << pVal
+              << std::endl;
+    memset(pVal, 0x00, 8);
+    std::cout << "Put2 ptr destination=" << *pVal << " pointer value=" << pVal
+              << std::endl;
+    rc = mRTree->UpdateValueWrapper(key.data(), pVal, size);
 }
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
