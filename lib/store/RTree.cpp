@@ -160,7 +160,9 @@ StatusCode RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
     return StatusCode::Ok;
 }
 /*
- *
+ *	Updates location and locationPtr to STORAGE.
+ *	Calls persist on IOVVector.
+ *	Removes value buffer allocated in PMEM.
  */
 StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
                                      size_t size) {
