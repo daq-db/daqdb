@@ -55,7 +55,10 @@ KVStoreBase *KVStoreBaseImpl::Open(const Options &options) {
     return kvs;
 }
 
-size_t KVStoreBaseImpl::KeySize() { return mKeySize; }
+size_t KVStoreBaseImpl::KeySize() {
+    std::unique_lock<std::mutex> l(mLock);
+    return mKeySize;
+}
 
 const Options &KVStoreBaseImpl::getOptions() { return mOptions; }
 
@@ -66,7 +69,6 @@ void KVStoreBaseImpl::LogMsg(std::string msg) {
 }
 
 void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
-    std::unique_lock<std::mutex> l(mLock);
 
     StatusCode rc = mRTree->Put(key.data(), val.data());
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
@@ -95,7 +97,6 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
 }
 
 Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
-    std::unique_lock<std::mutex> l(mLock);
 
     size_t size;
     char *pVal;
@@ -144,7 +145,6 @@ void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
 
 void KVStoreBaseImpl::Update(const Key &key, Value &&val,
                              const UpdateOptions &options) {
-    std::unique_lock<std::mutex> l(mLock);
 
     StatusCode rc = mRTree->Put(key.data(), val.data());
 
@@ -186,7 +186,6 @@ void KVStoreBaseImpl::GetRangeAsync(const Key &beg, const Key &end,
 }
 
 void KVStoreBaseImpl::Remove(const Key &key) {
-    std::unique_lock<std::mutex> l(mLock);
 
     StatusCode rc = mRTree->Remove(key.data());
     if (rc != StatusCode::Ok) {
@@ -219,6 +218,8 @@ void KVStoreBaseImpl::Realloc(Value &value, size_t size,
 }
 
 void KVStoreBaseImpl::ChangeOptions(Value &value, const AllocOptions &options) {
+    std::unique_lock<std::mutex> l(mLock);
+
     throw FUNC_NOT_IMPLEMENTED;
 }
 
@@ -229,6 +230,8 @@ Key KVStoreBaseImpl::AllocKey(const AllocOptions &options) {
 void KVStoreBaseImpl::Free(Key &&key) { delete[] key.data(); }
 
 void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options) {
+    std::unique_lock<std::mutex> l(mLock);
+
     throw FUNC_NOT_IMPLEMENTED;
 }
 
@@ -256,6 +259,8 @@ KVStoreBaseImpl::~KVStoreBaseImpl() {
 }
 
 std::string KVStoreBaseImpl::getProperty(const std::string &name) {
+    std::unique_lock<std::mutex> l(mLock);
+
     if (name == "fogkv.dht.id")
         return std::to_string(mDhtNode->getDhtId());
     if (name == "fogkv.listener.ip")
