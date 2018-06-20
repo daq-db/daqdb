@@ -73,7 +73,7 @@ struct ValueWrapper {
         locationPtr() : value(nullptr){};
     } locationPtr;
 
-    size_t size;
+    p<size_t> size;
     struct pobj_action *actionValue;
     struct pobj_action *actionUpdate;
     string getString();
