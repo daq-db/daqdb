@@ -54,6 +54,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
+#define MINIDAQ_DEFAULT_N_POOLERS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
 #define MINIDAQ_DEFAULT_PARALLEL true
 #define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
@@ -182,6 +183,9 @@ int main(int argc, const char *argv[]) {
         "path.")("out-summary", po::value<std::string>(&results_all),
                  "If set CSV line will be appended to the specified file.")(
         "test-name", po::value<std::string>(&tname), "Test name.")(
+        "n-poolers",
+        po::value<int>(&nPoolers)->default_value(MINIDAQ_DEFAULT_N_POOLERS),
+        "Total number of FogKV pooler threads.")(
         "base-core-id",
         po::value<int>(&bCoreId)->default_value(MINIDAQ_DEFAULT_BASE_CORE_ID),
         "Base core ID for minidaq worker threads.")(
@@ -242,7 +246,8 @@ int main(int argc, const char *argv[]) {
 
         po::notify(parsedArguments);
     } catch (po::error &parserError) {
-        cerr << "Invalid arguments: " << parserError.what() << endl << endl;
+        cerr << "Invalid arguments: " << parserError.what() << endl
+             << endl;
         cerr << argumentsDescription << endl;
         return -1;
     }
@@ -267,8 +272,6 @@ int main(int argc, const char *argv[]) {
 
     try {
         std::cout << "### Opening FogKV..." << endl;
-        // Single pooler per asynchronous worker
-        nPoolers = nAroTh;
         kvs = openKVS();
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<FogKV::MinidaqNode>>

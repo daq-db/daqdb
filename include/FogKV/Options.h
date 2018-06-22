@@ -63,9 +63,14 @@ struct UpdateOptions {
 struct PutOptions {
     void poolerId(unsigned short id) { _poolerId = id; }
 
+    void roundRobin(bool rr) { _roundRobin = rr; }
+
     unsigned short poolerId() const { return _poolerId; }
 
+    bool roundRobin() const { return _roundRobin; }
+
     unsigned short _poolerId = 0;
+    bool _roundRobin = true;
 };
 
 struct GetOptions {
@@ -75,12 +80,17 @@ struct GetOptions {
 
     void poolerId(unsigned short id) { _poolerId = id; }
 
+    void roundRobin(bool rr) { _roundRobin = rr; }
+
     unsigned short poolerId() const { return _poolerId; }
+
+    bool roundRobin() const { return _roundRobin; }
 
     PrimaryKeyAttribute Attr;
     PrimaryKeyAttribute NewAttr;
 
     unsigned short _poolerId = 0;
+    bool _roundRobin = true;
 };
 
 struct KeyFieldDescriptor {

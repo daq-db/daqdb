@@ -69,7 +69,6 @@ void KVStoreBaseImpl::LogMsg(std::string msg) {
 }
 
 void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
-
     StatusCode rc = mRTree->Put(key.data(), val.data());
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
     if (rc != StatusCode::Ok)
@@ -78,17 +77,19 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                                const PutOptions &options) {
+    thread_local int poolerId = 0;
+
+    poolerId = (options.roundRobin()) ? ((poolerId + 1) % _rqstPoolers.size())
+                                      : options.poolerId();
+
     if (!key.data()) {
         throw OperationFailedException(EINVAL);
     }
     try {
         RqstMsg *msg = new RqstMsg(RqstOperation::PUT, key.data(), key.size(),
                                    value.data(), value.size(), cb);
-        if (options.poolerId() < _rqstPoolers.size()) {
-            _rqstPoolers.at(options.poolerId())->EnqueueMsg(msg);
-        } else {
-            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key.data(),
-               key.size(), value.data(), value.size());
+        if (!_rqstPoolers.at(poolerId)->EnqueueMsg(msg)) {
+            throw QueueFullException();
         }
     } catch (OperationFailedException &e) {
         cb(this, e.status(), key.data(), key.size(), value.data(),
@@ -115,18 +116,18 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
 
 void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
                                const GetOptions &options) {
+    thread_local int poolerId = 0;
+
+    poolerId = (options.roundRobin()) ? ((poolerId + 1) % _rqstPoolers.size())
+                                      : options.poolerId();
+
     if (!key.data()) {
         throw OperationFailedException(EINVAL);
     }
     try {
-        if (options.poolerId() < _rqstPoolers.size()) {
-            _rqstPoolers.at(options.poolerId())
-                ->EnqueueMsg(new RqstMsg(RqstOperation::GET, key.data(),
-                                         key.size(), nullptr, 0, cb));
-        } else {
-            Value val;
-            cb(this, FogKV::Status(FogKV::StatusCode::UnknownError), key.data(),
-               key.size(), val.data(), val.size());
+        if (!_rqstPoolers.at(poolerId)->EnqueueMsg(new RqstMsg(
+                RqstOperation::GET, key.data(), key.size(), nullptr, 0, cb))) {
+            throw QueueFullException();
         }
     } catch (OperationFailedException &e) {
         Value val;
