@@ -67,7 +67,7 @@ ExternalProject_Add(project_spdk
 	PREFIX ${PROJECT_SOURCE_DIR}/spdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/spdk
-	CONFIGURE_COMMAND ""
+	CONFIGURE_COMMAND "./configure"
 	BUILD_COMMAND make
 	INSTALL_COMMAND ${ROOT_FOGKV_DIR}/scripts/prepare_spdk_libs.sh
 )
