@@ -50,7 +50,7 @@ using boost::format;
 map<string, string> consoleCmd =
     boost::assign::map_list_of("help", "")("get", " <key>")("aget", " <key>")(
         "put", " <key> <value>")("aput", " <key> <value>")("status", "")(
-        "remove", " <key>")("quit", "")("node", " <id>");
+        "remove", " <key>")("quit", "")("node", " <id>")("update", "<key> <store>")("aupdate", "<key> <store>");
 
 /*!
  * Provides completion functionality to dragon shell.
@@ -66,6 +66,8 @@ void completion(const char *buf, linenoiseCompletions *lc) {
     } else if (buf[0] == 'g') {
         linenoiseAddCompletion(lc, "get");
     } else if (buf[0] == 'p') {
+        linenoiseAddCompletion(lc, "update");
+    } else if (buf[0] == 'u') {
         linenoiseAddCompletion(lc, "put");
     } else if (buf[0] == 's') {
         linenoiseAddCompletion(lc, "status");
@@ -78,6 +80,8 @@ void completion(const char *buf, linenoiseCompletions *lc) {
             linenoiseAddCompletion(lc, "aget");
         } else if (buf[1] == 'p') {
             linenoiseAddCompletion(lc, "aput");
+        } else if (buf[1] == 'u') {
+            linenoiseAddCompletion(lc, "aupdate");
         }
     }
 }
@@ -133,10 +137,14 @@ int nodeCli::operator()() {
             this->cmdGet(strLine);
         } else if (starts_with(strLine, "p")) {
             this->cmdPut(strLine);
+        } else if (starts_with(strLine, "u")) {
+            this->cmdUpdate(strLine);
         } else if (starts_with(strLine, "ap")) {
             this->cmdPutAsync(strLine);
         } else if (starts_with(strLine, "ag")) {
             this->cmdGetAsync(strLine);
+        } else if (starts_with(strLine, "au")) {
+            this->cmdUpdateAsync(strLine);
         } else if (starts_with(strLine, "r")) {
             this->cmdRemove(strLine);
         } else if (starts_with(strLine, "s")) {
@@ -298,6 +306,75 @@ void nodeCli::cmdPut(const std::string &strLine) {
             _spKVStore->Free(std::move(keyBuff));
     }
 }
+
+void nodeCli::cmdUpdate(const std::string &strLine) {
+    vector<string> arguments;
+    split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
+
+    if (arguments.size() != 3) {
+        cout << "Error: expects two arguments" << endl;
+    } else {
+        auto key = arguments[1];
+        if (key.size() > _spKVStore->KeySize()) {
+            cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+            return;
+        }
+
+        FogKV::Key keyBuff;
+        try {
+            keyBuff = strToKey(key);
+        } catch (...) {
+            cout << "Error: cannot allocate key buffer" << endl;
+            return;
+        }
+
+        auto store = arguments[2];
+
+
+        try {
+//TODO:           _spKVStore->Update(std::move(keyBuff), store);
+            cout << format("Update: [%1%] to store %2%\n") % key % store;
+        } catch (FogKV::OperationFailedException &e) {
+            cout << "Error: cannot update element: " << e.status().to_string()
+                 << endl;
+        }
+    }
+}
+
+void nodeCli::cmdUpdateAsync(const std::string &strLine) {
+    vector<string> arguments;
+    split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
+
+    if (arguments.size() != 3) {
+        cout << "Error: expects two arguments" << endl;
+    } else {
+        auto key = arguments[1];
+        if (key.size() > _spKVStore->KeySize()) {
+            cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+            return;
+        }
+
+        FogKV::Key keyBuff;
+        try {
+            keyBuff = strToKey(key);
+        } catch (...) {
+            cout << "Error: cannot allocate key buffer" << endl;
+            return;
+        }
+
+         auto store = arguments[2];
+
+
+        try {
+//TODO:           _spKVStore->Update(std::move(keyBuff), store);
+            cout << format("Update: [%1%] to store %2%\n") % key % store;
+        } catch (FogKV::OperationFailedException &e) {
+            cout << "Error: cannot update element: " << e.status().to_string()
+                 << endl;
+        }
+    }
+}
+
 
 void nodeCli::cmdPutAsync(const std::string &strLine) {
     vector<string> arguments;

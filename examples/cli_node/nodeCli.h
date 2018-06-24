@@ -67,6 +67,8 @@ private:
 	void cmdGetAsync(const std::string &strLine);
 	void cmdPut(const std::string &strLine);
 	void cmdPutAsync(const std::string &strLine);
+	void cmdUpdate(const std::string &strLine);
+	void cmdUpdateAsync(const std::string &strLine);
 	void cmdRemove(const std::string &strLine);
 	void cmdStatus();
 	void cmdNodeStatus(const std::string &strLine);
