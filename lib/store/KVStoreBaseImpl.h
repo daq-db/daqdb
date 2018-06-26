@@ -33,6 +33,7 @@
 #pragma once
 
 #include "RTreeEngine.h"
+#include "OffloadEngine.h"
 #include "RqstPooler.h"
 #include <FogKV/KVStoreBase.h>
 #include <dht/CChordNode.h>
@@ -101,6 +102,7 @@ class KVStoreBaseImpl : public KVStoreBase {
     Options mOptions;
     std::unique_ptr<FogKV::DhtNode> mDhtNode;
     std::shared_ptr<FogKV::RTreeEngine> mRTree;
+    std::shared_ptr<FogKV::OffloadEngine> mDisk;
     std::mutex mLock;
 
     std::vector<RqstPooler *> _rqstPoolers;

@@ -329,6 +329,8 @@ void nodeCli::cmdUpdate(const std::string &strLine) {
         }
 
         FogKV::Key keyBuff;
+    	FogKV::UpdateOptions options;
+
         try {
             keyBuff = strToKey(key);
         } catch (...) {
@@ -338,9 +340,9 @@ void nodeCli::cmdUpdate(const std::string &strLine) {
 
         auto store = strToStore(arguments[2]);
 
-        try {/*
+        try {
             _spKVStore->UpdateAsync(
-                std::move(keyBuff), std::move(valBuff),
+                std::move(keyBuff), std::move(options),
                 [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
                     const char *key, const size_t keySize, const char *value,
                     const size_t valueSize) {
@@ -356,7 +358,6 @@ void nodeCli::cmdUpdate(const std::string &strLine) {
                     if (keyBuff.size() > 0)
                         _spKVStore->Free(std::move(keyBuff));
                 });
-		*/
         } catch (FogKV::OperationFailedException &e) {
             cout << "Error: cannot update element: " << e.status().to_string()
                  << endl;
@@ -369,6 +370,7 @@ void nodeCli::cmdUpdateAsync(const std::string &strLine) {
     vector<string> arguments;
     split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
+
     if (arguments.size() != 3) {
         cout << "Error: expects two arguments" << endl;
     } else {
@@ -379,6 +381,8 @@ void nodeCli::cmdUpdateAsync(const std::string &strLine) {
         }
 
         FogKV::Key keyBuff;
+    	FogKV::UpdateOptions options;
+
         try {
             keyBuff = strToKey(key);
         } catch (...) {
@@ -389,9 +393,9 @@ void nodeCli::cmdUpdateAsync(const std::string &strLine) {
         auto store = strToStore(arguments[2]);
 
 
-        try {/*
+        try {
             _spKVStore->UpdateAsync(
-                std::move(keyBuff), std::move(valBuff),
+                std::move(keyBuff), std::move(options),
                 [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
                     const char *key, const size_t keySize, const char *value,
                     const size_t valueSize) {
@@ -406,7 +410,7 @@ void nodeCli::cmdUpdateAsync(const std::string &strLine) {
                     }
                     if (keyBuff.size() > 0)
                         _spKVStore->Free(std::move(keyBuff));
-                });*/
+                });
         } catch (FogKV::OperationFailedException &e) {
             cout << "Error: cannot update element: " << e.status().to_string()
                  << endl;

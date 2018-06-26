@@ -154,7 +154,18 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
 }
 
 void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
+	uint64_t *iov, size;
+	char *value;
+	StatusCode rc;
+	
+	/* Allocate IOV for data offload */
+	rc = mRTree->AllocateIOVForKey(key.data(), &iov, key.size());
+	if (rc != StatusCode::Ok)
+        	throw OperationFailedException(EINVAL);
+
+	/* Get pointer to data */
+	rc = mRTree->Get(key.data(), &value, &size);
+
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
@@ -318,12 +329,13 @@ void KVStoreBaseImpl::init() {
 
     mRTree.reset(FogKV::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
                                           mOptions.PMEM.Size));
+
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     struct spdk_env_opts opts;
-    // @TODO jradtke: SPDK init messages should be hidden.
     spdk_env_opts_init(&opts);
+    mDisk.reset(FogKV::OffloadEngine::Open());
     opts.name = "FogKV";
     opts.shm_id = 0;
     if (spdk_env_init(&opts) == 0) {
