@@ -338,13 +338,29 @@ void nodeCli::cmdUpdate(const std::string &strLine) {
 
         auto store = strToStore(arguments[2]);
 
-
-        try {
-//TODO:           _spKVStore->Update(std::move(keyBuff), store);
-            cout << format("Update: [%1%] to store %2%\n") % key % store;
+        try {/*
+            _spKVStore->UpdateAsync(
+                std::move(keyBuff), std::move(valBuff),
+                [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                    const char *key, const size_t keySize, const char *value,
+                    const size_t valueSize) {
+                    if (!status.ok()) {
+                        _statusMsgs.push_back(boost::str(
+                            boost::format("Error: cannot put element: %1%") %
+                            status.to_string()));
+                    } else {
+                        _statusMsgs.push_back(boost::str(
+                            boost::format("PUT[%1%]=%2% : completed") % key %
+                            value));
+                    }
+                    if (keyBuff.size() > 0)
+                        _spKVStore->Free(std::move(keyBuff));
+                });
+		*/
         } catch (FogKV::OperationFailedException &e) {
             cout << "Error: cannot update element: " << e.status().to_string()
                  << endl;
+
         }
     }
 }
@@ -373,12 +389,28 @@ void nodeCli::cmdUpdateAsync(const std::string &strLine) {
         auto store = strToStore(arguments[2]);
 
 
-        try {
-//TODO:           _spKVStore->Update(std::move(keyBuff), store);
-            cout << format("Update: [%1%] to store %2%\n") % key % store;
+        try {/*
+            _spKVStore->UpdateAsync(
+                std::move(keyBuff), std::move(valBuff),
+                [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                    const char *key, const size_t keySize, const char *value,
+                    const size_t valueSize) {
+                    if (!status.ok()) {
+                        _statusMsgs.push_back(boost::str(
+                            boost::format("Error: cannot put element: %1%") %
+                            status.to_string()));
+                    } else {
+                        _statusMsgs.push_back(boost::str(
+                            boost::format("PUT[%1%]=%2% : completed") % key %
+                            value));
+                    }
+                    if (keyBuff.size() > 0)
+                        _spKVStore->Free(std::move(keyBuff));
+                });*/
         } catch (FogKV::OperationFailedException &e) {
             cout << "Error: cannot update element: " << e.status().to_string()
                  << endl;
+
         }
     }
 }

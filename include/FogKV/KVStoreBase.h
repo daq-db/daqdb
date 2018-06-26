@@ -255,7 +255,7 @@ class KVStoreBase {
      *
      */
     virtual void
-    UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpdateCallback cb,
+    UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
                 const UpdateOptions &options = UpdateOptions()) = 0;
 
     /**
@@ -273,7 +273,7 @@ class KVStoreBase {
      *
      */
     virtual void UpdateAsync(const Key &key, const UpdateOptions &options,
-                             KVStoreBaseUpdateCallback cb) = 0;
+                             KVStoreBaseCallback cb) = 0;
 
     /**
      * Synchronously get values for a given range of keys.

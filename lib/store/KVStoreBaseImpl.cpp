@@ -158,21 +158,30 @@ void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
-                                  KVStoreBaseUpdateCallback cb,
+                                  KVStoreBaseCallback cb,
                                   const UpdateOptions &options) {
-    std::async(std::launch::async, [&] {
-        try {
-            Update(key, std::move(value));
-            cb(this, StatusCode::Ok, key, value);
-        } catch (OperationFailedException &e) {
-            cb(this, e.status(), key, value);
+    thread_local int poolerId = 0;
+
+    poolerId = (options.roundRobin()) ? ((poolerId + 1) % _rqstPoolers.size())
+                                      : options.poolerId();
+
+    if (!key.data()) {
+        throw OperationFailedException(EINVAL);
+    }
+    try {
+        RqstMsg *msg = new RqstMsg(RqstOperation::UPDATE, key.data(), key.size(),
+                                   value.data(), value.size(), cb);
+        if (!_rqstPoolers.at(poolerId)->EnqueueMsg(msg)) {
+            throw QueueFullException();
         }
-    });
+    } catch (OperationFailedException &e) {
+        cb(this, e.status(), key.data(), key.size(), value.data(),
+           value.size());
+    }
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
-                                  KVStoreBaseUpdateCallback cb) {
-    throw FUNC_NOT_IMPLEMENTED;
+                                  KVStoreBaseCallback cb) {
 }
 
 std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end,

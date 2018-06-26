@@ -58,6 +58,14 @@ struct UpdateOptions {
     UpdateOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
 
     PrimaryKeyAttribute Attr;
+    void roundRobin(bool rr) { _roundRobin = rr; }
+
+    unsigned short poolerId() const { return _poolerId; }
+
+    bool roundRobin() const { return _roundRobin; }
+
+    unsigned short _poolerId = 0;
+    bool _roundRobin = true;
 };
 
 struct PutOptions {
