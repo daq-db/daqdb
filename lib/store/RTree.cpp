@@ -84,8 +84,7 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, char **value,
 }
 
 StatusCode RTree::Get(const char *key, char **value, size_t *size) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key);
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == EMPTY) {
         return StatusCode::KeyNotFound;
     } else if (val->location == PMEM) {
@@ -209,15 +208,22 @@ void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
 
 ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
                                     const char *key) {
-
-    int byteIndex = (current->depth * treeRoot->level_bits) / 8;
-    int positionInByte = (current->depth * treeRoot->level_bits) % 8;
-    int keyCalc = key[byteIndex] >> (8 - treeRoot->level_bits - positionInByte);
     int mask = ~(~0 << treeRoot->level_bits);
-    keyCalc = keyCalc & mask;
-    if (current->depth != (treeRoot->tree_heigh - 1)) {
-        return findValueInNode(current->children[keyCalc], key);
-    }
+    int byteIndex;
+    int positionInByte;
+    int keyCalc;
+
+    while (1) {
+        byteIndex = (current->depth * treeRoot->level_bits) / 8;
+        positionInByte = (current->depth * treeRoot->level_bits) % 8;
+        keyCalc = key[byteIndex] >> (8 - treeRoot->level_bits - positionInByte);
+        keyCalc = keyCalc & mask;
+        if (current->depth == (treeRoot->tree_heigh - 1)) {
+            break;
+        }
+        current = current->children[keyCalc];
+    };
+
     return &(current->valueNode[keyCalc]);
 }
 } // namespace FogKV
