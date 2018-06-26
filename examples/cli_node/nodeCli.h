@@ -75,6 +75,8 @@ private:
 
 	FogKV::Key strToKey(const std::string &key);
 	FogKV::Value strToValue(const std::string &val);
+	bool strToStore(const std::string &store);
+
 
 	std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
 	std::vector<std::string> _statusMsgs;

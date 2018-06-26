@@ -65,9 +65,9 @@ void completion(const char *buf, linenoiseCompletions *lc) {
         linenoiseAddCompletion(lc, "quit");
     } else if (buf[0] == 'g') {
         linenoiseAddCompletion(lc, "get");
-    } else if (buf[0] == 'p') {
-        linenoiseAddCompletion(lc, "update");
     } else if (buf[0] == 'u') {
+        linenoiseAddCompletion(lc, "update");
+    } else if (buf[0] == 'p') {
         linenoiseAddCompletion(lc, "put");
     } else if (buf[0] == 's') {
         linenoiseAddCompletion(lc, "status");
@@ -256,6 +256,14 @@ FogKV::Key nodeCli::strToKey(const std::string &key) {
     return keyBuff;
 }
 
+bool nodeCli::strToStore(const std::string &store) {
+	if (starts_with(store, "f")) {
+		return 0; // first stage
+	} else {
+		return 1; // main stage
+	}
+}
+
 void nodeCli::cmdPut(const std::string &strLine) {
     vector<string> arguments;
     split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
@@ -265,7 +273,7 @@ void nodeCli::cmdPut(const std::string &strLine) {
     } else {
         auto key = arguments[1];
         if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
             return;
         }
 
@@ -316,7 +324,7 @@ void nodeCli::cmdUpdate(const std::string &strLine) {
     } else {
         auto key = arguments[1];
         if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
             return;
         }
 
@@ -328,7 +336,7 @@ void nodeCli::cmdUpdate(const std::string &strLine) {
             return;
         }
 
-        auto store = arguments[2];
+        auto store = strToStore(arguments[2]);
 
 
         try {
@@ -350,7 +358,7 @@ void nodeCli::cmdUpdateAsync(const std::string &strLine) {
     } else {
         auto key = arguments[1];
         if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
             return;
         }
 
@@ -362,7 +370,7 @@ void nodeCli::cmdUpdateAsync(const std::string &strLine) {
             return;
         }
 
-         auto store = arguments[2];
+        auto store = strToStore(arguments[2]);
 
 
         try {
