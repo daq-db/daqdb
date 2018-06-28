@@ -102,7 +102,8 @@ class Tree {
     void allocateLevel(persistent_ptr<Node> current, int depth, int *count);
     TreeRoot *treeRoot;
     pool<TreeRoot> _pm_pool;
-
+    int level_bits;
+    int tree_heigh;
   private:
 };
 
