@@ -104,6 +104,7 @@ class Tree {
     pool<TreeRoot> _pm_pool;
     int level_bits;
     int tree_heigh;
+
   private:
 };
 
