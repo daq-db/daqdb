@@ -71,7 +71,7 @@ Tree::Tree(const string &path, const size_t size) {
         _pm_pool = pool<TreeRoot>::open(path, LAYOUT);
         treeRoot = _pm_pool.get_root().get();
         level_bits = treeRoot->level_bits;
-		tree_heigh = treeRoot->tree_heigh;
+        tree_heigh = treeRoot->tree_heigh;
     }
 }
 
@@ -114,9 +114,9 @@ StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
 StatusCode RTree::Remove(const char *key) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == EMPTY) {
-		return StatusCode::KeyNotFound;
-	} else if (val->location == DISK) {
-		return StatusCode::KeyNotFound;
+        return StatusCode::KeyNotFound;
+    } else if (val->location == DISK) {
+        return StatusCode::KeyNotFound;
     }
     try {
         pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
@@ -178,7 +178,7 @@ StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
     pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
-    				  val->locationPtr.IOVptr.get(),
+                      val->locationPtr.IOVptr.get(),
                       reinterpret_cast<uint64_t>(ptr));
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
@@ -216,7 +216,7 @@ void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
 
 ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
                                     const char *key) {
-    int mask = ~(~0 << treeRoot->level_bits);
+    int mask = ~(~0 << level_bits);
     int byteIndex;
     int positionInByte;
     int keyCalc;
