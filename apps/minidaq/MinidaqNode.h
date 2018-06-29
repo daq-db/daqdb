@@ -90,8 +90,8 @@ class MinidaqNode {
     MinidaqStats _Execute(int executorId);
     void _Affinity(int executorId);
 
-    int _tTest_s = 0;          // desired test duration in seconds
-    int _tRamp_s = 0;          // desired test ramp duration in seconds
+    int _tTest_ms = 0;         // desired test duration in milliseconds
+    int _tRamp_ms = 0;         // desired test ramp duration in milliseconds
     int _tIter_us = 0;         // desired iteration time in microseconds
     int _delay_s = 0;          // desired delay before starting benchmark loop
     std::atomic_bool _stopped; // signals first thread stopped execution

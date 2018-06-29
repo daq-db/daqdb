@@ -50,9 +50,9 @@ MinidaqNode::MinidaqNode(KVStoreBase *kvs)
 
 MinidaqNode::~MinidaqNode() {}
 
-void MinidaqNode::SetTimeTest(int s) { _tTest_s = s; }
+void MinidaqNode::SetTimeTest(int ms) { _tTest_ms = ms; }
 
-void MinidaqNode::SetTimeRamp(int s) { _tRamp_s = s; }
+void MinidaqNode::SetTimeRamp(int ms) { _tRamp_ms = ms; }
 
 void MinidaqNode::SetTimeIter(int us) { _tIter_us = us; }
 
@@ -114,7 +114,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     _Setup(executorId, minidaqKey);
 
     // Ramp up
-    timerTest.Restart_s(_tRamp_s);
+    timerTest.Restart_ms(_tRamp_ms);
     while (!timerTest.IsExpired()) {
         if (i++ >= _maxIterations) {
             _stopped = true;
@@ -129,7 +129,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     }
 
     // Record samples
-    timerTest.Restart_s(_tTest_s);
+    timerTest.Restart_ms(_tTest_ms);
     c = 0;
     c_err = 0;
     while (!timerTest.IsExpired() && !_stopped) {
