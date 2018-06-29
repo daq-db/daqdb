@@ -30,12 +30,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "OffloadEngine.h"
 #include "SPDKEngine.h"
+#include "FogKV/Status.h"
+#include <iostream>
+
 namespace FogKV {
-OffloadEngine *OffloadEngine::Open(void) {
-   return new FogKV::SPDKEngine();
+#define LAYOUT "rtree"
+
+SPDKEngine::SPDKEngine() {
+//	bdev = spdk_bdev_first();
 }
 
-void OffloadEngine::Close(OffloadEngine *kv) {} // close storage engine
+SPDKEngine::~SPDKEngine() {
 }
+
+StatusCode SPDKEngine::Get(const char *key, char **value, size_t *size) {
+
+	/* TODO: add callbacks */
+	//spdk_bdev_read(bdev, ch, value, offset, num_blocks, cb, cb_arg);
+
+
+}
+
+StatusCode SPDKEngine::Store(const char *key, char *value) {
+
+	
+	/* TODO: add callbacks */
+//	spdk_bdev_write(bdev, ch, value, offset, num_blocks, cb, cb_arg);
+
+
+//	rc = mRTree->UpdateValueWrapper(key.data(), iov, key.size());
+
+}
+
+StatusCode SPDKEngine::Remove(const char *key) {
+	//spdk_bdev_unmap(bdev, ch, offset, num_block, cb, cb_arg);
+
+}
+
+} // namespace FogKV

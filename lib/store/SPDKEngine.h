@@ -30,12 +30,37 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "OffloadEngine.h"
-#include "SPDKEngine.h"
-namespace FogKV {
-OffloadEngine *OffloadEngine::Open(void) {
-   return new FogKV::SPDKEngine();
-}
+#ifndef LIB_STORE_RTREE_H_
+#define LIB_STORE_RTREE_H_
+#include <climits>
+#include <cmath>
+#include <iostream>
+#include "spdk/bdev.h"
+#include "spdk/io_channel.h"
+#include "spdk/queue.h"
+#include "spdk/env.h"
+#include "FogKV/Status.h"
 
-void OffloadEngine::Close(OffloadEngine *kv) {} // close storage engine
-}
+#include "OffloadEngine.h"
+
+namespace FogKV {
+
+class SPDKEngine : public FogKV::OffloadEngine {
+  public:
+    SPDKEngine();
+    virtual ~SPDKEngine();
+    string Engine() final { return "SPDKEngine"; }
+
+    StatusCode Get(const char *key, char **value, size_t *size) final;
+    StatusCode Store(const char *key, char *value) final;
+    StatusCode Remove(const char *key) final;
+
+  private:
+	struct spdk_bdev *bdev;
+	struct spdk_io_channel *ch;
+
+	
+
+};
+} // namespace FogKV
+#endif /* LIB_STORE_RTREE_H_ */

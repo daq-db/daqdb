@@ -47,12 +47,8 @@ class OffloadEngine {
     static void Close(OffloadEngine *kv);
 
     virtual string Engine() = 0;          // engine identifier
-    virtual StatusCode Get(const char *key, int32_t keybytes, char **value,
-                           size_t *size) = 0;
     virtual StatusCode Get(const char *key, char **value, size_t *size) = 0;
     virtual StatusCode Store(const char *key, char *value) = 0;
-    virtual StatusCode Store(const char *key, int32_t keybytes, const char *value,
-                           int32_t valuebytes) = 0;
     virtual StatusCode Remove(const char *key) = 0; // remove value for key
 };
 }
