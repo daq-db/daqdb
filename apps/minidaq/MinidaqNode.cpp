@@ -66,6 +66,8 @@ void MinidaqNode::SetCores(int n) { _nCores = n; }
 
 void MinidaqNode::SetBaseCoreId(int id) { _baseCoreId = id; }
 
+void MinidaqNode::SetMaxIterations(uint64_t n) { _maxIterations = n; }
+
 int MinidaqNode::GetThreads() { return _nTh; }
 
 void MinidaqNode::_Affinity(int executorId) {
@@ -99,6 +101,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     MinidaqStats stats;
     MinidaqSample s;
     uint64_t avg_r;
+    uint64_t i = 0;
 
     // Pre-test
     _Affinity(executorId);
@@ -113,6 +116,10 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     // Ramp up
     timerTest.Restart_s(_tRamp_s);
     while (!timerTest.IsExpired()) {
+        if (i++ >= _maxIterations) {
+            _stopped = true;
+            break;
+        }
         s.nRequests++;
         try {
             _Task(minidaqKey, c, c_err);
@@ -131,6 +138,10 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         s.Reset();
         timerSample.Restart_us(_tIter_us);
         do {
+            if (i++ >= _maxIterations) {
+                _stopped = true;
+                continue;
+            }
             s.nRequests++;
             try {
                 _Task(minidaqKey, c, c_err);
@@ -154,6 +165,17 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         c_err = 0;
         std::this_thread::sleep_for(std::chrono::nanoseconds(s.interval_ns));
     } while (c || c_err);
+
+    std::stringstream msg;
+    if (i >= _maxIterations) {
+        msg << "WARNING: Benchmark stopped - max supported task iteration "
+               "count of "
+            << std::to_string(_maxIterations) << " has been reached."
+            << std::endl;
+    }
+    msg << "Total number of task iterations: " << std::to_string(i - 1)
+        << std::endl;
+    std::cout << msg.str();
 
     return stats;
 }

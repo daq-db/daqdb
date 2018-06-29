@@ -101,6 +101,11 @@ static FogKV::KVStoreBase *openKVS() {
     return FogKV::KVStoreBase::Open(options);
 }
 
+static uint64_t calcIterations() {
+    /** @todo pmem size limitation? */
+    return FOGKV_MAX_PRIMARY_ID;
+}
+
 static void
 runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
     int nCoresUsed = 0;
@@ -114,6 +119,7 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
         n->SetDelay(delay);
         n->SetTidFile(tid_file);
         n->SetBaseCoreId(bCoreId + nCoresUsed);
+        n->SetMaxIterations(calcIterations());
         nCoresUsed += n->GetThreads();
         n->SetCores(n->GetThreads());
         if (nCoresUsed > nCores) {
@@ -246,8 +252,7 @@ int main(int argc, const char *argv[]) {
 
         po::notify(parsedArguments);
     } catch (po::error &parserError) {
-        cerr << "Invalid arguments: " << parserError.what() << endl
-             << endl;
+        cerr << "Invalid arguments: " << parserError.what() << endl << endl;
         cerr << argumentsDescription << endl;
         return -1;
     }
