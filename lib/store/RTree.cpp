@@ -216,10 +216,17 @@ void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
 
 ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
                                     const char *key) {
+    thread_local ValueWrapper *cachedVal = nullptr;
+    thread_local char cachedKey[KEY_SIZE];
     int mask = ~(~0 << level_bits);
+    ValueWrapper *val;
     int byteIndex;
     int positionInByte;
     int keyCalc;
+
+    if (cachedVal && !memcmp(cachedKey, key, KEY_SIZE)) {
+        return cachedVal;
+    }
 
     while (1) {
         byteIndex = (current->depth * level_bits) / 8;
@@ -227,11 +234,14 @@ ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
         keyCalc = key[byteIndex] >> (8 - level_bits - positionInByte);
         keyCalc = keyCalc & mask;
         if (current->depth == (tree_heigh - 1)) {
+            val = &(current->valueNode[keyCalc]);
+            memcpy(cachedKey, key, KEY_SIZE);
+            cachedVal = val;
             break;
         }
         current = current->children[keyCalc];
     };
 
-    return &(current->valueNode[keyCalc]);
+    return val;
 }
 } // namespace FogKV
