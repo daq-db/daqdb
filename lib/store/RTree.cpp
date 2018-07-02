@@ -57,6 +57,8 @@ Tree::Tree(const string &path, const size_t size) {
                                          0);
             treeRoot->level_bits = log2(LEVEL_SIZE);
             treeRoot->tree_heigh = KEY_SIZE / treeRoot->level_bits;
+            level_bits = treeRoot->level_bits;
+            tree_heigh = treeRoot->tree_heigh;
             int count = 0;
             allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth,
                           &count);
@@ -68,6 +70,8 @@ Tree::Tree(const string &path, const size_t size) {
         std::cout << "Opening existing pool " << std::endl;
         _pm_pool = pool<TreeRoot>::open(path, LAYOUT);
         treeRoot = _pm_pool.get_root().get();
+        level_bits = treeRoot->level_bits;
+        tree_heigh = treeRoot->tree_heigh;
     }
 }
 
@@ -109,6 +113,11 @@ StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
 
 StatusCode RTree::Remove(const char *key) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
+    if (val->location == EMPTY) {
+        return StatusCode::KeyNotFound;
+    } else if (val->location == DISK) {
+        return StatusCode::KeyNotFound;
+    }
     try {
         pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
         val->location = EMPTY;
@@ -169,8 +178,7 @@ StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
     pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
-                      reinterpret_cast<uint64_t *>(pmemobj_direct(
-                          *((val->locationPtr.IOVptr).raw_ptr()))),
+                      val->locationPtr.IOVptr.get(),
                       reinterpret_cast<uint64_t>(ptr));
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
@@ -187,10 +195,10 @@ void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
     depth++;
     for (i = 0; i < LEVEL_SIZE; i++) {
         bool isLast = false;
-        if (depth == (treeRoot->tree_heigh - 1)) {
+        if (depth == (tree_heigh - 1)) {
             isLast = true;
         }
-        if (depth == (treeRoot->tree_heigh - 1)) {
+        if (depth == (tree_heigh - 1)) {
             (*count)++; // debug only
         }
 
@@ -200,7 +208,7 @@ void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
             make_persistent_atomic<ValueWrapper[]>(
                 _pm_pool, current->children[i]->valueNode, LEVEL_SIZE);
         }
-        if (depth < (treeRoot->tree_heigh - 1)) {
+        if (depth < (tree_heigh - 1)) {
             allocateLevel(current->children[i], depth, count);
         }
     }
@@ -210,7 +218,7 @@ ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
                                     const char *key) {
     thread_local ValueWrapper *cachedVal = nullptr;
     thread_local char cachedKey[KEY_SIZE];
-    int mask = ~(~0 << treeRoot->level_bits);
+    int mask = ~(~0 << level_bits);
     ValueWrapper *val;
     int byteIndex;
     int positionInByte;
@@ -221,11 +229,11 @@ ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
     }
 
     while (1) {
-        byteIndex = (current->depth * treeRoot->level_bits) / 8;
-        positionInByte = (current->depth * treeRoot->level_bits) % 8;
-        keyCalc = key[byteIndex] >> (8 - treeRoot->level_bits - positionInByte);
+        byteIndex = (current->depth * level_bits) / 8;
+        positionInByte = (current->depth * level_bits) % 8;
+        keyCalc = key[byteIndex] >> (8 - level_bits - positionInByte);
         keyCalc = keyCalc & mask;
-        if (current->depth == (treeRoot->tree_heigh - 1)) {
+        if (current->depth == (tree_heigh - 1)) {
             val = &(current->valueNode[keyCalc]);
             memcpy(cachedKey, key, KEY_SIZE);
             cachedVal = val;
