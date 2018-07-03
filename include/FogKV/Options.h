@@ -35,14 +35,17 @@
 #include <asio/io_service.hpp>
 #include <functional>
 #include <vector>
+#include <cstdint>
 
 #include <FogKV/Types.h>
 
 namespace FogKV {
 
-enum PrimaryKeyAttribute {
-    LOCKED = 0x1,
-    READY = 0x2,
+enum PrimaryKeyAttribute : std::int8_t {
+    EMPTY        = 0,
+    LOCKED      = (1 << 0),
+    READY       = (1 << 1),
+    LONG_TERM   = (1 << 2)
 };
 
 inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
@@ -57,13 +60,13 @@ struct UpdateOptions {
     UpdateOptions() {}
     UpdateOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
 
-    PrimaryKeyAttribute Attr;
     void roundRobin(bool rr) { _roundRobin = rr; }
 
     unsigned short poolerId() const { return _poolerId; }
 
     bool roundRobin() const { return _roundRobin; }
 
+    PrimaryKeyAttribute Attr;
     unsigned short _poolerId = 0;
     bool _roundRobin = true;
 };
