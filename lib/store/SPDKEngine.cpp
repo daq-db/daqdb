@@ -47,8 +47,8 @@ void SPDKEngine::msg_fn(spdk_thread_fn fn, void *ctx, void *thread_ctx) {
 
 	SPDKEngine *engine = (SPDKEngine*)thread_ctx;
 
-	bdev = spdk_bdev_first();
-	spdk_bdev_open(bdev, true, nullptr, nullptr, &desc);
+	engine->bdev = spdk_bdev_first();
+//	spdk_bdev_open(bdev, true, nullptr, nullptr, &desc);
 }
 
 
@@ -68,7 +68,7 @@ StatusCode SPDKEngine::Get(const char *key, char **value, size_t *size) {
 
 }
 
-static void spdk_bdev_io_completion_cb(spdk_bdev_io *bdev_io, bool success, void *cb_arg) {
+void SPDKEngine::bdev_io_cb(spdk_bdev_io *bdev_io, bool success, void *cb_arg) {
 
 	//rc = mRTree->UpdateValueWrapper(key.data(), iov, key.size());
 
@@ -79,9 +79,7 @@ StatusCode SPDKEngine::Store(const char *key, char *value) {
 
 	uint64_t offset = 0; // TODO: get next free offset
 	uint64_t num_blocks = 0;
-	spdk_bdev_write(desc, ch, value, offset, num_blocks, spdk_bdev_io_completion_cb, (void*)key);
-
-
+	spdk_bdev_write(desc, ch, value, offset, num_blocks, bdev_io_cb, (void*)key);
 
 }
 
