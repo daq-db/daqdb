@@ -89,12 +89,12 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
         if (*(reinterpret_cast<uint64_t *>(value.data())) != key.eventId) {
             cntErr++;
         } else {
-            cnt++;
             if (_Accept()) {
                 /** @todo update */
             } else {
                 _kvs->Remove(fogKey);
             }
+            cnt++;
         }
         delete value.data();
     }

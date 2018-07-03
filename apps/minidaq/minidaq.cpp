@@ -46,8 +46,8 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_FRAGMENT_SIZE 1024
 #define MINIDAQ_DEFAULT_PMEM_SIZE 2ull * 1024 * 1024 * 1024
 #define MINIDAQ_DEFAULT_PMEM_PATH "/mnt/pmem/fogkv_minidaq.pm"
-#define MINIDAQ_DEFAULT_T_RAMP_S 5
-#define MINIDAQ_DEFAULT_T_TEST_S 60
+#define MINIDAQ_DEFAULT_T_RAMP_MS 500
+#define MINIDAQ_DEFAULT_T_TEST_MS 5000
 #define MINIDAQ_DEFAULT_T_ITER_MS 10
 #define MINIDAQ_DEFAULT_N_THREADS_RO 0
 #define MINIDAQ_DEFAULT_N_THREADS_ARO 0
@@ -63,7 +63,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_CORES 10
 #define MINIDAQ_DEFAULT_LOG false
 
-#define MS_IN_US 1000
+#define US_IN_MS 1000
 
 std::string results_prefix;
 std::string results_all;
@@ -73,8 +73,8 @@ std::string tid_file;
 size_t pmem_size;
 int nPoolers;
 int tIter_ms;
-int tTest_s;
-int tRamp_s;
+int tTest_ms;
+int tRamp_ms;
 int delay;
 int nCores;
 int bCoreId;
@@ -101,6 +101,11 @@ static FogKV::KVStoreBase *openKVS() {
     return FogKV::KVStoreBase::Open(options);
 }
 
+static uint64_t calcIterations() {
+    /** @todo pmem size limitation? */
+    return FOGKV_MAX_PRIMARY_ID;
+}
+
 static void
 runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
     int nCoresUsed = 0;
@@ -108,12 +113,13 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
     // Configure
     std::cout << "### Configuring..." << endl;
     for (auto &n : nodes) {
-        n->SetTimeTest(tTest_s);
-        n->SetTimeRamp(tRamp_s);
-        n->SetTimeIter(tIter_ms * MS_IN_US);
+        n->SetTimeTest(tTest_ms);
+        n->SetTimeRamp(tRamp_ms);
+        n->SetTimeIter(tIter_ms * US_IN_MS);
         n->SetDelay(delay);
         n->SetTidFile(tid_file);
         n->SetBaseCoreId(bCoreId + nCoresUsed);
+        n->SetMaxIterations(calcIterations());
         nCoresUsed += n->GetThreads();
         n->SetCores(n->GetThreads());
         if (nCoresUsed > nCores) {
@@ -163,15 +169,15 @@ int main(int argc, const char *argv[]) {
     po::options_description genericOpts("Generic options");
     genericOpts.add_options()("help,h", "Print help messages")(
         "time-test",
-        po::value<int>(&tTest_s)->default_value(MINIDAQ_DEFAULT_T_TEST_S),
-        "Desired test duration in seconds.")(
+        po::value<int>(&tTest_ms)->default_value(MINIDAQ_DEFAULT_T_TEST_MS),
+        "Desired test duration in milliseconds.")(
         "time-iter",
         po::value<int>(&tIter_ms)->default_value(MINIDAQ_DEFAULT_T_ITER_MS),
         "Desired iteration duration in milliseconds (defines measurement time "
         "for OPS estimation of a single histogram sample.")(
         "time-ramp",
-        po::value<int>(&tRamp_s)->default_value(MINIDAQ_DEFAULT_T_RAMP_S),
-        "Desired ramp up time in seconds.")(
+        po::value<int>(&tRamp_ms)->default_value(MINIDAQ_DEFAULT_T_RAMP_MS),
+        "Desired ramp up time in milliseconds.")(
         "pmem-path", po::value<std::string>(&pmem_path)
                          ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
         "Persistent memory pool file.")(
@@ -246,8 +252,7 @@ int main(int argc, const char *argv[]) {
 
         po::notify(parsedArguments);
     } catch (po::error &parserError) {
-        cerr << "Invalid arguments: " << parserError.what() << endl
-             << endl;
+        cerr << "Invalid arguments: " << parserError.what() << endl << endl;
         cerr << argumentsDescription << endl;
         return -1;
     }

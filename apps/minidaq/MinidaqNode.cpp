@@ -50,9 +50,9 @@ MinidaqNode::MinidaqNode(KVStoreBase *kvs)
 
 MinidaqNode::~MinidaqNode() {}
 
-void MinidaqNode::SetTimeTest(int s) { _tTest_s = s; }
+void MinidaqNode::SetTimeTest(int ms) { _tTest_ms = ms; }
 
-void MinidaqNode::SetTimeRamp(int s) { _tRamp_s = s; }
+void MinidaqNode::SetTimeRamp(int ms) { _tRamp_ms = ms; }
 
 void MinidaqNode::SetTimeIter(int us) { _tIter_us = us; }
 
@@ -65,6 +65,8 @@ void MinidaqNode::SetTidFile(std::string &tidFile) { _tidFile = tidFile; }
 void MinidaqNode::SetCores(int n) { _nCores = n; }
 
 void MinidaqNode::SetBaseCoreId(int id) { _baseCoreId = id; }
+
+void MinidaqNode::SetMaxIterations(uint64_t n) { _maxIterations = n; }
 
 int MinidaqNode::GetThreads() { return _nTh; }
 
@@ -99,6 +101,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     MinidaqStats stats;
     MinidaqSample s;
     uint64_t avg_r;
+    uint64_t i = 0;
 
     // Pre-test
     _Affinity(executorId);
@@ -111,8 +114,12 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     _Setup(executorId, minidaqKey);
 
     // Ramp up
-    timerTest.Restart_s(_tRamp_s);
+    timerTest.Restart_ms(_tRamp_ms);
     while (!timerTest.IsExpired()) {
+        if (i++ >= _maxIterations) {
+            _stopped = true;
+            break;
+        }
         s.nRequests++;
         try {
             _Task(minidaqKey, c, c_err);
@@ -122,7 +129,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     }
 
     // Record samples
-    timerTest.Restart_s(_tTest_s);
+    timerTest.Restart_ms(_tTest_ms);
     c = 0;
     c_err = 0;
     while (!timerTest.IsExpired() && !_stopped) {
@@ -131,6 +138,10 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         s.Reset();
         timerSample.Restart_us(_tIter_us);
         do {
+            if (i++ >= _maxIterations) {
+                _stopped = true;
+                continue;
+            }
             s.nRequests++;
             try {
                 _Task(minidaqKey, c, c_err);
@@ -154,6 +165,17 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         c_err = 0;
         std::this_thread::sleep_for(std::chrono::nanoseconds(s.interval_ns));
     } while (c || c_err);
+
+    std::stringstream msg;
+    if (i >= _maxIterations) {
+        msg << "WARNING: Benchmark stopped - max supported task iteration "
+               "count of "
+            << std::to_string(_maxIterations) << " has been reached."
+            << std::endl;
+    }
+    msg << "Total number of task iterations: " << std::to_string(i - 1)
+        << std::endl;
+    std::cout << msg.str();
 
     return stats;
 }
