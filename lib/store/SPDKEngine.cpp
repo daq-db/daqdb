@@ -38,11 +38,27 @@ namespace FogKV {
 #define LAYOUT "rtree"
 
 SPDKEngine::SPDKEngine() {
-//	bdev = spdk_bdev_first();
+	spdk_allocate_thread(msg_fn, nullptr, nullptr, this,"spdk0");
+	
 }
 
-SPDKEngine::~SPDKEngine() {
+
+void SPDKEngine::msg_fn(spdk_thread_fn fn, void *ctx, void *thread_ctx) {
+
+	SPDKEngine *engine = (SPDKEngine*)thread_ctx;
+
+	bdev = spdk_bdev_first();
+	spdk_bdev_open(bdev, true, nullptr, nullptr, &desc);
 }
+
+
+
+SPDKEngine::~SPDKEngine() {
+	//spdk_bdev_finish();
+	//
+	//
+}
+
 
 StatusCode SPDKEngine::Get(const char *key, char **value, size_t *size) {
 
@@ -52,14 +68,20 @@ StatusCode SPDKEngine::Get(const char *key, char **value, size_t *size) {
 
 }
 
+static void spdk_bdev_io_completion_cb(spdk_bdev_io *bdev_io, bool success, void *cb_arg) {
+
+	//rc = mRTree->UpdateValueWrapper(key.data(), iov, key.size());
+
+}
+
+
 StatusCode SPDKEngine::Store(const char *key, char *value) {
 
-	
-	/* TODO: add callbacks */
-//	spdk_bdev_write(bdev, ch, value, offset, num_blocks, cb, cb_arg);
+	uint64_t offset = 0; // TODO: get next free offset
+	uint64_t num_blocks = 0;
+	spdk_bdev_write(desc, ch, value, offset, num_blocks, spdk_bdev_io_completion_cb, (void*)key);
 
 
-//	rc = mRTree->UpdateValueWrapper(key.data(), iov, key.size());
 
 }
 

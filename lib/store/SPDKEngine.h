@@ -48,7 +48,7 @@ namespace FogKV {
 class SPDKEngine : public FogKV::OffloadEngine {
   public:
     SPDKEngine();
-    virtual ~SPDKEngine();
+    ~SPDKEngine();
     string Engine() final { return "SPDKEngine"; }
 
     StatusCode Get(const char *key, char **value, size_t *size) final;
@@ -56,10 +56,12 @@ class SPDKEngine : public FogKV::OffloadEngine {
     StatusCode Remove(const char *key) final;
 
   private:
-	struct spdk_bdev *bdev;
-	struct spdk_io_channel *ch;
+	static struct spdk_bdev *bdev;
+	static struct spdk_bdev_desc *desc;
+	static struct spdk_io_channel *ch;
 
-	
+	static void msg_fn(spdk_thread_fn fn, void *ctx, void *thread_ctx);
+	static void spdk_bdev_io_completion_cb(spdk_bdev_io *bdev_io, bool success, void *cb_arg);
 
 };
 } // namespace FogKV
