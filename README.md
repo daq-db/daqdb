@@ -159,3 +159,38 @@ Following commands supported:
 This application (located in examples/basic) provides examples how to
 use FogKV API (initialization, basic CRUD operations, ...).
 
+#### Minidaq benchmark
+
+This application (located in apps/minidaq) is a simple benchmark that emulates
+the operation of a typical Data AcQuisition (DAQ) system based on a KVS store.
+
+Currently only a single node version using FogKV library is supported. More details
+are available in the built-in help of the application:
+```
+./minidaq --help
+```
+
+Tips for running minidaq:
+
+* Administrative privileges are required. Run with root or sudo:
+```
+sudo LD_LIBRARY_PATH=`pwd`:$LD_LIBRARY_PATH ./minidaq --help
+```
+* LCG environment is required. Note:
+```
+. scripts/setup_env_lcg.sh
+```
+can be called to setup environment with LCG and SPDK.
+* Recommended environment variables for PMDK: 
+```
+export PMEM_IS_PMEM_FORCE=1
+export PMEM_NO_FLUSH=1
+export PMEMOBJ_CONF="prefault.at_open=1;prefault.at_create=1"
+```
+* For single-node tests synchronous mode of operation for readout threads
+is recommended.
+* Time and persistent memory pool size should adjusted carefully. Depending on
+the performance, memory pool can be too small for giving test and ramp times.
+Performance can be degraded or interrupted.
+* Persistent memory pool file should be deleted before each test run.
+Unexpected behavior can occur otherwise.
