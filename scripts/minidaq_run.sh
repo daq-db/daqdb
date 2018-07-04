@@ -2,7 +2,7 @@
 
 # Example script to run minidaq benchmark. Assumes root privileges.
 
-# Input argumentkjs
+# Input arguments
 test_time=800
 ramp_time=200
 iter_time=10
@@ -15,7 +15,7 @@ fogkv_poolers=0
 fogkv_base_core_id=1
 minidaq_iter_arg="--n-ro"
 minidaq_node_args="--fragment-size 1024"
-iters=(1 2)
+iters=(2 4 8 16)
 dry_run=0
 
 # Internal variables
@@ -48,26 +48,33 @@ echo "##### boot #####" >> $env_file
 cat /etc/default/grub >> $env_file
 echo "##### kernel #####" >> $env_file
 uname -a >> $env_file
-echo "##### minidaq #####" >> $env_file
-echo "$minidaq_args $minidaq_iter_arg X" >> $env_file
 
 # Configure environment
 echo -e "[$date] setting environment..."
 rm -f *.csv
 . $fogkv_dir/scripts/setup_env_lcg.sh
 cd $fogkv_dir/bin
+export PMEM_IS_PMEM_FORCE=1
+export PMEM_NO_FLUSH=1 
+export PMEMOBJ_CONF="prefault.at_open=1;prefault.at_create=1" 
+echo "##### environment #####" >> $env_file
+printenv >> $env_file
+
 echo -e "[$date] done\n"
 
+# Run tests
 echo -e "[$date] starting...\n"
+echo "##### minidaq #####" >> $env_file
 
 for i in `seq 0 $((${#iters[*]} - 1))`; do
 	date=$(date '+%Y%m%d_%H%M%S')
 	echo -e "[$date] $prefix ${iters[$i]}"
-	rm -rf $pfile 2> /dev/null
+	rm -rf $fogkv_pfile 2> /dev/null
 	test_name=${iters[$i]}
 	iteration_dir=$work_dir/$prefix${iters[$i]}
 	args="$minidaq_args --out-prefix $iteration_dir --test-name ${iters[$i]}"
 	args="$args $minidaq_iter_arg ${iters[$i]}"
+	echo "./minidaq $args" >> $env_file
 	if [ $dry_run -ne 0 ]
 	then
 		echo "[$date] ./minidaq $args"
