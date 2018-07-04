@@ -2,7 +2,7 @@
 
 # Example script to run minidaq benchmark. Assumes root privileges.
 
-# Input argumentkjs
+# Input arguments
 test_time=800
 ramp_time=200
 iter_time=10
