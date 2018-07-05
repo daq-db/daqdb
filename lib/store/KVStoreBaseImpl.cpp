@@ -154,25 +154,45 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
 }
 
 void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
+	uint64_t *iov, size;
+	char *value;
+	StatusCode rc;
+	
+	/* Allocate IOV for data offload */
+	rc = mRTree->AllocateIOVForKey(key.data(), &iov, key.size());
+	if (rc != StatusCode::Ok)
+        	throw OperationFailedException(EINVAL);
+
+	/* Get pointer to data */
+	rc = mRTree->Get(key.data(), &value, &size);
+
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
-                                  KVStoreBaseUpdateCallback cb,
+                                  KVStoreBaseCallback cb,
                                   const UpdateOptions &options) {
-    std::async(std::launch::async, [&] {
-        try {
-            Update(key, std::move(value));
-            cb(this, StatusCode::Ok, key, value);
-        } catch (OperationFailedException &e) {
-            cb(this, e.status(), key, value);
+    thread_local int poolerId = 0;
+
+    poolerId = (options.roundRobin()) ? ((poolerId + 1) % _rqstPoolers.size())
+                                      : options.poolerId();
+
+    if (!key.data()) {
+        throw OperationFailedException(EINVAL);
+    }
+    try {
+        RqstMsg *msg = new RqstMsg(RqstOperation::UPDATE, key.data(), key.size(),
+                                   value.data(), value.size(), cb);
+        if (!_rqstPoolers.at(poolerId)->EnqueueMsg(msg)) {
+            throw QueueFullException();
         }
-    });
+    } catch (OperationFailedException &e) {
+        cb(this, e.status(), key.data(), key.size(), value.data(),
+           value.size());
+    }
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
-                                  KVStoreBaseUpdateCallback cb) {
-    throw FUNC_NOT_IMPLEMENTED;
+                                  KVStoreBaseCallback cb) {
 }
 
 std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end,
@@ -309,12 +329,13 @@ void KVStoreBaseImpl::init() {
 
     mRTree.reset(FogKV::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
                                           mOptions.PMEM.Size));
+
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     struct spdk_env_opts opts;
-    // @TODO jradtke: SPDK init messages should be hidden.
     spdk_env_opts_init(&opts);
+    mDisk.reset(FogKV::OffloadEngine::Open());
     opts.name = "FogKV";
     opts.shm_id = 0;
     if (spdk_env_init(&opts) == 0) {

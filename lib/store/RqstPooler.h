@@ -47,7 +47,7 @@
 
 namespace FogKV {
 
-enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2 };
+enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2, UPDATE = 3 };
 
 class RqstMsg {
   public:

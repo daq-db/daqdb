@@ -33,6 +33,7 @@
 #pragma once
 
 #include "RTreeEngine.h"
+#include "OffloadEngine.h"
 #include "RqstPooler.h"
 #include <FogKV/KVStoreBase.h>
 #include <dht/CChordNode.h>
@@ -60,10 +61,10 @@ class KVStoreBaseImpl : public KVStoreBase {
                         const UpdateOptions &options = UpdateOptions());
     virtual void Update(const Key &key, const UpdateOptions &options);
     virtual void UpdateAsync(const Key &key, Value &&value,
-                             KVStoreBaseUpdateCallback cb,
+                             KVStoreBaseCallback cb,
                              const UpdateOptions &options = UpdateOptions());
     virtual void UpdateAsync(const Key &key, const UpdateOptions &options,
-                             KVStoreBaseUpdateCallback cb);
+                             KVStoreBaseCallback cb);
     virtual std::vector<KVPair>
     GetRange(const Key &beg, const Key &end,
              const GetOptions &options = GetOptions());
@@ -101,6 +102,7 @@ class KVStoreBaseImpl : public KVStoreBase {
     Options mOptions;
     std::unique_ptr<FogKV::DhtNode> mDhtNode;
     std::shared_ptr<FogKV::RTreeEngine> mRTree;
+    std::shared_ptr<FogKV::OffloadEngine> mDisk;
     std::mutex mLock;
 
     std::vector<RqstPooler *> _rqstPoolers;

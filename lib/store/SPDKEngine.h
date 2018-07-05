@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,57 +30,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include <FogKV/KVStoreBase.h>
+#ifndef LIB_STORE_RTREE_H_
+#define LIB_STORE_RTREE_H_
+#include <climits>
+#include <cmath>
 #include <iostream>
-#include <json/json.h>
-#include <linenoise.h>
-#include <memory>
+#include "spdk/bdev.h"
+#include "spdk/io_channel.h"
+#include "spdk/queue.h"
+#include "spdk/env.h"
+#include "FogKV/Status.h"
 
-namespace {
-const unsigned int consoleHintColor = 35; // dark red
-};
+#include "OffloadEngine.h"
 
 namespace FogKV {
 
-/*!
- * Dragon shell interpreter.
- * Created for test purposes - to allow performing quick testing of the node.
- */
-class nodeCli {
+class SPDKEngine : public FogKV::OffloadEngine {
   public:
-    nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spDragonSrv);
-    virtual ~nodeCli();
+    SPDKEngine();
+    ~SPDKEngine();
+    string Engine() final { return "SPDKEngine"; }
 
-    /*!
-     * Waiting for user input, executes defined commands
-     *
-     * @return false if user choose "quit" command, otherwise true
-     */
-    int operator()();
+    StatusCode Get(const char *key, char **value, size_t *size) final;
+    StatusCode Store(const char *key, char *value) final;
+    StatusCode Remove(const char *key) final;
 
   private:
-    void cmdGet(const std::string &strLine);
-    void cmdGetAsync(const std::string &strLine);
-    void cmdPut(const std::string &strLine);
-    void cmdPutAsync(const std::string &strLine);
-    void cmdUpdate(const std::string &strLine);
-    void cmdUpdateAsync(const std::string &strLine);
-    void cmdRemove(const std::string &strLine);
-    void cmdStatus();
-    void cmdNodeStatus(const std::string &strLine);
+	struct spdk_bdev *bdev;
+	struct spdk_bdev_desc *desc;
+	struct spdk_io_channel *ch;
 
-    FogKV::Key strToKey(const std::string &key);
-    FogKV::Value strToValue(const std::string &val);
-    FogKV::PrimaryKeyAttribute
-    _getKeyAttrs(unsigned char start, const std::vector<std::string> &cmdAttrs);
-    FogKV::PrimaryKeyAttribute
-    _getKeyAttr(unsigned char start, const std::vector<std::string> &cmdAttrs);
+	static void msg_fn(spdk_thread_fn fn, void *ctx, void *thread_ctx);
+	static void bdev_io_cb(spdk_bdev_io *bdev_io, bool success, void *cb_arg);
 
-    std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
-    std::vector<std::string> _statusMsgs;
-
-    Json::Value getPeersJson();
 };
-}
+} // namespace FogKV
+#endif /* LIB_STORE_RTREE_H_ */

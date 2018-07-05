@@ -32,6 +32,7 @@
 
 #include "../cli_node/nodeCli.h"
 #include <FogKV/Types.h>
+#include <FogKV/Options.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
@@ -47,10 +48,18 @@ using namespace std;
 using namespace boost::algorithm;
 using boost::format;
 
+#define NUM_ELEM_KEY_ATTRS   3
+#define UPDATE_CMD_KEY_ATTRS_OFFSET   3
+#define UPDATE_CMD_VAL_OFFSET   2
+#define KEY_ATTRS_OPT_NAME_POS_OFFSET   1
+#define KEY_ATTRS_OPT_VAL_POS_OFFSET   2
+
 map<string, string> consoleCmd =
     boost::assign::map_list_of("help", "")("get", " <key>")("aget", " <key>")(
         "put", " <key> <value>")("aput", " <key> <value>")("status", "")(
-        "remove", " <key>")("quit", "")("node", " <id>");
+        "remove", " <key>")("quit", "")("node", " <id>")(
+        "update", " <key> [value] [-o <lock|ready|long_term> <0|1>]")(
+        "aupdate", " <key> [value] [-o <lock|ready|long_term> <0|1>]");
 
 /*!
  * Provides completion functionality to dragon shell.
@@ -65,6 +74,8 @@ void completion(const char *buf, linenoiseCompletions *lc) {
         linenoiseAddCompletion(lc, "quit");
     } else if (buf[0] == 'g') {
         linenoiseAddCompletion(lc, "get");
+    } else if (buf[0] == 'u') {
+        linenoiseAddCompletion(lc, "update");
     } else if (buf[0] == 'p') {
         linenoiseAddCompletion(lc, "put");
     } else if (buf[0] == 's') {
@@ -78,6 +89,8 @@ void completion(const char *buf, linenoiseCompletions *lc) {
             linenoiseAddCompletion(lc, "aget");
         } else if (buf[1] == 'p') {
             linenoiseAddCompletion(lc, "aput");
+        } else if (buf[1] == 'u') {
+            linenoiseAddCompletion(lc, "aupdate");
         }
     }
 }
@@ -133,10 +146,14 @@ int nodeCli::operator()() {
             this->cmdGet(strLine);
         } else if (starts_with(strLine, "p")) {
             this->cmdPut(strLine);
+        } else if (starts_with(strLine, "u")) {
+            this->cmdUpdate(strLine);
         } else if (starts_with(strLine, "ap")) {
             this->cmdPutAsync(strLine);
         } else if (starts_with(strLine, "ag")) {
             this->cmdGetAsync(strLine);
+        } else if (starts_with(strLine, "au")) {
+            this->cmdUpdateAsync(strLine);
         } else if (starts_with(strLine, "r")) {
             this->cmdRemove(strLine);
         } else if (starts_with(strLine, "s")) {
@@ -248,6 +265,50 @@ FogKV::Key nodeCli::strToKey(const std::string &key) {
     return keyBuff;
 }
 
+FogKV::PrimaryKeyAttribute
+nodeCli::_getKeyAttr(unsigned char start,
+                     const std::vector<std::string> &cmdAttrs) {
+    if ((cmdAttrs.size() < start + NUM_ELEM_KEY_ATTRS) ||
+        !(starts_with(cmdAttrs[start], "-o"))) {
+        return FogKV::PrimaryKeyAttribute::EMPTY;
+    }
+
+    auto optVal = boost::lexical_cast<bool>(
+        cmdAttrs[start + KEY_ATTRS_OPT_VAL_POS_OFFSET]);
+    if (optVal) {
+        string optName = cmdAttrs[start + KEY_ATTRS_OPT_NAME_POS_OFFSET];
+        if (optName == "lock") {
+            return FogKV::PrimaryKeyAttribute::LOCKED;
+        } else if (optName == "ready") {
+            return FogKV::PrimaryKeyAttribute::READY;
+        } else if (optName == "long_term") {
+            return FogKV::PrimaryKeyAttribute::LONG_TERM;
+        }
+    }
+    return FogKV::PrimaryKeyAttribute::EMPTY;
+}
+
+FogKV::PrimaryKeyAttribute
+nodeCli::_getKeyAttrs(unsigned char start,
+                      const std::vector<std::string> &cmdAttrs) {
+    if (cmdAttrs.size() < start + NUM_ELEM_KEY_ATTRS) {
+        return FogKV::PrimaryKeyAttribute::EMPTY;
+    }
+    if ((cmdAttrs.size() - start) % NUM_ELEM_KEY_ATTRS != 0) {
+        cout << "Warning: cannot parse key attributes" << endl;
+        return FogKV::PrimaryKeyAttribute::EMPTY;
+    }
+
+    unsigned char parsingPositon = start;
+    FogKV::PrimaryKeyAttribute result = FogKV::PrimaryKeyAttribute::EMPTY;
+    while (parsingPositon <= cmdAttrs.size()) {
+        result = result | _getKeyAttr(parsingPositon, cmdAttrs);
+        parsingPositon += NUM_ELEM_KEY_ATTRS;
+    }
+
+    return result;
+}
+
 void nodeCli::cmdPut(const std::string &strLine) {
     vector<string> arguments;
     split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
@@ -257,7 +318,7 @@ void nodeCli::cmdPut(const std::string &strLine) {
     } else {
         auto key = arguments[1];
         if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: kay size is " << _spKVStore->KeySize() << endl;
+            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
             return;
         }
 
@@ -296,6 +357,140 @@ void nodeCli::cmdPut(const std::string &strLine) {
 
         if (keyBuff.size() > 0)
             _spKVStore->Free(std::move(keyBuff));
+    }
+}
+
+FogKV::Value nodeCli::strToValue(const std::string &val) {
+    Value result;
+    if (!starts_with(val, "-o")) {
+        auto buffer = new char[val.size() + 1];
+        result = Value(buffer, val.size() + 1);
+        std::memcpy(result.data(), val.c_str(), val.size());
+        result.data()[result.size() - 1] = '\0';
+    }
+    return result;
+}
+
+void nodeCli::cmdUpdate(const std::string &strLine) {
+    vector<string> arguments;
+    split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
+
+    if (arguments.size() < 2) {
+        cout << "Error: expects at least one argument" << endl;
+    } else {
+        auto key = arguments[1];
+        if (key.size() > _spKVStore->KeySize()) {
+            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+            return;
+        }
+        FogKV::Key keyBuff;
+        try {
+            keyBuff = strToKey(key);
+        } catch (...) {
+            cout << "Error: cannot allocate key buffer" << endl;
+            return;
+        }
+
+        FogKV::Value valBuff;
+        unsigned short optionStartPos = UPDATE_CMD_KEY_ATTRS_OFFSET;
+        if (!starts_with(arguments[UPDATE_CMD_VAL_OFFSET], "-o")) {
+            valBuff = strToValue(arguments[UPDATE_CMD_VAL_OFFSET]);
+        } else {
+            optionStartPos = UPDATE_CMD_VAL_OFFSET;
+        }
+
+        auto keyAttrs = _getKeyAttrs(optionStartPos, arguments);
+        FogKV::UpdateOptions options(keyAttrs);
+
+        try {
+            if (valBuff.size() > 0) {
+                _spKVStore->Update(std::move(keyBuff), std::move(valBuff),
+                                   std::move(options));
+            } else {
+                _spKVStore->Update(std::move(keyBuff), std::move(options));
+            }
+        } catch (FogKV::OperationFailedException &e) {
+            cout << "Error: cannot update element: " << e.status().to_string()
+                 << endl;
+        }
+    }
+}
+
+void nodeCli::cmdUpdateAsync(const std::string &strLine) {
+    vector<string> arguments;
+    split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
+
+    if (arguments.size() < 2) {
+        cout << "Error: expects at least one argument" << endl;
+    } else {
+        auto key = arguments[1];
+        if (key.size() > _spKVStore->KeySize()) {
+            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+            return;
+        }
+        FogKV::Key keyBuff;
+        try {
+            keyBuff = strToKey(key);
+        } catch (...) {
+            cout << "Error: cannot allocate key buffer" << endl;
+            return;
+        }
+
+        FogKV::Value valBuff;
+        unsigned short optionStartPos = UPDATE_CMD_KEY_ATTRS_OFFSET;
+        if (!starts_with(arguments[UPDATE_CMD_VAL_OFFSET], "-o")) {
+            valBuff = strToValue(arguments[UPDATE_CMD_VAL_OFFSET]);
+        } else {
+            optionStartPos = UPDATE_CMD_VAL_OFFSET;
+        }
+
+        auto keyAttrs = _getKeyAttrs(optionStartPos, arguments);
+        FogKV::UpdateOptions options(keyAttrs);
+
+        try {
+            if (valBuff.size() > 0) {
+                _spKVStore->UpdateAsync(
+                    std::move(keyBuff), std::move(valBuff),
+                    [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                        const char *key, const size_t keySize,
+                        const char *value, const size_t valueSize) {
+                        if (!status.ok()) {
+                            _statusMsgs.push_back(boost::str(
+                                boost::format(
+                                    "Error: cannot update element: %1%") %
+                                status.to_string()));
+                        } else {
+                            _statusMsgs.push_back(boost::str(
+                                boost::format("UPDATE[%1%]=%2% (Opts:%3%) : completed") %
+                                key % value % options.Attr));
+                        }
+                        if (keyBuff.size() > 0)
+                            _spKVStore->Free(std::move(keyBuff));
+                    }, std::move(options));
+            } else {
+                _spKVStore->UpdateAsync(
+                    std::move(keyBuff), std::move(options),
+                    [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                        const char *key, const size_t keySize,
+                        const char *value, const size_t valueSize) {
+                        if (!status.ok()) {
+                            _statusMsgs.push_back(boost::str(
+                                boost::format(
+                                    "Error: cannot update element: %1%") %
+                                status.to_string()));
+                        } else {
+                            _statusMsgs.push_back(boost::str(
+                                boost::format("UPDATE[%1%]=%2% (Opts:%3%) : completed") %
+                                key % value % options.Attr));
+                        }
+                        if (keyBuff.size() > 0)
+                            _spKVStore->Free(std::move(keyBuff));
+                    });
+            }
+        } catch (FogKV::OperationFailedException &e) {
+            cout << "Error: cannot update element: " << e.status().to_string()
+                 << endl;
+        }
     }
 }
 

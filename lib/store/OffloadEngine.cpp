@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,57 +30,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include <FogKV/KVStoreBase.h>
-#include <iostream>
-#include <json/json.h>
-#include <linenoise.h>
-#include <memory>
-
-namespace {
-const unsigned int consoleHintColor = 35; // dark red
-};
-
+#include "OffloadEngine.h"
+#include "SPDKEngine.h"
 namespace FogKV {
+OffloadEngine *OffloadEngine::Open(void) {
+   return new FogKV::SPDKEngine();
+}
 
-/*!
- * Dragon shell interpreter.
- * Created for test purposes - to allow performing quick testing of the node.
- */
-class nodeCli {
-  public:
-    nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spDragonSrv);
-    virtual ~nodeCli();
-
-    /*!
-     * Waiting for user input, executes defined commands
-     *
-     * @return false if user choose "quit" command, otherwise true
-     */
-    int operator()();
-
-  private:
-    void cmdGet(const std::string &strLine);
-    void cmdGetAsync(const std::string &strLine);
-    void cmdPut(const std::string &strLine);
-    void cmdPutAsync(const std::string &strLine);
-    void cmdUpdate(const std::string &strLine);
-    void cmdUpdateAsync(const std::string &strLine);
-    void cmdRemove(const std::string &strLine);
-    void cmdStatus();
-    void cmdNodeStatus(const std::string &strLine);
-
-    FogKV::Key strToKey(const std::string &key);
-    FogKV::Value strToValue(const std::string &val);
-    FogKV::PrimaryKeyAttribute
-    _getKeyAttrs(unsigned char start, const std::vector<std::string> &cmdAttrs);
-    FogKV::PrimaryKeyAttribute
-    _getKeyAttr(unsigned char start, const std::vector<std::string> &cmdAttrs);
-
-    std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
-    std::vector<std::string> _statusMsgs;
-
-    Json::Value getPeersJson();
-};
+void OffloadEngine::Close(OffloadEngine *kv) {} // close storage engine
 }

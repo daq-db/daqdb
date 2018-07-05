@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,57 +30,62 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include <FogKV/KVStoreBase.h>
+#include "SPDKEngine.h"
+#include "FogKV/Status.h"
 #include <iostream>
-#include <json/json.h>
-#include <linenoise.h>
-#include <memory>
-
-namespace {
-const unsigned int consoleHintColor = 35; // dark red
-};
 
 namespace FogKV {
+#define LAYOUT "rtree"
 
-/*!
- * Dragon shell interpreter.
- * Created for test purposes - to allow performing quick testing of the node.
- */
-class nodeCli {
-  public:
-    nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spDragonSrv);
-    virtual ~nodeCli();
-
-    /*!
-     * Waiting for user input, executes defined commands
-     *
-     * @return false if user choose "quit" command, otherwise true
-     */
-    int operator()();
-
-  private:
-    void cmdGet(const std::string &strLine);
-    void cmdGetAsync(const std::string &strLine);
-    void cmdPut(const std::string &strLine);
-    void cmdPutAsync(const std::string &strLine);
-    void cmdUpdate(const std::string &strLine);
-    void cmdUpdateAsync(const std::string &strLine);
-    void cmdRemove(const std::string &strLine);
-    void cmdStatus();
-    void cmdNodeStatus(const std::string &strLine);
-
-    FogKV::Key strToKey(const std::string &key);
-    FogKV::Value strToValue(const std::string &val);
-    FogKV::PrimaryKeyAttribute
-    _getKeyAttrs(unsigned char start, const std::vector<std::string> &cmdAttrs);
-    FogKV::PrimaryKeyAttribute
-    _getKeyAttr(unsigned char start, const std::vector<std::string> &cmdAttrs);
-
-    std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
-    std::vector<std::string> _statusMsgs;
-
-    Json::Value getPeersJson();
-};
+SPDKEngine::SPDKEngine() {
+	spdk_allocate_thread(msg_fn, nullptr, nullptr, this,"spdk0");
+	
 }
+
+
+void SPDKEngine::msg_fn(spdk_thread_fn fn, void *ctx, void *thread_ctx) {
+
+	SPDKEngine *engine = (SPDKEngine*)thread_ctx;
+
+	engine->bdev = spdk_bdev_first();
+//	spdk_bdev_open(bdev, true, nullptr, nullptr, &desc);
+}
+
+
+
+SPDKEngine::~SPDKEngine() {
+	//spdk_bdev_finish();
+	//
+	//
+}
+
+
+StatusCode SPDKEngine::Get(const char *key, char **value, size_t *size) {
+
+	/* TODO: add callbacks */
+	//spdk_bdev_read(bdev, ch, value, offset, num_blocks, cb, cb_arg);
+
+
+}
+
+void SPDKEngine::bdev_io_cb(spdk_bdev_io *bdev_io, bool success, void *cb_arg) {
+
+	//rc = mRTree->UpdateValueWrapper(key.data(), iov, key.size());
+
+}
+
+
+StatusCode SPDKEngine::Store(const char *key, char *value) {
+
+	uint64_t offset = 0; // TODO: get next free offset
+	uint64_t num_blocks = 0;
+	spdk_bdev_write(desc, ch, value, offset, num_blocks, bdev_io_cb, (void*)key);
+
+}
+
+StatusCode SPDKEngine::Remove(const char *key) {
+	//spdk_bdev_unmap(bdev, ch, offset, num_block, cb, cb_arg);
+
+}
+
+} // namespace FogKV
