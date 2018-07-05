@@ -60,10 +60,10 @@ class KVStoreBaseImpl : public KVStoreBase {
                         const UpdateOptions &options = UpdateOptions());
     virtual void Update(const Key &key, const UpdateOptions &options);
     virtual void UpdateAsync(const Key &key, Value &&value,
-                             KVStoreBaseUpdateCallback cb,
+                             KVStoreBaseCallback cb,
                              const UpdateOptions &options = UpdateOptions());
     virtual void UpdateAsync(const Key &key, const UpdateOptions &options,
-                             KVStoreBaseUpdateCallback cb);
+                             KVStoreBaseCallback cb);
     virtual std::vector<KVPair>
     GetRange(const Key &beg, const Key &end,
              const GetOptions &options = GetOptions());

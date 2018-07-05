@@ -40,9 +40,11 @@
 
 namespace FogKV {
 
-enum PrimaryKeyAttribute {
-    LOCKED = 0x1,
-    READY = 0x2,
+enum PrimaryKeyAttribute : std::int8_t {
+    EMPTY       = 0,
+    LOCKED      = (1 << 0),
+    READY       = (1 << 1),
+    LONG_TERM   = (1 << 2)
 };
 
 inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
@@ -61,6 +63,9 @@ struct UpdateOptions {
 };
 
 struct PutOptions {
+    PutOptions() {}
+    PutOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
+
     void poolerId(unsigned short id) { _poolerId = id; }
 
     void roundRobin(bool rr) { _roundRobin = rr; }
@@ -69,6 +74,7 @@ struct PutOptions {
 
     bool roundRobin() const { return _roundRobin; }
 
+    PrimaryKeyAttribute Attr;
     unsigned short _poolerId = 0;
     bool _roundRobin = true;
 };

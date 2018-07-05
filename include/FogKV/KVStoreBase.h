@@ -62,21 +62,13 @@ namespace FogKV {
  */
 class KVStoreBase {
   public:
-	/** @TODO: jradtke Temporarily using this base alias for both PUT and GET messages */
+	/** @TODO: jradtke Temporarily using this base alias for both PUT,GET,UPDATE messages */
     using KVStoreBaseCallback = std::function<void(
         KVStoreBase *kvs, Status status, const char *key, const size_t keySize,
         const char *value, const size_t valueSize)>;
 
-    using KVStoreBasePutCallback = std::function<void(
-        KVStoreBase *kvs, Status status, const char *key, const size_t keySize,
-        const char *value, const size_t valueSize)>;
-    using KVStoreBaseGetCallback = std::function<void(
-        KVStoreBase *kvs, Status status, const char *key, const size_t keySize,
-        char *value, size_t valueSize)>;
     using KVStoreBaseGetAnyCallback =
         std::function<void(KVStoreBase *kvs, Status status, const Key &key)>;
-    using KVStoreBaseUpdateCallback = std::function<void(
-        KVStoreBase *kvs, Status status, const Key &key, const Value &value)>;
     using KVStoreBaseRangeCallback = std::function<void(
         KVStoreBase *kvs, Status status, std::vector<KVPair> &results)>;
 
@@ -124,9 +116,9 @@ class KVStoreBase {
      *
      * @param[in] key Rvalue reference to key buffer.
      * @param[in] value Rvalue reference to value buffer
-     * @param[in] options Put opration options.
+     * @param[in] options Put operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      * @snippet basic/basic.cpp key_struct
      * @snippet basic/basic.cpp put
@@ -146,7 +138,7 @@ class KVStoreBase {
      * completes with results passed in arguments.
      * @param[in] options Put operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      * @snippet basic/basic.cpp key_struct
      * @snippet basic/basic.cpp put_async
@@ -163,7 +155,7 @@ class KVStoreBase {
      * @param[in] key Reference to a key structure.
      * @param[in] options Get operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      * @snippet basic/basic.cpp key_struct
      * @snippet basic/basic.cpp get
@@ -204,7 +196,7 @@ class KVStoreBase {
      * completes with results passed in arguments.
      * @param[in] options Get operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      * @snippet basic/basic.cpp key_struct
      * @snippet basic/basic.cpp get_async
@@ -222,7 +214,7 @@ class KVStoreBase {
      * @param[in] value Rvalue reference to a value buffer.
      * @param[in] options Update operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      */
     virtual void Update(const Key &key, Value &&value,
@@ -234,7 +226,7 @@ class KVStoreBase {
      * @param[in] key Reference to a key buffer.
      * @param[in] options Update operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      */
     virtual void Update(const Key &key, const UpdateOptions &options) = 0;
@@ -251,11 +243,11 @@ class KVStoreBase {
      * completes with results passed in arguments.
      * @param[in] options Update operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      */
     virtual void
-    UpdateAsync(const Key &key, Value &&value, KVStoreBaseUpdateCallback cb,
+    UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
                 const UpdateOptions &options = UpdateOptions()) = 0;
 
     /**
@@ -269,11 +261,11 @@ class KVStoreBase {
      * completes with results passed in arguments.
      * @param[in] options Update operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      */
     virtual void UpdateAsync(const Key &key, const UpdateOptions &options,
-                             KVStoreBaseUpdateCallback cb) = 0;
+                             KVStoreBaseCallback cb) = 0;
 
     /**
      * Synchronously get values for a given range of keys.
@@ -285,7 +277,7 @@ class KVStoreBase {
      * @param[in] end key representing the end of a range.
      * @param[in] options Get operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      */
     virtual std::vector<KVPair>
@@ -301,7 +293,7 @@ class KVStoreBase {
      * completes with results passed in arguments.
      * @param[in] options Get operation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      */
     virtual void GetRangeAsync(const Key &beg, const Key &end,
@@ -313,7 +305,7 @@ class KVStoreBase {
      *
      * @param[in] key Pointer to a key structure.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      */
     virtual void Remove(const Key &key) = 0;
 
@@ -325,7 +317,7 @@ class KVStoreBase {
      * @param[in] end Pointer to a key structure representing the end of a
      * range.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      */
     virtual void RemoveRange(const Key &beg, const Key &end) = 0;
 
@@ -358,7 +350,7 @@ class KVStoreBase {
      * not nullptr, this call is equivalent to Free.
      * @param[in] options New options for a Value buffer.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      * @note It is possible to modify the options of an allocation without
      * changing a size, by passing the same size.
@@ -373,7 +365,7 @@ class KVStoreBase {
      * @param[in] value Value buffer.
      * @param[in] options Allocation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      */
     virtual void ChangeOptions(Value &value, const AllocOptions &options) = 0;
@@ -392,7 +384,7 @@ class KVStoreBase {
      * Deallocate a Key buffer.
      *
      * @param[in] key Key buffer. If not allocated by current instance of
-     * KVStoreBase the behaviour is undefined.
+     * KVStoreBase the behavior is undefined.
      */
     virtual void Free(Key &&key) = 0;
 
@@ -402,7 +394,7 @@ class KVStoreBase {
      * @param[in] key Key buffer.
      * @param[in] options Allocation options.
      *
-     * @throw OperationFailedException if any error occured XXX
+     * @throw OperationFailedException if any error occurred XXX
      *
      */
     virtual void ChangeOptions(Key &key, const AllocOptions &options) = 0;
