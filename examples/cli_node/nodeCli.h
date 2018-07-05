@@ -32,52 +32,57 @@
 
 #pragma once
 
-#include <iostream>
-#include <linenoise.h>
 #include <FogKV/KVStoreBase.h>
+#include <iostream>
 #include <json/json.h>
+#include <linenoise.h>
 #include <memory>
 
-namespace
-{
+namespace {
 const unsigned int consoleHintColor = 35; // dark red
 };
 
-namespace FogKV
-{
+namespace FogKV {
 
 /*!
  * Dragon shell interpreter.
  * Created for test purposes - to allow performing quick testing of the node.
  */
 class nodeCli {
-public:
-	nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spDragonSrv);
-	virtual ~nodeCli();
+  public:
+    nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spDragonSrv);
+    virtual ~nodeCli();
 
-	/*!
-	 * Waiting for user input, executes defined commands
-	 *
-	 * @return false if user choose "quit" command, otherwise true
-	 */
-	int operator()();
+    /*!
+     * Waiting for user input, executes defined commands
+     *
+     * @return false if user choose "quit" command, otherwise true
+     */
+    int operator()();
 
-private:
-	void cmdGet(const std::string &strLine);
-	void cmdGetAsync(const std::string &strLine);
-	void cmdPut(const std::string &strLine);
-	void cmdPutAsync(const std::string &strLine);
-	void cmdRemove(const std::string &strLine);
-	void cmdStatus();
-	void cmdNodeStatus(const std::string &strLine);
+  private:
+    void _cmdGet(const std::string &strLine);
+    void _cmdGetAsync(const std::string &strLine);
+    void _cmdPut(const std::string &strLine);
+    void _cmdPutAsync(const std::string &strLine);
+    void _cmdUpdate(const std::string &strLine);
+    void _cmdUpdateAsync(const std::string &strLine);
+    void _cmdRemove(const std::string &strLine);
+    void _cmdStatus();
+    void _cmdNodeStatus(const std::string &strLine);
 
-	FogKV::Key strToKey(const std::string &key);
-	FogKV::Value strToValue(const std::string &val);
+    FogKV::Key _strToKey(const std::string &key);
+    FogKV::Value _strToValue(const std::string &valStr);
+    FogKV::Value _allocValue(const FogKV::Key &key, const std::string &valStr);
 
-	std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
-	std::vector<std::string> _statusMsgs;
+    FogKV::PrimaryKeyAttribute
+    _getKeyAttrs(unsigned char start, const std::vector<std::string> &cmdAttrs);
+    FogKV::PrimaryKeyAttribute
+    _getKeyAttr(unsigned char start, const std::vector<std::string> &cmdAttrs);
 
-	Json::Value getPeersJson();
+    std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
+    std::vector<std::string> _statusMsgs;
+
+    Json::Value getPeersJson();
 };
-
 }

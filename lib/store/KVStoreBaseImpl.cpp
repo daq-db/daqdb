@@ -147,10 +147,7 @@ void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
 void KVStoreBaseImpl::Update(const Key &key, Value &&val,
                              const UpdateOptions &options) {
 
-    StatusCode rc = mRTree->Put(key.data(), val.data());
-
-    if (rc != StatusCode::Ok)
-        throw OperationFailedException(EINVAL);
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
 void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
@@ -158,20 +155,13 @@ void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
-                                  KVStoreBaseUpdateCallback cb,
+                                  KVStoreBaseCallback cb,
                                   const UpdateOptions &options) {
-    std::async(std::launch::async, [&] {
-        try {
-            Update(key, std::move(value));
-            cb(this, StatusCode::Ok, key, value);
-        } catch (OperationFailedException &e) {
-            cb(this, e.status(), key, value);
-        }
-    });
+    throw FUNC_NOT_IMPLEMENTED;
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
-                                  KVStoreBaseUpdateCallback cb) {
+                                  KVStoreBaseCallback cb) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
