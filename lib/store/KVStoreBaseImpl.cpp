@@ -69,6 +69,8 @@ void KVStoreBaseImpl::LogMsg(std::string msg) {
 }
 
 void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
+    // @TODO jradtke: add handling of PutOptions
+
     StatusCode rc = mRTree->Put(key.data(), val.data());
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
     if (rc != StatusCode::Ok)
@@ -77,6 +79,8 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                                const PutOptions &options) {
+    // @TODO jradtke: add handling of PutOptions
+
     thread_local int poolerId = 0;
 
     poolerId = (options.roundRobin()) ? ((poolerId + 1) % _rqstPoolers.size())
@@ -146,7 +150,6 @@ void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
 
 void KVStoreBaseImpl::Update(const Key &key, Value &&val,
                              const UpdateOptions &options) {
-
     throw FUNC_NOT_IMPLEMENTED;
 }
 
@@ -162,7 +165,24 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
                                   KVStoreBaseCallback cb) {
-    throw FUNC_NOT_IMPLEMENTED;
+    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+        try {
+            if (!_offloadPooler->EnqueueMsg(
+                    new OffloadRqstMsg(OffloadRqstOperation::UPDATE, key.data(), key.size(),
+                                nullptr, 0, cb))) {
+                throw QueueFullException();
+            }
+
+            // @TODO jradtke: update key metadata
+
+        } catch (OperationFailedException &e) {
+            Value val;
+            cb(this, e.status(), key.data(), key.size(), val.data(),
+               val.size());
+        }
+    } else {
+        throw FUNC_NOT_IMPLEMENTED;
+    }
 }
 
 std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end,
@@ -313,6 +333,8 @@ void KVStoreBaseImpl::init() {
             _rqstPoolers.push_back(
                 new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
         }
+        _offloadPooler = new FogKV::OffloadRqstPooler(POOLER_CPU_CORE_BASE +
+                                                      poolerCount + 1);
     }
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");

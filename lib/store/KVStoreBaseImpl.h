@@ -34,6 +34,7 @@
 
 #include "RTreeEngine.h"
 #include "RqstPooler.h"
+#include "OffloadRqstPooler.h"
 #include <FogKV/KVStoreBase.h>
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
@@ -104,6 +105,7 @@ class KVStoreBaseImpl : public KVStoreBase {
     std::mutex mLock;
 
     std::vector<RqstPooler *> _rqstPoolers;
+    OffloadRqstPooler *_offloadPooler;
 };
 
 } // namespace FogKV

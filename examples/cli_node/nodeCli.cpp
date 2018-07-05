@@ -403,7 +403,8 @@ void nodeCli::_cmdUpdate(const std::string &strLine) {
 
         FogKV::Value valBuff;
         unsigned short optionStartPos = UPDATE_CMD_KEY_ATTRS_OFFSET;
-        if (!starts_with(arguments[UPDATE_CMD_VAL_OFFSET], "-o")) {
+        if ((arguments.size() > UPDATE_CMD_VAL_OFFSET) &&
+            (!starts_with(arguments[UPDATE_CMD_VAL_OFFSET], "-o"))) {
             valBuff = _strToValue(arguments[UPDATE_CMD_VAL_OFFSET]);
         } else {
             optionStartPos = UPDATE_CMD_VAL_OFFSET;
@@ -448,7 +449,8 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
 
         FogKV::Value valBuff;
         unsigned short optionStartPos = UPDATE_CMD_KEY_ATTRS_OFFSET;
-        if (!starts_with(arguments[UPDATE_CMD_VAL_OFFSET], "-o")) {
+        if ((arguments.size() > UPDATE_CMD_VAL_OFFSET) &&
+            (!starts_with(arguments[UPDATE_CMD_VAL_OFFSET], "-o"))) {
             valBuff = _strToValue(arguments[UPDATE_CMD_VAL_OFFSET]);
         } else {
             optionStartPos = UPDATE_CMD_VAL_OFFSET;
