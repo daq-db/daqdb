@@ -36,26 +36,25 @@
 #include <cstdint>
 #include <thread>
 
-#include "RTreeEngine.h"
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
 #include <FogKV/KVStoreBase.h>
 
-#define DEQUEUE_RING_LIMIT 1024
+#define OFFLOAD_DEQUEUE_RING_LIMIT 1024
 
 namespace FogKV {
 
-enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2, UPDATE = 3 };
+enum class OffloadRqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2, UPDATE = 3 };
 
-class RqstMsg {
+class OffloadRqstMsg {
   public:
-    RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
+    OffloadRqstMsg(const OffloadRqstOperation op, const char *key, const size_t keySize,
             const char *value, size_t valueSize,
             KVStoreBase::KVStoreBaseCallback clb);
 
-    const RqstOperation op = RqstOperation::NONE;
+    const OffloadRqstOperation op = OffloadRqstOperation::NONE;
     const char *key = nullptr;
     size_t keySize = 0;
     const char *value = nullptr;
@@ -65,31 +64,29 @@ class RqstMsg {
     KVStoreBase::KVStoreBaseCallback clb;
 };
 
-class RqstPoolerInterface {
+class OffloadRqstPoolerInterface {
     virtual void StartThread() = 0;
 
-    virtual bool EnqueueMsg(RqstMsg *Message) = 0;
+    virtual bool EnqueueMsg(OffloadRqstMsg *Message) = 0;
     virtual void DequeueMsg() = 0;
     virtual void ProcessMsg() = 0;
 };
 
-class RqstPooler : public RqstPoolerInterface {
+class OffloadRqstPooler : public OffloadRqstPoolerInterface {
   public:
-    RqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
-               const size_t cpuCore = 0);
-    virtual ~RqstPooler();
+    OffloadRqstPooler(const size_t cpuCore = 0);
+    virtual ~OffloadRqstPooler();
 
-    bool EnqueueMsg(RqstMsg *Message);
+    bool EnqueueMsg(OffloadRqstMsg *Message);
     void DequeueMsg();
     void ProcessMsg() final;
     void StartThread();
 
     std::atomic<int> isRunning;
-    std::shared_ptr<FogKV::RTreeEngine> rtree;
     struct spdk_ring *rqstRing;
 
     unsigned short processArrayCount = 0;
-    RqstMsg *processArray[DEQUEUE_RING_LIMIT];
+    OffloadRqstMsg *processArray[OFFLOAD_DEQUEUE_RING_LIMIT];
 
   private:
     void _ThreadMain(void);
