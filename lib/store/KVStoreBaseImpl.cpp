@@ -322,19 +322,18 @@ void KVStoreBaseImpl::init() {
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    struct spdk_env_opts opts;
-    // @TODO jradtke: SPDK init messages should be hidden.
-    spdk_env_opts_init(&opts);
-    opts.name = "FogKV";
-    opts.shm_id = 0;
-    if (spdk_env_init(&opts) == 0) {
-        auto poolerCount = getOptions().Runtime.numOfPoolers();
-        for (auto index = 0; index < poolerCount; index++) {
-            _rqstPoolers.push_back(
-                new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
-        }
-        _offloadPooler = new FogKV::OffloadRqstPooler(POOLER_CPU_CORE_BASE +
+    auto poolerCount = getOptions().Runtime.numOfPoolers();
+
+    _offloadPooler = new FogKV::OffloadRqstPooler(POOLER_CPU_CORE_BASE +
                                                       poolerCount + 1);
+
+
+    while(!_offloadPooler->isRunning) {
+	sleep(1);
+    }
+    for (auto index = 0; index < poolerCount; index++) {
+	_rqstPoolers.push_back(
+	    new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
     }
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");

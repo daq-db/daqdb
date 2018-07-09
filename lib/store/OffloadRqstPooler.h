@@ -90,6 +90,8 @@ class OffloadRqstPooler : public OffloadRqstPoolerInterface {
 
   private:
     void _ThreadMain(void);
+    static void Shutdown(void);
+    static void Start(void *arg1, void *arg2);
 
     std::thread *_thread;
     size_t _cpuCore = 0;

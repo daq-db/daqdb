@@ -39,6 +39,7 @@
 
 #include "../debug/Logger.h"
 #include "spdk/env.h"
+#include "spdk/event.h"
 
 namespace FogKV {
 
@@ -66,7 +67,6 @@ OffloadRqstPooler::~OffloadRqstPooler() {
 }
 
 void OffloadRqstPooler::StartThread() {
-    isRunning = 1;
     _thread = new std::thread(&OffloadRqstPooler::_ThreadMain, this);
 
     if (_cpuCore) {
@@ -86,12 +86,30 @@ void OffloadRqstPooler::StartThread() {
         }
     }
 }
+void OffloadRqstPooler::Shutdown(void) {
+
+	spdk_app_stop(0);
+}
+
+void OffloadRqstPooler::Start(void *arg1, void *arg2) {
+
+	OffloadRqstPooler *p = (OffloadRqstPooler*)arg1;
+	p->isRunning = 1;
+}
 
 void OffloadRqstPooler::_ThreadMain() {
-    while (isRunning) {
-        DequeueMsg();
-        ProcessMsg();
-    }
+	int rc;
+	struct spdk_app_opts opts = {};
+
+	spdk_app_opts_init(&opts);
+
+	opts.name = "spdk_offload";
+	opts.shm_id = 0;
+	opts.shutdown_cb = OffloadRqstPooler::Shutdown;
+
+	rc = spdk_app_start(&opts, Start, this, NULL);
+	spdk_app_fini();
+
 }
 
 bool OffloadRqstPooler::EnqueueMsg(OffloadRqstMsg *Message) {
