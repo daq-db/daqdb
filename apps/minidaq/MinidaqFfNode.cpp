@@ -81,7 +81,18 @@ int MinidaqFfNode::_PickNFragments() {
 void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
     int baseId = _PickSubdetector();
-    Key fogKey(reinterpret_cast<char *>(&key), sizeof(key));
+    bool accept = _Accept();
+    MinidaqKey *keyTmp;
+
+    if (accept) {
+        keyTmp = new MinidaqKey;
+        *keyTmp = key;
+    } else {
+        keyTmp = &key;
+    }
+
+    Key fogKey(reinterpret_cast<char *>(keyTmp), sizeof(*keyTmp));
+
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
         key.subdetectorId = baseId + i;
@@ -89,12 +100,36 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
         if (*(reinterpret_cast<uint64_t *>(value.data())) != key.eventId) {
             cntErr++;
         } else {
-            if (_Accept()) {
-                /** @todo update */
+            if (accept) {
+                while (1) {
+                    try {
+                        _kvs->UpdateAsync(
+                            std::move(fogKey), UpdateOptions(LONG_TERM),
+                            [keyTmp, &cnt, &cntErr](
+                                FogKV::KVStoreBase *kvs, FogKV::Status status,
+                                const char *key, const size_t keySize,
+                                const char *value, const size_t valueSize) {
+                                if (!status.ok()) {
+                                    cntErr++;
+                                } else {
+                                    cnt++;
+                                }
+                                delete keyTmp;
+                            });
+                    } catch (QueueFullException &e) {
+                        // Keep retrying
+                        continue;
+                    } catch (...) {
+                        delete keyTmp;
+                        delete value.data();
+                        throw;
+                    }
+                    break;
+                }
             } else {
                 _kvs->Remove(fogKey);
+                cnt++;
             }
-            cnt++;
         }
         delete value.data();
     }
