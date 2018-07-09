@@ -39,6 +39,7 @@
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
+#include "spdk/bdev.h"
 
 #include <FogKV/KVStoreBase.h>
 
@@ -92,9 +93,13 @@ class OffloadRqstPooler : public OffloadRqstPoolerInterface {
     void _ThreadMain(void);
     static void Shutdown(void);
     static void Start(void *arg1, void *arg2);
+    static void BdevInitializedCB(void *cb_arg, int rc);
+    static void ParseArg(int ch, char *arg);
+    static void Usage(void);
 
     std::thread *_thread;
     size_t _cpuCore = 0;
+    struct spdk_bdev *bdev;
 };
 
 } /* namespace FogKV */

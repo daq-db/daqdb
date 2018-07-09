@@ -307,6 +307,14 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
 
 void KVStoreBaseImpl::init() {
 
+    auto poolerCount = getOptions().Runtime.numOfPoolers();
+    _offloadPooler = new FogKV::OffloadRqstPooler(POOLER_CPU_CORE_BASE +
+                                                      poolerCount + 1);
+
+    while(!_offloadPooler->isRunning) {
+	sleep(1);
+    }
+
     if (getOptions().Runtime.logFunc)
         gLog.setLogFunc(getOptions().Runtime.logFunc);
 
@@ -322,15 +330,7 @@ void KVStoreBaseImpl::init() {
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    auto poolerCount = getOptions().Runtime.numOfPoolers();
 
-    _offloadPooler = new FogKV::OffloadRqstPooler(POOLER_CPU_CORE_BASE +
-                                                      poolerCount + 1);
-
-
-    while(!_offloadPooler->isRunning) {
-	sleep(1);
-    }
     for (auto index = 0; index < poolerCount; index++) {
 	_rqstPoolers.push_back(
 	    new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));

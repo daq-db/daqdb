@@ -86,15 +86,38 @@ void OffloadRqstPooler::StartThread() {
         }
     }
 }
-void OffloadRqstPooler::Shutdown(void) {
-
+void OffloadRqstPooler::Shutdown(void)
+{
 	spdk_app_stop(0);
+}
+void OffloadRqstPooler::BdevInitializedCB(void *cb_arg, int rc)
+{
+	OffloadRqstPooler *p = (OffloadRqstPooler*)cb_arg;
+
+	printf("Started bdev with rc %d\n", rc);
+	p->bdev = spdk_bdev_first();
+
+	//p->bdev =  spdk_bdev_get_by_name("Nvme0n1");
+	if(p->bdev == NULL) {
+		printf("No NVMe device found\n");
+	}
 }
 
 void OffloadRqstPooler::Start(void *arg1, void *arg2) {
 
 	OffloadRqstPooler *p = (OffloadRqstPooler*)arg1;
 	p->isRunning = 1;
+	spdk_unaffinitize_thread();
+	spdk_bdev_initialize(BdevInitializedCB, p);
+
+}
+
+void OffloadRqstPooler::ParseArg(int ch, char *arg)
+{
+}
+
+void OffloadRqstPooler::Usage(void)
+{
 }
 
 void OffloadRqstPooler::_ThreadMain() {
@@ -105,10 +128,15 @@ void OffloadRqstPooler::_ThreadMain() {
 
 	opts.name = "spdk_offload";
 	opts.shm_id = 0;
-	opts.shutdown_cb = OffloadRqstPooler::Shutdown;
+	opts.max_delay_us = 1000 *1000;
+	opts.shutdown_cb = Shutdown;
+	opts.config_file = "./config.spdk";
+	opts.delay_subsystem_init = false;
+
 
 	rc = spdk_app_start(&opts, Start, this, NULL);
 	spdk_app_fini();
+	exit(0);
 
 }
 
