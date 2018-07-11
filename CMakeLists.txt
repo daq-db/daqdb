@@ -60,6 +60,7 @@ add_subdirectory(tests)
 # Build example folder
 add_subdirectory(${EXAMPLES}/cli_node)
 add_subdirectory(${EXAMPLES}/basic)
+add_subdirectory(${EXAMPLES}/fabric_node)
 
 # Build apps folder
 add_subdirectory(${APPS}/minidaq)
