@@ -11,4 +11,4 @@
   # To get PCI address execute:
   #     third-party/spdk/scripts/setup.sh status 
   #
-  TransportID "trtype:PCIe traddr:0000:81:00.0" Nvme0
+  # TransportID "trtype:PCIe traddr:0000:81:00.0" Nvme0
