@@ -36,65 +36,44 @@
 #include <cstdint>
 #include <thread>
 
+#include "spdk/bdev.h"
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
-#include "spdk/bdev.h"
 
-#include <FogKV/KVStoreBase.h>
-
-#define OFFLOAD_DEQUEUE_RING_LIMIT 1024
+#include <functional>
 
 namespace FogKV {
 
-enum class OffloadRqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2, UPDATE = 3 };
+using OffloadReactorShutdownCallback = std::function<void()>;
 
-class OffloadRqstMsg {
-  public:
-    OffloadRqstMsg(const OffloadRqstOperation op, const char *key, const size_t keySize,
-            const char *value, size_t valueSize,
-            KVStoreBase::KVStoreBaseCallback clb);
-
-    const OffloadRqstOperation op = OffloadRqstOperation::NONE;
-    const char *key = nullptr;
-    size_t keySize = 0;
-    const char *value = nullptr;
-    size_t valueSize = 0;
-
-    // @TODO jradtke copying std:function in every msg might be not good idea
-    KVStoreBase::KVStoreBaseCallback clb;
-};
-
-class OffloadRqstPoolerInterface {
+/** Intarface has been created to enable mocking in unit tests */
+class OffloadReactorInterface {
     virtual void StartThread() = 0;
-
-    virtual bool EnqueueMsg(OffloadRqstMsg *Message) = 0;
-    virtual void DequeueMsg() = 0;
-    virtual void ProcessMsg() = 0;
 };
 
-class OffloadRqstPooler : public OffloadRqstPoolerInterface {
+class OffloadReactor : public OffloadReactorInterface {
   public:
-    OffloadRqstPooler(const size_t cpuCore = 0);
-    virtual ~OffloadRqstPooler();
+    OffloadReactor(const size_t cpuCore = 0,
+                   OffloadReactorShutdownCallback clb = nullptr);
+    virtual ~OffloadReactor();
 
-    bool EnqueueMsg(OffloadRqstMsg *Message);
-    void DequeueMsg();
-    void ProcessMsg() final;
     void StartThread();
 
     std::atomic<int> isRunning;
-    struct spdk_ring *rqstRing;
-
-    unsigned short processArrayCount = 0;
-    OffloadRqstMsg *processArray[OFFLOAD_DEQUEUE_RING_LIMIT];
 
   private:
     void _ThreadMain(void);
 
+    /** declared as static to allow using by SPDK */
+    static void Shutdown(void);
+    /** declared as static to allow using by SPDK */
+    static void Start(void *arg1, void *arg2);
+    /** declared as static to allow using by SPDK */
+    static void _BdevInitClB(void *cb_arg, int rc);
+
+    OffloadReactorShutdownCallback _shutdownClb;
     std::thread *_thread;
     size_t _cpuCore = 0;
-    struct spdk_bdev *_bdev;
 };
-
-} /* namespace FogKV */
+}

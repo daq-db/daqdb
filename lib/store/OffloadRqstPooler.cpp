@@ -55,6 +55,10 @@ OffloadRqstPooler::OffloadRqstPooler(const size_t cpuCore)
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
 
+    _bdev = spdk_bdev_first();
+    if (_bdev == nullptr)
+        FOG_DEBUG("No NVMe devices detected!");
+
     StartThread();
 }
 
@@ -74,7 +78,6 @@ void OffloadRqstPooler::StartThread() {
         CPU_ZERO(&cpuset);
         CPU_SET(_cpuCore, &cpuset);
 
-        // @TODO jradtke: Should be replaced with spdk_env_thread_launch_pinned
         const int set_result = pthread_setaffinity_np(
             _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
         if (set_result == 0) {
@@ -130,9 +133,7 @@ void OffloadRqstPooler::ProcessMsg() {
             if (cb_fn)
 
                 // @TODO jradtke: add disk offload logic here
-
-                cb_fn(nullptr, StatusCode::Ok, key, keySize,
-                      nullptr, 0);
+                cb_fn(nullptr, StatusCode::Ok, key, keySize, nullptr, 0);
             break;
         }
         default:

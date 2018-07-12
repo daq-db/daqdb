@@ -168,8 +168,8 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
         try {
             if (!_offloadPooler->EnqueueMsg(
-                    new OffloadRqstMsg(OffloadRqstOperation::UPDATE, key.data(), key.size(),
-                                nullptr, 0, cb))) {
+                    new OffloadRqstMsg(OffloadRqstOperation::UPDATE, key.data(),
+                                       key.size(), nullptr, 0, cb))) {
                 throw QueueFullException();
             }
 
@@ -249,7 +249,7 @@ void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options) {
 KVStoreBaseImpl::KVStoreBaseImpl(const Options &options)
     : mOptions(options), mKeySize(0) {
     if (mOptions.Runtime.io_service() == nullptr)
-        m_io_service = new asio::io_service();
+        _io_service = new asio::io_service();
 
     for (size_t i = 0; i < options.Key.nfields(); i++)
         mKeySize += options.Key.field(i).Size;
@@ -265,8 +265,8 @@ KVStoreBaseImpl::~KVStoreBaseImpl() {
         delete _rqstPoolers.at(index);
     }
 
-    if (m_io_service)
-        delete m_io_service;
+    if (_io_service)
+        delete _io_service;
 }
 
 std::string KVStoreBaseImpl::getProperty(const std::string &name) {
@@ -307,6 +307,15 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
 
 void KVStoreBaseImpl::init() {
 
+    auto poolerCount = getOptions().Runtime.numOfPoolers();
+    _offloadReactor =
+        new FogKV::OffloadReactor(POOLER_CPU_CORE_BASE + poolerCount + 1,
+                                  [&]() { mOptions.Runtime.shutdownFunc(); });
+
+    while (!_offloadReactor->isRunning) {
+        sleep(1);
+    }
+
     if (getOptions().Runtime.logFunc)
         gLog.setLogFunc(getOptions().Runtime.logFunc);
 
@@ -322,20 +331,12 @@ void KVStoreBaseImpl::init() {
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    struct spdk_env_opts opts;
-    // @TODO jradtke: SPDK init messages should be hidden.
-    spdk_env_opts_init(&opts);
-    opts.name = "FogKV";
-    opts.shm_id = 0;
-    if (spdk_env_init(&opts) == 0) {
-        auto poolerCount = getOptions().Runtime.numOfPoolers();
-        for (auto index = 0; index < poolerCount; index++) {
-            _rqstPoolers.push_back(
-                new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
-        }
-        _offloadPooler = new FogKV::OffloadRqstPooler(POOLER_CPU_CORE_BASE +
-                                                      poolerCount + 1);
+    for (auto index = 0; index < poolerCount; index++) {
+        _rqstPoolers.push_back(
+            new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
     }
+    _offloadPooler =
+        new FogKV::OffloadRqstPooler(POOLER_CPU_CORE_BASE + poolerCount + 2);
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");
 }
@@ -343,7 +344,7 @@ void KVStoreBaseImpl::init() {
 asio::io_service &KVStoreBaseImpl::io_service() {
     if (mOptions.Runtime.io_service())
         return *mOptions.Runtime.io_service();
-    return *m_io_service;
+    return *_io_service;
 }
 
 } // namespace FogKV

@@ -44,6 +44,7 @@ include_directories(${3RDPARTY}/pmdk/src/include)
 include_directories(${3RDPARTY}/spdk/include)
 include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 
+set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 # Build and link fogkv library
 include_directories(include include/db include/dht include/fabric include/FogKV include/store)
 file(GLOB_RECURSE FOGKV_SOURCES
@@ -52,7 +53,7 @@ file(GLOB_RECURSE FOGKV_SOURCES
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord spdk ${Boost_LIBRARIES})
+target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord ${Spdk_LIBRARIES} ${Boost_LIBRARIES})
 
 # Build test folder
 add_subdirectory(tests)

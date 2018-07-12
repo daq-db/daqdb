@@ -137,6 +137,7 @@ struct RuntimeOptions {
     unsigned short numOfPoolers() const { return _numOfPoolers; }
 
     std::function<void(std::string)> logFunc = nullptr;
+    std::function<void()> shutdownFunc = nullptr;
 
     asio::io_service *_io_service = nullptr;
 

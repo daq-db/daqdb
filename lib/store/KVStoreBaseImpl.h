@@ -32,9 +32,10 @@
 
 #pragma once
 
+#include "OffloadReactor.h"
+#include "OffloadRqstPooler.h"
 #include "RTreeEngine.h"
 #include "RqstPooler.h"
-#include "OffloadRqstPooler.h"
 #include <FogKV/KVStoreBase.h>
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
@@ -96,7 +97,7 @@ class KVStoreBaseImpl : public KVStoreBase {
     void registerProperties();
 
     asio::io_service &io_service();
-    asio::io_service *m_io_service;
+    asio::io_service *_io_service;
 
     size_t mKeySize;
     Options mOptions;
@@ -105,6 +106,8 @@ class KVStoreBaseImpl : public KVStoreBase {
     std::mutex mLock;
 
     std::vector<RqstPooler *> _rqstPoolers;
+
+    OffloadReactor *_offloadReactor;
     OffloadRqstPooler *_offloadPooler;
 };
 
