@@ -1,49 +1,3 @@
-# SPDK vhost configuration file
-#
-# Please write all parameters using ASCII.
-# The parameter must be quoted if it includes whitespace.
-
-# Configuration syntax:
-# Leading whitespace is ignored.
-# Lines starting with '#' are comments.
-# Lines ending with '\' are concatenated with the next line.
-# Bracketed ([]) names define sections
-
-[Global]
-  # Instance ID for multi-process support
-  # Default: 0
-  #InstanceID 0
-
-  # Users can restrict work items to only run on certain cores by
-  #  specifying a ReactorMask.  Default is to allow work items to run
-  #  on core 0.
-  #ReactorMask 0xFFFF
-
-  # Disable PCI access. PCI is enabled by default. Setting this
-  # option will hide any PCI device from all SPDK modules, making
-  # SPDK act as if they don't exist.
-  #NoPci Yes
-
-  # Tracepoint group mask for spdk trace buffers
-  # Default: 0x0 (all tracepoint groups disabled)
-  # Set to 0xFFFFFFFFFFFFFFFF to enable all tracepoint groups.
-  #TpointGroupMask 0x0
-
-# Users may activate entries in this section to override default values for
-# global parameters in the block device (bdev) subsystem.
-[Bdev]
-  # Number of spdk_bdev_io structures allocated in the global bdev subsystem pool.
-  #BdevIoPoolSize 65536
-
-  # Maximum number of spdk_bdev_io structures to cache per thread.
-  #BdevIoCacheSize 256
-
-# Users may not want to use offload even it is available.
-# Users can use offload by specifying "Enable Yes" in this section
-# if it is available.
-# Users may use the whitelist to initialize specified devices, IDS
-#  uses BUS:DEVICE.FUNCTION to identify each Ioat channel.
-
 [Nvme]
   # NVMe Device Whitelist
   # Users may specify which NVMe devices to claim by their transport id.
@@ -52,19 +6,9 @@
   # other sections in the configuration file. For NVMe devices, a namespace
   # is automatically appended to each name in the format <YourName>nY, where
   # Y is the NSID (starts at 1).
+  #
+  # Please uncomment and fill correct PCI address.
+  # To get PCI address execute:
+  #     third-party/spdk/scripts/setup.sh status 
+  #
   TransportID "trtype:PCIe traddr:0000:81:00.0" Nvme0
-  #TransportID "trtype:PCIe traddr:0000:01:00.0" Nvme1
-
-  # The number of attempts per I/O when an I/O fails. Do not include
-  # this key to get the default behavior.
-  RetryCount 4
-  # Timeout for each command, in seconds. If 0, don't track timeouts.
-  Timeout 0
-  # Action to take on command time out. Only valid when Timeout is greater
-  # than 0. This may be 'Reset' to reset the controller, 'Abort' to abort
-  # the command, or 'None' to just print a message but do nothing.
-  # Admin command timeouts will always result in a reset.
-  ActionOnTimeout None
-  # Set how often the admin queue is polled for asynchronous events.
-  # Units in microseconds.
-  AdminPollRate 100000
