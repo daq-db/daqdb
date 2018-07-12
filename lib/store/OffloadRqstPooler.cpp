@@ -39,7 +39,6 @@
 
 #include "../debug/Logger.h"
 #include "spdk/env.h"
-#include "spdk/event.h"
 
 namespace FogKV {
 
@@ -56,6 +55,10 @@ OffloadRqstPooler::OffloadRqstPooler(const size_t cpuCore)
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
 
+    _bdev = spdk_bdev_first();
+    if (_bdev == nullptr)
+        FOG_DEBUG("No NVMe devices detected!");
+
     StartThread();
 }
 
@@ -67,6 +70,7 @@ OffloadRqstPooler::~OffloadRqstPooler() {
 }
 
 void OffloadRqstPooler::StartThread() {
+    isRunning = 1;
     _thread = new std::thread(&OffloadRqstPooler::_ThreadMain, this);
 
     if (_cpuCore) {
@@ -74,7 +78,6 @@ void OffloadRqstPooler::StartThread() {
         CPU_ZERO(&cpuset);
         CPU_SET(_cpuCore, &cpuset);
 
-        // @TODO jradtke: Should be replaced with spdk_env_thread_launch_pinned
         const int set_result = pthread_setaffinity_np(
             _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
         if (set_result == 0) {
@@ -86,58 +89,12 @@ void OffloadRqstPooler::StartThread() {
         }
     }
 }
-void OffloadRqstPooler::Shutdown(void)
-{
-	spdk_app_stop(0);
-}
-void OffloadRqstPooler::BdevInitializedCB(void *cb_arg, int rc)
-{
-	OffloadRqstPooler *p = (OffloadRqstPooler*)cb_arg;
-
-	printf("Started bdev with rc %d\n", rc);
-	p->bdev = spdk_bdev_first();
-
-	//p->bdev =  spdk_bdev_get_by_name("Nvme0n1");
-	if(p->bdev == NULL) {
-		printf("No NVMe device found\n");
-	}
-}
-
-void OffloadRqstPooler::Start(void *arg1, void *arg2) {
-
-	OffloadRqstPooler *p = (OffloadRqstPooler*)arg1;
-	p->isRunning = 1;
-	spdk_unaffinitize_thread();
-	spdk_bdev_initialize(BdevInitializedCB, p);
-
-}
-
-void OffloadRqstPooler::ParseArg(int ch, char *arg)
-{
-}
-
-void OffloadRqstPooler::Usage(void)
-{
-}
 
 void OffloadRqstPooler::_ThreadMain() {
-	int rc;
-	struct spdk_app_opts opts = {};
-
-	spdk_app_opts_init(&opts);
-
-	opts.name = "spdk_offload";
-	opts.shm_id = 0;
-	opts.max_delay_us = 1000 *1000;
-	opts.shutdown_cb = Shutdown;
-	opts.config_file = "./config.spdk";
-	opts.delay_subsystem_init = false;
-
-
-	rc = spdk_app_start(&opts, Start, this, NULL);
-	spdk_app_fini();
-	exit(0);
-
+    while (isRunning) {
+        DequeueMsg();
+        ProcessMsg();
+    }
 }
 
 bool OffloadRqstPooler::EnqueueMsg(OffloadRqstMsg *Message) {
@@ -176,9 +133,7 @@ void OffloadRqstPooler::ProcessMsg() {
             if (cb_fn)
 
                 // @TODO jradtke: add disk offload logic here
-
-                cb_fn(nullptr, StatusCode::Ok, key, keySize,
-                      nullptr, 0);
+                cb_fn(nullptr, StatusCode::Ok, key, keySize, nullptr, 0);
             break;
         }
         default:
