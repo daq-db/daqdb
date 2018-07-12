@@ -38,6 +38,7 @@
 
 #include "spdk/bdev.h"
 #include "spdk/env.h"
+#include "spdk/event.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
@@ -54,7 +55,8 @@ class OffloadReactorInterface {
 
 class OffloadReactor : public OffloadReactorInterface {
   public:
-    OffloadReactor(const size_t cpuCore = 0,
+    OffloadReactor(const size_t cpuCore = 0, std::string spdkConfigFile = "",
+                   spdk_app_opts *spdkAppOpts = nullptr,
                    OffloadReactorShutdownCallback clb = nullptr);
     virtual ~OffloadReactor();
 
@@ -69,8 +71,9 @@ class OffloadReactor : public OffloadReactorInterface {
     static void Shutdown(void);
     /** declared as static to allow using by SPDK */
     static void Start(void *arg1, void *arg2);
-    /** declared as static to allow using by SPDK */
-    static void _BdevInitClB(void *cb_arg, int rc);
+
+    std::string _spdkConfigFile;
+    std::unique_ptr<spdk_app_opts> _spdkAppOpts;
 
     OffloadReactorShutdownCallback _shutdownClb;
     std::thread *_thread;

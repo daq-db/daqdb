@@ -84,6 +84,7 @@ int main(int argc, const char *argv[]) {
     auto dhtPort = dhtBackBonePort;
     bool interactiveMode = false;
     std::string pmem_path;
+    std::string spdk_conf;
     size_t pmem_size;
 
     logging::add_console_log(std::clog,
@@ -93,7 +94,6 @@ int main(int argc, const char *argv[]) {
     logging::core::get()->set_filter(logging::trivial::severity >=
                                      logging::trivial::error);
 
-#if (1) // Cmd line parsing region
     po::options_description argumentsDescription{"Options"};
     argumentsDescription.add_options()("help,h", "Print help messages")(
         "port,p", po::value<unsigned short>(&inputPort),
@@ -108,7 +108,10 @@ int main(int argc, const char *argv[]) {
         "Rtree persistent memory pool file")(
         "pmem-size",
         po::value<size_t>(&pmem_size)->default_value(2ull * 1024 * 1024 * 1024),
-        "Rtree persistent memory pool size");
+        "Rtree persistent memory pool size")(
+        "spdk-conf-file,c",
+        po::value<std::string>(&spdk_conf)->default_value("../config.spdk"),
+        "SPDK configuration file");
 
     po::variables_map parsedArguments;
     try {
@@ -133,11 +136,11 @@ int main(int argc, const char *argv[]) {
         cerr << argumentsDescription << endl;
         return -1;
     }
-#endif
 
     asio::io_service io_service;
     FogKV::Options options;
-    std::atomic<int> isRunning;
+
+    std::atomic<int> isRunning; // used to catch SIGTERM, SIGINT
     isRunning = 1;
 
     options.Runtime.io_service(&io_service);
@@ -145,6 +148,7 @@ int main(int argc, const char *argv[]) {
         BOOST_LOG_SEV(lg::get(), bt::debug) << msg << flush;
     };
     options.Runtime.shutdownFunc = [&isRunning]() { isRunning = 0; };
+    options.Runtime.spdkConfigFile = spdk_conf;
 
     options.Dht.Id = nodeId;
     options.Dht.Port = dhtPort;
