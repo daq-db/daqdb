@@ -100,8 +100,7 @@ int main(int argc, const char *argv[]) {
         "Node Communication port")("dht,d", po::value<unsigned short>(&dhtPort),
                                    "DHT Communication port")(
         "nodeid,n", po::value<unsigned short>(&nodeId)->default_value(0),
-        "Node ID used to match database file. If not set DB file will be "
-        "removed when node stopped.")(
+        "Node ID used to match database file")(
         "interactive,i", "Enable interactive mode")("log,l", "Enable logging")(
         "pmem-path",
         po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pool.pm"),

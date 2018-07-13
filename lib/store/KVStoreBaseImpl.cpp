@@ -312,7 +312,7 @@ void KVStoreBaseImpl::init() {
 
     _offloadReactor = new FogKV::OffloadReactor(
         POOLER_CPU_CORE_BASE + poolerCount + 1, mOptions.Runtime.spdkConfigFile,
-        nullptr, [&]() { mOptions.Runtime.shutdownFunc(); });
+        [&]() { mOptions.Runtime.shutdownFunc(); });
 
     while (!_offloadReactor->isRunning) {
         sleep(1);

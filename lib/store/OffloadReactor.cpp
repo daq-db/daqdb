@@ -43,20 +43,17 @@
 namespace FogKV {
 
 OffloadReactor::OffloadReactor(const size_t cpuCore, std::string spdkConfigFile,
-                               spdk_app_opts *spdkAppOpts,
                                OffloadReactorShutdownCallback clb)
     : _thread(nullptr), _cpuCore(cpuCore), _shutdownClb(clb),
       _spdkConfigFile(spdkConfigFile) {
-    if (spdkAppOpts) {
-        _spdkAppOpts.reset(spdkAppOpts);
-    } else {
-        auto opts = new spdk_app_opts;
-        spdk_app_opts_init(opts);
-        opts->name = "OffloadReactor";
-        opts->shm_id = 0;
-        opts->max_delay_us = 1000 * 1000;
-        _spdkAppOpts.reset(opts);
-    }
+    auto opts = new spdk_app_opts;
+    spdk_app_opts_init(opts);
+    opts->name = "OffloadReactor";
+    opts->shm_id = 0;
+    opts->max_delay_us = 1000 * 1000;
+    opts->print_level = SPDK_LOG_ERROR;
+    _spdkAppOpts.reset(opts);
+
     StartThread();
 }
 

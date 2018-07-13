@@ -129,14 +129,13 @@ Options:
   -h [ --help ]                         Print help messages
   -p [ --port ] arg                     Node Communication port
   -d [ --dht ] arg                      DHT Communication port
-  -n [ --nodeid ] arg (=0)              Node ID used to match database file. If
-                                        not set DB file will be removed when 
-                                        node stopped.
+  -n [ --nodeid ] arg (=0)              Node ID used to match database file
   -i [ --interactive ]                  Enable interactive mode
   -l [ --log ]                          Enable logging
-  --pmem-path arg (=/mnt/pmem/pmemkv.dat)
-                                        pmemkv persistent memory pool file
-  --pmem-size arg (=536870912)          pmemkv persistent memory pool size
+  --pmem-path arg (=/mnt/pmem/pool.pm)  Rtree persistent memory pool file
+  --pmem-size arg (=2147483648)         Rtree persistent memory pool size
+  -c [ --spdk-conf-file ] arg (=../config.spdk)
+                                        SPDK configuration file
 ```
 
 To enter interactive mode execute cli-node with `--interactive` flag.
@@ -145,13 +144,17 @@ To enter interactive mode execute cli-node with `--interactive` flag.
 sudo ./cli_node -i
 fogkv> help
 Following commands supported:
-	- get <key>
-	- help
-	- put <key> <value>
-	- quit
-	- remove <key>
-	- status
-
+    - aget <key>
+    - aput <key> <value> [-o <lock|ready|long_term> <0|1>]
+    - aupdate <key> [value] [-o <lock|ready|long_term> <0|1>]
+    - get <key>
+    - help
+    - node <id>
+    - put <key> <value> [-o <lock|ready|long_term> <0|1>]
+    - quit
+    - remove <key>
+    - status
+    - update <key> [value] [-o <lock|ready|long_term> <0|1>]
 ```
 
 #### Basic example

@@ -56,7 +56,6 @@ class OffloadReactorInterface {
 class OffloadReactor : public OffloadReactorInterface {
   public:
     OffloadReactor(const size_t cpuCore = 0, std::string spdkConfigFile = "",
-                   spdk_app_opts *spdkAppOpts = nullptr,
                    OffloadReactorShutdownCallback clb = nullptr);
     virtual ~OffloadReactor();
 
