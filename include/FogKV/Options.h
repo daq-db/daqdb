@@ -129,12 +129,11 @@ struct KeyDescriptor {
 
 struct RuntimeOptions {
     void io_service(asio::io_service *io_service) { _io_service = io_service; }
-
     asio::io_service *io_service() { return _io_service; }
-
     void numOfPoolers(unsigned short count) { _numOfPoolers = count; }
-
     unsigned short numOfPoolers() const { return _numOfPoolers; }
+
+    std::string spdkConfigFile = "";
 
     std::function<void(std::string)> logFunc = nullptr;
     std::function<void()> shutdownFunc = nullptr;

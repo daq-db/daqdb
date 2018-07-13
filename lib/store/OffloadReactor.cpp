@@ -36,15 +36,24 @@
 #include <pthread.h>
 #include <string>
 
+#include <boost/filesystem.hpp>
+
 #include "../debug/Logger.h"
-#include "spdk/env.h"
-#include "spdk/event.h"
 
 namespace FogKV {
 
-OffloadReactor::OffloadReactor(const size_t cpuCore,
+OffloadReactor::OffloadReactor(const size_t cpuCore, std::string spdkConfigFile,
                                OffloadReactorShutdownCallback clb)
-    : _thread(nullptr), _cpuCore(cpuCore), _shutdownClb(clb) {
+    : _thread(nullptr), _cpuCore(cpuCore), _shutdownClb(clb),
+      _spdkConfigFile(spdkConfigFile) {
+    auto opts = new spdk_app_opts;
+    spdk_app_opts_init(opts);
+    opts->name = "OffloadReactor";
+    opts->shm_id = 0;
+    opts->max_delay_us = 1000 * 1000;
+    opts->print_level = SPDK_LOG_ERROR;
+    _spdkAppOpts.reset(opts);
+
     StartThread();
 }
 
@@ -80,25 +89,13 @@ void OffloadReactor::Start(void *arg1, void *arg2) {
     offloadReactor->isRunning = 1;
 }
 
-void OffloadReactor::_BdevInitClB(void *cb_arg, int rc) {
-
-    struct spdk_bdev *_bdev = spdk_bdev_first();
-    if (_bdev == nullptr)
-        FOG_DEBUG("Reactor: No NVMe devices detected!");
-}
-
 void OffloadReactor::_ThreadMain(void) {
     int rc;
 
-    struct spdk_app_opts opts = {};
-    spdk_app_opts_init(&opts);
+    if (boost::filesystem::exists(_spdkConfigFile))
+        _spdkAppOpts->config_file = _spdkConfigFile.c_str();
 
-    opts.name = "OffloadReactor";
-    opts.shm_id = 0;
-    opts.max_delay_us = 1000 * 1000;
-    opts.config_file = "./config.spdk";
-
-    rc = spdk_app_start(&opts, Start, this, NULL);
+    rc = spdk_app_start(_spdkAppOpts.get(), Start, this, NULL);
     isRunning = 0;
     FOG_DEBUG("SPDK reactor exit with rc=" + std::to_string(rc));
 
