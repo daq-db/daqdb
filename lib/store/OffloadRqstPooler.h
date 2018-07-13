@@ -66,8 +66,6 @@ class OffloadRqstMsg {
 };
 
 class OffloadRqstPoolerInterface {
-    virtual void StartThread() = 0;
-
     virtual bool EnqueueMsg(OffloadRqstMsg *Message) = 0;
     virtual void DequeueMsg() = 0;
     virtual void ProcessMsg() = 0;
@@ -75,25 +73,19 @@ class OffloadRqstPoolerInterface {
 
 class OffloadRqstPooler : public OffloadRqstPoolerInterface {
   public:
-    OffloadRqstPooler(const size_t cpuCore = 0);
+    OffloadRqstPooler();
     virtual ~OffloadRqstPooler();
 
     bool EnqueueMsg(OffloadRqstMsg *Message);
     void DequeueMsg();
     void ProcessMsg() final;
-    void StartThread();
 
-    std::atomic<int> isRunning;
     struct spdk_ring *rqstRing;
 
     unsigned short processArrayCount = 0;
     OffloadRqstMsg *processArray[OFFLOAD_DEQUEUE_RING_LIMIT];
 
   private:
-    void _ThreadMain(void);
-
-    std::thread *_thread;
-    size_t _cpuCore = 0;
     struct spdk_bdev *_bdev;
 };
 

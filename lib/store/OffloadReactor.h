@@ -44,32 +44,29 @@
 
 #include <functional>
 
+#include "OffloadRqstPooler.h"
+
 namespace FogKV {
 
 using OffloadReactorShutdownCallback = std::function<void()>;
 
-/** Intarface has been created to enable mocking in unit tests */
-class OffloadReactorInterface {
-    virtual void StartThread() = 0;
-};
+void reactor_start_clb(void *offload_reactor, void *arg2);
+int reactor_pooler_fn(void *offload_reactor);
 
-class OffloadReactor : public OffloadReactorInterface {
+class OffloadReactor {
   public:
     OffloadReactor(const size_t cpuCore = 0, std::string spdkConfigFile = "",
                    OffloadReactorShutdownCallback clb = nullptr);
     virtual ~OffloadReactor();
 
+    void RegisterPooler(OffloadRqstPooler *offloadPooler);
     void StartThread();
 
     std::atomic<int> isRunning;
+    std::vector<OffloadRqstPooler *> rqstPoolers;
 
   private:
     void _ThreadMain(void);
-
-    /** declared as static to allow using by SPDK */
-    static void Shutdown(void);
-    /** declared as static to allow using by SPDK */
-    static void Start(void *arg1, void *arg2);
 
     std::string _spdkConfigFile;
     std::unique_ptr<spdk_app_opts> _spdkAppOpts;
