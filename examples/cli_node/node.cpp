@@ -142,7 +142,6 @@ int main(int argc, const char *argv[]) {
     std::atomic<int> isRunning; // used to catch SIGTERM, SIGINT
     isRunning = 1;
 
-    options.Runtime.io_service(&io_service);
     options.Runtime.logFunc = [](std::string msg) {
         BOOST_LOG_SEV(lg::get(), bt::debug) << msg << flush;
     };

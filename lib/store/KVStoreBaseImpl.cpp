@@ -249,8 +249,7 @@ void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options) {
 KVStoreBaseImpl::KVStoreBaseImpl(const Options &options)
     : mOptions(options), mKeySize(0), _offloadPooler(nullptr),
       _offloadReactor(nullptr) {
-    if (mOptions.Runtime.io_service() == nullptr)
-        _io_service = new asio::io_service();
+    _io_service = new asio::io_service();
 
     for (size_t i = 0; i < options.Key.nfields(); i++)
         mKeySize += options.Key.field(i).Size;
@@ -308,7 +307,7 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
 
 void KVStoreBaseImpl::init() {
 
-    auto poolerCount = getOptions().Runtime.numOfPoolers();
+    auto poolerCount = getOptions().Runtime.numOfPoolers;
 
     _offloadReactor = new FogKV::OffloadReactor(
         POOLER_CPU_CORE_BASE + poolerCount + 1, mOptions.Runtime.spdkConfigFile,
@@ -344,8 +343,6 @@ void KVStoreBaseImpl::init() {
 }
 
 asio::io_service &KVStoreBaseImpl::io_service() {
-    if (mOptions.Runtime.io_service())
-        return *mOptions.Runtime.io_service();
     return *_io_service;
 }
 
