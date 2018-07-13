@@ -2,8 +2,9 @@ function(add_boost_test SOURCE_FILE_NAME)
 	get_filename_component(TEST_EXECUTABLE_NAME ${SOURCE_FILE_NAME} NAME_WE)
 
 	add_executable(${TEST_EXECUTABLE_NAME} ${SOURCE_FILE_NAME})
+	set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 	target_link_libraries(${TEST_EXECUTABLE_NAME} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} 
-		fabric fogkv pmemobj dpdk dl numa
+		fabric fogkv pmemobj ${Dpdk_LIBRARIES} dl numa
 		${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 	file(READ "${SOURCE_FILE_NAME}" SOURCE_FILE_CONTENTS)
