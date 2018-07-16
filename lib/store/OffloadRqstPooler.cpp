@@ -49,52 +49,17 @@ OffloadRqstMsg::OffloadRqstMsg(const OffloadRqstOperation op, const char *key,
     : op(op), key(key), keySize(keySize), value(value), valueSize(valueSize),
       clb(clb) {}
 
-OffloadRqstPooler::OffloadRqstPooler(const size_t cpuCore)
-    : isRunning(0), _thread(nullptr), _cpuCore(cpuCore) {
-
+OffloadRqstPooler::OffloadRqstPooler() {
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
 
     _bdev = spdk_bdev_first();
     if (_bdev == nullptr)
         FOG_DEBUG("No NVMe devices detected!");
-
-    StartThread();
 }
 
 OffloadRqstPooler::~OffloadRqstPooler() {
     spdk_ring_free(rqstRing);
-    isRunning = 0;
-    if (_thread != nullptr)
-        _thread->join();
-}
-
-void OffloadRqstPooler::StartThread() {
-    isRunning = 1;
-    _thread = new std::thread(&OffloadRqstPooler::_ThreadMain, this);
-
-    if (_cpuCore) {
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET(_cpuCore, &cpuset);
-
-        const int set_result = pthread_setaffinity_np(
-            _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
-        if (set_result == 0) {
-            FOG_DEBUG("Started OffloadRqstPooler on CPU core [" +
-                      std::to_string(_cpuCore) + "]");
-        } else {
-            FOG_DEBUG("Cannot set affinity on CPU core [" +
-                      std::to_string(_cpuCore) + "] for OffloadRqstPooler");
-        }
-    }
-}
-
-void OffloadRqstPooler::_ThreadMain() {
-    while (isRunning) {
-        DequeueMsg();
-        ProcessMsg();
-    }
 }
 
 bool OffloadRqstPooler::EnqueueMsg(OffloadRqstMsg *Message) {

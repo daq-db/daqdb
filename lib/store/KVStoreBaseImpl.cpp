@@ -337,8 +337,10 @@ void KVStoreBaseImpl::init() {
         _rqstPoolers.push_back(
             new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
     }
-    _offloadPooler =
-        new FogKV::OffloadRqstPooler(POOLER_CPU_CORE_BASE + poolerCount + 2);
+
+    _offloadPooler = new FogKV::OffloadRqstPooler();
+
+    _offloadReactor->RegisterPooler(_offloadPooler);
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");
 }

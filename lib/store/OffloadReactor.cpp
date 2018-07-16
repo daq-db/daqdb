@@ -40,11 +40,33 @@
 
 #include "../debug/Logger.h"
 
+#define OFFLOAD_POOLER_INTERVAL_MICR_SEC 100
+
 namespace FogKV {
+
+void reactor_start_clb(void *offload_reactor, void *arg2) {
+    OffloadReactor *offloadReactor =
+        reinterpret_cast<OffloadReactor *>(offload_reactor);
+    spdk_unaffinitize_thread();
+    spdk_poller_register(reactor_pooler_fn, offload_reactor,
+                         OFFLOAD_POOLER_INTERVAL_MICR_SEC);
+    offloadReactor->isRunning = 1;
+}
+
+int reactor_pooler_fn(void *offload_reactor) {
+    OffloadReactor *offloadReactor =
+        reinterpret_cast<OffloadReactor *>(offload_reactor);
+    for (auto pooler : offloadReactor->rqstPoolers) {
+        pooler->DequeueMsg();
+        pooler->ProcessMsg();
+    }
+
+    return 0;
+}
 
 OffloadReactor::OffloadReactor(const size_t cpuCore, std::string spdkConfigFile,
                                OffloadReactorShutdownCallback clb)
-    : _thread(nullptr), _cpuCore(cpuCore), _shutdownClb(clb),
+    : isRunning(0), _thread(nullptr), _cpuCore(cpuCore), _shutdownClb(clb),
       _spdkConfigFile(spdkConfigFile) {
     auto opts = new spdk_app_opts;
     spdk_app_opts_init(opts);
@@ -83,10 +105,8 @@ void OffloadReactor::StartThread() {
     }
 }
 
-void OffloadReactor::Start(void *arg1, void *arg2) {
-    OffloadReactor *offloadReactor = (OffloadReactor *)arg1;
-    spdk_unaffinitize_thread();
-    offloadReactor->isRunning = 1;
+void OffloadReactor::RegisterPooler(OffloadRqstPooler *offloadPooler) {
+    rqstPoolers.push_back(offloadPooler);
 }
 
 void OffloadReactor::_ThreadMain(void) {
@@ -95,7 +115,7 @@ void OffloadReactor::_ThreadMain(void) {
     if (boost::filesystem::exists(_spdkConfigFile))
         _spdkAppOpts->config_file = _spdkConfigFile.c_str();
 
-    rc = spdk_app_start(_spdkAppOpts.get(), Start, this, NULL);
+    rc = spdk_app_start(_spdkAppOpts.get(), reactor_start_clb, this, NULL);
     isRunning = 0;
     FOG_DEBUG("SPDK reactor exit with rc=" + std::to_string(rc));
 
