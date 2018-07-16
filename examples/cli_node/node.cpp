@@ -32,7 +32,6 @@
 
 #include <iostream>
 
-#include <asio/io_service.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/signal_set.hpp>
 #include <boost/algorithm/string.hpp>
@@ -136,7 +135,6 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    asio::io_service io_service;
     FogKV::Options options;
 
     std::atomic<int> isRunning; // used to catch SIGTERM, SIGINT
