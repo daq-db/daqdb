@@ -48,6 +48,7 @@ using namespace boost::algorithm;
 using boost::format;
 
 #define NUM_ELEM_KEY_ATTRS 3
+#define GET_CMD_KEY_ATTRS_OFFSET 2
 #define PUT_CMD_KEY_ATTRS_OFFSET 3
 #define PUT_CMD_VAL_OFFSET 2
 #define UPDATE_CMD_KEY_ATTRS_OFFSET 3
@@ -55,13 +56,14 @@ using boost::format;
 #define KEY_ATTRS_OPT_NAME_POS_OFFSET 1
 #define KEY_ATTRS_OPT_VAL_POS_OFFSET 2
 
-map<string, string> consoleCmd =
-    boost::assign::map_list_of("help", "")("get", " <key>")("aget", " <key>")(
-        "put", " <key> <value> [-o <lock|ready|long_term> <0|1>]")(
-        "aput", " <key> <value> [-o <lock|ready|long_term> <0|1>]")(
-        "status", "")("remove", " <key>")("quit", "")("node", " <id>")(
-        "update", " <key> [value] [-o <lock|ready|long_term> <0|1>]")(
-        "aupdate", " <key> [value] [-o <lock|ready|long_term> <0|1>]");
+map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
+    "get", " <key> [-o <long_term> <0|1>]")(
+    "aget"," <key> [-o <long_term> <0|1>]")(
+    "put", " <key> <value> [-o <lock|ready|long_term> <0|1>]")(
+    "aput", " <key> <value> [-o <lock|ready|long_term> <0|1>]")("status", "")(
+    "remove", " <key>")("quit", "")("node", " <id>")(
+    "update", " <key> [value] [-o <lock|ready|long_term> <0|1>]")(
+    "aupdate", " <key> [value] [-o <lock|ready|long_term> <0|1>]");
 
 /*!
  * Provides completion functionality to dragon shell.
@@ -178,8 +180,8 @@ void nodeCli::_cmdGet(const std::string &strLine) {
     vector<string> arguments;
     split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
-    if (arguments.size() != 2) {
-        cout << "Error: expects one argument" << endl;
+    if (arguments.size() < 2) {
+        cout << "Error: expects at least one argument" << endl;
     } else {
         auto key = arguments[1];
         if (key.size() > _spKVStore->KeySize()) {
@@ -197,9 +199,12 @@ void nodeCli::_cmdGet(const std::string &strLine) {
             return;
         }
 
+        auto keyAttrs = _getKeyAttrs(GET_CMD_KEY_ATTRS_OFFSET, arguments);
+        FogKV::GetOptions options(keyAttrs, keyAttrs);
+
         FogKV::Value value;
         try {
-            value = _spKVStore->Get(keyBuff);
+            value = _spKVStore->Get(keyBuff, std::move(options));
             string valuestr(value.data());
             cout << format("[%1%] = %2%\n") % key % valuestr;
         } catch (FogKV::OperationFailedException &e) {
@@ -221,8 +226,8 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
     vector<string> arguments;
     split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
 
-    if (arguments.size() != 2) {
-        cout << "Error: expects one argument" << endl;
+    if (arguments.size() < 2) {
+        cout << "Error: expects at least one argument" << endl;
     } else {
         auto key = arguments[1];
         if (key.size() > _spKVStore->KeySize()) {
@@ -239,6 +244,9 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
             return;
         }
 
+        auto keyAttrs = _getKeyAttrs(GET_CMD_KEY_ATTRS_OFFSET, arguments);
+        FogKV::GetOptions options(keyAttrs, keyAttrs);
+
         _spKVStore->GetAsync(
             std::move(keyBuff),
             [&](KVStoreBase *kvs, Status status, const char *key,
@@ -252,11 +260,10 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
                         boost::str(boost::format("GET[%1%]=%2% : completed") %
                                    key % value));
                 }
-                if (valueSize > 0 && value != nullptr)
-                    delete[] value;
                 if (keyBuff.size() > 0)
                     _spKVStore->Free(std::move(keyBuff));
-            });
+            },
+            std::move(options));
     }
 }
 
@@ -374,7 +381,7 @@ FogKV::Value nodeCli::_strToValue(const std::string &valStr) {
 }
 
 FogKV::Value nodeCli::_allocValue(const FogKV::Key &key,
-                                 const std::string &valStr) {
+                                  const std::string &valStr) {
     FogKV::Value result = _spKVStore->Alloc(key, valStr.size() + 1);
     std::memcpy(result.data(), valStr.c_str(), valStr.size());
     result.data()[result.size() - 1] = '\0';
@@ -494,9 +501,9 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
                                 status.to_string()));
                         } else {
                             _statusMsgs.push_back(boost::str(
-                                boost::format(
-                                    "UPDATE[%1%]=%2% (Opts:%3%) : completed") %
-                                key % value % options.Attr));
+                                boost::format("UPDATE[%1%] (Opts:%2%) "
+                                              ": completed") %
+                                key % options.Attr));
                         }
                         if (keyBuff.size() > 0)
                             _spKVStore->Free(std::move(keyBuff));
@@ -554,8 +561,9 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
                             status.to_string()));
                     } else {
                         _statusMsgs.push_back(boost::str(
-                            boost::format("PUT[%1%]=%2% (Opts:%3%) : completed") % key %
-                            value % options.Attr));
+                            boost::format(
+                                "PUT[%1%]=%2% (Opts:%3%) : completed") %
+                            key % value % options.Attr));
                     }
                     if (keyBuff.size() > 0)
                         _spKVStore->Free(std::move(keyBuff));

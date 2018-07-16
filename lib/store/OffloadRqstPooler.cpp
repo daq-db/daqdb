@@ -39,8 +39,51 @@
 
 #include "../debug/Logger.h"
 #include "spdk/env.h"
+#include "spdk_internal/bdev.h"
 
 namespace FogKV {
+
+/*
+ * Callback function for write io completion.
+ */
+static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
+                           void *cb_arg) {
+
+    IoContext *ioCtx = (IoContext *)cb_arg;
+
+    if (success) {
+        if (ioCtx->clb)
+            ioCtx->clb(nullptr, StatusCode::Ok, ioCtx->key, ioCtx->keySize,
+                       ioCtx->buff, ioCtx->size);
+    } else {
+        if (ioCtx->clb)
+            ioCtx->clb(nullptr, StatusCode::UnknownError, ioCtx->key,
+                       ioCtx->keySize, nullptr, 0);
+    }
+
+    /* Complete the I/O */
+    spdk_bdev_free_io(bdev_io);
+}
+
+/*
+ * Callback function for read io completion.
+ */
+static void read_complete(struct spdk_bdev_io *bdev_io, bool success,
+                          void *cb_arg) {
+    IoContext *ioCtx = (IoContext *)cb_arg;
+
+    if (success) {
+        if (ioCtx->clb)
+            ioCtx->clb(nullptr, StatusCode::Ok, ioCtx->key, ioCtx->keySize,
+                       ioCtx->buff, ioCtx->size);
+    } else {
+        if (ioCtx->clb)
+            ioCtx->clb(nullptr, StatusCode::UnknownError, ioCtx->key,
+                       ioCtx->keySize, nullptr, 0);
+    }
+
+    spdk_bdev_free_io(bdev_io);
+}
 
 OffloadRqstMsg::OffloadRqstMsg(const OffloadRqstOperation op, const char *key,
                                const size_t keySize, const char *value,
@@ -49,18 +92,13 @@ OffloadRqstMsg::OffloadRqstMsg(const OffloadRqstOperation op, const char *key,
     : op(op), key(key), keySize(keySize), value(value), valueSize(valueSize),
       clb(clb) {}
 
-OffloadRqstPooler::OffloadRqstPooler() {
+OffloadRqstPooler::OffloadRqstPooler(BdevContext &bdevContext)
+    : _bdevContext(bdevContext) {
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
-
-    _bdev = spdk_bdev_first();
-    if (_bdev == nullptr)
-        FOG_DEBUG("No NVMe devices detected!");
 }
 
-OffloadRqstPooler::~OffloadRqstPooler() {
-    spdk_ring_free(rqstRing);
-}
+OffloadRqstPooler::~OffloadRqstPooler() { spdk_ring_free(rqstRing); }
 
 bool OffloadRqstPooler::EnqueueMsg(OffloadRqstMsg *Message) {
     size_t count = spdk_ring_enqueue(rqstRing, (void **)&Message, 1);
@@ -89,16 +127,31 @@ void OffloadRqstPooler::ProcessMsg() {
             break;
         }
         case OffloadRqstOperation::GET: {
-            if (cb_fn)
-                cb_fn(nullptr, StatusCode::NotImplemented, key, keySize,
-                      nullptr, 0);
+
+            char *buff = (char *)spdk_dma_zmalloc(_bdevContext.blk_size,
+                                                  _bdevContext.buf_align, NULL);
+            IoContext *ioCtx =
+                new IoContext{buff, _bdevContext.blk_size, key, keySize, cb_fn};
+            int rc = spdk_bdev_read(
+                _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, buff, 0,
+                _bdevContext.blk_size, read_complete, ioCtx);
+
             break;
         }
         case OffloadRqstOperation::UPDATE: {
-            if (cb_fn)
+            const char *val = processArray[MsgIndex]->value;
+            const size_t valSize = processArray[MsgIndex]->valueSize;
 
-                // @TODO jradtke: add disk offload logic here
-                cb_fn(nullptr, StatusCode::Ok, key, keySize, nullptr, 0);
+            char *buff =
+                (char *)spdk_dma_zmalloc(valSize, _bdevContext.buf_align, NULL);
+            memcpy(buff, val, valSize);
+            IoContext *ioCtx =
+                new IoContext{buff, _bdevContext.blk_size, key, keySize, cb_fn};
+
+            int rc = spdk_bdev_write(
+                _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, buff, 0,
+                _bdevContext.blk_size, write_complete, ioCtx);
+
             break;
         }
         default:

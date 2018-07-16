@@ -36,10 +36,10 @@
 #include <cstdint>
 #include <thread>
 
+#include "spdk/bdev.h"
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
-#include "spdk/bdev.h"
 
 #include <FogKV/KVStoreBase.h>
 
@@ -47,13 +47,18 @@
 
 namespace FogKV {
 
-enum class OffloadRqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2, UPDATE = 3 };
+enum class OffloadRqstOperation : std::int8_t {
+    NONE = 0,
+    GET = 1,
+    PUT = 2,
+    UPDATE = 3
+};
 
 class OffloadRqstMsg {
   public:
-    OffloadRqstMsg(const OffloadRqstOperation op, const char *key, const size_t keySize,
-            const char *value, size_t valueSize,
-            KVStoreBase::KVStoreBaseCallback clb);
+    OffloadRqstMsg(const OffloadRqstOperation op, const char *key,
+                   const size_t keySize, const char *value, size_t valueSize,
+                   KVStoreBase::KVStoreBaseCallback clb);
 
     const OffloadRqstOperation op = OffloadRqstOperation::NONE;
     const char *key = nullptr;
@@ -65,6 +70,23 @@ class OffloadRqstMsg {
     KVStoreBase::KVStoreBaseCallback clb;
 };
 
+struct BdevContext {
+    struct spdk_bdev *bdev;
+    struct spdk_bdev_desc *bdev_desc;
+    struct spdk_io_channel *bdev_io_channel;
+    uint32_t blk_size = 0;
+    uint32_t buf_align = 0;
+    char *bdev_name;
+};
+
+struct IoContext {
+    char *buff;
+    uint32_t size = 0;
+    const char *key = nullptr;
+    size_t keySize = 0;
+    KVStoreBase::KVStoreBaseCallback clb;
+};
+
 class OffloadRqstPoolerInterface {
     virtual bool EnqueueMsg(OffloadRqstMsg *Message) = 0;
     virtual void DequeueMsg() = 0;
@@ -73,7 +95,7 @@ class OffloadRqstPoolerInterface {
 
 class OffloadRqstPooler : public OffloadRqstPoolerInterface {
   public:
-    OffloadRqstPooler();
+    OffloadRqstPooler(BdevContext &bdevContext);
     virtual ~OffloadRqstPooler();
 
     bool EnqueueMsg(OffloadRqstMsg *Message);
@@ -86,7 +108,7 @@ class OffloadRqstPooler : public OffloadRqstPoolerInterface {
     OffloadRqstMsg *processArray[OFFLOAD_DEQUEUE_RING_LIMIT];
 
   private:
-    struct spdk_bdev *_bdev;
+    struct BdevContext _bdevContext;
 };
 
 } /* namespace FogKV */

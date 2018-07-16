@@ -120,22 +120,39 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
 
 void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
                                const GetOptions &options) {
-    thread_local int poolerId = 0;
-
-    poolerId = (options.roundRobin()) ? ((poolerId + 1) % _rqstPoolers.size())
-                                      : options.poolerId();
-
-    if (!key.data()) {
-        throw OperationFailedException(EINVAL);
-    }
-    try {
-        if (!_rqstPoolers.at(poolerId)->EnqueueMsg(new RqstMsg(
-                RqstOperation::GET, key.data(), key.size(), nullptr, 0, cb))) {
-            throw QueueFullException();
+    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+        try {
+            if (!_offloadPooler->EnqueueMsg(
+                    new OffloadRqstMsg(OffloadRqstOperation::GET, key.data(),
+                                       key.size(), nullptr, 0, cb))) {
+                throw QueueFullException();
+            }
+        } catch (OperationFailedException &e) {
+            Value val;
+            cb(this, e.status(), key.data(), key.size(), val.data(),
+               val.size());
         }
-    } catch (OperationFailedException &e) {
-        Value val;
-        cb(this, e.status(), key.data(), key.size(), val.data(), val.size());
+    } else {
+        thread_local int poolerId = 0;
+
+        poolerId = (options.roundRobin())
+                       ? ((poolerId + 1) % _rqstPoolers.size())
+                       : options.poolerId();
+
+        if (!key.data()) {
+            throw OperationFailedException(EINVAL);
+        }
+        try {
+            if (!_rqstPoolers.at(poolerId)->EnqueueMsg(
+                    new RqstMsg(RqstOperation::GET, key.data(), key.size(),
+                                nullptr, 0, cb))) {
+                throw QueueFullException();
+            }
+        } catch (OperationFailedException &e) {
+            Value val;
+            cb(this, e.status(), key.data(), key.size(), val.data(),
+               val.size());
+        }
     }
 }
 
@@ -169,7 +186,7 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
         try {
             if (!_offloadPooler->EnqueueMsg(
                     new OffloadRqstMsg(OffloadRqstOperation::UPDATE, key.data(),
-                                       key.size(), nullptr, 0, cb))) {
+                                       key.size(), "<TODO>", 6, cb))) {
                 throw QueueFullException();
             }
 
@@ -337,7 +354,7 @@ void KVStoreBaseImpl::init() {
             new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
     }
 
-    _offloadPooler = new FogKV::OffloadRqstPooler();
+    _offloadPooler = new FogKV::OffloadRqstPooler(_offloadReactor->bdevContext);
 
     _offloadReactor->RegisterPooler(_offloadPooler);
 
