@@ -48,6 +48,39 @@ void reactor_start_clb(void *offload_reactor, void *arg2) {
     OffloadReactor *offloadReactor =
         reinterpret_cast<OffloadReactor *>(offload_reactor);
     spdk_unaffinitize_thread();
+
+    // @TODO jradtke: replace with spdk_bdev_get_by_name
+    offloadReactor->bdevContext.bdev = spdk_bdev_first();
+    if (offloadReactor->bdevContext.bdev == nullptr) {
+        FOG_DEBUG("No NVMe devices detected!");
+        // @TODO jradtke: add error handling, should app be closed if no nvme?
+    } else {
+        int rc = 0;
+        offloadReactor->bdevContext.bdev_desc = NULL;
+        rc = spdk_bdev_open(offloadReactor->bdevContext.bdev, true, NULL, NULL,
+                            &offloadReactor->bdevContext.bdev_desc);
+        if (rc) {
+            // @TODO jradtke: add error handling, as above
+            FOG_DEBUG("spdk_bdev_open failed with rc = " + std::to_string(rc));
+        }
+
+        offloadReactor->bdevContext.bdev_io_channel =
+            spdk_bdev_get_io_channel(offloadReactor->bdevContext.bdev_desc);
+        if (offloadReactor->bdevContext.bdev_io_channel == NULL) {
+            // @TODO jradtke: add error handling, as above
+            FOG_DEBUG("spdk_bdev_get_io_channel failed");
+        }
+
+        offloadReactor->bdevContext.blk_size =
+            spdk_bdev_get_block_size(offloadReactor->bdevContext.bdev);
+        FOG_DEBUG("offloadReactor->bdevContext.blk_size =" +
+                  std::to_string(offloadReactor->bdevContext.blk_size));
+        offloadReactor->bdevContext.buf_align =
+            spdk_bdev_get_buf_align(offloadReactor->bdevContext.bdev);
+        FOG_DEBUG("offloadReactor->bdevContext.buf_align = " +
+                  std::to_string(offloadReactor->bdevContext.buf_align));
+    }
+
     spdk_poller_register(reactor_pooler_fn, offload_reactor,
                          OFFLOAD_POOLER_INTERVAL_MICR_SEC);
     offloadReactor->isRunning = 1;

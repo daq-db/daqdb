@@ -65,6 +65,8 @@ class OffloadReactor {
     std::atomic<int> isRunning;
     std::vector<OffloadRqstPooler *> rqstPoolers;
 
+    BdevContext bdevContext;
+
   private:
     void _ThreadMain(void);
 
