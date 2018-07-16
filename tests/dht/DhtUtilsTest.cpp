@@ -45,7 +45,7 @@ namespace ut = boost::unit_test;
 
 namespace {
 const unsigned short reservedPortsEnd = 1024;
-const unsigned short echoProtocolPort = 7; //! Echo Protocol
+const unsigned short sshProtocolPort = 22;
 
 std::error_code isPortFree(asio::io_service &io_service,
 		const unsigned short portToTest) {
@@ -97,9 +97,9 @@ BOOST_AUTO_TEST_CASE(GenRandomPort) {
 BOOST_AUTO_TEST_CASE(GenRandomPort_DefaultIsUsed) {
 	asio::io_service io_service;
 
-	auto portThatIsOpened = echoProtocolPort;
+	auto portThatIsOpened = sshProtocolPort;
 
-	auto resultPort = FogKV::utils::getFreePort(io_service, portThatIsOpened);
+	auto resultPort = FogKV::utils::getFreePort(io_service, portThatIsOpened, false);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
 	auto isFreeResult = isPortFree(io_service, resultPort);

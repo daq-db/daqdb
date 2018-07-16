@@ -93,7 +93,7 @@ static FogKV::KVStoreBase *openKVS() {
     options.Key.field(0, sizeof(FogKV::MinidaqKey::eventId), true);
     options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetectorId));
     options.Key.field(2, sizeof(FogKV::MinidaqKey::runId));
-    options.Runtime.numOfPoolers(nPoolers);
+    options.Runtime.numOfPoolers = nPoolers;
     if (enableLog) {
         options.Runtime.logFunc = logStd;
     }
