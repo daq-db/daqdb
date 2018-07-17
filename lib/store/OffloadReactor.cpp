@@ -42,6 +42,10 @@
 
 #define OFFLOAD_POOLER_INTERVAL_MICR_SEC 100
 
+#define FILENAME_POOL_FREELIST "/mnt/pmem/offload_free.pm"
+#define LAYOUT "queue"
+#define CREATE_MODE_RW (S_IWUSR | S_IRUSR)
+
 namespace FogKV {
 
 void reactor_start_clb(void *offload_reactor, void *arg2) {
@@ -109,10 +113,20 @@ OffloadReactor::OffloadReactor(const size_t cpuCore, std::string spdkConfigFile,
     opts->print_level = SPDK_LOG_ERROR;
     _spdkAppOpts.reset(opts);
 
+    if (boost::filesystem::exists(FILENAME_POOL_FREELIST)) {
+        _poolFreeList =
+            pool<FogKV::OffloadFreeList>::open(FILENAME_POOL_FREELIST, LAYOUT);
+    } else {
+        _poolFreeList = pool<FogKV::OffloadFreeList>::create(
+            FILENAME_POOL_FREELIST, LAYOUT, PMEMOBJ_MIN_POOL, CREATE_MODE_RW);
+    }
+    freeLbaList = _poolFreeList.get_root().get();
+
     StartThread();
 }
 
 OffloadReactor::~OffloadReactor() {
+    _poolFreeList.close();
     spdk_app_stop(0);
     if (_thread != nullptr)
         _thread->join();
@@ -155,4 +169,4 @@ void OffloadReactor::_ThreadMain(void) {
     spdk_app_fini();
     _shutdownClb();
 }
-}
+} // namespace FogKV

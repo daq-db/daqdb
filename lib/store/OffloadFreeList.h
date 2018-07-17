@@ -32,53 +32,41 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-#include <thread>
-
-#include "spdk/bdev.h"
-#include "spdk/env.h"
-#include "spdk/event.h"
-#include "spdk/io_channel.h"
-#include "spdk/queue.h"
-
-#include <functional>
-
-#include "OffloadFreeList.h"
-#include "OffloadRqstPooler.h"
+#include <libpmemobj++/make_persistent.hpp>
+#include <libpmemobj++/p.hpp>
+#include <libpmemobj++/persistent_ptr.hpp>
+#include <libpmemobj++/pool.hpp>
+#include <libpmemobj++/transaction.hpp>
 
 namespace FogKV {
 
-using OffloadReactorShutdownCallback = std::function<void()>;
+using pmem::obj::p;
+using pmem::obj::persistent_ptr;
+using pmem::obj::pool;
+using pmem::obj::pool_base;
+using pmem::obj::make_persistent;
+using pmem::obj::delete_persistent;
+using pmem::obj::transaction;
 
-void reactor_start_clb(void *offload_reactor, void *arg2);
-int reactor_pooler_fn(void *offload_reactor);
+class OffloadFreeList {
 
-class OffloadReactor {
+    /* entry in the list */
+    struct FreeLba {
+        persistent_ptr<FreeLba> next;
+        p<uint64_t> lba;
+    };
+
   public:
-    OffloadReactor(const size_t cpuCore = 0, std::string spdkConfigFile = "",
-                   OffloadReactorShutdownCallback clb = nullptr);
-    virtual ~OffloadReactor();
+    OffloadFreeList();
+    ~OffloadFreeList();
 
-    void RegisterPooler(OffloadRqstPooler *offloadPooler);
-    void StartThread();
-
-    std::atomic<int> isRunning;
-    std::vector<OffloadRqstPooler *> rqstPoolers;
-
-    BdevContext bdevContext;
-    OffloadFreeList *freeLbaList = nullptr;
+    void Push(pool_base &pop, uint64_t value);
+    uint64_t Pop(pool_base &pop);
+    void Show(void) const;
 
   private:
-    void _ThreadMain(void);
-
-    std::string _spdkConfigFile;
-    std::unique_ptr<spdk_app_opts> _spdkAppOpts;
-
-    OffloadReactorShutdownCallback _shutdownClb;
-    std::thread *_thread;
-    size_t _cpuCore = 0;
-
-    pool<FogKV::OffloadFreeList> _poolFreeList;
+    persistent_ptr<FreeLba> _head;
+    persistent_ptr<FreeLba> _tail;
 };
-}
+
+} /* namespace FogKV */
