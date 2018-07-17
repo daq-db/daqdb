@@ -30,55 +30,62 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include <atomic>
-#include <cstdint>
-#include <thread>
-
-#include "spdk/bdev.h"
-#include "spdk/env.h"
-#include "spdk/event.h"
-#include "spdk/io_channel.h"
-#include "spdk/queue.h"
-
-#include <functional>
-
 #include "OffloadFreeList.h"
-#include "OffloadRqstPooler.h"
+#include <iostream>
 
 namespace FogKV {
 
-using OffloadReactorShutdownCallback = std::function<void()>;
+OffloadFreeList::OffloadFreeList() {}
 
-void reactor_start_clb(void *offload_reactor, void *arg2);
-int reactor_pooler_fn(void *offload_reactor);
+OffloadFreeList::~OffloadFreeList() {}
 
-class OffloadReactor {
-  public:
-    OffloadReactor(const size_t cpuCore = 0, std::string spdkConfigFile = "",
-                   OffloadReactorShutdownCallback clb = nullptr);
-    virtual ~OffloadReactor();
+/*
+ * Inserts a new element at the end of the queue.
+ */
+void OffloadFreeList::Push(pool_base &pop, uint64_t value) {
+    transaction::exec_tx(pop, [&] {
+        auto n = make_persistent<FreeLba>();
 
-    void RegisterPooler(OffloadRqstPooler *offloadPooler);
-    void StartThread();
+        n->lba = value;
+        n->next = nullptr;
 
-    std::atomic<int> isRunning;
-    std::vector<OffloadRqstPooler *> rqstPoolers;
-
-    BdevContext bdevContext;
-    OffloadFreeList *freeLbaList = nullptr;
-
-  private:
-    void _ThreadMain(void);
-
-    std::string _spdkConfigFile;
-    std::unique_ptr<spdk_app_opts> _spdkAppOpts;
-
-    OffloadReactorShutdownCallback _shutdownClb;
-    std::thread *_thread;
-    size_t _cpuCore = 0;
-
-    pool<FogKV::OffloadFreeList> _poolFreeList;
-};
+        if (_head == nullptr && _tail == nullptr) {
+            _head = _tail = n;
+        } else {
+            _tail->next = n;
+            _tail = n;
+        }
+    });
 }
+
+/*
+ * Removes the first element in the queue.
+ */
+uint64_t OffloadFreeList::Pop(pool_base &pop) {
+    uint64_t ret = 0;
+    transaction::exec_tx(pop, [&] {
+        if (_head == nullptr)
+            transaction::abort(EINVAL);
+
+        ret = _head->lba;
+        auto n = _head->next;
+
+        delete_persistent<FreeLba>(_head);
+        _head = n;
+
+        if (_head == nullptr)
+            _tail = nullptr;
+    });
+
+    return ret;
+}
+
+/*
+ * Prints the entire contents of the queue.
+ */
+void OffloadFreeList::Show(void) const {
+    for (auto n = _head; n != nullptr; n = n->next)
+        std::cout << n->lba << std::endl;
+}
+
+} /* namespace FogKV */
