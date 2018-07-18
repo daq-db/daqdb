@@ -105,13 +105,18 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
 
     size_t size;
     char *pVal;
-    StatusCode rc = mRTree->Get(key.data(), &pVal, &size);
+    uint8_t location;
+
+    StatusCode rc = mRTree->Get(key.data(), reinterpret_cast<void **>(&pVal),
+                                &size, &location);
     if (rc != StatusCode::Ok || !pVal) {
         if (rc == StatusCode::KeyNotFound)
             throw OperationFailedException(KeyNotFound);
 
         throw OperationFailedException(EINVAL);
     }
+
+    // @TODO jradtke: handle location equal DISK here
 
     Value value(new char[size], size);
     std::memcpy(value.data(), pVal, size);
@@ -186,12 +191,9 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
         try {
             if (!_offloadPooler->EnqueueMsg(
                     new OffloadRqstMsg(OffloadRqstOperation::UPDATE, key.data(),
-                                       key.size(), "<TODO>", 6, cb))) {
+                                       key.size(), nullptr, 0, cb))) {
                 throw QueueFullException();
             }
-
-            // @TODO jradtke: update key metadata
-
         } catch (OperationFailedException &e) {
             Value val;
             cb(this, e.status(), key.data(), key.size(), val.data(),
@@ -354,15 +356,14 @@ void KVStoreBaseImpl::init() {
             new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
     }
 
-    _offloadPooler = new FogKV::OffloadRqstPooler(_offloadReactor->bdevContext);
-
+    _offloadPooler =
+        new FogKV::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext);
+    _offloadPooler->InitFreeList();
     _offloadReactor->RegisterPooler(_offloadPooler);
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");
 }
 
-asio::io_service &KVStoreBaseImpl::io_service() {
-    return *_io_service;
-}
+asio::io_service &KVStoreBaseImpl::io_service() { return *_io_service; }
 
 } // namespace FogKV

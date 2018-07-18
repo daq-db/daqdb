@@ -41,7 +41,9 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
+#include "RTreeEngine.h"
 #include <FogKV/KVStoreBase.h>
+#include "OffloadFreeList.h"
 
 #define OFFLOAD_DEQUEUE_RING_LIMIT 1024
 
@@ -51,7 +53,8 @@ enum class OffloadRqstOperation : std::int8_t {
     NONE = 0,
     GET = 1,
     PUT = 2,
-    UPDATE = 3
+    UPDATE = 3,
+    REMOVE = 4
 };
 
 class OffloadRqstMsg {
@@ -76,6 +79,7 @@ struct BdevContext {
     struct spdk_io_channel *bdev_io_channel;
     uint32_t blk_size = 0;
     uint32_t buf_align = 0;
+    uint64_t blk_num = 0;
     char *bdev_name;
 };
 
@@ -84,6 +88,10 @@ struct IoContext {
     uint32_t size = 0;
     const char *key = nullptr;
     size_t keySize = 0;
+
+    uint64_t *lba = nullptr;
+
+    std::shared_ptr<FogKV::RTreeEngine> rtree;
     KVStoreBase::KVStoreBaseCallback clb;
 };
 
@@ -95,20 +103,28 @@ class OffloadRqstPoolerInterface {
 
 class OffloadRqstPooler : public OffloadRqstPoolerInterface {
   public:
-    OffloadRqstPooler(BdevContext &bdevContext);
+    OffloadRqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+                      BdevContext &bdevContext);
     virtual ~OffloadRqstPooler();
 
     bool EnqueueMsg(OffloadRqstMsg *Message);
     void DequeueMsg();
     void ProcessMsg() final;
 
+    void InitFreeList();
+
     struct spdk_ring *rqstRing;
 
     unsigned short processArrayCount = 0;
     OffloadRqstMsg *processArray[OFFLOAD_DEQUEUE_RING_LIMIT];
 
+    std::shared_ptr<FogKV::RTreeEngine> rtree;
+
+    OffloadFreeList *freeLbaList = nullptr;
+
   private:
     struct BdevContext _bdevContext;
+    pool<FogKV::OffloadFreeList> _poolFreeList;
 };
 
 } /* namespace FogKV */

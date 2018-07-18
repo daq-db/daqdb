@@ -53,10 +53,11 @@ class RTreeEngine {
                              size_t size); // size used when creating pool
     static void Close(RTreeEngine *kv);    // close storage engine
 
-    virtual string Engine() = 0;          // engine identifier
-    virtual StatusCode Get(const char *key, int32_t keybytes, char **value,
-                           size_t *size) = 0;
-    virtual StatusCode Get(const char *key, char **value, size_t *size) = 0;
+    virtual string Engine() = 0; // engine identifier
+    virtual StatusCode Get(const char *key, int32_t keybytes, void **value,
+                           size_t *size, uint8_t *location) = 0;
+    virtual StatusCode Get(const char *key, void **value, size_t *size,
+                           uint8_t *location) = 0;
     virtual StatusCode Put(const char *key, // copy value from std::string
                            char *value) = 0;
     virtual StatusCode Put(const char *key, int32_t keybytes, const char *value,
@@ -70,4 +71,4 @@ class RTreeEngine {
     virtual StatusCode UpdateValueWrapper(const char *key, uint64_t *ptr,
                                           size_t size) = 0;
 };
-}
+} // namespace FogKV
