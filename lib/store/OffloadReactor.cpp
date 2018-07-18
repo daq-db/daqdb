@@ -53,22 +53,26 @@ void reactor_start_clb(void *offload_reactor, void *arg2) {
     offloadReactor->bdevContext.bdev = spdk_bdev_first();
     if (offloadReactor->bdevContext.bdev == nullptr) {
         FOG_DEBUG("No NVMe devices detected!");
-        // @TODO jradtke: add error handling, should app be closed if no nvme?
+        offloadReactor->state = ReactorState::ERROR;
+        return;
     } else {
         int rc = 0;
         offloadReactor->bdevContext.bdev_desc = NULL;
         rc = spdk_bdev_open(offloadReactor->bdevContext.bdev, true, NULL, NULL,
                             &offloadReactor->bdevContext.bdev_desc);
         if (rc) {
-            // @TODO jradtke: add error handling, as above
-            FOG_DEBUG("spdk_bdev_open failed with rc = " + std::to_string(rc));
+            FOG_DEBUG("Open BDEV failed with error code [" +
+                      std::to_string(rc) + "]");
+            offloadReactor->state = ReactorState::ERROR;
+            return;
         }
 
         offloadReactor->bdevContext.bdev_io_channel =
             spdk_bdev_get_io_channel(offloadReactor->bdevContext.bdev_desc);
         if (offloadReactor->bdevContext.bdev_io_channel == NULL) {
-            // @TODO jradtke: add error handling, as above
-            FOG_DEBUG("spdk_bdev_get_io_channel failed");
+            FOG_DEBUG("Get io_channel failed");
+            offloadReactor->state = ReactorState::ERROR;
+            return;
         }
 
         offloadReactor->bdevContext.blk_size =
@@ -81,7 +85,8 @@ void reactor_start_clb(void *offload_reactor, void *arg2) {
 
     spdk_poller_register(reactor_pooler_fn, offload_reactor,
                          OFFLOAD_POOLER_INTERVAL_MICR_SEC);
-    offloadReactor->isRunning = 1;
+
+    offloadReactor->state = ReactorState::READY;
 }
 
 int reactor_pooler_fn(void *offload_reactor) {
@@ -97,8 +102,8 @@ int reactor_pooler_fn(void *offload_reactor) {
 
 OffloadReactor::OffloadReactor(const size_t cpuCore, std::string spdkConfigFile,
                                OffloadReactorShutdownCallback clb)
-    : isRunning(0), _thread(nullptr), _cpuCore(cpuCore), _shutdownClb(clb),
-      _spdkConfigFile(spdkConfigFile) {
+    : state(ReactorState::INIT_INPROGRESS), _thread(nullptr), _cpuCore(cpuCore),
+      _shutdownClb(clb), _spdkConfigFile(spdkConfigFile) {
     auto opts = new spdk_app_opts;
     spdk_app_opts_init(opts);
     opts->name = "OffloadReactor";
@@ -147,10 +152,14 @@ void OffloadReactor::_ThreadMain(void) {
         _spdkAppOpts->config_file = _spdkConfigFile.c_str();
 
     rc = spdk_app_start(_spdkAppOpts.get(), reactor_start_clb, this, NULL);
-    isRunning = 0;
-    FOG_DEBUG("SPDK reactor exit with rc=" + std::to_string(rc));
 
+    FOG_DEBUG("SPDK reactor exit with rc=" + std::to_string(rc));
     spdk_app_fini();
+    if (rc == 0) {
+        state = ReactorState::STOPPED;
+    } else {
+        state = ReactorState::ERROR;
+    }
     _shutdownClb();
 }
-} // namespace FogKV
+}

@@ -57,8 +57,8 @@ using boost::format;
 #define KEY_ATTRS_OPT_VAL_POS_OFFSET 2
 
 map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
-    "get", " <key> [-o <long_term> <0|1>]")(
-    "aget"," <key> [-o <long_term> <0|1>]")(
+    "get", " <key> [-o <long_term> <0|1>]")("aget",
+                                            " <key> [-o <long_term> <0|1>]")(
     "put", " <key> <value> [-o <lock|ready|long_term> <0|1>]")(
     "aput", " <key> <value> [-o <lock|ready|long_term> <0|1>]")("status", "")(
     "remove", " <key>")("quit", "")("node", " <id>")(
@@ -247,21 +247,30 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
         auto keyAttrs = _getKeyAttrs(GET_CMD_KEY_ATTRS_OFFSET, arguments);
         FogKV::GetOptions options(keyAttrs, keyAttrs);
 
-        _spKVStore->GetAsync(
-            std::move(keyBuff),
-            [&](KVStoreBase *kvs, Status status, const char *key,
-                size_t keySize, const char *value, size_t valueSize) {
-                if (!status.ok()) {
-                    _statusMsgs.push_back(boost::str(
-                        boost::format("Error: cannot get element: %1%") %
-                        status.to_string()));
-                } else {
-                    _statusMsgs.push_back(
-                        boost::str(boost::format("GET[%1%]=%2% : completed") %
-                                   key % value));
-                }
-            },
-            std::move(options));
+        try {
+            _spKVStore->GetAsync(
+                std::move(keyBuff),
+                [&](KVStoreBase *kvs, Status status, const char *key,
+                    size_t keySize, const char *value, size_t valueSize) {
+                    if (!status.ok()) {
+                        _statusMsgs.push_back(boost::str(
+                            boost::format("Error: cannot get element: %1%") %
+                            status.to_string()));
+                    } else {
+                        _statusMsgs.push_back(boost::str(
+                            boost::format("GET[%1%]=%2% : completed") % key %
+                            value));
+                    }
+                },
+                std::move(options));
+        } catch (FogKV::OperationFailedException &e) {
+            if (e.status()() == StatusCode::OffloadDisabledError) {
+                cout << format("Error: Disk offload is disabled") << endl;
+            } else {
+                cout << "Error: cannot get element: " << e.status().to_string()
+                     << endl;
+            }
+        }
     }
 }
 
@@ -508,8 +517,12 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
                     });
             }
         } catch (FogKV::OperationFailedException &e) {
-            cout << "Error: cannot update element: " << e.status().to_string()
-                 << endl;
+            if (e.status()() == StatusCode::OffloadDisabledError) {
+                cout << format("Error: Disk offload is disabled\n") << endl;
+            } else {
+                cout << "Error: cannot update element: "
+                     << e.status().to_string() << endl;
+            }
         }
     }
 }
@@ -681,4 +694,4 @@ void nodeCli::_cmdNodeStatus(const std::string &strLine) {
         cout << "Node not connected" << endl;
     }
 }
-}
+} // namespace FogKV

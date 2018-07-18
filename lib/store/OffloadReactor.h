@@ -50,6 +50,13 @@ namespace FogKV {
 
 using OffloadReactorShutdownCallback = std::function<void()>;
 
+enum class ReactorState : std::uint8_t {
+    INIT_INPROGRESS = 0,
+    READY = 1,
+    ERROR = 2,
+    STOPPED = 3
+};
+
 void reactor_start_clb(void *offload_reactor, void *arg2);
 int reactor_pooler_fn(void *offload_reactor);
 
@@ -62,7 +69,7 @@ class OffloadReactor {
     void RegisterPooler(OffloadRqstPooler *offloadPooler);
     void StartThread();
 
-    std::atomic<int> isRunning;
+    std::atomic<ReactorState> state;
     std::vector<OffloadRqstPooler *> rqstPoolers;
 
     BdevContext bdevContext;

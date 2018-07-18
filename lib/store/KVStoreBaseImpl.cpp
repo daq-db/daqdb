@@ -111,7 +111,7 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
                                 &size, &location);
     if (rc != StatusCode::Ok || !pVal) {
         if (rc == StatusCode::KeyNotFound)
-            throw OperationFailedException(KeyNotFound);
+            throw OperationFailedException(Status(KeyNotFound));
 
         throw OperationFailedException(EINVAL);
     }
@@ -126,6 +126,9 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
 void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
                                const GetOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+        if (!_offloadEnabled)
+            throw OperationFailedException(Status(OffloadDisabledError));
+
         try {
             if (!_offloadPooler->EnqueueMsg(
                     new OffloadRqstMsg(OffloadRqstOperation::GET, key.data(),
@@ -188,6 +191,9 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
 void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
                                   KVStoreBaseCallback cb) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+        if (!_offloadEnabled)
+            throw OperationFailedException(Status(OffloadDisabledError));
+
         try {
             if (!_offloadPooler->EnqueueMsg(
                     new OffloadRqstMsg(OffloadRqstOperation::UPDATE, key.data(),
@@ -328,16 +334,20 @@ void KVStoreBaseImpl::init() {
 
     auto poolerCount = getOptions().Runtime.numOfPoolers;
 
+    if (getOptions().Runtime.logFunc)
+        gLog.setLogFunc(getOptions().Runtime.logFunc);
+
     _offloadReactor = new FogKV::OffloadReactor(
         POOLER_CPU_CORE_BASE + poolerCount + 1, mOptions.Runtime.spdkConfigFile,
         [&]() { mOptions.Runtime.shutdownFunc(); });
 
-    while (!_offloadReactor->isRunning) {
+    while (_offloadReactor->state == ReactorState::INIT_INPROGRESS) {
         sleep(1);
     }
-
-    if (getOptions().Runtime.logFunc)
-        gLog.setLogFunc(getOptions().Runtime.logFunc);
+    if (_offloadReactor->state == ReactorState::READY) {
+        _offloadEnabled = true;
+        FOG_DEBUG("SPDK offload functionality enabled");
+    }
 
     auto dhtPort =
         getOptions().Dht.Port ?: FogKV::utils::getFreePort(io_service(), 0);
@@ -356,10 +366,12 @@ void KVStoreBaseImpl::init() {
             new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
     }
 
-    _offloadPooler =
-        new FogKV::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext);
-    _offloadPooler->InitFreeList();
-    _offloadReactor->RegisterPooler(_offloadPooler);
+    if (_offloadEnabled) {
+        _offloadPooler =
+            new FogKV::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext);
+        _offloadPooler->InitFreeList();
+        _offloadReactor->RegisterPooler(_offloadPooler);
+    }
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");
 }

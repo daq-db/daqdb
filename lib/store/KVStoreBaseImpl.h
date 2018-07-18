@@ -109,6 +109,7 @@ class KVStoreBaseImpl : public KVStoreBase {
 
     OffloadReactor *_offloadReactor;
     OffloadRqstPooler *_offloadPooler;
+    bool _offloadEnabled = false;
 };
 
 } // namespace FogKV
