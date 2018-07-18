@@ -77,9 +77,11 @@ void RqstPooler::StartThread() {
         const int set_result = pthread_setaffinity_np(
             _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
         if (set_result == 0) {
-            FOG_DEBUG("Started RqstPooler on CPU core [" + std::to_string(_cpuCore) + "]");
+            FOG_DEBUG("Started RqstPooler on CPU core [" +
+                      std::to_string(_cpuCore) + "]");
         } else {
-            FOG_DEBUG("Cannot set affinity on CPU core [" + std::to_string(_cpuCore) + "]");
+            FOG_DEBUG("Cannot set affinity on CPU core [" +
+                      std::to_string(_cpuCore) + "]");
         }
     }
 }
@@ -123,8 +125,11 @@ void RqstPooler::ProcessMsg() {
         case RqstOperation::GET: {
             size_t size;
             char *pVal;
+            uint8_t location;
 
-            StatusCode rc = rtree->Get(key, keySize, &pVal, &size);
+            StatusCode rc =
+                rtree->Get(key, keySize, reinterpret_cast<void **>(&pVal),
+                           &size, &location);
             if (rc != StatusCode::Ok || !pVal) {
                 if (cb_fn)
                     cb_fn(nullptr, Status(rc), key, keySize, nullptr, 0);

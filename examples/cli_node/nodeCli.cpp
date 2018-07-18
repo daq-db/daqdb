@@ -260,8 +260,6 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
                         boost::str(boost::format("GET[%1%]=%2% : completed") %
                                    key % value));
                 }
-                if (keyBuff.size() > 0)
-                    _spKVStore->Free(std::move(keyBuff));
             },
             std::move(options));
     }

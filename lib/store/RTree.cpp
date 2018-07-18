@@ -75,24 +75,32 @@ Tree::Tree(const string &path, const size_t size) {
     }
 }
 
-StatusCode RTree::Get(const char *key, int32_t keybytes, char **value,
-                      size_t *size) {
+StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
+                      size_t *size, uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == EMPTY) {
         return StatusCode::KeyNotFound;
     } else if (val->location == PMEM) {
         *value = val->locationPtr.value.get();
+        *location = val->location;
+    } else if (val->location == DISK) {
+        *value = val->locationPtr.IOVptr.get();
+        *location = val->location;
     }
     *size = val->size;
     return StatusCode::Ok;
 }
 
-StatusCode RTree::Get(const char *key, char **value, size_t *size) {
+StatusCode RTree::Get(const char *key, void **value, size_t *size, uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == EMPTY) {
         return StatusCode::KeyNotFound;
     } else if (val->location == PMEM) {
         *value = val->locationPtr.value.get();
+        *location = val->location;
+    } else if (val->location == DISK) {
+        *value = val->locationPtr.IOVptr.get();
+        *location = val->location;
     }
     *size = val->size;
     return StatusCode::Ok;
@@ -179,7 +187,7 @@ StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
                       val->locationPtr.IOVptr.get(),
-                      reinterpret_cast<uint64_t>(ptr));
+                      reinterpret_cast<uint64_t>(*ptr));
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
                       DISK);
