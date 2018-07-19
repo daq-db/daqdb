@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cstdint>
+
 #include "../../lib/store/RTree.h"
 #include "../../lib/store/RqstPooler.cpp"
 
@@ -134,13 +136,15 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
     size_t sizeRef = 3;
 
     When(OverloadedMethod(rtreeMock, Get,
-                          FogKV::StatusCode(const char *, int32_t, char **, size_t *))
-             .Using(expectedKey, expectedKeySize, _, _))
-         .AlwaysDo([&](const char *key, int32_t keySize, char **val, size_t *valSize)            {
-             *val = valRef;
-             *valSize = sizeRef;
-             return FogKV::StatusCode::Ok;
-           });
+                          FogKV::StatusCode(const char *, int32_t, void **,
+                                            size_t *, uint8_t *))
+             .Using(expectedKey, expectedKeySize, _, _, _))
+        .AlwaysDo([&](const char *key, int32_t keySize, void **val,
+                      size_t *valSize, uint8_t *) {
+            *val = valRef;
+            *valSize = sizeRef;
+            return FogKV::StatusCode::Ok;
+        });
 
     FogKV::RqstPooler &pooler = poolerMock.get();
     FogKV::RTreeEngine &rtree = rtreeMock.get();
@@ -154,7 +158,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
     pooler.ProcessMsg();
 
     Verify(OverloadedMethod(rtreeMock, Get,
-                            FogKV::StatusCode(const char *, int32_t, char **, size_t *)))
+                            FogKV::StatusCode(const char *, int32_t, void **,
+                                              size_t *, uint8_t *)))
         .Exactly(1);
 }
 
@@ -166,13 +171,15 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
     size_t sizeRef = 3;
 
     When(OverloadedMethod(rtreeMock, Get,
-                          FogKV::StatusCode(const char *, int32_t, char **, size_t *))
-             .Using(expectedKey, expectedKeySize, _, _))
-         .AlwaysDo([&](const char *key, int32_t keySize, char **val, size_t *valSize)            {
-             *val = valRef;
-             *valSize = sizeRef;
-             return FogKV::StatusCode::Ok;
-           });
+                          FogKV::StatusCode(const char *, int32_t, void **,
+                                            size_t *, uint8_t *))
+             .Using(expectedKey, expectedKeySize, _, _, _))
+        .AlwaysDo([&](const char *key, int32_t keySize, void **val,
+                      size_t *valSize, uint8_t *) {
+            *val = valRef;
+            *valSize = sizeRef;
+            return FogKV::StatusCode::Ok;
+        });
 
     FogKV::RqstPooler &pooler = poolerMock.get();
     FogKV::RTreeEngine &rtree = rtreeMock.get();
@@ -188,7 +195,8 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
     pooler.ProcessMsg();
 
     Verify(OverloadedMethod(rtreeMock, Get,
-                            FogKV::StatusCode(const char *, int32_t, char **, size_t *)))
+                            FogKV::StatusCode(const char *, int32_t, void **,
+                                              size_t *, uint8_t *)))
         .Exactly(DEQUEUE_RING_LIMIT);
 }
 
@@ -249,18 +257,21 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
     size_t sizeRef = 3;
 
     When(OverloadedMethod(rtreeMock, Get,
-                          FogKV::StatusCode(const char *, int32_t, char **, size_t *))
-             .Using(expectedKey, expectedKeySize, _, _))
-         .Do([&](const char *key, int32_t keySize, char **val, size_t *valSize)                 {
-             *val = valRef;
-             *valSize = sizeRef;
-             return FogKV::StatusCode::Ok;
-           })
-         .Do([&](const char *key, int32_t keySize, char **val, size_t *valSize)                 {
-             *val = valRef;
-             *valSize = sizeRef;
-             return FogKV::StatusCode::KeyNotFound;
-           });
+                          FogKV::StatusCode(const char *, int32_t, void **,
+                                            size_t *, uint8_t *))
+             .Using(expectedKey, expectedKeySize, _, _, _))
+        .Do([&](const char *key, int32_t keySize, void **val, size_t *valSize,
+                uint8_t *) {
+            *val = valRef;
+            *valSize = sizeRef;
+            return FogKV::StatusCode::Ok;
+        })
+        .Do([&](const char *key, int32_t keySize, void **val, size_t *valSize,
+                uint8_t *) {
+            *val = valRef;
+            *valSize = sizeRef;
+            return FogKV::StatusCode::KeyNotFound;
+        });
 
     FogKV::RqstPooler &pooler = poolerMock.get();
     FogKV::RTreeEngine &rtree = rtreeMock.get();
@@ -288,6 +299,7 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
     pooler.ProcessMsg();
 
     Verify(OverloadedMethod(rtreeMock, Get,
-                            FogKV::StatusCode(const char *, int32_t, char **, size_t *)))
+                            FogKV::StatusCode(const char *, int32_t, void **,
+                                              size_t *, uint8_t *)))
         .Exactly(2);
 }

@@ -30,8 +30,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "OffloadFreeList.h"
 #include <iostream>
+
+#include "OffloadFreeList.h"
+#include "../debug/Logger.h"
 
 namespace FogKV {
 
@@ -42,7 +44,7 @@ OffloadFreeList::~OffloadFreeList() {}
 /*
  * Inserts a new element at the end of the queue.
  */
-void OffloadFreeList::Push(pool_base &pop, uint64_t value) {
+void OffloadFreeList::Push(pool_base &pop, int64_t value) {
     transaction::exec_tx(pop, [&] {
         auto n = make_persistent<FreeLba>();
 
@@ -58,23 +60,33 @@ void OffloadFreeList::Push(pool_base &pop, uint64_t value) {
     });
 }
 
-/*
- * Removes the first element in the queue.
- */
-uint64_t OffloadFreeList::Pop(pool_base &pop) {
-    uint64_t ret = 0;
+int64_t OffloadFreeList::GetFreeLba(pool_base &pop) {
+    int64_t ret = 0;
     transaction::exec_tx(pop, [&] {
         if (_head == nullptr)
             transaction::abort(EINVAL);
 
         ret = _head->lba;
-        auto n = _head->next;
 
-        delete_persistent<FreeLba>(_head);
-        _head = n;
+        if (ret > 0) {
+            auto n = _head->next;
 
-        if (_head == nullptr)
-            _tail = nullptr;
+            delete_persistent<FreeLba>(_head);
+            _head = n;
+
+            if (_head == nullptr)
+                _tail = nullptr;
+        } else {
+            ret = abs(ret);
+            if (_head->lba + maxLba > 0) {
+                _head->lba =  _head->lba - 1;
+            } else if (_head->lba + maxLba == 0) {
+                _head->lba = 0;
+                ret = 0;
+            } else {
+                transaction::abort(EINVAL);
+            }
+        }
     });
 
     return ret;

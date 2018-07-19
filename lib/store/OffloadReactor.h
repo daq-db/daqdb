@@ -44,7 +44,6 @@
 
 #include <functional>
 
-#include "OffloadFreeList.h"
 #include "OffloadRqstPooler.h"
 
 namespace FogKV {
@@ -67,7 +66,6 @@ class OffloadReactor {
     std::vector<OffloadRqstPooler *> rqstPoolers;
 
     BdevContext bdevContext;
-    OffloadFreeList *freeLbaList = nullptr;
 
   private:
     void _ThreadMain(void);
@@ -78,7 +76,5 @@ class OffloadReactor {
     OffloadReactorShutdownCallback _shutdownClb;
     std::thread *_thread;
     size_t _cpuCore = 0;
-
-    pool<FogKV::OffloadFreeList> _poolFreeList;
 };
 }

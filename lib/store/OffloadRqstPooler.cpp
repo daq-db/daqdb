@@ -32,14 +32,22 @@
 
 #include "OffloadRqstPooler.h"
 #include "FogKV/Status.h"
+#include "RTree.h"
 
 #include <iostream>
 #include <pthread.h>
 #include <string>
 
+#include <boost/filesystem.hpp>
+
 #include "../debug/Logger.h"
 #include "spdk/env.h"
 #include "spdk_internal/bdev.h"
+
+#define POOL_FREELIST_FILENAME "/mnt/pmem/offload_free.pm"
+#define POOL_FREELIST_SIZE 1ULL * 1024 * 1024 * 1024
+#define LAYOUT "queue"
+#define CREATE_MODE_RW (S_IWUSR | S_IRUSR)
 
 namespace FogKV {
 
@@ -52,6 +60,8 @@ static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
     IoContext *ioCtx = (IoContext *)cb_arg;
 
     if (success) {
+        ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
+                                         sizeof(uint64_t));
         if (ioCtx->clb)
             ioCtx->clb(nullptr, StatusCode::Ok, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
@@ -92,8 +102,9 @@ OffloadRqstMsg::OffloadRqstMsg(const OffloadRqstOperation op, const char *key,
     : op(op), key(key), keySize(keySize), value(value), valueSize(valueSize),
       clb(clb) {}
 
-OffloadRqstPooler::OffloadRqstPooler(BdevContext &bdevContext)
-    : _bdevContext(bdevContext) {
+OffloadRqstPooler::OffloadRqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+                                     BdevContext &bdevContext)
+    : rtree(rtree), _bdevContext(bdevContext) {
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
 }
@@ -103,6 +114,27 @@ OffloadRqstPooler::~OffloadRqstPooler() { spdk_ring_free(rqstRing); }
 bool OffloadRqstPooler::EnqueueMsg(OffloadRqstMsg *Message) {
     size_t count = spdk_ring_enqueue(rqstRing, (void **)&Message, 1);
     return (count == 1);
+}
+
+void OffloadRqstPooler::InitFreeList() {
+    auto initNeeded = false;
+    if (_bdevContext.bdev != nullptr) {
+        auto needInit = false;
+        if (boost::filesystem::exists(POOL_FREELIST_FILENAME)) {
+            _poolFreeList =
+                pool<OffloadFreeList>::open(POOL_FREELIST_FILENAME, LAYOUT);
+        } else {
+            _poolFreeList = pool<OffloadFreeList>::create(
+                POOL_FREELIST_FILENAME, LAYOUT, POOL_FREELIST_SIZE,
+                CREATE_MODE_RW);
+            initNeeded = true;
+        }
+        freeLbaList = _poolFreeList.get_root().get();
+        freeLbaList->maxLba = _bdevContext.blk_num;
+        if (initNeeded) {
+            freeLbaList->Push(_poolFreeList, -1);
+        }
+    }
 }
 
 void OffloadRqstPooler::DequeueMsg() {
@@ -128,29 +160,86 @@ void OffloadRqstPooler::ProcessMsg() {
         }
         case OffloadRqstOperation::GET: {
 
-            char *buff = (char *)spdk_dma_zmalloc(_bdevContext.blk_size,
-                                                  _bdevContext.buf_align, NULL);
-            IoContext *ioCtx =
-                new IoContext{buff, _bdevContext.blk_size, key, keySize, cb_fn};
-            int rc = spdk_bdev_read(
-                _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, buff, 0,
-                _bdevContext.blk_size, read_complete, ioCtx);
+            uint8_t location;
+            uint64_t *val;
+            size_t valSize;
 
+            StatusCode rc =
+                rtree->Get(key, keySize, reinterpret_cast<void **>(&val),
+                           &valSize, &location);
+            if (rc != StatusCode::Ok || location != LOCATIONS::DISK) {
+                if (cb_fn)
+                    cb_fn(nullptr, StatusCode::KeyNotFound, key, keySize,
+                          nullptr, 0);
+            } else {
+                char *buff = (char *)spdk_dma_zmalloc(
+                    _bdevContext.blk_size, _bdevContext.buf_align, NULL);
+                IoContext *ioCtx = new IoContext{
+                    buff, _bdevContext.blk_size, key, keySize, val, rtree,
+                    cb_fn};
+
+                auto lba = reinterpret_cast<uint64_t>(*val);
+                int readRc = spdk_bdev_read_blocks(
+                    _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, buff,
+                    lba, 1, read_complete, ioCtx);
+                if (readRc) {
+                    if (cb_fn)
+                        cb_fn(nullptr, StatusCode::UnknownError, key, keySize,
+                              nullptr, 0);
+                }
+            }
             break;
         }
         case OffloadRqstOperation::UPDATE: {
             const char *val = processArray[MsgIndex]->value;
             const size_t valSize = processArray[MsgIndex]->valueSize;
 
-            char *buff =
-                (char *)spdk_dma_zmalloc(valSize, _bdevContext.buf_align, NULL);
-            memcpy(buff, val, valSize);
-            IoContext *ioCtx =
-                new IoContext{buff, _bdevContext.blk_size, key, keySize, cb_fn};
+            char *valInPmem;
+            size_t valInPmemSize;
+            uint8_t location;
 
-            int rc = spdk_bdev_write(
-                _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, buff, 0,
-                _bdevContext.blk_size, write_complete, ioCtx);
+            StatusCode rc =
+                rtree->Get(key, keySize, reinterpret_cast<void **>(&valInPmem),
+                           &valInPmemSize, &location);
+            if (rc != StatusCode::Ok) {
+                if (cb_fn)
+                    cb_fn(nullptr, StatusCode::KeyNotFound, key, keySize,
+                          nullptr, 0);
+
+            } else if (location == LOCATIONS::DISK) {
+                // @TODO jradtke not implemented
+
+                if (cb_fn)
+                    cb_fn(nullptr, StatusCode::NotImplemented, key, keySize,
+                          nullptr, 0);
+
+            } else if (location == LOCATIONS::PMEM) {
+
+                char *buff = (char *)spdk_dma_zmalloc(
+                    valInPmemSize, _bdevContext.buf_align, NULL);
+
+                memcpy(buff, valInPmem, valInPmemSize);
+                IoContext *ioCtx = new IoContext{
+                    buff, _bdevContext.blk_size, key, keySize, nullptr, rtree,
+                    cb_fn};
+
+                rtree->AllocateIOVForKey(key, &ioCtx->lba, sizeof(uint64_t));
+                *ioCtx->lba = freeLbaList->GetFreeLba(_poolFreeList);
+
+                int rc = spdk_bdev_write_blocks(
+                    _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, buff,
+                    *ioCtx->lba, 1, write_complete, ioCtx);
+                if (rc) {
+                    if (cb_fn)
+                        cb_fn(nullptr, StatusCode::UnknownError, key, keySize,
+                              nullptr, 0);
+                }
+            }
+            break;
+        }
+        case OffloadRqstOperation::REMOVE: {
+
+            // @TODO: jradtke add released LBA to OffloadFreeList
 
             break;
         }

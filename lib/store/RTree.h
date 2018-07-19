@@ -80,8 +80,7 @@ struct ValueWrapper {
 };
 
 struct Node {
-    explicit Node(bool _isEnd, int _depth) : isEnd(_isEnd), depth(_depth) {
-    }
+    explicit Node(bool _isEnd, int _depth) : isEnd(_isEnd), depth(_depth) {}
     persistent_ptr<Node> children[LEVEL_SIZE];
     bool isEnd;
     int depth;
@@ -113,9 +112,10 @@ class RTree : public FogKV::RTreeEngine {
     RTree(const string &path, const size_t size);
     virtual ~RTree();
     string Engine() final { return "RTree"; }
-    StatusCode Get(const char *key, int32_t keybytes, char **value,
-                   size_t *size) final;
-    StatusCode Get(const char *key, char **value, size_t *size) final;
+    StatusCode Get(const char *key, int32_t keybytes, void **value,
+                   size_t *size, uint8_t *location) final;
+    StatusCode Get(const char *key, void **value, size_t *size,
+                   uint8_t *location) final;
     StatusCode Put(const char *key, // copy value from std::string
                    char *value) final;
     StatusCode Put(const char *key, int32_t keybytes, const char *value,

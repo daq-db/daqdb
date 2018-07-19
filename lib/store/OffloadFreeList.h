@@ -53,18 +53,21 @@ class OffloadFreeList {
     /* entry in the list */
     struct FreeLba {
         persistent_ptr<FreeLba> next;
-        p<uint64_t> lba;
+        p<int64_t> lba;
     };
 
   public:
     OffloadFreeList();
     ~OffloadFreeList();
 
-    void Push(pool_base &pop, uint64_t value);
-    uint64_t Pop(pool_base &pop);
+    void Push(pool_base &pop, int64_t value);
+    int64_t GetFreeLba(pool_base &pop);
     void Show(void) const;
 
+    uint64_t maxLba = 0;
+
   private:
+
     persistent_ptr<FreeLba> _head;
     persistent_ptr<FreeLba> _tail;
 };
