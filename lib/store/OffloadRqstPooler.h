@@ -95,10 +95,13 @@ struct IoContext {
     KVStoreBase::KVStoreBaseCallback clb;
 };
 
+
 class OffloadRqstPoolerInterface {
     virtual bool EnqueueMsg(OffloadRqstMsg *Message) = 0;
     virtual void DequeueMsg() = 0;
     virtual void ProcessMsg() = 0;
+    virtual bool Read(IoContext *ioCtx) = 0;
+    virtual bool Write(IoContext *ioCtx) = 0;
 };
 
 class OffloadRqstPooler : public OffloadRqstPoolerInterface {
@@ -110,6 +113,9 @@ class OffloadRqstPooler : public OffloadRqstPoolerInterface {
     bool EnqueueMsg(OffloadRqstMsg *Message);
     void DequeueMsg();
     void ProcessMsg() final;
+
+    bool Read(IoContext *ioCtx);
+    bool Write(IoContext *ioCtx);
 
     void InitFreeList();
 

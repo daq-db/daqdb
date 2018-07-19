@@ -116,6 +116,19 @@ bool OffloadRqstPooler::EnqueueMsg(OffloadRqstMsg *Message) {
     return (count == 1);
 }
 
+bool OffloadRqstPooler::Read(IoContext *ioCtx) {
+    return spdk_bdev_read_blocks(
+        _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, ioCtx->buff,
+        reinterpret_cast<uint64_t>(*ioCtx->lba), 1, read_complete, ioCtx);
+}
+
+bool OffloadRqstPooler::Write(IoContext *ioCtx) {
+    *ioCtx->lba = freeLbaList->GetFreeLba(_poolFreeList);
+    return spdk_bdev_write_blocks(_bdevContext.bdev_desc,
+                                  _bdevContext.bdev_io_channel, ioCtx->buff,
+                                  *ioCtx->lba, 1, write_complete, ioCtx);
+}
+
 void OffloadRqstPooler::InitFreeList() {
     auto initNeeded = false;
     if (_bdevContext.bdev != nullptr) {
@@ -177,12 +190,7 @@ void OffloadRqstPooler::ProcessMsg() {
                 IoContext *ioCtx = new IoContext{
                     buff, _bdevContext.blk_size, key, keySize, val, rtree,
                     cb_fn};
-
-                auto lba = reinterpret_cast<uint64_t>(*val);
-                int readRc = spdk_bdev_read_blocks(
-                    _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, buff,
-                    lba, 1, read_complete, ioCtx);
-                if (readRc) {
+                if (Read(ioCtx)) {
                     if (cb_fn)
                         cb_fn(nullptr, StatusCode::UnknownError, key, keySize,
                               nullptr, 0);
@@ -224,12 +232,7 @@ void OffloadRqstPooler::ProcessMsg() {
                     cb_fn};
 
                 rtree->AllocateIOVForKey(key, &ioCtx->lba, sizeof(uint64_t));
-                *ioCtx->lba = freeLbaList->GetFreeLba(_poolFreeList);
-
-                int rc = spdk_bdev_write_blocks(
-                    _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, buff,
-                    *ioCtx->lba, 1, write_complete, ioCtx);
-                if (rc) {
+                if (Write(ioCtx)) {
                     if (cb_fn)
                         cb_fn(nullptr, StatusCode::UnknownError, key, keySize,
                               nullptr, 0);

@@ -30,58 +30,52 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include <atomic>
 #include <cstdint>
-#include <thread>
 
-#include "spdk/bdev.h"
-#include "spdk/env.h"
-#include "spdk/event.h"
-#include "spdk/io_channel.h"
-#include "spdk/queue.h"
+#include "../../lib/store/OffloadRqstPooler.cpp"
+#include "../../lib/store/RTree.h"
 
-#include <functional>
+#define BOOST_TEST_MAIN
+#include <boost/test/unit_test.hpp>
 
-#include "OffloadRqstPooler.h"
+#include <fakeit.hpp>
 
-namespace FogKV {
+namespace ut = boost::unit_test;
 
-using OffloadReactorShutdownCallback = std::function<void()>;
+using namespace fakeit;
 
-enum class ReactorState : std::uint8_t {
-    INIT_INPROGRESS = 0,
-    READY = 1,
-    ERROR = 2,
-    STOPPED = 3
-};
+static const char *expectedKey = "key123";
+static const size_t expectedKeySize = 6;
 
-void reactor_start_clb(void *offload_reactor, void *arg2);
-int reactor_pooler_fn(void *offload_reactor);
+#define BOOST_TEST_DETECT_MEMORY_LEAK 1
 
-class OffloadReactor {
-  public:
-    OffloadReactor(const size_t cpuCore = 0, std::string spdkConfigFile = "",
-                   OffloadReactorShutdownCallback clb = nullptr);
-    virtual ~OffloadReactor();
+BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
+    Mock<FogKV::OffloadRqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+    char valRef[] = "abc";
+    size_t sizeRef = 3;
+    uint8_t location = DISK;
 
-    void RegisterPooler(OffloadRqstPooler *offloadPooler);
-    void StartThread();
+    FogKV::OffloadRqstPooler &pooler = poolerMock.get();
+    When(OverloadedMethod(rtreeMock, Get,
+                          FogKV::StatusCode(const char *, int32_t, void **,
+                                            size_t *, uint8_t *))
+             .Using(expectedKey, expectedKeySize, _, _, _))
+        .AlwaysDo([&](const char *key, int32_t keySize, void **val,
+                      size_t *valSize, uint8_t *loc) {
+            *val = valRef;
+            *valSize = sizeRef;
+            *loc = location;
+            return FogKV::StatusCode::Ok;
+        });
+    When(Method(poolerMock, Read)).Return(0);
+    When(Method(poolerMock, Write)).Return(0);
 
-    std::atomic<ReactorState> state;
-    std::vector<OffloadRqstPooler *> rqstPoolers;
-
-    BdevContext bdevContext;
-
-  private:
-    void _ThreadMain(void);
-
-    std::string _spdkConfigFile;
-    std::unique_ptr<spdk_app_opts> _spdkAppOpts;
-
-    OffloadReactorShutdownCallback _shutdownClb;
-    std::thread *_thread;
-    size_t _cpuCore = 0;
-};
+    pooler.ProcessMsg();
+    VerifyNoOtherInvocations(
+        OverloadedMethod(rtreeMock, Get,
+                         FogKV::StatusCode(const char *, int32_t, void **,
+                                           size_t *, uint8_t *)));
+    VerifyNoOtherInvocations(Method(poolerMock, Read));
+    VerifyNoOtherInvocations(Method(poolerMock, Write));
 }
