@@ -52,9 +52,8 @@ namespace FogKV {
 enum class OffloadRqstOperation : std::int8_t {
     NONE = 0,
     GET = 1,
-    PUT = 2,
-    UPDATE = 3,
-    REMOVE = 4
+    UPDATE = 2,
+    REMOVE = 3
 };
 
 class OffloadRqstMsg {
@@ -90,6 +89,7 @@ struct IoContext {
     size_t keySize = 0;
 
     uint64_t *lba = nullptr;
+    bool updatePmemIOV = false;
 
     std::shared_ptr<FogKV::RTreeEngine> rtree;
     KVStoreBase::KVStoreBaseCallback clb;

@@ -34,6 +34,7 @@
 #include "FogKV/Status.h"
 #include "RTree.h"
 
+#include <boost/asio.hpp>
 #include <iostream>
 #include <pthread.h>
 #include <string>
@@ -60,8 +61,9 @@ static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
     IoContext *ioCtx = (IoContext *)cb_arg;
 
     if (success) {
-        ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
-                                         sizeof(uint64_t));
+        if (ioCtx->updatePmemIOV)
+            ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
+                                             sizeof(uint64_t));
         if (ioCtx->clb)
             ioCtx->clb(nullptr, StatusCode::Ok, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
@@ -117,13 +119,12 @@ bool OffloadRqstPooler::EnqueueMsg(OffloadRqstMsg *Message) {
 }
 
 bool OffloadRqstPooler::Read(IoContext *ioCtx) {
-    return spdk_bdev_read_blocks(
-        _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, ioCtx->buff,
-        reinterpret_cast<uint64_t>(*ioCtx->lba), 1, read_complete, ioCtx);
+    return spdk_bdev_read_blocks(_bdevContext.bdev_desc,
+                                 _bdevContext.bdev_io_channel, ioCtx->buff,
+                                 *ioCtx->lba, 1, read_complete, ioCtx);
 }
 
 bool OffloadRqstPooler::Write(IoContext *ioCtx) {
-    *ioCtx->lba = freeLbaList->GetFreeLba(_poolFreeList);
     return spdk_bdev_write_blocks(_bdevContext.bdev_desc,
                                   _bdevContext.bdev_io_channel, ioCtx->buff,
                                   *ioCtx->lba, 1, write_complete, ioCtx);
@@ -164,85 +165,111 @@ void OffloadRqstPooler::ProcessMsg() {
 
         auto cb_fn = processArray[MsgIndex]->clb;
 
-        switch (processArray[MsgIndex]->op) {
-        case OffloadRqstOperation::PUT: {
+        /**
+         * First we need discover if value is not already offloaded
+         */
+        void *rtreeVal;
+        size_t rtreeValSize;
+        uint8_t location;
+        StatusCode rc =
+            rtree->Get(key, keySize, &rtreeVal, &rtreeValSize, &location);
+        if (rc != StatusCode::Ok) {
             if (cb_fn)
-                cb_fn(nullptr, StatusCode::NotImplemented, key, keySize,
-                      nullptr, 0);
+                cb_fn(nullptr, rc, key, keySize, nullptr, 0);
             break;
         }
+
+        switch (processArray[MsgIndex]->op) {
         case OffloadRqstOperation::GET: {
 
-            uint8_t location;
-            uint64_t *val;
-            size_t valSize;
-
-            StatusCode rc =
-                rtree->Get(key, keySize, reinterpret_cast<void **>(&val),
-                           &valSize, &location);
-            if (rc != StatusCode::Ok || location != LOCATIONS::DISK) {
+            if (location == LOCATIONS::PMEM) {
                 if (cb_fn)
                     cb_fn(nullptr, StatusCode::KeyNotFound, key, keySize,
                           nullptr, 0);
-            } else {
-                char *buff = (char *)spdk_dma_zmalloc(
-                    _bdevContext.blk_size, _bdevContext.buf_align, NULL);
-                IoContext *ioCtx = new IoContext{
-                    buff, _bdevContext.blk_size, key, keySize, val, rtree,
-                    cb_fn};
-                if (Read(ioCtx)) {
-                    if (cb_fn)
-                        cb_fn(nullptr, StatusCode::UnknownError, key, keySize,
-                              nullptr, 0);
-                }
+                break;
+            }
+            char *buff = (char *)spdk_dma_zmalloc(_bdevContext.blk_size,
+                                                  _bdevContext.buf_align, NULL);
+            IoContext *ioCtx = new IoContext{buff,
+                                             _bdevContext.blk_size,
+                                             key,
+                                             keySize,
+                                             static_cast<uint64_t *>(rtreeVal),
+                                             false,
+                                             rtree,
+                                             cb_fn};
+            if (Read(ioCtx)) {
+                if (cb_fn)
+                    cb_fn(nullptr, StatusCode::UnknownError, key, keySize,
+                          nullptr, 0);
             }
             break;
         }
         case OffloadRqstOperation::UPDATE: {
-            const char *val = processArray[MsgIndex]->value;
-            const size_t valSize = processArray[MsgIndex]->valueSize;
 
-            char *valInPmem;
-            size_t valInPmemSize;
-            uint8_t location;
+            const char *rqstVal = processArray[MsgIndex]->value;
+            const size_t rqstValSize = processArray[MsgIndex]->valueSize;
+            char *buff = nullptr;
+            IoContext *ioCtx = nullptr;
 
-            StatusCode rc =
-                rtree->Get(key, keySize, reinterpret_cast<void **>(&valInPmem),
-                           &valInPmemSize, &location);
-            if (rc != StatusCode::Ok) {
+            if (location == LOCATIONS::PMEM) {
+                buff = (char *)spdk_dma_zmalloc(rqstValSize > 0 ? rqstValSize
+                                                                : rtreeValSize,
+                                                _bdevContext.buf_align, NULL);
+                memcpy(buff, rqstValSize > 0 ? rqstVal : rtreeVal,
+                       rqstValSize > 0 ? rqstValSize : rtreeValSize);
+
+                ioCtx = new IoContext{buff,    _bdevContext.blk_size,
+                                      key,     keySize,
+                                      nullptr, true,
+                                      rtree,   cb_fn};
+
+                rtree->AllocateIOVForKey(key, &ioCtx->lba, sizeof(uint64_t));
+                *ioCtx->lba = freeLbaList->GetFreeLba(_poolFreeList);
+            } else if (location == LOCATIONS::DISK) {
+                if (rqstValSize == 0) {
+                    if (cb_fn)
+                        cb_fn(nullptr, StatusCode::Ok, key, keySize, nullptr,
+                              0);
+                    break;
+                }
+                buff = (char *)spdk_dma_zmalloc(rqstValSize,
+                                                _bdevContext.buf_align, NULL);
+                memcpy(buff, rqstVal, rqstValSize);
+
+                ioCtx = new IoContext{buff,         _bdevContext.blk_size,
+                                      key,          keySize,
+                                      new uint64_t, false,
+                                      rtree,        cb_fn};
+                *ioCtx->lba = *(static_cast<uint64_t *>(rtreeVal));
+            } else {
                 if (cb_fn)
                     cb_fn(nullptr, StatusCode::KeyNotFound, key, keySize,
                           nullptr, 0);
+            }
 
-            } else if (location == LOCATIONS::DISK) {
-                // @TODO jradtke not implemented
-
+            if (Write(ioCtx)) {
                 if (cb_fn)
-                    cb_fn(nullptr, StatusCode::NotImplemented, key, keySize,
+                    cb_fn(nullptr, StatusCode::UnknownError, key, keySize,
                           nullptr, 0);
-
-            } else if (location == LOCATIONS::PMEM) {
-
-                char *buff = (char *)spdk_dma_zmalloc(
-                    valInPmemSize, _bdevContext.buf_align, NULL);
-
-                memcpy(buff, valInPmem, valInPmemSize);
-                IoContext *ioCtx = new IoContext{
-                    buff, _bdevContext.blk_size, key, keySize, nullptr, rtree,
-                    cb_fn};
-
-                rtree->AllocateIOVForKey(key, &ioCtx->lba, sizeof(uint64_t));
-                if (Write(ioCtx)) {
-                    if (cb_fn)
-                        cb_fn(nullptr, StatusCode::UnknownError, key, keySize,
-                              nullptr, 0);
-                }
             }
             break;
         }
         case OffloadRqstOperation::REMOVE: {
 
-            // @TODO: jradtke add released LBA to OffloadFreeList
+            if (location == LOCATIONS::PMEM) {
+                if (cb_fn)
+                    cb_fn(nullptr, StatusCode::KeyNotFound, key, keySize,
+                          nullptr, 0);
+                break;
+            }
+
+            uint64_t lba = *(static_cast<uint64_t *>(rtreeVal));
+            freeLbaList->Push(_poolFreeList, lba);
+            rtree->Remove(key);
+
+            if (cb_fn)
+                cb_fn(nullptr, StatusCode::Ok, key, keySize, nullptr, 0);
 
             break;
         }
