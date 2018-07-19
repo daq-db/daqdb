@@ -318,9 +318,10 @@ void KVStoreBaseImpl::Remove(const Key &key) {
         bool ready = false;
         if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
                 OffloadRqstOperation::REMOVE, key.data(), key.size(), nullptr,
-                0, [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
-                                       const char *key, size_t keySize,
-                                       const char *value, size_t valueSize) {
+                0,
+                [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
+                                    const char *key, size_t keySize,
+                                    const char *value, size_t valueSize) {
                     std::unique_lock<std::mutex> lck(mtx);
                     ready = true;
                     cv.notify_all();
@@ -478,7 +479,8 @@ void KVStoreBaseImpl::init() {
 
     if (_offloadEnabled) {
         _offloadPooler =
-            new FogKV::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext);
+            new FogKV::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext,
+                                         getOptions().Value.OffloadMaxSize);
         _offloadPooler->InitFreeList();
         _offloadReactor->RegisterPooler(_offloadPooler);
     }

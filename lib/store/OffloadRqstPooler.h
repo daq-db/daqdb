@@ -107,7 +107,7 @@ class OffloadRqstPoolerInterface {
 class OffloadRqstPooler : public OffloadRqstPoolerInterface {
   public:
     OffloadRqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
-                      BdevContext &bdevContext);
+                      BdevContext &bdevContext, uint64_t offloadBlockSize);
     virtual ~OffloadRqstPooler();
 
     bool EnqueueMsg(OffloadRqstMsg *Message);
@@ -129,6 +129,7 @@ class OffloadRqstPooler : public OffloadRqstPoolerInterface {
     OffloadFreeList *freeLbaList = nullptr;
 
   private:
+    uint64_t _blkForLba = 0;
     struct BdevContext _bdevContext;
     pool<FogKV::OffloadFreeList> _poolFreeList;
 };

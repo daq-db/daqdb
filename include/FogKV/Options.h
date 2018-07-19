@@ -127,6 +127,10 @@ struct KeyDescriptor {
     std::vector<KeyFieldDescriptor> _fields;
 };
 
+struct ValueDescription {
+    size_t OffloadMaxSize = 16  * 1024;
+};
+
 struct RuntimeOptions {
     std::string spdkConfigFile = "";
     std::function<void(std::string)> logFunc = nullptr;
@@ -150,6 +154,7 @@ struct Options {
     Options(const std::string &path);
 
     KeyDescriptor Key;
+    ValueDescription Value;
     RuntimeOptions Runtime;
     DhtOptions Dht;
 

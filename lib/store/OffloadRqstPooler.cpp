@@ -105,10 +105,15 @@ OffloadRqstMsg::OffloadRqstMsg(const OffloadRqstOperation op, const char *key,
       clb(clb) {}
 
 OffloadRqstPooler::OffloadRqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
-                                     BdevContext &bdevContext)
+                                     BdevContext &bdevContext,
+                                     uint64_t offloadBlockSize)
     : rtree(rtree), _bdevContext(bdevContext) {
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
+
+    auto aligned = offloadBlockSize + _bdevContext.blk_size - 1 &
+                   ~(_bdevContext.blk_size - 1);
+    _blkForLba = aligned / _bdevContext.blk_size;
 }
 
 OffloadRqstPooler::~OffloadRqstPooler() { spdk_ring_free(rqstRing); }
@@ -119,15 +124,15 @@ bool OffloadRqstPooler::EnqueueMsg(OffloadRqstMsg *Message) {
 }
 
 bool OffloadRqstPooler::Read(IoContext *ioCtx) {
-    return spdk_bdev_read_blocks(_bdevContext.bdev_desc,
-                                 _bdevContext.bdev_io_channel, ioCtx->buff,
-                                 *ioCtx->lba, 1, read_complete, ioCtx);
+    return spdk_bdev_read_blocks(
+        _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, ioCtx->buff,
+        *ioCtx->lba * _blkForLba, ioCtx->size, read_complete, ioCtx);
 }
 
 bool OffloadRqstPooler::Write(IoContext *ioCtx) {
-    return spdk_bdev_write_blocks(_bdevContext.bdev_desc,
-                                  _bdevContext.bdev_io_channel, ioCtx->buff,
-                                  *ioCtx->lba, 1, write_complete, ioCtx);
+    return spdk_bdev_write_blocks(
+        _bdevContext.bdev_desc, _bdevContext.bdev_io_channel, ioCtx->buff,
+        *ioCtx->lba * _blkForLba, ioCtx->size, write_complete, ioCtx);
 }
 
 void OffloadRqstPooler::InitFreeList() {
@@ -144,7 +149,7 @@ void OffloadRqstPooler::InitFreeList() {
             initNeeded = true;
         }
         freeLbaList = _poolFreeList.get_root().get();
-        freeLbaList->maxLba = _bdevContext.blk_num;
+        freeLbaList->maxLba = _bdevContext.blk_num / _blkForLba;
         if (initNeeded) {
             freeLbaList->Push(_poolFreeList, -1);
         }
@@ -188,10 +193,15 @@ void OffloadRqstPooler::ProcessMsg() {
                           nullptr, 0);
                 break;
             }
-            char *buff = (char *)spdk_dma_zmalloc(_bdevContext.blk_size,
+            auto alignedSize = rtreeValSize + _bdevContext.blk_size - 1 &
+                               ~(_bdevContext.blk_size - 1);
+            uint32_t sizeInBlk = alignedSize / _bdevContext.blk_size;
+
+            char *buff = (char *)spdk_dma_zmalloc(alignedSize,
                                                   _bdevContext.buf_align, NULL);
+
             IoContext *ioCtx = new IoContext{buff,
-                                             _bdevContext.blk_size,
+                                             sizeInBlk,
                                              key,
                                              keySize,
                                              static_cast<uint64_t *>(rtreeVal),
@@ -208,21 +218,36 @@ void OffloadRqstPooler::ProcessMsg() {
         case OffloadRqstOperation::UPDATE: {
 
             const char *rqstVal = processArray[MsgIndex]->value;
-            const size_t rqstValSize = processArray[MsgIndex]->valueSize;
+            size_t rqstValSize = processArray[MsgIndex]->valueSize;
             char *buff = nullptr;
             IoContext *ioCtx = nullptr;
 
             if (location == LOCATIONS::PMEM) {
-                buff = (char *)spdk_dma_zmalloc(rqstValSize > 0 ? rqstValSize
-                                                                : rtreeValSize,
-                                                _bdevContext.buf_align, NULL);
-                memcpy(buff, rqstValSize > 0 ? rqstVal : rtreeVal,
-                       rqstValSize > 0 ? rqstValSize : rtreeValSize);
+                const char *val;
+                size_t valSize;
+                if (rqstValSize > 0) {
+                    val = rqstVal;
+                    valSize = rtreeValSize;
+                } else {
+                    val = static_cast<char *>(rtreeVal);
+                    valSize = rtreeValSize;
+                }
+                auto alignedSize = valSize + _bdevContext.blk_size - 1 &
+                                   ~(_bdevContext.blk_size - 1);
+                uint32_t sizeInBlk = alignedSize / _bdevContext.blk_size;
 
-                ioCtx = new IoContext{buff,    _bdevContext.blk_size,
-                                      key,     keySize,
-                                      nullptr, true,
-                                      rtree,   cb_fn};
+                buff = (char *)spdk_dma_zmalloc(alignedSize,
+                                                _bdevContext.buf_align, NULL);
+                memcpy(buff, val, valSize);
+
+                ioCtx = new IoContext{buff,
+                                      sizeInBlk,
+                                      key,
+                                      keySize,
+                                      nullptr,
+                                      true,
+                                      rtree,
+                                      cb_fn};
 
                 rtree->AllocateIOVForKey(key, &ioCtx->lba, sizeof(uint64_t));
                 *ioCtx->lba = freeLbaList->GetFreeLba(_poolFreeList);
@@ -237,10 +262,13 @@ void OffloadRqstPooler::ProcessMsg() {
                                                 _bdevContext.buf_align, NULL);
                 memcpy(buff, rqstVal, rqstValSize);
 
-                ioCtx = new IoContext{buff,         _bdevContext.blk_size,
-                                      key,          keySize,
-                                      new uint64_t, false,
-                                      rtree,        cb_fn};
+                auto alignedSize = rqstValSize + _bdevContext.blk_size - 1 &
+                                   ~(_bdevContext.blk_size - 1);
+                uint32_t sizeInBlk = _blkForLba =
+                    alignedSize / _bdevContext.blk_size;
+
+                ioCtx = new IoContext{buff, sizeInBlk, key, keySize,
+                                      new uint64_t, false, rtree, cb_fn};
                 *ioCtx->lba = *(static_cast<uint64_t *>(rtreeVal));
             } else {
                 if (cb_fn)
