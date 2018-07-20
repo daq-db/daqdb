@@ -30,16 +30,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "KVStoreBaseImpl.h"
+#include <chrono>
+#include <condition_variable>
+
 #include "../debug/Logger.h"
 #include "../dht/DhtUtils.h"
+#include "KVStoreBaseImpl.h"
 #include "common.h"
 #include <FogKV/Types.h>
-#include <future>
+
 #include <json/json.h>
 
 /** @TODO jradtke: should be taken from configuration file */
 #define POOLER_CPU_CORE_BASE 1
+
+using namespace std::chrono_literals;
 
 namespace FogKV {
 
@@ -69,7 +74,9 @@ void KVStoreBaseImpl::LogMsg(std::string msg) {
 }
 
 void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
-    // @TODO jradtke: add handling of PutOptions
+    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+        throw FUNC_NOT_IMPLEMENTED;
+    }
 
     StatusCode rc = mRTree->Put(key.data(), val.data());
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
@@ -79,8 +86,9 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
 
 void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                                const PutOptions &options) {
-    // @TODO jradtke: add handling of PutOptions
-
+    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+        throw FUNC_NOT_IMPLEMENTED;
+    }
     thread_local int poolerId = 0;
 
     poolerId = (options.roundRobin()) ? ((poolerId + 1) % _rqstPoolers.size())
@@ -115,12 +123,45 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
 
         throw OperationFailedException(EINVAL);
     }
+    if (location == PMEM) {
+        Value value(new char[size], size);
+        std::memcpy(value.data(), pVal, size);
+        return value;
+    } else if (location == DISK) {
+        if (!_offloadEnabled)
+            throw OperationFailedException(Status(OffloadDisabledError));
 
-    // @TODO jradtke: handle location equal DISK here
+        Value *resultValue = nullptr;
+        std::mutex mtx;
+        std::condition_variable cv;
+        bool ready = false;
+        if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
+                OffloadRqstOperation::GET, key.data(), key.size(), nullptr, 0,
+                [&mtx, &cv, &ready, &resultValue](
+                    KVStoreBase *kvs, Status status, const char *key,
+                    size_t keySize, const char *value, size_t valueSize) {
+                    std::unique_lock<std::mutex> lck(mtx);
 
-    Value value(new char[size], size);
-    std::memcpy(value.data(), pVal, size);
-    return value;
+                    resultValue = new Value(new char[valueSize], valueSize);
+                    std::memcpy(resultValue->data(), value, valueSize);
+                    ready = true;
+
+                    cv.notify_all();
+                }))) {
+            throw QueueFullException();
+        }
+        // wait for completion
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            cv.wait_for(lk, 1s, [&ready] { return ready; });
+        }
+        if (resultValue == nullptr)
+            throw OperationFailedException(Status(TimeOutError));
+
+        return *resultValue;
+    } else {
+        throw OperationFailedException(EINVAL);
+    }
 }
 
 void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
@@ -175,29 +216,55 @@ void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
 
 void KVStoreBaseImpl::Update(const Key &key, Value &&val,
                              const UpdateOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
+    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+        if (!_offloadEnabled)
+            throw OperationFailedException(Status(OffloadDisabledError));
+
+        std::mutex mtx;
+        std::condition_variable cv;
+        bool ready = false;
+        if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
+                OffloadRqstOperation::UPDATE, key.data(), key.size(),
+                val.data(), val.size(),
+                [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
+                                    const char *key, size_t keySize,
+                                    const char *value, size_t valueSize) {
+                    std::unique_lock<std::mutex> lck(mtx);
+                    ready = true;
+                    cv.notify_all();
+                }))) {
+            throw QueueFullException();
+        }
+        // wait for completion
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            cv.wait_for(lk, 10s, [&ready] { return ready; });
+            if (!ready)
+                throw OperationFailedException(Status(TimeOutError));
+        }
+
+    } else {
+        // @TODO other attributes not supported by rtree currently
+        throw FUNC_NOT_IMPLEMENTED;
+    }
 }
 
 void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
+    Value emptyVal;
+    Update(key, std::move(emptyVal), options);
 }
 
 void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
                                   KVStoreBaseCallback cb,
                                   const UpdateOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
-}
-
-void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
-                                  KVStoreBaseCallback cb) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
         if (!_offloadEnabled)
             throw OperationFailedException(Status(OffloadDisabledError));
 
         try {
-            if (!_offloadPooler->EnqueueMsg(
-                    new OffloadRqstMsg(OffloadRqstOperation::UPDATE, key.data(),
-                                       key.size(), nullptr, 0, cb))) {
+            if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
+                    OffloadRqstOperation::UPDATE, key.data(), key.size(),
+                    value.data(), value.size(), cb))) {
                 throw QueueFullException();
             }
         } catch (OperationFailedException &e) {
@@ -206,8 +273,15 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
                val.size());
         }
     } else {
+        // @TODO other attributes not supported by rtree currently
         throw FUNC_NOT_IMPLEMENTED;
     }
+}
+
+void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
+                                  KVStoreBaseCallback cb) {
+    Value emptyVal;
+    UpdateAsync(key, std::move(emptyVal), cb, options);
 }
 
 std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end,
@@ -223,12 +297,54 @@ void KVStoreBaseImpl::GetRangeAsync(const Key &beg, const Key &end,
 
 void KVStoreBaseImpl::Remove(const Key &key) {
 
-    StatusCode rc = mRTree->Remove(key.data());
-    if (rc != StatusCode::Ok) {
-        if (rc == StatusCode::KeyNotFound)
-            throw OperationFailedException(KeyNotFound);
+    size_t size;
+    char *pVal;
+    uint8_t location;
 
+    StatusCode rc = mRTree->Get(key.data(), reinterpret_cast<void **>(&pVal),
+                                &size, &location);
+    if (rc != StatusCode::Ok || !pVal) {
+        if (rc == StatusCode::KeyNotFound)
+            throw OperationFailedException(Status(KeyNotFound));
         throw OperationFailedException(EINVAL);
+    }
+
+    if (location == DISK) {
+        if (!_offloadEnabled)
+            throw OperationFailedException(Status(OffloadDisabledError));
+
+        std::mutex mtx;
+        std::condition_variable cv;
+        bool ready = false;
+        if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
+                OffloadRqstOperation::REMOVE, key.data(), key.size(), nullptr,
+                0,
+                [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
+                                    const char *key, size_t keySize,
+                                    const char *value, size_t valueSize) {
+                    std::unique_lock<std::mutex> lck(mtx);
+                    ready = true;
+                    cv.notify_all();
+                }))) {
+            throw QueueFullException();
+        }
+
+        // wait for completion
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            cv.wait_for(lk, 10s, [&ready] { return ready; });
+            if (!ready)
+                throw OperationFailedException(Status(TimeOutError));
+        }
+
+    } else {
+        StatusCode rc = mRTree->Remove(key.data());
+        if (rc != StatusCode::Ok) {
+            if (rc == StatusCode::KeyNotFound)
+                throw OperationFailedException(KeyNotFound);
+
+            throw OperationFailedException(EINVAL);
+        }
     }
 }
 
@@ -361,16 +477,20 @@ void KVStoreBaseImpl::init() {
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    for (auto index = 0; index < poolerCount; index++) {
-        _rqstPoolers.push_back(
-            new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index));
-    }
-
     if (_offloadEnabled) {
         _offloadPooler =
-            new FogKV::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext);
+            new FogKV::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext,
+                                         getOptions().Value.OffloadMaxSize);
         _offloadPooler->InitFreeList();
         _offloadReactor->RegisterPooler(_offloadPooler);
+    }
+
+    for (auto index = 0; index < poolerCount; index++) {
+        auto rqstPooler =
+            new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index);
+        if (_offloadEnabled)
+            rqstPooler->offloadPooler = _offloadPooler;
+        _rqstPoolers.push_back(rqstPooler);
     }
 
     FOG_DEBUG("KVStoreBaseImpl initialization completed");

@@ -44,6 +44,8 @@
 using std::string;
 using std::to_string;
 
+enum LOCATIONS { EMPTY, PMEM, DISK };
+
 namespace FogKV {
 
 class RTreeEngine {

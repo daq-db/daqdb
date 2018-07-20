@@ -123,17 +123,21 @@ StatusCode RTree::Remove(const char *key) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == EMPTY) {
         return StatusCode::KeyNotFound;
-    } else if (val->location == DISK) {
-        return StatusCode::KeyNotFound;
     }
     try {
-        pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+        if (val->location == PMEM) {
+            pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+        } else if (val->location == DISK) {
+            // @TODO jradtke need to confirm if no extra action required here
+        }
         val->location = EMPTY;
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
         return StatusCode::UnknownError;
     }
-    delete val->actionValue;
+    if (val->location == PMEM) {
+        delete val->actionValue;
+    }
     return StatusCode::Ok;
 }
 

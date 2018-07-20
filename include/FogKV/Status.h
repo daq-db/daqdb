@@ -44,6 +44,7 @@ enum StatusCode : long {
     KeyNotFound,
     AllocationError,
     OffloadDisabledError,
+    TimeOutError,
 
     NotImplemented,
     UnknownError,

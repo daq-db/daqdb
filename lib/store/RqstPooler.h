@@ -36,6 +36,7 @@
 #include <cstdint>
 #include <thread>
 
+#include "OffloadRqstPooler.h"
 #include "RTreeEngine.h"
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
@@ -83,6 +84,8 @@ class RqstPooler : public RqstPoolerInterface {
     void DequeueMsg();
     void ProcessMsg() final;
     void StartThread();
+
+    OffloadRqstPooler *offloadPooler = nullptr;
 
     std::atomic<int> isRunning;
     std::shared_ptr<FogKV::RTreeEngine> rtree;

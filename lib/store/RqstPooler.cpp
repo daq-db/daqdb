@@ -31,6 +31,7 @@
  */
 
 #include "RqstPooler.h"
+#include "OffloadRqstPooler.h"
 
 #include <iostream>
 #include <pthread.h>
@@ -135,10 +136,34 @@ void RqstPooler::ProcessMsg() {
                     cb_fn(nullptr, Status(rc), key, keySize, nullptr, 0);
                 break;
             }
-            Value value(new char[size], size);
-            std::memcpy(value.data(), pVal, size);
-            if (cb_fn)
-                cb_fn(nullptr, Status(rc), key, keySize, value.data(), size);
+
+            if (location == DISK) {
+                if (offloadPooler) {
+                    try {
+                        if (!offloadPooler->EnqueueMsg(new OffloadRqstMsg(
+                                OffloadRqstOperation::GET, key, keySize,
+                                nullptr, 0, cb_fn))) {
+                            if (cb_fn)
+                                cb_fn(nullptr, Status(StatusCode::UnknownError),
+                                      key, keySize, nullptr, 0);
+                        }
+                    } catch (OperationFailedException &e) {
+                        if (cb_fn)
+                            cb_fn(nullptr, Status(StatusCode::UnknownError),
+                                  key, keySize, nullptr, 0);
+                    }
+                } else {
+                    if (cb_fn)
+                        cb_fn(nullptr, Status(StatusCode::OffloadDisabledError),
+                              key, keySize, nullptr, 0);
+                }
+            } else {
+                Value value(new char[size], size);
+                std::memcpy(value.data(), pVal, size);
+                if (cb_fn)
+                    cb_fn(nullptr, Status(rc), key, keySize, value.data(),
+                          size);
+            }
             break;
         }
         default:
