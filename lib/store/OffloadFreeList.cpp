@@ -32,8 +32,8 @@
 
 #include <iostream>
 
-#include "OffloadFreeList.h"
 #include "../debug/Logger.h"
+#include "OffloadFreeList.h"
 
 namespace FogKV {
 
@@ -61,14 +61,14 @@ void OffloadFreeList::Push(pool_base &pop, int64_t value) {
 }
 
 int64_t OffloadFreeList::GetFreeLba(pool_base &pop) {
-    int64_t ret = 0;
+    int64_t ret = -1;
     transaction::exec_tx(pop, [&] {
-        if (_head == nullptr)
+        if (_head == nullptr || maxLba == 0)
             transaction::abort(EINVAL);
 
         ret = _head->lba;
 
-        if (ret > 0) {
+        if (ret >= 0) {
             auto n = _head->next;
 
             delete_persistent<FreeLba>(_head);
@@ -78,18 +78,32 @@ int64_t OffloadFreeList::GetFreeLba(pool_base &pop) {
                 _tail = nullptr;
         } else {
             ret = abs(ret);
-            if (_head->lba + maxLba > 0) {
-                _head->lba =  _head->lba - 1;
-            } else if (_head->lba + maxLba == 0) {
+            if (ret < maxLba - 1) {
+                _head->lba = _head->lba - 1;
+            } else if (ret == maxLba - 1) {
                 _head->lba = 0;
-                ret = 0;
             } else {
+                ret = -1;
                 transaction::abort(EINVAL);
             }
         }
     });
 
     return ret;
+}
+
+void OffloadFreeList::Clear(pool_base &pop) {
+    transaction::exec_tx(pop, [&] {
+        while (_head != nullptr) {
+            auto n = _head->next;
+
+            delete_persistent<FreeLba>(_head);
+            _head = n;
+
+            if (_head == nullptr)
+                _tail = nullptr;
+        }
+    });
 }
 
 /*

@@ -62,6 +62,7 @@ class OffloadFreeList {
 
     void Push(pool_base &pop, int64_t value);
     int64_t GetFreeLba(pool_base &pop);
+    void Clear(pool_base &pop);
     void Show(void) const;
 
     uint64_t maxLba = 0;
