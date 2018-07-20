@@ -39,6 +39,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include <fakeit.hpp>
+#include <iostream>
+#include <stdlib.h>
 
 namespace ut = boost::unit_test;
 
@@ -48,6 +50,11 @@ static const char *expectedKey = "key123";
 static const size_t expectedKeySize = 6;
 
 #define BOOST_TEST_DETECT_MEMORY_LEAK 1
+
+void *spdk_zmalloc(size_t size, size_t align, uint64_t *phys_addr,
+                   int socket_id, uint32_t flags) {
+    return malloc(size);
+}
 
 BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     Mock<FogKV::OffloadRqstPooler> poolerMock;
@@ -78,4 +85,149 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
                                            size_t *, uint8_t *)));
     VerifyNoOtherInvocations(Method(poolerMock, Read));
     VerifyNoOtherInvocations(Method(poolerMock, Write));
+}
+
+BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
+    Mock<FogKV::OffloadRqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+    uint64_t lbaRef = 123;
+    size_t valSizeRef = 4;
+    char valRef[] = "1234";
+    uint8_t location = DISK;
+
+    FogKV::OffloadRqstPooler &pooler = poolerMock.get();
+    When(OverloadedMethod(rtreeMock, Get,
+                          FogKV::StatusCode(const char *, int32_t, void **,
+                                            size_t *, uint8_t *))
+             .Using(expectedKey, expectedKeySize, _, _, _))
+        .AlwaysDo([&](const char *key, int32_t keySize, void **val,
+                      size_t *valSize, uint8_t *loc) {
+            *val = &lbaRef;
+            *valSize = valSizeRef;
+            *loc = location;
+            return FogKV::StatusCode::Ok;
+        });
+    When(Method(poolerMock, Read)).Return(0);
+    When(Method(poolerMock, Write)).Return(0);
+
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+    FogKV::BdevContext bdvCtx;
+    bdvCtx.blk_size = 512;
+    bdvCtx.blk_num = 1024;
+    bdvCtx.buf_align = 1;
+    pooler.SetBdevContext(bdvCtx);
+
+    pooler.processArray[0] =
+        new FogKV::OffloadRqstMsg(FogKV::OffloadRqstOperation::GET, expectedKey,
+                                  expectedKeySize, nullptr, 0, nullptr);
+    pooler.processArrayCount = 1;
+
+    pooler.ProcessMsg();
+    VerifyNoOtherInvocations(Method(poolerMock, Write));
+
+    Verify(OverloadedMethod(rtreeMock, Get,
+                            FogKV::StatusCode(const char *, int32_t, void **,
+                                              size_t *, uint8_t *)))
+        .Exactly(1);
+    Verify(Method(poolerMock, Read)).Exactly(1);
+}
+
+BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
+    Mock<FogKV::OffloadRqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+
+    uint64_t lbaRef = 123;
+    size_t valSizeRef = 4;
+    char valRef[] = "1234";
+    uint8_t location = PMEM;
+
+    FogKV::OffloadRqstPooler &pooler = poolerMock.get();
+    When(OverloadedMethod(rtreeMock, Get,
+                          FogKV::StatusCode(const char *, int32_t, void **,
+                                            size_t *, uint8_t *))
+             .Using(expectedKey, expectedKeySize, _, _, _))
+        .AlwaysDo([&](const char *key, int32_t keySize, void **val,
+                      size_t *valSize, uint8_t *loc) {
+            *val = valRef;
+            *valSize = valSizeRef;
+            *loc = location;
+            return FogKV::StatusCode::Ok;
+        });
+    When(Method(rtreeMock, AllocateIOVForKey))
+        .AlwaysDo([&](const char *key, uint64_t **ptr, size_t size) {
+            *ptr = &lbaRef;
+            return FogKV::StatusCode::Ok;
+        });
+
+    When(Method(poolerMock, GetFreeLba)).Return(1);
+    When(Method(poolerMock, Read)).Return(0);
+    When(Method(poolerMock, Write)).Return(0);
+
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+    FogKV::BdevContext bdvCtx;
+    bdvCtx.blk_size = 512;
+    bdvCtx.blk_num = 1024;
+    bdvCtx.buf_align = 1;
+    pooler.SetBdevContext(bdvCtx);
+
+    pooler.processArray[0] = new FogKV::OffloadRqstMsg(
+        FogKV::OffloadRqstOperation::UPDATE, expectedKey, expectedKeySize,
+        nullptr, 0, nullptr);
+    pooler.processArrayCount = 1;
+
+    pooler.ProcessMsg();
+    VerifyNoOtherInvocations(Method(poolerMock, Read));
+
+    Verify(OverloadedMethod(rtreeMock, Get,
+                            FogKV::StatusCode(const char *, int32_t, void **,
+                                              size_t *, uint8_t *)))
+        .Exactly(1);
+    Verify(Method(poolerMock, Write)).Exactly(1);
+}
+
+BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
+    Mock<FogKV::OffloadRqstPooler> poolerMock;
+    Mock<FogKV::RTree> rtreeMock;
+    uint64_t lbaRef = 123;
+    size_t valSizeRef = 4;
+    char valRef[] = "1234";
+    uint8_t location = PMEM;
+
+    FogKV::OffloadRqstPooler &pooler = poolerMock.get();
+    When(OverloadedMethod(rtreeMock, Get,
+                          FogKV::StatusCode(const char *, int32_t, void **,
+                                            size_t *, uint8_t *))
+             .Using(expectedKey, expectedKeySize, _, _, _))
+        .AlwaysDo([&](const char *key, int32_t keySize, void **val,
+                      size_t *valSize, uint8_t *loc) {
+            *val = valRef;
+            *valSize = valSizeRef;
+            *loc = location;
+            return FogKV::StatusCode::Ok;
+        });
+    When(Method(poolerMock, Read)).Return(0);
+    When(Method(poolerMock, Write)).Return(0);
+
+    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    pooler.rtree.reset(&rtree);
+    FogKV::BdevContext bdvCtx;
+    bdvCtx.blk_size = 512;
+    bdvCtx.blk_num = 1024;
+    bdvCtx.buf_align = 1;
+    pooler.SetBdevContext(bdvCtx);
+
+    pooler.processArray[0] = new FogKV::OffloadRqstMsg(
+        FogKV::OffloadRqstOperation::REMOVE, expectedKey, expectedKeySize,
+        nullptr, 0, nullptr);
+    pooler.processArrayCount = 1;
+
+    pooler.ProcessMsg();
+    VerifyNoOtherInvocations(Method(poolerMock, Read));
+    VerifyNoOtherInvocations(Method(poolerMock, Write));
+    Verify(OverloadedMethod(rtreeMock, Get,
+                            FogKV::StatusCode(const char *, int32_t, void **,
+                                              size_t *, uint8_t *)))
+        .Exactly(1);
 }

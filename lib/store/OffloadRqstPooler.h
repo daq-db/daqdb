@@ -102,6 +102,7 @@ class OffloadRqstPoolerInterface {
     virtual void ProcessMsg() = 0;
     virtual bool Read(IoContext *ioCtx) = 0;
     virtual bool Write(IoContext *ioCtx) = 0;
+    virtual int64_t GetFreeLba() = 0;
 };
 
 class OffloadRqstPooler : public OffloadRqstPoolerInterface {
@@ -116,8 +117,10 @@ class OffloadRqstPooler : public OffloadRqstPoolerInterface {
 
     bool Read(IoContext *ioCtx);
     bool Write(IoContext *ioCtx);
+    int64_t GetFreeLba();
 
     void InitFreeList();
+    void SetBdevContext(BdevContext &_bdevContext);
 
     struct spdk_ring *rqstRing;
 

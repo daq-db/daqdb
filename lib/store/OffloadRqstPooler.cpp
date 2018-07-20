@@ -111,9 +111,11 @@ OffloadRqstPooler::OffloadRqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
 
-    auto aligned = offloadBlockSize + _bdevContext.blk_size - 1 &
-                   ~(_bdevContext.blk_size - 1);
-    _blkForLba = aligned / _bdevContext.blk_size;
+    if (_bdevContext.blk_size > 0) {
+        auto aligned = offloadBlockSize + _bdevContext.blk_size - 1 &
+                       ~(_bdevContext.blk_size - 1);
+        _blkForLba = aligned / _bdevContext.blk_size;
+    }
 }
 
 OffloadRqstPooler::~OffloadRqstPooler() { spdk_ring_free(rqstRing); }
@@ -221,7 +223,6 @@ void OffloadRqstPooler::ProcessMsg() {
             size_t rqstValSize = processArray[MsgIndex]->valueSize;
             char *buff = nullptr;
             IoContext *ioCtx = nullptr;
-
             if (location == LOCATIONS::PMEM) {
                 const char *val;
                 size_t valSize;
@@ -235,22 +236,13 @@ void OffloadRqstPooler::ProcessMsg() {
                 auto alignedSize = valSize + _bdevContext.blk_size - 1 &
                                    ~(_bdevContext.blk_size - 1);
                 uint32_t sizeInBlk = alignedSize / _bdevContext.blk_size;
-
                 buff = (char *)spdk_dma_zmalloc(alignedSize,
                                                 _bdevContext.buf_align, NULL);
                 memcpy(buff, val, valSize);
-
-                ioCtx = new IoContext{buff,
-                                      sizeInBlk,
-                                      key,
-                                      keySize,
-                                      nullptr,
-                                      true,
-                                      rtree,
-                                      cb_fn};
-
+                ioCtx = new IoContext{buff,    sizeInBlk, key,   keySize,
+                                      nullptr, true,      rtree, cb_fn};
                 rtree->AllocateIOVForKey(key, &ioCtx->lba, sizeof(uint64_t));
-                *ioCtx->lba = freeLbaList->GetFreeLba(_poolFreeList);
+                *ioCtx->lba = GetFreeLba();
             } else if (location == LOCATIONS::DISK) {
                 if (rqstValSize == 0) {
                     if (cb_fn)
@@ -267,8 +259,8 @@ void OffloadRqstPooler::ProcessMsg() {
                 uint32_t sizeInBlk = _blkForLba =
                     alignedSize / _bdevContext.blk_size;
 
-                ioCtx = new IoContext{buff, sizeInBlk, key, keySize,
-                                      new uint64_t, false, rtree, cb_fn};
+                ioCtx = new IoContext{buff,         sizeInBlk, key,   keySize,
+                                      new uint64_t, false,     rtree, cb_fn};
                 *ioCtx->lba = *(static_cast<uint64_t *>(rtreeVal));
             } else {
                 if (cb_fn)
@@ -307,6 +299,14 @@ void OffloadRqstPooler::ProcessMsg() {
         delete processArray[MsgIndex];
     }
     processArrayCount = 0;
+}
+
+int64_t OffloadRqstPooler::GetFreeLba() {
+    return freeLbaList->GetFreeLba(_poolFreeList);
+}
+
+void OffloadRqstPooler::SetBdevContext(BdevContext &bdevContext) {
+    _bdevContext = bdevContext;
 }
 
 } /* namespace FogKV */
