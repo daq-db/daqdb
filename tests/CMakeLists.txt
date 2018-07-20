@@ -20,3 +20,5 @@ include_directories(mock)
 add_boost_test(dht/DhtUtilsTest.cpp)
 add_boost_test(store/RqstPoolerTest.cpp)
 add_boost_test(store/OffloadRqstPoolerTest.cpp)
+add_boost_test(store/OffloadFreeListTest.cpp)
+
