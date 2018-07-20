@@ -46,6 +46,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_FRAGMENT_SIZE 1024
 #define MINIDAQ_DEFAULT_PMEM_SIZE 2ull * 1024 * 1024 * 1024
 #define MINIDAQ_DEFAULT_PMEM_PATH "/mnt/pmem/fogkv_minidaq.pm"
+#define MINIDAQ_DEFAULT_SPDK_CONF "../config.spdk"
 #define MINIDAQ_DEFAULT_T_RAMP_MS 500
 #define MINIDAQ_DEFAULT_T_TEST_MS 5000
 #define MINIDAQ_DEFAULT_T_ITER_MS 10
@@ -71,6 +72,7 @@ std::string tname;
 std::string pmem_path;
 std::string tid_file;
 size_t pmem_size;
+std::string spdk_conf;
 int nPoolers;
 int tIter_ms;
 int tTest_ms;
@@ -94,6 +96,7 @@ static FogKV::KVStoreBase *openKVS() {
     options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetectorId));
     options.Key.field(2, sizeof(FogKV::MinidaqKey::runId));
     options.Runtime.numOfPoolers = nPoolers;
+    options.Runtime.spdkConfigFile = spdk_conf;
     if (enableLog) {
         options.Runtime.logFunc = logStd;
     }
@@ -178,8 +181,9 @@ int main(int argc, const char *argv[]) {
         "time-ramp",
         po::value<int>(&tRamp_ms)->default_value(MINIDAQ_DEFAULT_T_RAMP_MS),
         "Desired ramp up time in milliseconds.")(
-        "pmem-path", po::value<std::string>(&pmem_path)
-                         ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
+        "pmem-path",
+        po::value<std::string>(&pmem_path)
+            ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
         "Persistent memory pool file.")(
         "pmem-size",
         po::value<size_t>(&pmem_size)->default_value(MINIDAQ_DEFAULT_PMEM_SIZE),
@@ -203,7 +207,11 @@ int main(int argc, const char *argv[]) {
         "Delays start of the test on each worker thread.")(
         "tid-file", po::value<std::string>(&tid_file),
         "If set a file with thread IDs of benchmark worker threads will be "
-        "generated.")("log,l", "Enable logging");
+        "generated.")("log,l", "Enable logging")(
+        "spdk-conf-file,c",
+        po::value<std::string>(&spdk_conf)
+            ->default_value(MINIDAQ_DEFAULT_SPDK_CONF),
+        "SPDK configuration file");
 
     po::options_description readoutOpts("Readout-specific options");
     readoutOpts.add_options()("n-ro", po::value<int>(&nRoTh)->default_value(
