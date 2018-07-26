@@ -43,7 +43,7 @@
 
 #include "../debug/Logger.h"
 #include "spdk/env.h"
-#include "spdk/bdev.h"
+#include "spdk_internal/bdev.h"
 
 #define POOL_FREELIST_FILENAME "/mnt/pmem/offload_free.pm"
 #define POOL_FREELIST_SIZE 1ULL * 1024 * 1024 * 1024
