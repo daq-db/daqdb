@@ -13,6 +13,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
+# Enable this flag for address sanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
 set(3RDPARTY ${PROJECT_SOURCE_DIR}/third-party)
 set(EXAMPLES ${PROJECT_SOURCE_DIR}/examples)
 set(APPS ${PROJECT_SOURCE_DIR}/apps)
