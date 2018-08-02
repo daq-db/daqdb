@@ -7,20 +7,21 @@ find_package(PkgConfig)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../../bin)
+set(ROOT_FOGKV_DIR ${PROJECT_SOURCE_DIR}/../..)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
 
-set(3RDPARTY ${PROJECT_SOURCE_DIR}/../../third-party)
+set(3RDPARTY ${ROOT_FOGKV_DIR}/third-party)
+set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
 find_package(Threads REQUIRED)
 find_package(Jsoncpp)
-# TODO add pkg-config installation
-#find_package(config++ REQUIRED)
 
 include_directories(${Jsoncpp_INCLUDE_DIR})
+include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 
 file(GLOB MIST_SOURCES ${APPS}/mist/*.cpp ${APPS}/mist/*.hpp)
 add_executable(mist ${MIST_SOURCES})
-target_link_libraries(mist ${Jsoncpp_LIBRARY} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} libfabric libpmem fogkv config++ libpmemobj)
-
+target_link_libraries(mist ${Jsoncpp_LIBRARY} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
+	fabric pmem fogkv libconfig pmemobj dl numa ${Dpdk_LIBRARIES})

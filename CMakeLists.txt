@@ -60,15 +60,11 @@ add_subdirectory(tests)
 
 # Build example folder
 add_subdirectory(${EXAMPLES}/cli_node)
-
-# Build apps folder
-find_package(Config++ REQUIRED)
-add_subdirectory(${APPS}/mist)
-
 add_subdirectory(${EXAMPLES}/basic)
 add_subdirectory(${EXAMPLES}/fabric_node)
 
 # Build apps folder
+add_subdirectory(${APPS}/mist)
 add_subdirectory(${APPS}/minidaq)
 
 # Initiate githooks for clang-format
