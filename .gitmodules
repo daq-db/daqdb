@@ -22,3 +22,6 @@
 [submodule "third-party/HdrHistogram_c"]
 	path = third-party/HdrHistogram_c
 	url = https://github.com/HdrHistogram/HdrHistogram_c.git
+[submodule "third-party/libconfig"]
+	path = third-party/libconfig
+	url = https://github.com/hyperrealm/libconfig.git
