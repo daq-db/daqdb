@@ -35,23 +35,17 @@
 namespace FogKV {
 
 class KVPair {
-public:
-	template <class T>
-	T key() const
-	{
-		return *reinterpret_cast<const T *>(key());
-	}
+  public:
+    template <class T> T key() const {
+        return *reinterpret_cast<const T *>(key());
+    }
 
-	Key key() const
-	{
-	}
+    Key key() const {}
 
-	Value value() const
-	{
-	}
+    Value value() const {}
 
-	size_t keySize();
-	size_t size() const;
+    size_t keySize();
+    size_t size() const;
 };
 
 } // namespace FogKV

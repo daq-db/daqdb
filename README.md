@@ -27,8 +27,11 @@ git submodule update --init --recursive
 
 The dependencies can be installed automatically by scripts/pkgdep.sh.
 ```
-./scripts/pkgdep.sh
+cd ${fogKVpath}
+scripts/pkgdep.sh
+third-party/spdk/scripts/pkgdep.sh
 ```
+
 Following libraries are required:
 <ul>
 <li>asio-devel</li>
@@ -38,7 +41,6 @@ Following libraries are optional (needed for examples and unit tests):
 <ul>
 <li>boost-devel (1.63+)</li>
 <li>boost-test (1.63+)</li>
-<li>log4cxx-devel (log4cxx-dev)</li>
 <li>doxygen</li>
 </ul>
 
@@ -47,6 +49,7 @@ Following libraries are optional (needed for examples and unit tests):
 Another option is building against LHC Computing Grid (LCG) release. Steps to configure the LCG environemt:
 ```
 sudo yum install -y https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm
+sudo yum install cvmfs -y
 sudo cvmfs_config setup
 echo "CVMFS_REPOSITORIES=sft.cern.ch" | sudo tee -a /etc/cvmfs/default.local
 echo "CVMFS_HTTP_PROXY=http://your-proxy.com:proxy-port | sudo tee -a /etc/cvmfs/default.local
@@ -76,6 +79,37 @@ If using LCG release, set the desired environment first:
 ```
 . /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
 ```
+or 
+```
+. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_latest x86_64-centos7-gcc7-opt
+```
+
+Note: `. scripts/setup_env_lcg.sh` can be called to setup environment with LCG and SPDK.
+Note2: LCG_93 contains CMake 3.7 that may show warnings if BOOST library version is 1.64+.
+
+##### SPDK
+FogKV is using SPDK internally so following extra step is required to configure environment.
+
+To be called once:
+```
+cd ${fogKVpath}
+sudo third-party/spdk/scripts/pkgdep.sh
+```
+
+To be called each time:
+```
+cd ${fogKVpath}
+sudo third-party/spdk/scripts/setup
+```
+
+If using LCG then execute as root with LCG initialized or remember to preserve user LD_LIBRARY_PATH in visudo.
+Example:
+
+```
+cd ${fogKVpath}/bin
+sudo LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH" ./clinode -i
+```
+
 #### Unit Tests
 
 ```
@@ -90,36 +124,37 @@ ctest
 
 #### CLI node example 
 ```
-./cli-node -h
+sudo ./cli-node -h
 Options:
   -h [ --help ]                         Print help messages
   -p [ --port ] arg                     Node Communication port
   -d [ --dht ] arg                      DHT Communication port
-  -n [ --nodeid ] arg (=0)              Node ID used to match database file. If
-                                        not set DB file will be removed when 
-                                        node stopped.
+  -n [ --nodeid ] arg (=0)              Node ID used to match database file
   -i [ --interactive ]                  Enable interactive mode
   -l [ --log ]                          Enable logging
-  --pmem-path arg (=/mnt/pmem/pmemkv.dat)
-                                        pmemkv persistent memory pool file
-  --pmem-size arg (=536870912)          pmemkv persistent memory pool size
+  --pmem-path arg (=/mnt/pmem/pool.pm)  Rtree persistent memory pool file
+  --pmem-size arg (=2147483648)         Rtree persistent memory pool size
+  -c [ --spdk-conf-file ] arg (=../config.spdk)
+                                        SPDK configuration file
 ```
 
 To enter interactive mode execute cli-node with `--interactive` flag.
 (Remember to allow writing to /mnt/pmem/ if not changing default --pmem-path)
 ```
-./cli_node -i
-DHT node (id=107) is running on 127.0.0.1:11000
-Waiting for requests on port 40401. Press CTRL-C to exit.
+sudo ./cli_node -i
 fogkv> help
 Following commands supported:
-	- get <key>
-	- help
-	- put <key> <value>
-	- quit
-	- remove <key>
-	- status
-
+    - aget <key>
+    - aput <key> <value> [-o <lock|ready|long_term> <0|1>]
+    - aupdate <key> [value] [-o <lock|ready|long_term> <0|1>]
+    - get <key>
+    - help
+    - node <id>
+    - put <key> <value> [-o <lock|ready|long_term> <0|1>]
+    - quit
+    - remove <key>
+    - status
+    - update <key> [value] [-o <lock|ready|long_term> <0|1>]
 ```
 
 #### Basic example
@@ -127,3 +162,38 @@ Following commands supported:
 This application (located in examples/basic) provides examples how to
 use FogKV API (initialization, basic CRUD operations, ...).
 
+#### Minidaq benchmark
+
+This application (located in apps/minidaq) is a simple benchmark that emulates
+the operation of a typical Data AcQuisition (DAQ) system based on a KVS store.
+
+Currently only a single node version using FogKV library is supported. More details
+are available in the built-in help of the application:
+```
+./minidaq --help
+```
+
+Tips for running minidaq:
+
+* Administrative privileges are required. Run with root or sudo:
+```
+sudo LD_LIBRARY_PATH=`pwd`:$LD_LIBRARY_PATH ./minidaq --help
+```
+* LCG environment is required. Note:
+```
+. scripts/setup_env_lcg.sh
+```
+can be called to setup environment with LCG and SPDK.
+* Recommended environment variables for PMDK: 
+```
+export PMEM_IS_PMEM_FORCE=1
+export PMEM_NO_FLUSH=1
+export PMEMOBJ_CONF="prefault.at_open=1;prefault.at_create=1"
+```
+* For single-node tests synchronous mode of operation for readout threads
+is recommended.
+* Time and persistent memory pool size should adjusted carefully. Depending on
+the performance, memory pool can be too small for giving test and ramp times.
+Performance can be degraded or interrupted.
+* Persistent memory pool file should be deleted before each test run.
+Unexpected behavior can occur otherwise.

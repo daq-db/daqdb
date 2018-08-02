@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,4 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "RTreeEngine.h"
+#include "RTree.h"
+namespace FogKV {
+RTreeEngine *RTreeEngine::Open(const string &engine, // open storage engine
+                               const string &path,   // path to persistent pool
+                               size_t size) {
+    return new FogKV::RTree(path, size);
+}
+
+void RTreeEngine::Close(RTreeEngine *kv) {} // close storage engine
+}

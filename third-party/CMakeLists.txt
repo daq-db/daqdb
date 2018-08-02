@@ -2,8 +2,9 @@ project(third-party)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../bin)
+set(ROOT_FOGKV_DIR ${PROJECT_SOURCE_DIR}/..)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
 
 # cchord
 set(CCHORD ${PROJECT_SOURCE_DIR}/cChord)
@@ -23,99 +24,67 @@ include_directories(${CCHORD_INCLUDES})
 file(GLOB_RECURSE CCHORD_SOURCES ${CCHORD}/engine/*.cpp ${CCHORD}/engine/*.h)
 add_library(cchord SHARED ${CCHORD_SOURCES})
 
-# @TODO jradtke: change to use ExternalProject_Add
 # libfabric
-include_directories(libfabric/include)
-if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libfabric.so OR NOT EXISTS ${3RDPARTY}/libfabric/src/.libs/libfabric.so)
-	add_custom_target(libfabric_target 
-		COMMAND libtoolize 
-		COMMAND ./autogen.sh 
-		COMMAND ./configure --prefix=${PROJECT_SOURCE_DIR}/libfabric
-		COMMAND make
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libfabric
-	)
-	add_custom_command(TARGET libfabric_target POST_BUILD
-	    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	        ${3RDPARTY}/libfabric/src/.libs/libfabric.so
-	        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libfabric.so
-	)  
-endif()
-add_library(libfabric SHARED IMPORTED GLOBAL)
-add_dependencies(libfabric libfabric_target)
-set_target_properties(libfabric
-    PROPERTIES
-    IMPORTED_LOCATION ${3RDPARTY}/libfabric/src/.libs/libfabric.so
-    INTERFACE_INCLUDE_DIRECTORIES ${3RDPARTY}/libfabric/include)
+set(LIBFABRIC_PATH ${3RDPARTY}/libfabric/src/.libs/libfabric.so)
+ExternalProject_Add(project_libfabric
+	PREFIX ${PROJECT_SOURCE_DIR}/libfabric
+	SOURCE_DIR ${PROJECT_SOURCE_DIR}/libfabric
+	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/libfabric
+	CONFIGURE_COMMAND libtoolize && ./autogen.sh && ./configure --prefix=${PROJECT_SOURCE_DIR}/libfabric
+	BUILD_COMMAND make
+	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			${LIBFABRIC_PATH}
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libfabric.so.1
+)
+add_library(fabric SHARED IMPORTED GLOBAL)
+add_dependencies(fabric project_libfabric)
+set_target_properties(fabric PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libfabric.so.1)
 
-# @TODO jradtke: change to use ExternalProject_Add
 # pmdk
 include_directories(pmdk/src/include)
-if ((NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libpmem.so OR NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libpmemobj.so) OR
-	(NOT EXISTS ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so OR NOT EXISTS ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so))
-	add_custom_target(libpmdk_target 
-		COMMAND make install prefix=${PROJECT_SOURCE_DIR}/pmdk
-		WORKING_DIRECTORY ${3RDPARTY}/pmdk
-		BYPRODUCTS ${3RDPARTY}/pmdk/lib/libpmem.so ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so
-	)
-	add_custom_command(TARGET libpmdk_target POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    	${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so
-	)
-	add_custom_command(TARGET libpmdk_target POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    	${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so
-	) 
-endif()
-add_library(libpmem SHARED IMPORTED GLOBAL)
-add_dependencies(libpmem libpmdk_target)
-set_target_properties(libpmem
-    PROPERTIES
-    IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so
-    INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/pmdk/src/include)
-add_library(libpmemobj SHARED IMPORTED GLOBAL)
-add_dependencies(libpmemobj libpmdk_target)
-set_target_properties(libpmemobj
-    PROPERTIES
-    IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so
-    INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/pmdk/src/include)
-
-# pmemkv
-set(PMEMKV ${PROJECT_SOURCE_DIR}/pmemkv)
-set(PMEMKV_INCLUDES ${PMEMKV}/src ${PMEMKV}/src/engines)
-set(PMEMKV_INCLUDES_EXPORT ${PMEMKV_INCLUDES} PARENT_SCOPE)
-include_directories(${PMEMKV_INCLUDES})
-file(GLOB_RECURSE PMEMKV_SOURCES ${PMEMKV}/src/pmemkv.cc ${PMEMKV}/src/engines/*.cc)
-add_library(pmemkv SHARED ${PMEMKV_SOURCES})
+ExternalProject_Add(project_pmdk
+	PREFIX ${PROJECT_SOURCE_DIR}/pmdk
+	SOURCE_DIR ${PROJECT_SOURCE_DIR}/pmdk
+	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/pmdk
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND make install prefix=${PROJECT_SOURCE_DIR}/pmdk
+	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so.1 &&
+			${CMAKE_COMMAND} -E copy_if_different
+			${PROJECT_SOURCE_DIR}/pmdk/lib/libpmemobj.so
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so.1
+)
+add_library(pmem SHARED IMPORTED GLOBAL)
+add_dependencies(pmem project_pmdk)
+set_target_properties(pmem PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so.1)
+add_library(pmemobj SHARED IMPORTED GLOBAL)
+add_dependencies(pmemobj project_pmdk)
+set_target_properties(pmemobj PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so.1)
 
 # spdk
-set(SPDK_LIBS
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_app_rpc.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_malloc.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_null.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_aio.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_rpc.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_bdev_nvme.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_blob_bdev.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_blob.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_env_dpdk.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_nvme.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_rpc.a
-    ${PROJECT_SOURCE_DIR}/spdk/build/lib/libspdk_util.a
-    )
 ExternalProject_Add(project_spdk
-    PREFIX ${PROJECT_SOURCE_DIR}/spdk
-    SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
-    BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/spdk
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND make
-    INSTALL_COMMAND ar -rcT ${PROJECT_SOURCE_DIR}/spdk/libspdk.a ${SPDK_LIBS}
+	PREFIX ${PROJECT_SOURCE_DIR}/spdk
+	SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
+	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/spdk
+	CONFIGURE_COMMAND "./configure"
+	BUILD_COMMAND make
+	INSTALL_COMMAND ${ROOT_FOGKV_DIR}/scripts/prepare_spdk_libs.sh
 )
 add_library(spdk STATIC IMPORTED GLOBAL)
 set_property(TARGET spdk PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/spdk/libspdk.a)
 add_dependencies(spdk project_spdk)
+add_library(dpdk STATIC IMPORTED GLOBAL)
+set_property(TARGET dpdk PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/spdk/libdpdk.a)
+add_dependencies(dpdk project_spdk)
+
+# hdrhistogram
+set(HDRHISTOGRAM ${PROJECT_SOURCE_DIR}/HdrHistogram_c)
+set(HDRHISTOGRAM_INCLUDES ${HDRHISTOGRAM}/src)
+set(HDRHISTOGRAM_INCLUDES_EXPORT ${HDRHISTOGRAM_INCLUDES} PARENT_SCOPE)
+include_directories(${HDRHISTOGRAM_INCLUDES})
+file(GLOB_RECURSE HDRHISTOGRAM_SOURCES ${HDRHISTOGRAM}/src/*.c)
+add_library(hdr_histogram SHARED ${HDRHISTOGRAM_SOURCES})
 
 # Cleanup tasks
 add_custom_target(clean-dep)

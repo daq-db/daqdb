@@ -18,7 +18,7 @@ set(EXAMPLES ${PROJECT_SOURCE_DIR}/examples)
 set(APPS ${PROJECT_SOURCE_DIR}/apps)
 
 find_package(PkgConfig)
-
+find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
 # fogkv lib dependencies
 find_package(Jsoncpp)
 
@@ -41,17 +41,19 @@ add_subdirectory(third-party)
 include_directories(${CCHORD_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
-include_directories(${PMEMKV_INCLUDES_EXPORT})
+include_directories(${3RDPARTY}/spdk/include)
+include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 
+set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 # Build and link fogkv library
 include_directories(include include/db include/dht include/fabric include/FogKV include/store)
 file(GLOB_RECURSE FOGKV_SOURCES
-	lib/db/*.cpp lib/db/*.h 
+	lib/debug/*.cpp lib/debug/*.h 
 	lib/dht/*.cpp lib/dht/*.h 
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Jsoncpp_LIBRARY} libfabric cchord pmemkv spdk)
+target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord ${Spdk_LIBRARIES} ${Boost_LIBRARIES})
 
 # Build test folder
 add_subdirectory(tests)
@@ -64,4 +66,11 @@ find_package(Config++ REQUIRED)
 add_subdirectory(${APPS}/mist)
 
 add_subdirectory(${EXAMPLES}/basic)
+add_subdirectory(${EXAMPLES}/fabric_node)
+
+# Build apps folder
+add_subdirectory(${APPS}/minidaq)
+
+# Initiate githooks for clang-format
+ADD_CUSTOM_TARGET(do_always ALL COMMAND git config core.hooksPath "${PROJECT_SOURCE_DIR}/scripts/githooks")
 
