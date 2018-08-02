@@ -38,7 +38,6 @@ include_directories(${Jsoncpp_INCLUDE_DIR})
 
 # dependencies from third-party folder
 add_subdirectory(third-party)
-include_directories(${CCHORD_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
 include_directories(${3RDPARTY}/spdk/include)
@@ -53,7 +52,7 @@ file(GLOB_RECURSE FOGKV_SOURCES
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric cchord ${Spdk_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric ${Spdk_LIBRARIES} ${Boost_LIBRARIES})
 
 # Build test folder
 add_subdirectory(tests)
