@@ -96,11 +96,11 @@ ExternalProject_Add(project_libconfig
 	BUILD_COMMAND make
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PROJECT_SOURCE_DIR}/libconfig/out/liblibconfig++.so
-			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so.1
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so
 )
 add_library(libconfig STATIC IMPORTED GLOBAL)
 add_dependencies(libconfig project_libconfig)
-set_target_properties(libconfig PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so.1)
+set_target_properties(libconfig PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so)
 
 # Cleanup tasks
 add_custom_target(clean-dep)
