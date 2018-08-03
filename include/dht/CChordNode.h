@@ -34,7 +34,6 @@
 
 #include <asio/io_service.hpp>
 #include <dht/DhtNode.h>
-#include <ChordNode.h>
 
 namespace FogKV
 {
@@ -86,8 +85,11 @@ public:
 	}
 
 private:
-	unique_ptr<ChordNode> spNode;
-	unique_ptr<Node> spChord;
+
+	// @TODO replace with new DHT implementation library
+	// unique_ptr<ChordNode> spNode;
+	//unique_ptr<Node> spChord;
+
 	bool skipShutDown;
 };
 

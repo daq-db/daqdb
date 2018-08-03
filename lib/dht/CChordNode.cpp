@@ -36,7 +36,6 @@
 #include <dht/CChordNode.h>
 
 #include "DhtUtils.h"
-#include "ProtocolSingleton.h"
 
 using namespace std;
 
@@ -57,73 +56,80 @@ CChordAdapter::CChordAdapter(asio::io_service &io_service, unsigned short port,
 }
 
 CChordAdapter::CChordAdapter(asio::io_service &io_service, unsigned short port,
-			     unsigned short dragonPort, int id, bool skipShutDown)
-    : FogKV::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown)
-{
-	auto dhtPort = FogKV::utils::getFreePort(io_service, port, true);
+                             unsigned short dragonPort, int id,
+                             bool skipShutDown)
+    : FogKV::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown) {
+    auto dhtPort = FogKV::utils::getFreePort(io_service, port, true);
 
-	string backBone[] = {
-		dhtBackBoneIp,
-	};
+    string backBone[] = {
+        dhtBackBoneIp,
+    };
 
-	spNode.reset(P_SINGLETON->initChordNode(
-		id, dhtBackBoneIp, dhtPort, dragonPort, dhtOverlayIdentifier,
-		rootDirectory));
-	spChord.reset(new Node(backBone[0], id, port, dragonPort));
+    // @TODO jradtke Replace with new DHT library
+    /*
+        spNode.reset(P_SINGLETON->initChordNode(
+                id, dhtBackBoneIp, dhtPort, dragonPort, dhtOverlayIdentifier,
+                rootDirectory));
+        spChord.reset(new Node(backBone[0], id, port, dragonPort));
+        spNode->join(spChord.get());
+         */
 
-	spNode->join(spChord.get());
-
-	this->setPort(spNode->getThisNode()->getPort());
-	this->setDragonPort(spNode->getThisNode()->getDragonPort());
-	this->setDhtId(spNode->getThisNode()->getId());
-	this->setIp(spNode->getThisNode()->getIp());
+    this->setPort(dhtPort);
+    this->setDragonPort(dragonPort);
+    this->setDhtId(id);
+    this->setIp(dhtBackBoneIp);
 }
 
-CChordAdapter::~CChordAdapter()
-{
-	if (!skipShutDown) {
-		spNode->shutDown();
-	}
+CChordAdapter::~CChordAdapter() {
+    if (!skipShutDown) {
+        // @TODO jradtke Replace with new DHT library
+        // spNode->shutDown();
+    }
 }
 
 std::string
 CChordAdapter::printStatus()
 {
-	return spNode->printStatus();
+    // @TODO jradtke Replace with new DHT library
+	// return spNode->printStatus();
+
+    return "";
 }
 
-unsigned int
-CChordAdapter::getPeerList(std::vector<PureNode*> &peerNodes)
-{
-	std::set<unsigned int> addedDhtNodes;
-	auto addUniqueNode = [&addedDhtNodes, &peerNodes](Node *pNodeToAdd) {
-		if (!addedDhtNodes.count(pNodeToAdd->getId())) {
-			peerNodes.push_back(new FogKV::PureNode(
-				pNodeToAdd->getIp(), pNodeToAdd->getId(),
-				pNodeToAdd->getPort(),
-				pNodeToAdd->getDragonPort()));
-			addedDhtNodes.emplace(pNodeToAdd->getId());
-		}
-	};
-	addedDhtNodes.emplace(this->getDhtId());
+unsigned int CChordAdapter::getPeerList(std::vector<PureNode *> &peerNodes) {
+    // @TODO jradtke Replace with new DHT library
+    /*
+        std::set<unsigned int> addedDhtNodes;
+        auto addUniqueNode = [&addedDhtNodes, &peerNodes](Node *pNodeToAdd) {
+                if (!addedDhtNodes.count(pNodeToAdd->getId())) {
+                        peerNodes.push_back(new FogKV::PureNode(
+                                pNodeToAdd->getIp(), pNodeToAdd->getId(),
+                                pNodeToAdd->getPort(),
+                                pNodeToAdd->getDragonPort()));
+                        addedDhtNodes.emplace(pNodeToAdd->getId());
+                }
+        };
+        addedDhtNodes.emplace(this->getDhtId());
 
-	addUniqueNode(spNode->getPredecessor());
-	addUniqueNode(spNode->getSuccessor());
+        addUniqueNode(spNode->getPredecessor());
+        addUniqueNode(spNode->getSuccessor());
 
-	vector<Node *> nodeFingerTable;
-	spNode->getPeerList(nodeFingerTable);
-	for (auto pNode : nodeFingerTable) {
-		addUniqueNode(pNode);
-	}
-	return peerNodes.size();
+        vector<Node *> nodeFingerTable;
+        spNode->getPeerList(nodeFingerTable);
+        for (auto pNode : nodeFingerTable) {
+                addUniqueNode(pNode);
+        }
+        */
+    return peerNodes.size();
 }
 
-void
-CChordAdapter::refresh()
-{
-	spNode->stabilize();
-	spNode->fixFingersTable();
-	spNode->checkPredecessor();
+void CChordAdapter::refresh() {
+    // @TODO jradtke Replace with new DHT library
+    /*
+        spNode->stabilize();
+        spNode->fixFingersTable();
+        spNode->checkPredecessor();
+        */
 }
 
 void
