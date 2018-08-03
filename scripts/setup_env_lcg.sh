@@ -13,6 +13,6 @@ SPDKPATH=third-party/spdk
 
 cvmfs_config probe
 
-source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_latest x86_64-centos7-gcc7-opt
+source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
 
 sudo $SCRIPT_PATH/../$SPDKPATH/scripts/setup.sh
