@@ -25,6 +25,7 @@
 #include <libpmemobj++/pool.hpp>
 #include <libpmemobj++/transaction.hpp>
 #include <libpmemobj++/utils.hpp>
+#include <libpmemobj++/v.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -44,6 +45,11 @@ enum OBJECT_TYPES { VALUE, IOV };
 
 namespace FogKV {
 
+struct locationStruct {
+    locationStruct() : value(EMPTY) {}
+    int value;
+};
+
 struct ValueWrapper {
     explicit ValueWrapper()
         : actionValue(nullptr), actionUpdate(nullptr), location(EMPTY) {}
@@ -55,6 +61,7 @@ struct ValueWrapper {
     } locationPtr;
 
     p<size_t> size;
+    v<locationStruct> locationVolatile;
     struct pobj_action *actionValue;
     struct pobj_action *actionUpdate;
     string getString();
