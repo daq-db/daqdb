@@ -78,7 +78,7 @@ Tree::Tree(const string &path, const size_t size) {
 StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
                       size_t *size, uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    if (val->location == EMPTY) {
+    if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
         return StatusCode::KeyNotFound;
     } else if (val->location == PMEM) {
         *value = val->locationPtr.value.get();
@@ -93,7 +93,7 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
 
 StatusCode RTree::Get(const char *key, void **value, size_t *size, uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    if (val->location == EMPTY) {
+    if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
         return StatusCode::KeyNotFound;
     } else if (val->location == PMEM) {
         *value = val->locationPtr.value.get();
@@ -109,6 +109,7 @@ StatusCode RTree::Put(const char *key, // copy value from std::string
                       char *value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = PMEM;
+    val->locationVolatile.get().value = PMEM;
     return StatusCode::Ok;
 }
 
@@ -116,6 +117,7 @@ StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
                       int32_t valuebytes) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = PMEM;
+    val->locationVolatile.get().value = PMEM;
     return StatusCode::Ok;
 }
 
@@ -125,7 +127,8 @@ StatusCode RTree::Remove(const char *key) {
         return StatusCode::KeyNotFound;
     }
     try {
-        if (val->location == PMEM) {
+        if (val->location == PMEM &&
+			val->locationVolatile.get().value != EMPTY) {
             pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
         } else if (val->location == DISK) {
             // @TODO jradtke need to confirm if no extra action required here
