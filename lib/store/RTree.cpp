@@ -78,14 +78,14 @@ Tree::Tree(const string &path, const size_t size) {
 StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
                       size_t *size, uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
-        return StatusCode::KeyNotFound;
-    } else if (val->location == PMEM) {
+    if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
         *location = val->location;
     } else if (val->location == DISK) {
         *value = val->locationPtr.IOVptr.get();
         *location = val->location;
+    } else if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
+        return StatusCode::KeyNotFound;
     }
     *size = val->size;
     return StatusCode::Ok;
@@ -93,14 +93,14 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
 
 StatusCode RTree::Get(const char *key, void **value, size_t *size, uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
-        return StatusCode::KeyNotFound;
-    } else if (val->location == PMEM) {
+   if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
         *location = val->location;
     } else if (val->location == DISK) {
         *value = val->locationPtr.IOVptr.get();
         *location = val->location;
+    } else if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
+        return StatusCode::KeyNotFound;
     }
     *size = val->size;
     return StatusCode::Ok;
