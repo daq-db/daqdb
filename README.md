@@ -1,4 +1,4 @@
-# FogKV
+# Data AcQuisition DataBase
 
 ## Contents
 
@@ -18,8 +18,8 @@ Scalable distributed, low-latency key/value store with range queries.
 
 #### Source Code
 ```
-git clone https://github.com/FogKV/FogKV.git
-cd ${fogKVpath}
+git clone https://github.com/daq-db/daqdb.git
+cd ${daqdb_path}
 git submodule update --init --recursive
 ```
 
@@ -27,7 +27,7 @@ git submodule update --init --recursive
 
 The dependencies can be installed automatically by scripts/pkgdep.sh.
 ```
-cd ${fogKVpath}
+cd ${daqdb_path}
 scripts/pkgdep.sh
 third-party/spdk/scripts/pkgdep.sh
 ```
@@ -62,16 +62,16 @@ ls /cvmfs/grid.cern.ch
 
 
 ```
-cd ${fogKVpath}
+cd ${daqdb_path}
 cmake .
 make -j$(nproc)
 ```
-By default, all software can be found in ${fogKvpath}/bin folder.
+By default, all software can be found in ${daqdb_path}/bin folder.
 
 ```
-make clean              # remove fogkv lib build files
+make clean              # remove daqdb lib build files
 make clean-dep          # remove third-party build files
-make clean-all          # remove cmake, third-party and fogkv build files
+make clean-all          # remove cmake, third-party and daqdb build files
 ```
 
 ##### LCG
@@ -88,17 +88,17 @@ Note: `. scripts/setup_env_lcg.sh` can be called to setup environment with LCG a
 Note2: LCG_93 contains CMake 3.7 that may show warnings if BOOST library version is 1.64+.
 
 ##### SPDK
-FogKV is using SPDK internally so following extra step is required to configure environment.
+DAQDB is using SPDK internally so following extra step is required to configure environment.
 
 To be called once:
 ```
-cd ${fogKVpath}
+cd ${daqdb_path}
 sudo third-party/spdk/scripts/pkgdep.sh
 ```
 
 To be called each time:
 ```
-cd ${fogKVpath}
+cd ${daqdb_path}
 sudo third-party/spdk/scripts/setup
 ```
 
@@ -106,14 +106,14 @@ If using LCG then execute as root with LCG initialized or remember to preserve u
 Example:
 
 ```
-cd ${fogKVpath}/bin
+cd ${daqdb_path}/bin
 sudo LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH" ./clinode -i
 ```
 
 #### Unit Tests
 
 ```
-cd ${fogKVpath}
+cd ${daqdb_path}
 cmake .
 make -j$(nproc)
 ctest
@@ -142,7 +142,7 @@ To enter interactive mode execute cli-node with `--interactive` flag.
 (Remember to allow writing to /mnt/pmem/ if not changing default --pmem-path)
 ```
 sudo ./cli_node -i
-fogkv> help
+daqdb> help
 Following commands supported:
     - aget <key>
     - aput <key> <value> [-o <lock|ready|long_term> <0|1>]
@@ -160,14 +160,14 @@ Following commands supported:
 #### Basic example
 
 This application (located in examples/basic) provides examples how to
-use FogKV API (initialization, basic CRUD operations, ...).
+use DAQDB API (initialization, basic CRUD operations, ...).
 
 #### Minidaq benchmark
 
 This application (located in apps/minidaq) is a simple benchmark that emulates
 the operation of a typical Data AcQuisition (DAQ) system based on a KVS store.
 
-Currently only a single node version using FogKV library is supported. More details
+Currently only a single node version using DAQDB library is supported. More details
 are available in the built-in help of the application:
 ```
 ./minidaq --help
