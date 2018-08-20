@@ -129,7 +129,7 @@ nodeCli::nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spKVStore)
 nodeCli::~nodeCli() {}
 
 int nodeCli::operator()() {
-    auto *inLine = linenoise("fogkv> ");
+    auto *inLine = linenoise("daqdb> ");
     auto isEmpty = false;
     if (inLine == nullptr) {
         return false;
