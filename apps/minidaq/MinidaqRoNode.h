@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,42 +30,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "KVStore.h"
+#pragma once
 
-namespace FogKV
-{
+#include "MinidaqNode.h"
 
-KVStore::KVStore()
-{
+namespace FogKV {
+
+class MinidaqRoNode : public MinidaqNode {
+  public:
+    MinidaqRoNode(KVStoreBase *kvs);
+    virtual ~MinidaqRoNode();
+
+    void SetFragmentSize(size_t s);
+    void SetSubdetectorId(int id);
+
+  protected:
+    void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+               std::atomic<std::uint64_t> &cntErr);
+    void _Setup(int executorId, MinidaqKey &key);
+    void _NextKey(MinidaqKey &key);
+    std::string _GetType();
+
+    size_t _fSize = 0;
+    int _id = 0;
+};
 }
-
-KVStore::~KVStore()
-{
-}
-
-KVStatus
-KVStore::Get(int32_t limit, int32_t keybytes, int32_t *valuebytes,
-	     const char *key, char *value)
-{
-	return KVStatus::FAILED;
-}
-
-KVStatus
-KVStore::Get(const string &key, string *valuestr)
-{
-	return KVStatus::FAILED;
-}
-
-KVStatus
-KVStore::Put(const string &key, const string &valuestr)
-{
-	return KVStatus::FAILED;
-}
-
-KVStatus
-KVStore::Remove(const string &key)
-{
-	return KVStatus::FAILED;
-}
-
-} /* namespace DragonStore */

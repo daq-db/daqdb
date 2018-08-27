@@ -32,56 +32,73 @@
 
 #pragma once
 
-#include <thread>
 #include <atomic>
 #include <cstdint>
+#include <thread>
 
+#include "OffloadRqstPooler.h"
+#include "RTreeEngine.h"
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
-#include <pmemkv.h>
 
 #include <FogKV/KVStoreBase.h>
 
-#define DEQUEUE_RING_LIMIT	256
+#define DEQUEUE_RING_LIMIT 1024
 
 namespace FogKV {
 
-enum class RqstOperation
-	: std::int8_t {NONE = 0, GET = 1, PUT = 2, UPDATE = 3, DELETE = 4
-};
+enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2, UPDATE = 3 };
 
 class RqstMsg {
-public:
-	RqstMsg(RqstOperation op, Key *key, Value *value,
-			KVStoreBase::KVStoreBasePutCallback *cb_fn);
-	Key *key = nullptr;
-	Value *value = nullptr;
-	KVStoreBase::KVStoreBasePutCallback *cb_fn = nullptr;
-	RqstOperation op = RqstOperation::NONE;
+  public:
+    RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
+            const char *value, size_t valueSize,
+            KVStoreBase::KVStoreBaseCallback clb);
+
+    const RqstOperation op = RqstOperation::NONE;
+    const char *key = nullptr;
+    size_t keySize = 0;
+    const char *value = nullptr;
+    size_t valueSize = 0;
+
+    // @TODO jradtke copying std:function in every msg might be not good idea
+    KVStoreBase::KVStoreBaseCallback clb;
 };
 
-class RqstPooler {
-public:
-	RqstPooler(std::shared_ptr<pmemkv::KVEngine> Store);
-	virtual ~RqstPooler();
-	void Start();
-	bool EnqueueMsg(RqstMsg *Message);
+class RqstPoolerInterface {
+    virtual void StartThread() = 0;
 
-	std::atomic_int mIsRunning;
-	/** @TODO jradtke: Do we need completion queue too? */
-	struct spdk_ring *mSubmitRing;
+    virtual bool EnqueueMsg(RqstMsg *Message) = 0;
+    virtual void DequeueMsg() = 0;
+    virtual void ProcessMsg() = 0;
+};
 
-	std::thread *mThread;
-private:
-	void ThreadMain(void);
-	void DequeueMsg();
-	void ProcessMsg();
+class RqstPooler : public RqstPoolerInterface {
+  public:
+    RqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+               const size_t cpuCore = 0);
+    virtual ~RqstPooler();
 
-	std::shared_ptr<pmemkv::KVEngine> mPmemkv;
+    bool EnqueueMsg(RqstMsg *Message);
+    void DequeueMsg();
+    void ProcessMsg() final;
+    void StartThread();
 
-	RqstMsg *mRqstMsgBuffer[DEQUEUE_RING_LIMIT];
-	unsigned short mDequedCount = 0;
+    OffloadRqstPooler *offloadPooler = nullptr;
+
+    std::atomic<int> isRunning;
+    std::shared_ptr<FogKV::RTreeEngine> rtree;
+    struct spdk_ring *rqstRing;
+
+    unsigned short processArrayCount = 0;
+    RqstMsg *processArray[DEQUEUE_RING_LIMIT];
+
+  private:
+    void _ThreadMain(void);
+
+    std::thread *_thread;
+    size_t _cpuCore = 0;
 };
 
 } /* namespace FogKV */

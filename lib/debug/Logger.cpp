@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,49 +30,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream>
-#include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
+#include "Logger.h"
 
-#include <libpmemobj/pool_base.h>
-#include <pmemkv.h>
+namespace FogKV {
 
-using namespace std;
-using namespace pmemkv;
+FogKV::Logger gLog;
 
-namespace ut = boost::unit_test;
+Logger::Logger() {}
 
-namespace
-{
-const unsigned short dhtBackBonePort = 11000;
-const string pmemKvEngine = "kvtree";
-const string pmemKvPath = "/dev/shm/forkv_test_pmemkv";
-};
+Logger::~Logger() {}
 
-BOOST_AUTO_TEST_SUITE(KVStoreTests)
+void Logger::setLogFunc(std::function<void(std::string)> fn) { _logFunc = fn; }
 
-BOOST_AUTO_TEST_CASE(KVStoreTests_PutGetRemove)
-{
-	std::unique_ptr<KVEngine> spPmemKV(KVEngine::Open(
-		pmemKvEngine, pmemKvPath, PMEMOBJ_MIN_POOL));
-
-	auto actionStatus = spPmemKV->Put("key1", "value1");
-
-	BOOST_CHECK(actionStatus == OK);
-
-	string resultValue;
-	actionStatus = spPmemKV->Get("key1", &resultValue);
-
-	BOOST_CHECK(actionStatus == KVStatus::OK);
-	BOOST_CHECK(resultValue == "value1");
-
-	actionStatus = spPmemKV->Remove("key1");
-	BOOST_CHECK(actionStatus == KVStatus::OK);
-
-	actionStatus = spPmemKV->Get("key1", &resultValue);
-	BOOST_CHECK(actionStatus == KVStatus::NOT_FOUND);
-
-	boost::filesystem::remove(pmemKvPath);
+void Logger::Log(std::string msg) {
+    if (_logFunc) {
+        _logFunc(msg);
+    }
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+} /* namespace FogKV */

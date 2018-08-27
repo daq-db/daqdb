@@ -4,32 +4,25 @@
 SYSTEM=`uname -s`
 
 if [ -s /etc/centos-release ]; then
-	yum install -y scons
-
+	yum install cmake
+	yum install boost boost-test boost-devel
+	yum install asio-devel
+	yum install libaio libaio-devel
+	yum install jsoncpp jsoncpp-devel
 elif [ -s /etc/redhat-release ]; then
     # Includes Fedora
-
-    # FogKV Building environment dependencies
-    dnf install scons cmake
-    # Boost dependencies
-    dnf install -y boost boost-test boost-devel
-    # logging dependencies
-    dnf install -y log4cxx log4cxx-devel
-    # logging dependencies
-    dnf install -y jsoncpp jsoncpp-devel
-
+    dnf install cmake
+    dnf install boost boost-test boost-devel
+    dnf install asio-devel
+    dnf install libaio libaio-devel
+    dnf install jsoncpp jsoncpp-devel
 elif [ -f /etc/debian_version ]; then
     # Includes Ubuntu, Debian
-	
-    # FogKV Building environment dependencies
-    apt-get install -y scons cmake
-    # Boost dependencies
-    apt-get install -y libboost1.63-all-dev
-    # logging dependencies
-    apt-get install -y liblog4cxx10v5 liblog4cxx-dev
-    # jsoncpp dependencies
-    libjsoncpp libjsoncpp-dev 
-
+    apt-get install cmake
+    apt-get install libboost-all-dev
+    apt-get install libasio-dev
+    apt-get install libaio1 libaio-dev
+    apt-get install libjsoncpp1 libjsoncpp-dev 
 else
 	echo "pkgdep: unknown system type."
 	exit 1

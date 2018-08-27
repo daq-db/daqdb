@@ -62,20 +62,12 @@ add_library(pmemobj SHARED IMPORTED GLOBAL)
 add_dependencies(pmemobj project_pmdk)
 set_target_properties(pmemobj PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so.1)
 
-# pmemkv
-set(PMEMKV ${PROJECT_SOURCE_DIR}/pmemkv)
-set(PMEMKV_INCLUDES ${PMEMKV}/src ${PMEMKV}/src/engines)
-set(PMEMKV_INCLUDES_EXPORT ${PMEMKV_INCLUDES} PARENT_SCOPE)
-include_directories(${PMEMKV_INCLUDES})
-file(GLOB_RECURSE PMEMKV_SOURCES ${PMEMKV}/src/pmemkv.cc ${PMEMKV}/src/engines/*.cc)
-add_library(pmemkv SHARED ${PMEMKV_SOURCES})
-
 # spdk
 ExternalProject_Add(project_spdk
 	PREFIX ${PROJECT_SOURCE_DIR}/spdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/spdk
-	CONFIGURE_COMMAND ""
+	CONFIGURE_COMMAND "./configure"
 	BUILD_COMMAND make
 	INSTALL_COMMAND ${ROOT_FOGKV_DIR}/scripts/prepare_spdk_libs.sh
 )
@@ -85,6 +77,30 @@ add_dependencies(spdk project_spdk)
 add_library(dpdk STATIC IMPORTED GLOBAL)
 set_property(TARGET dpdk PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/spdk/libdpdk.a)
 add_dependencies(dpdk project_spdk)
+
+# hdrhistogram
+set(HDRHISTOGRAM ${PROJECT_SOURCE_DIR}/HdrHistogram_c)
+set(HDRHISTOGRAM_INCLUDES ${HDRHISTOGRAM}/src)
+set(HDRHISTOGRAM_INCLUDES_EXPORT ${HDRHISTOGRAM_INCLUDES} PARENT_SCOPE)
+include_directories(${HDRHISTOGRAM_INCLUDES})
+file(GLOB_RECURSE HDRHISTOGRAM_SOURCES ${HDRHISTOGRAM}/src/*.c)
+add_library(hdr_histogram SHARED ${HDRHISTOGRAM_SOURCES})
+
+#libconfig
+set(LIBCONFIG_INCLUDES_EXPORT ${PROJECT_SOURCE_DIR}/libconfig/lib PARENT_SCOPE)
+ExternalProject_Add(project_libconfig
+	PREFIX ${PROJECT_SOURCE_DIR}/libconfig
+	SOURCE_DIR ${PROJECT_SOURCE_DIR}/libconfig
+	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/libconfig
+	CMAKE_ARGS -DBUILD_EXAMPLES=OFF -DBUILD_TESTS=OFF
+	BUILD_COMMAND make
+	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			${PROJECT_SOURCE_DIR}/libconfig/out/liblibconfig++.so
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so
+)
+add_library(libconfig STATIC IMPORTED GLOBAL)
+add_dependencies(libconfig project_libconfig)
+set_target_properties(libconfig PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so)
 
 # Cleanup tasks
 add_custom_target(clean-dep)

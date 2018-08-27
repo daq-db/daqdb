@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +32,19 @@
 
 #pragma once
 
-#ifdef FOGKV_USE_LOG4CXX
-#include <log4cxx/logger.h>
-#include <log4cxx/xml/domconfigurator.h>
-#include <log4cxx/basicconfigurator.h>
-#include <log4cxx/helpers/exception.h>
-#include <log4cxx/consoleappender.h>
-#include <log4cxx/simplelayout.h>
+#include <cstdint>
 
-using namespace log4cxx;
-using namespace log4cxx::xml;
-using namespace log4cxx::helpers;
-#endif
+namespace FogKV {
+
+class MinidaqTimer {
+  public:
+    MinidaqTimer();
+    virtual ~MinidaqTimer();
+
+    virtual void Restart_s(int interval_s) = 0;
+    virtual void Restart_ms(int interval_ms) = 0;
+    virtual void Restart_us(int interval_us) = 0;
+    virtual bool IsExpired() = 0;
+    virtual uint64_t GetElapsed_ns() = 0;
+};
+}
