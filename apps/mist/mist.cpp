@@ -55,7 +55,6 @@ int main(int argc, char ** argv) {
 	asio::io_service io_service;
 	asio::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
-	options.Runtime.io_service(&io_service);
 
 	FogKV::KVStoreBase *kvs;
 	try {

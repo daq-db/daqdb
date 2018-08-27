@@ -30,9 +30,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once 
+#pragma once
 
-#define FUNC_NOT_IMPLEMENTED\
-	NotImplementedException("function: " + std::string(__func__) +\
-		" [" + std::string(__FILE__) + \
-		":" + std::to_string(__LINE__) +"]")
+#define FUNC_NOT_IMPLEMENTED                                                   \
+    NotImplementedException("function: " + std::string(__func__) + " [" +      \
+                            std::string(__FILE__) + ":" +                      \
+                            std::to_string(__LINE__) + "]")

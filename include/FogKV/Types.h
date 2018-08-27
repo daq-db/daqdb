@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once 
+#pragma once
 
 #include <stdexcept>
 
@@ -39,41 +39,48 @@ namespace FogKV {
 typedef unsigned int NodeId;
 
 class NotImplementedException : public std::logic_error {
-public:
-	NotImplementedException(const std::string &what):
-		logic_error("Not Implemented: " + what) {}
+  public:
+    NotImplementedException(const std::string &what)
+        : logic_error("Not Implemented: " + what) {}
 
-	NotImplementedException(): logic_error("Not Implemented") {}
+    NotImplementedException() : logic_error("Not Implemented") {}
 };
 
 class OperationFailedException : public std::runtime_error {
-public:
-	OperationFailedException(Status s, const std::string &msg = "") :
-		runtime_error(msg),
-		_status(s) { set_what(); }
-	OperationFailedException(const std::string &msg = "") :
-		runtime_error(msg),
-		_status(UnknownError) { set_what(); }
-	OperationFailedException(int errnum, std::string msg = "") :
-		runtime_error(msg),
-		_status(errnum) { set_what(); }
+  public:
+    OperationFailedException(Status s, const std::string &msg = "")
+        : runtime_error(msg), _status(s) {
+        set_what();
+    }
+    OperationFailedException(const std::string &msg = "")
+        : runtime_error(msg), _status(UnknownError) {
+        set_what();
+    }
+    OperationFailedException(int errnum, std::string msg = "")
+        : runtime_error(msg), _status(errnum) {
+        set_what();
+    }
 
-	virtual const char *what() const noexcept {
-		return _what.c_str();
-	}
+    virtual const char *what() const noexcept { return _what.c_str(); }
 
-	Status status() { return _status; }
-	Status _status;
-	std::string _what;
-private:
-	void set_what() {
-		_what = runtime_error::what();
+    Status status() { return _status; }
+    Status _status;
+    std::string _what;
 
-		if (!_status.ok() &&
-			_what.find(_status.to_string()) == std::string::npos) {
-			_what += ": " + _status.to_string();
-		}
-	}
+  private:
+    void set_what() {
+        _what = runtime_error::what();
+
+        if (!_status.ok() &&
+            _what.find(_status.to_string()) == std::string::npos) {
+            _what += ": " + _status.to_string();
+        }
+    }
+};
+
+class QueueFullException : public std::runtime_error {
+  public:
+    QueueFullException() : runtime_error("Queue full") {}
 };
 
 } // namespace FogKV

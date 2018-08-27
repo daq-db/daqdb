@@ -1,5 +1,5 @@
 /**
- * Copyright 2017, Intel Corporation
+ * Copyright 2018, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,17 +30,47 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <store/KVInterface.h>
+#pragma once
 
-namespace FogKV
-{
+#include <libpmemobj++/make_persistent.hpp>
+#include <libpmemobj++/p.hpp>
+#include <libpmemobj++/persistent_ptr.hpp>
+#include <libpmemobj++/pool.hpp>
+#include <libpmemobj++/transaction.hpp>
 
-KVInterface::KVInterface()
-{
-}
+namespace FogKV {
 
-KVInterface::~KVInterface()
-{
-}
+using pmem::obj::p;
+using pmem::obj::persistent_ptr;
+using pmem::obj::pool;
+using pmem::obj::pool_base;
+using pmem::obj::make_persistent;
+using pmem::obj::delete_persistent;
+using pmem::obj::transaction;
 
-} /* namespace DragonNode */
+class OffloadFreeList {
+
+    /* entry in the list */
+    struct FreeLba {
+        persistent_ptr<FreeLba> next;
+        p<int64_t> lba;
+    };
+
+  public:
+    OffloadFreeList();
+    ~OffloadFreeList();
+
+    void Push(pool_base &pop, int64_t value);
+    int64_t GetFreeLba(pool_base &pop);
+    void Clear(pool_base &pop);
+    void Show(void) const;
+
+    uint64_t maxLba = 0;
+
+  private:
+
+    persistent_ptr<FreeLba> _head;
+    persistent_ptr<FreeLba> _tail;
+};
+
+} /* namespace FogKV */
