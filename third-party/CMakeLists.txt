@@ -29,7 +29,7 @@ ExternalProject_Add(project_pmdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/pmdk
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/pmdk
 	CONFIGURE_COMMAND ""
-	BUILD_COMMAND make install prefix=${PROJECT_SOURCE_DIR}/pmdk
+	BUILD_COMMAND make NDCTL_ENABLE=n install prefix=${PROJECT_SOURCE_DIR}/pmdk
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so
 			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so.1 &&
