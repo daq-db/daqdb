@@ -6,24 +6,6 @@ set(ROOT_FOGKV_DIR ${PROJECT_SOURCE_DIR}/..)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
 
-# cchord
-set(CCHORD ${PROJECT_SOURCE_DIR}/cChord)
-set(CCHORD_INCLUDES ${CCHORD}/engine/helper
-	${CCHORD}/engine/helper/crypto/
-	${CCHORD}/engine/helper/mongoose_http_server/callbacks
-	${CCHORD}/engine/helper/mongoose_http_server
-	${CCHORD}/engine/helper/thread
-	${CCHORD}/engine/helper/request
-	${CCHORD}/engine/p2p/node
-	${CCHORD}/engine/p2p/protocols
-	${CCHORD}/engine/p2p/protocols/chord
-	${CCHORD}/engine/p2p/transport/http
-	${CCHORD}/engine/p2p/transport)
-set(CCHORD_INCLUDES_EXPORT ${CCHORD_INCLUDES} PARENT_SCOPE)
-include_directories(${CCHORD_INCLUDES})
-file(GLOB_RECURSE CCHORD_SOURCES ${CCHORD}/engine/*.cpp ${CCHORD}/engine/*.h)
-add_library(cchord SHARED ${CCHORD_SOURCES})
-
 # libfabric
 set(LIBFABRIC_PATH ${3RDPARTY}/libfabric/src/.libs/libfabric.so)
 ExternalProject_Add(project_libfabric
@@ -47,7 +29,7 @@ ExternalProject_Add(project_pmdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/pmdk
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/pmdk
 	CONFIGURE_COMMAND ""
-	BUILD_COMMAND make install prefix=${PROJECT_SOURCE_DIR}/pmdk
+	BUILD_COMMAND make NDCTL_ENABLE=n install prefix=${PROJECT_SOURCE_DIR}/pmdk
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so
 			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so.1 &&

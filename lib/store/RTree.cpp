@@ -1,33 +1,16 @@
 /**
- * Copyright 2018, Intel Corporation
+ * Copyright 2018 Intel Corporation.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
  *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in
- *       the documentation and/or other materials provided with the
- *       distribution.
- *
- *     * Neither the name of the copyright holder nor the names of its
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
  */
 
 #include "RTree.h"
@@ -78,14 +61,14 @@ Tree::Tree(const string &path, const size_t size) {
 StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
                       size_t *size, uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    if (val->location == EMPTY) {
-        return StatusCode::KeyNotFound;
-    } else if (val->location == PMEM) {
+    if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
         *location = val->location;
     } else if (val->location == DISK) {
         *value = val->locationPtr.IOVptr.get();
         *location = val->location;
+    } else if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
+        return StatusCode::KeyNotFound;
     }
     *size = val->size;
     return StatusCode::Ok;
@@ -93,14 +76,14 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
 
 StatusCode RTree::Get(const char *key, void **value, size_t *size, uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    if (val->location == EMPTY) {
-        return StatusCode::KeyNotFound;
-    } else if (val->location == PMEM) {
+   if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
         *location = val->location;
     } else if (val->location == DISK) {
         *value = val->locationPtr.IOVptr.get();
         *location = val->location;
+    } else if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
+        return StatusCode::KeyNotFound;
     }
     *size = val->size;
     return StatusCode::Ok;
@@ -109,6 +92,7 @@ StatusCode RTree::Put(const char *key, // copy value from std::string
                       char *value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = PMEM;
+    val->locationVolatile.get().value = PMEM;
     return StatusCode::Ok;
 }
 
@@ -116,6 +100,7 @@ StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
                       int32_t valuebytes) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = PMEM;
+    val->locationVolatile.get().value = PMEM;
     return StatusCode::Ok;
 }
 
@@ -125,7 +110,8 @@ StatusCode RTree::Remove(const char *key) {
         return StatusCode::KeyNotFound;
     }
     try {
-        if (val->location == PMEM) {
+        if (val->location == PMEM &&
+			val->locationVolatile.get().value != EMPTY) {
             pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
         } else if (val->location == DISK) {
             // @TODO jradtke need to confirm if no extra action required here
