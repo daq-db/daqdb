@@ -21,7 +21,7 @@
 #include <asio/ip/tcp.hpp>
 #include <asio/signal_set.hpp>
 
-namespace FogKV
+namespace DaqDB
 {
 namespace utils
 {

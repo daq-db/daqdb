@@ -15,20 +15,19 @@
 
 #pragma once
 
-namespace FogKV {
+namespace DaqDB {
 
-class KVPair {
+class Key {
   public:
-    template <class T> T key() const {
-        return *reinterpret_cast<const T *>(key());
-    }
+    Key() : _data(nullptr), _size(0) {}
+    Key(char *data, size_t size) : _data(data), _size(size) {}
+    char *data() { return _data; }
+    inline const char *data() const { return _data; }
+    inline size_t size() const { return _size; }
 
-    Key key() const {}
-
-    Value value() const {}
-
-    size_t keySize();
-    size_t size() const;
+  protected:
+    char *_data;
+    size_t _size;
 };
 
-} // namespace FogKV
+}

@@ -40,7 +40,7 @@
 #include "CpuMeter.h"
 #include "debug.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 CpuMeter::CpuMeter(bool enableCSV) :
 		_csvEnabled(enableCSV) {
@@ -121,7 +121,7 @@ std::string CpuMeter::format() {
 	return _timer.format();
 }
 
-void CpuMeter::logCpuUsage(FogKV::SimFogKV* simFog) {
+void CpuMeter::logCpuUsage(DaqDB::SimFogKV* simFog) {
 
 	boost::posix_time::ptime now =
 			boost::posix_time::second_clock::local_time();

@@ -15,7 +15,7 @@
 
 #include <dht/DhtNode.h>
 
-namespace FogKV
+namespace DaqDB
 {
 
 DhtNode::DhtNode(asio::io_service& io_service, unsigned short port, unsigned short dragonPort)

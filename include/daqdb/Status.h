@@ -19,7 +19,7 @@
 #include <limits>
 #include <string>
 
-namespace FogKV {
+namespace DaqDB {
 
 enum StatusCode : long {
     Ok = 0,
@@ -63,4 +63,4 @@ struct Status {
 
 Status errno2status(int err);
 
-} // namespace FogKV
+}

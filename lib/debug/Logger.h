@@ -23,7 +23,7 @@
 
 #include <functional>
 
-namespace FogKV {
+namespace DaqDB {
 
 class Logger {
   public:
@@ -37,6 +37,6 @@ private:
     std::function<void(std::string)> _logFunc = nullptr;
 };
 
-extern FogKV::Logger gLog;
+extern DaqDB::Logger gLog;
 
 } /* namespace FogKV */

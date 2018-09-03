@@ -40,7 +40,7 @@
 
 using namespace std;
 
-namespace FogKV {
+namespace DaqDB {
 
 MinidaqStats::MinidaqStats() {
     int err;

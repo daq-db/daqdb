@@ -61,7 +61,7 @@ LoggerPtr benchDragon(Logger::getLogger("benchmark"));
 /*!
  *
  */
-void logCpuUsage(asio::deadline_timer* cpuLogTimer, FogKV::CpuMeter* cpuMeter, FogKV::SimFogKV* simFog, Node* node) {
+void logCpuUsage(asio::deadline_timer* cpuLogTimer, DaqDB::CpuMeter* cpuMeter, DaqDB::SimFogKV* simFog, Node* node) {
 
 	double txU = node->getAvgTxBuffUsage(true) * 100.0;
 	double rxU = node->getAvgRxBuffUsage(true) * 100.0;
@@ -187,8 +187,8 @@ int main(int argc, const char *argv[]) {
 	asio::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(bind(&asio::io_service::stop, &io_service));
 
-	FogKV::CpuMeter cpuMeter(enableCSV);
-	FogKV::SimFogKV simFog(diskPath, diskBuffSize);
+	DaqDB::CpuMeter cpuMeter(enableCSV);
+	DaqDB::SimFogKV simFog(diskPath, diskBuffSize);
 
 	asio::deadline_timer cpuLogTimer(io_service,
 			boost::posix_time::seconds(1));

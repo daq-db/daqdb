@@ -21,14 +21,14 @@
 #pragma once
 
 #include <string>
-#include "FogKV/Status.h"
-#include "FogKV/Options.h"
-#include "FogKV/Key.h"
-#include "FogKV/Value.h"
-#include "FogKV/KVPair.h"
+#include "daqdb/Status.h"
+#include "daqdb/Options.h"
+#include "daqdb/Key.h"
+#include "daqdb/Value.h"
+#include "daqdb/KVPair.h"
 #include <functional>
 
-namespace FogKV {
+namespace DaqDB {
 
 /**
  * The KVStoreBase is a distributed Key-Value store.
@@ -383,4 +383,4 @@ class KVStoreBase {
     virtual void ChangeOptions(Key &key, const AllocOptions &options) = 0;
 };
 
-} // namespace FogKV
+}

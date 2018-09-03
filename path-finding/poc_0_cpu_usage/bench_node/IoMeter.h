@@ -35,7 +35,7 @@
 #include <tuple>
 #include "boost/date_time/posix_time/posix_time.hpp"
 
-namespace FogKV {
+namespace DaqDB {
 
 class IoMeter {
 public:

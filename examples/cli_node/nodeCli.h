@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <FogKV/KVStoreBase.h>
+#include <daqdb/KVStoreBase.h>
 #include <iostream>
 #include <json/json.h>
 #include <linenoise.h>
@@ -25,7 +25,7 @@ namespace {
 const unsigned int consoleHintColor = 35; // dark red
 };
 
-namespace FogKV {
+namespace DaqDB {
 
 /*!
  * Dragon shell interpreter.
@@ -33,7 +33,7 @@ namespace FogKV {
  */
 class nodeCli {
   public:
-    nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spDragonSrv);
+    nodeCli(std::shared_ptr<DaqDB::KVStoreBase> &spDragonSrv);
     virtual ~nodeCli();
 
     /*!
@@ -54,16 +54,16 @@ class nodeCli {
     void _cmdStatus();
     void _cmdNodeStatus(const std::string &strLine);
 
-    FogKV::Key _strToKey(const std::string &key);
-    FogKV::Value _strToValue(const std::string &valStr);
-    FogKV::Value _allocValue(const FogKV::Key &key, const std::string &valStr);
+    DaqDB::Key _strToKey(const std::string &key);
+    DaqDB::Value _strToValue(const std::string &valStr);
+    DaqDB::Value _allocValue(const DaqDB::Key &key, const std::string &valStr);
 
-    FogKV::PrimaryKeyAttribute
+    DaqDB::PrimaryKeyAttribute
     _getKeyAttrs(unsigned char start, const std::vector<std::string> &cmdAttrs);
-    FogKV::PrimaryKeyAttribute
+    DaqDB::PrimaryKeyAttribute
     _getKeyAttr(unsigned char start, const std::vector<std::string> &cmdAttrs);
 
-    std::shared_ptr<FogKV::KVStoreBase> _spKVStore;
+    std::shared_ptr<DaqDB::KVStoreBase> _spKVStore;
     std::vector<std::string> _statusMsgs;
 
     Json::Value getPeersJson();

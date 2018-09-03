@@ -17,7 +17,7 @@
 
 #include <stdexcept>
 
-namespace FogKV {
+namespace DaqDB {
 
 typedef unsigned int NodeId;
 
@@ -66,4 +66,4 @@ class QueueFullException : public std::runtime_error {
     QueueFullException() : runtime_error("Queue full") {}
 };
 
-} // namespace FogKV
+}

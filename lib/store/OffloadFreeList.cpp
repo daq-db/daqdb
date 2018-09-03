@@ -18,7 +18,7 @@
 #include "../debug/Logger.h"
 #include "OffloadFreeList.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 OffloadFreeList::OffloadFreeList() {}
 

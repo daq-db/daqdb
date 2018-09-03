@@ -26,7 +26,7 @@
 #include "MinidaqNode.h"
 #include "MinidaqTimerHR.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 MinidaqNode::MinidaqNode(KVStoreBase *kvs)
     : _kvs(kvs), _stopped(false), _statsReady(false) {}

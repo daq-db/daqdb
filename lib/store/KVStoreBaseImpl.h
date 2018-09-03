@@ -19,12 +19,12 @@
 #include "OffloadRqstPooler.h"
 #include "RTreeEngine.h"
 #include "RqstPooler.h"
-#include <FogKV/KVStoreBase.h>
+#include <daqdb/KVStoreBase.h>
 #include <dht/CChordNode.h>
 #include <dht/DhtNode.h>
 #include <mutex>
 
-namespace FogKV {
+namespace DaqDB {
 
 class KVStoreBaseImpl : public KVStoreBase {
   public:
@@ -84,8 +84,8 @@ class KVStoreBaseImpl : public KVStoreBase {
 
     size_t mKeySize;
     Options mOptions;
-    std::unique_ptr<FogKV::DhtNode> mDhtNode;
-    std::shared_ptr<FogKV::RTreeEngine> mRTree;
+    std::unique_ptr<DaqDB::DhtNode> mDhtNode;
+    std::shared_ptr<DaqDB::RTreeEngine> mRTree;
     std::mutex mLock;
 
     std::vector<RqstPooler *> _rqstPoolers;
@@ -95,4 +95,4 @@ class KVStoreBaseImpl : public KVStoreBase {
     bool _offloadEnabled = false;
 };
 
-} // namespace FogKV
+}

@@ -33,7 +33,7 @@
 #include <iostream>
 #include <iomanip>
 #include "config.h"
-#include <FogKV/KVStoreBase.h>
+#include <daqdb/KVStoreBase.h>
 #include <asio/io_service.hpp>
 #include <boost/bind.hpp>
 #include <asio/ip/tcp.hpp>
@@ -56,7 +56,7 @@ int main(int argc, char ** argv) {
 	asio::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
 
-	FogKV::KVStoreBase *kvs;
+	DaqDB::KVStoreBase *kvs;
 	try {
 		kvs = KVStoreBase::Open(options);
 	} catch (OperationFailedException e) {

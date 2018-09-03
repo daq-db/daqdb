@@ -40,15 +40,15 @@ void *spdk_zmalloc(size_t size, size_t align, uint64_t *phys_addr,
 }
 
 BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
-    Mock<FogKV::OffloadRqstPooler> poolerMock;
-    Mock<FogKV::RTree> rtreeMock;
+    Mock<DaqDB::OffloadRqstPooler> poolerMock;
+    Mock<DaqDB::RTree> rtreeMock;
     char valRef[] = "abc";
     size_t sizeRef = 3;
     uint8_t location = DISK;
 
-    FogKV::OffloadRqstPooler &pooler = poolerMock.get();
+    DaqDB::OffloadRqstPooler &pooler = poolerMock.get();
     When(OverloadedMethod(rtreeMock, Get,
-                          FogKV::StatusCode(const char *, int32_t, void **,
+                          DaqDB::StatusCode(const char *, int32_t, void **,
                                             size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
             *val = valRef;
             *valSize = sizeRef;
             *loc = location;
-            return FogKV::StatusCode::Ok;
+            return DaqDB::StatusCode::Ok;
         });
     When(Method(poolerMock, Read)).Return(0);
     When(Method(poolerMock, Write)).Return(0);
@@ -64,23 +64,23 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     pooler.ProcessMsg();
     VerifyNoOtherInvocations(
         OverloadedMethod(rtreeMock, Get,
-                         FogKV::StatusCode(const char *, int32_t, void **,
+                         DaqDB::StatusCode(const char *, int32_t, void **,
                                            size_t *, uint8_t *)));
     VerifyNoOtherInvocations(Method(poolerMock, Read));
     VerifyNoOtherInvocations(Method(poolerMock, Write));
 }
 
 BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
-    Mock<FogKV::OffloadRqstPooler> poolerMock;
-    Mock<FogKV::RTree> rtreeMock;
+    Mock<DaqDB::OffloadRqstPooler> poolerMock;
+    Mock<DaqDB::RTree> rtreeMock;
     uint64_t lbaRef = 123;
     size_t valSizeRef = 4;
     char valRef[] = "1234";
     uint8_t location = DISK;
 
-    FogKV::OffloadRqstPooler &pooler = poolerMock.get();
+    DaqDB::OffloadRqstPooler &pooler = poolerMock.get();
     When(OverloadedMethod(rtreeMock, Get,
-                          FogKV::StatusCode(const char *, int32_t, void **,
+                          DaqDB::StatusCode(const char *, int32_t, void **,
                                             size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
@@ -88,21 +88,21 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
             *val = &lbaRef;
             *valSize = valSizeRef;
             *loc = location;
-            return FogKV::StatusCode::Ok;
+            return DaqDB::StatusCode::Ok;
         });
     When(Method(poolerMock, Read)).Return(0);
     When(Method(poolerMock, Write)).Return(0);
 
-    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
-    FogKV::BdevContext bdvCtx;
+    DaqDB::BdevContext bdvCtx;
     bdvCtx.blk_size = 512;
     bdvCtx.blk_num = 1024;
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
     pooler.processArray[0] =
-        new FogKV::OffloadRqstMsg(FogKV::OffloadRqstOperation::GET, expectedKey,
+        new DaqDB::OffloadRqstMsg(DaqDB::OffloadRqstOperation::GET, expectedKey,
                                   expectedKeySize, nullptr, 0, nullptr);
     pooler.processArrayCount = 1;
 
@@ -110,24 +110,24 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
     VerifyNoOtherInvocations(Method(poolerMock, Write));
 
     Verify(OverloadedMethod(rtreeMock, Get,
-                            FogKV::StatusCode(const char *, int32_t, void **,
+                            DaqDB::StatusCode(const char *, int32_t, void **,
                                               size_t *, uint8_t *)))
         .Exactly(1);
     Verify(Method(poolerMock, Read)).Exactly(1);
 }
 
 BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
-    Mock<FogKV::OffloadRqstPooler> poolerMock;
-    Mock<FogKV::RTree> rtreeMock;
+    Mock<DaqDB::OffloadRqstPooler> poolerMock;
+    Mock<DaqDB::RTree> rtreeMock;
 
     uint64_t lbaRef = 123;
     size_t valSizeRef = 4;
     char valRef[] = "1234";
     uint8_t location = PMEM;
 
-    FogKV::OffloadRqstPooler &pooler = poolerMock.get();
+    DaqDB::OffloadRqstPooler &pooler = poolerMock.get();
     When(OverloadedMethod(rtreeMock, Get,
-                          FogKV::StatusCode(const char *, int32_t, void **,
+                          DaqDB::StatusCode(const char *, int32_t, void **,
                                             size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
@@ -135,28 +135,28 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
             *val = valRef;
             *valSize = valSizeRef;
             *loc = location;
-            return FogKV::StatusCode::Ok;
+            return DaqDB::StatusCode::Ok;
         });
     When(Method(rtreeMock, AllocateIOVForKey))
         .AlwaysDo([&](const char *key, uint64_t **ptr, size_t size) {
             *ptr = &lbaRef;
-            return FogKV::StatusCode::Ok;
+            return DaqDB::StatusCode::Ok;
         });
 
     When(Method(poolerMock, GetFreeLba)).Return(1);
     When(Method(poolerMock, Read)).Return(0);
     When(Method(poolerMock, Write)).Return(0);
 
-    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
-    FogKV::BdevContext bdvCtx;
+    DaqDB::BdevContext bdvCtx;
     bdvCtx.blk_size = 512;
     bdvCtx.blk_num = 1024;
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.processArray[0] = new FogKV::OffloadRqstMsg(
-        FogKV::OffloadRqstOperation::UPDATE, expectedKey, expectedKeySize,
+    pooler.processArray[0] = new DaqDB::OffloadRqstMsg(
+        DaqDB::OffloadRqstOperation::UPDATE, expectedKey, expectedKeySize,
         nullptr, 0, nullptr);
     pooler.processArrayCount = 1;
 
@@ -164,23 +164,23 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
     VerifyNoOtherInvocations(Method(poolerMock, Read));
 
     Verify(OverloadedMethod(rtreeMock, Get,
-                            FogKV::StatusCode(const char *, int32_t, void **,
+                            DaqDB::StatusCode(const char *, int32_t, void **,
                                               size_t *, uint8_t *)))
         .Exactly(1);
     Verify(Method(poolerMock, Write)).Exactly(1);
 }
 
 BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
-    Mock<FogKV::OffloadRqstPooler> poolerMock;
-    Mock<FogKV::RTree> rtreeMock;
+    Mock<DaqDB::OffloadRqstPooler> poolerMock;
+    Mock<DaqDB::RTree> rtreeMock;
     uint64_t lbaRef = 123;
     size_t valSizeRef = 4;
     char valRef[] = "1234";
     uint8_t location = PMEM;
 
-    FogKV::OffloadRqstPooler &pooler = poolerMock.get();
+    DaqDB::OffloadRqstPooler &pooler = poolerMock.get();
     When(OverloadedMethod(rtreeMock, Get,
-                          FogKV::StatusCode(const char *, int32_t, void **,
+                          DaqDB::StatusCode(const char *, int32_t, void **,
                                             size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
@@ -188,21 +188,21 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
             *val = valRef;
             *valSize = valSizeRef;
             *loc = location;
-            return FogKV::StatusCode::Ok;
+            return DaqDB::StatusCode::Ok;
         });
     When(Method(poolerMock, Read)).Return(0);
     When(Method(poolerMock, Write)).Return(0);
 
-    FogKV::RTreeEngine &rtree = rtreeMock.get();
+    DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
-    FogKV::BdevContext bdvCtx;
+    DaqDB::BdevContext bdvCtx;
     bdvCtx.blk_size = 512;
     bdvCtx.blk_num = 1024;
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.processArray[0] = new FogKV::OffloadRqstMsg(
-        FogKV::OffloadRqstOperation::REMOVE, expectedKey, expectedKeySize,
+    pooler.processArray[0] = new DaqDB::OffloadRqstMsg(
+        DaqDB::OffloadRqstOperation::REMOVE, expectedKey, expectedKeySize,
         nullptr, 0, nullptr);
     pooler.processArrayCount = 1;
 
@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
     VerifyNoOtherInvocations(Method(poolerMock, Read));
     VerifyNoOtherInvocations(Method(poolerMock, Write));
     Verify(OverloadedMethod(rtreeMock, Get,
-                            FogKV::StatusCode(const char *, int32_t, void **,
+                            DaqDB::StatusCode(const char *, int32_t, void **,
                                               size_t *, uint8_t *)))
         .Exactly(1);
 }

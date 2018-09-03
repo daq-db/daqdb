@@ -14,7 +14,7 @@
  */
 
 #include "../cli_node/nodeCli.h"
-#include <FogKV/Types.h>
+#include <daqdb/Types.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
@@ -101,9 +101,9 @@ char *hints(const char *buf, int *color, int *bold) {
     return result;
 }
 
-namespace FogKV {
+namespace DaqDB {
 
-nodeCli::nodeCli(std::shared_ptr<FogKV::KVStoreBase> &spKVStore)
+nodeCli::nodeCli(std::shared_ptr<DaqDB::KVStoreBase> &spKVStore)
     : _spKVStore(spKVStore) {
     linenoiseSetCompletionCallback(completion);
     linenoiseSetHintsCallback(hints);
@@ -171,27 +171,27 @@ void nodeCli::_cmdGet(const std::string &strLine) {
             cout << "Error: key size is " << _spKVStore->KeySize() << endl;
             return;
         }
-        FogKV::Key keyBuff;
+        DaqDB::Key keyBuff;
         try {
             keyBuff = _spKVStore->AllocKey();
             /** @todo memleak - keyBuff.data */
             std::memset(keyBuff.data(), 0, keyBuff.size());
             std::memcpy(keyBuff.data(), key.c_str(), key.size());
-        } catch (FogKV::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
 
         auto keyAttrs = _getKeyAttrs(GET_CMD_KEY_ATTRS_OFFSET, arguments);
-        FogKV::GetOptions options(keyAttrs, keyAttrs);
+        DaqDB::GetOptions options(keyAttrs, keyAttrs);
 
-        FogKV::Value value;
+        DaqDB::Value value;
         try {
             value = _spKVStore->Get(keyBuff, std::move(options));
             string valuestr(value.data());
             cout << format("[%1%] = %2%\n") % key % valuestr;
-        } catch (FogKV::OperationFailedException &e) {
-            if (e.status()() == FogKV::KeyNotFound) {
+        } catch (DaqDB::OperationFailedException &e) {
+            if (e.status()() == DaqDB::KeyNotFound) {
                 cout << format("[%1%] not found\n") % key;
             } else {
                 cout << "Error: cannot get element: " << e.status().to_string()
@@ -217,18 +217,18 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
             cout << "Error: key size is " << _spKVStore->KeySize() << endl;
             return;
         }
-        FogKV::Key keyBuff;
+        DaqDB::Key keyBuff;
         try {
             keyBuff = _spKVStore->AllocKey();
             std::memset(keyBuff.data(), 0, keyBuff.size());
             std::memcpy(keyBuff.data(), key.c_str(), key.size());
-        } catch (FogKV::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
 
         auto keyAttrs = _getKeyAttrs(GET_CMD_KEY_ATTRS_OFFSET, arguments);
-        FogKV::GetOptions options(keyAttrs, keyAttrs);
+        DaqDB::GetOptions options(keyAttrs, keyAttrs);
 
         try {
             _spKVStore->GetAsync(
@@ -246,7 +246,7 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
                     }
                 },
                 std::move(options));
-        } catch (FogKV::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             if (e.status()() == StatusCode::OffloadDisabledError) {
                 cout << format("Error: Disk offload is disabled") << endl;
             } else {
@@ -257,19 +257,19 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
     }
 }
 
-FogKV::Key nodeCli::_strToKey(const std::string &key) {
-    FogKV::Key keyBuff = _spKVStore->AllocKey();
+DaqDB::Key nodeCli::_strToKey(const std::string &key) {
+    DaqDB::Key keyBuff = _spKVStore->AllocKey();
     std::memset(keyBuff.data(), 0, keyBuff.size());
     std::memcpy(keyBuff.data(), key.c_str(), key.size());
     return keyBuff;
 }
 
-FogKV::PrimaryKeyAttribute
+DaqDB::PrimaryKeyAttribute
 nodeCli::_getKeyAttr(unsigned char start,
                      const std::vector<std::string> &cmdAttrs) {
     if ((cmdAttrs.size() < start + NUM_ELEM_KEY_ATTRS) ||
         !(starts_with(cmdAttrs[start], "-o"))) {
-        return FogKV::PrimaryKeyAttribute::EMPTY;
+        return DaqDB::PrimaryKeyAttribute::EMPTY;
     }
 
     auto optVal = boost::lexical_cast<bool>(
@@ -277,29 +277,29 @@ nodeCli::_getKeyAttr(unsigned char start,
     if (optVal) {
         string optName = cmdAttrs[start + KEY_ATTRS_OPT_NAME_POS_OFFSET];
         if (optName == "lock") {
-            return FogKV::PrimaryKeyAttribute::LOCKED;
+            return DaqDB::PrimaryKeyAttribute::LOCKED;
         } else if (optName == "ready") {
-            return FogKV::PrimaryKeyAttribute::READY;
+            return DaqDB::PrimaryKeyAttribute::READY;
         } else if (optName == "long_term") {
-            return FogKV::PrimaryKeyAttribute::LONG_TERM;
+            return DaqDB::PrimaryKeyAttribute::LONG_TERM;
         }
     }
-    return FogKV::PrimaryKeyAttribute::EMPTY;
+    return DaqDB::PrimaryKeyAttribute::EMPTY;
 }
 
-FogKV::PrimaryKeyAttribute
+DaqDB::PrimaryKeyAttribute
 nodeCli::_getKeyAttrs(unsigned char start,
                       const std::vector<std::string> &cmdAttrs) {
     if (cmdAttrs.size() < start + NUM_ELEM_KEY_ATTRS) {
-        return FogKV::PrimaryKeyAttribute::EMPTY;
+        return DaqDB::PrimaryKeyAttribute::EMPTY;
     }
     if ((cmdAttrs.size() - start) % NUM_ELEM_KEY_ATTRS != 0) {
         cout << "Warning: cannot parse key attributes" << endl;
-        return FogKV::PrimaryKeyAttribute::EMPTY;
+        return DaqDB::PrimaryKeyAttribute::EMPTY;
     }
 
     unsigned char parsingPositon = start;
-    FogKV::PrimaryKeyAttribute result = FogKV::PrimaryKeyAttribute::EMPTY;
+    DaqDB::PrimaryKeyAttribute result = DaqDB::PrimaryKeyAttribute::EMPTY;
     while (parsingPositon <= cmdAttrs.size()) {
         result = result | _getKeyAttr(parsingPositon, cmdAttrs);
         parsingPositon += NUM_ELEM_KEY_ATTRS;
@@ -321,14 +321,14 @@ void nodeCli::_cmdPut(const std::string &strLine) {
             return;
         }
 
-        FogKV::Key keyBuff;
+        DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
         } catch (...) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
-        FogKV::Value valBuff;
+        DaqDB::Value valBuff;
         try {
             valBuff = _allocValue(keyBuff, arguments[PUT_CMD_VAL_OFFSET]);
         } catch (...) {
@@ -338,14 +338,14 @@ void nodeCli::_cmdPut(const std::string &strLine) {
         }
 
         auto keyAttrs = _getKeyAttrs(PUT_CMD_KEY_ATTRS_OFFSET, arguments);
-        FogKV::PutOptions options(keyAttrs);
+        DaqDB::PutOptions options(keyAttrs);
 
         try {
             _spKVStore->Put(std::move(keyBuff), std::move(valBuff),
                             std::move(options));
             cout << format("Put: [%1%] = %2% (Opts:%3%)\n") % key %
                         arguments[PUT_CMD_VAL_OFFSET] % options.Attr;
-        } catch (FogKV::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot put element: " << e.status().to_string()
                  << endl;
 
@@ -359,7 +359,7 @@ void nodeCli::_cmdPut(const std::string &strLine) {
     }
 }
 
-FogKV::Value nodeCli::_strToValue(const std::string &valStr) {
+DaqDB::Value nodeCli::_strToValue(const std::string &valStr) {
     Value result;
     if (!starts_with(valStr, "-o")) {
         auto buffer = new char[valStr.size() + 1];
@@ -370,9 +370,9 @@ FogKV::Value nodeCli::_strToValue(const std::string &valStr) {
     return result;
 }
 
-FogKV::Value nodeCli::_allocValue(const FogKV::Key &key,
+DaqDB::Value nodeCli::_allocValue(const DaqDB::Key &key,
                                   const std::string &valStr) {
-    FogKV::Value result = _spKVStore->Alloc(key, valStr.size() + 1);
+    DaqDB::Value result = _spKVStore->Alloc(key, valStr.size() + 1);
     std::memcpy(result.data(), valStr.c_str(), valStr.size());
     result.data()[result.size() - 1] = '\0';
     return result;
@@ -390,7 +390,7 @@ void nodeCli::_cmdUpdate(const std::string &strLine) {
             cout << "Error: key size is " << _spKVStore->KeySize() << endl;
             return;
         }
-        FogKV::Key keyBuff;
+        DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
         } catch (...) {
@@ -398,7 +398,7 @@ void nodeCli::_cmdUpdate(const std::string &strLine) {
             return;
         }
 
-        FogKV::Value valBuff;
+        DaqDB::Value valBuff;
         unsigned short optionStartPos = UPDATE_CMD_KEY_ATTRS_OFFSET;
         if ((arguments.size() > UPDATE_CMD_VAL_OFFSET) &&
             (!starts_with(arguments[UPDATE_CMD_VAL_OFFSET], "-o"))) {
@@ -408,7 +408,7 @@ void nodeCli::_cmdUpdate(const std::string &strLine) {
         }
 
         auto keyAttrs = _getKeyAttrs(optionStartPos, arguments);
-        FogKV::UpdateOptions options(keyAttrs);
+        DaqDB::UpdateOptions options(keyAttrs);
 
         try {
             if (valBuff.size() > 0) {
@@ -417,7 +417,7 @@ void nodeCli::_cmdUpdate(const std::string &strLine) {
             } else {
                 _spKVStore->Update(std::move(keyBuff), std::move(options));
             }
-        } catch (FogKV::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot update element: " << e.status().to_string()
                  << endl;
         }
@@ -436,7 +436,7 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
             cout << "Error: key size is " << _spKVStore->KeySize() << endl;
             return;
         }
-        FogKV::Key keyBuff;
+        DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
         } catch (...) {
@@ -444,7 +444,7 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
             return;
         }
 
-        FogKV::Value valBuff;
+        DaqDB::Value valBuff;
         unsigned short optionStartPos = UPDATE_CMD_KEY_ATTRS_OFFSET;
         if ((arguments.size() > UPDATE_CMD_VAL_OFFSET) &&
             (!starts_with(arguments[UPDATE_CMD_VAL_OFFSET], "-o"))) {
@@ -454,13 +454,13 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
         }
 
         auto keyAttrs = _getKeyAttrs(optionStartPos, arguments);
-        FogKV::UpdateOptions options(keyAttrs);
+        DaqDB::UpdateOptions options(keyAttrs);
 
         try {
             if (valBuff.size() > 0) {
                 _spKVStore->UpdateAsync(
                     std::move(keyBuff), std::move(valBuff),
-                    [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                    [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                         const char *key, const size_t keySize,
                         const char *value, const size_t valueSize) {
                         if (!status.ok()) {
@@ -481,7 +481,7 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
             } else {
                 _spKVStore->UpdateAsync(
                     std::move(keyBuff), std::move(options),
-                    [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                    [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                         const char *key, const size_t keySize,
                         const char *value, const size_t valueSize) {
                         if (!status.ok()) {
@@ -499,7 +499,7 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
                             _spKVStore->Free(std::move(keyBuff));
                     });
             }
-        } catch (FogKV::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             if (e.status()() == StatusCode::OffloadDisabledError) {
                 cout << format("Error: Disk offload is disabled\n") << endl;
             } else {
@@ -523,7 +523,7 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
             return;
         }
 
-        FogKV::Key keyBuff;
+        DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
         } catch (...) {
@@ -531,7 +531,7 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
             return;
         }
 
-        FogKV::Value valBuff;
+        DaqDB::Value valBuff;
         try {
             valBuff = _allocValue(keyBuff, arguments[PUT_CMD_VAL_OFFSET]);
         } catch (...) {
@@ -541,12 +541,12 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
         }
 
         auto keyAttrs = _getKeyAttrs(PUT_CMD_KEY_ATTRS_OFFSET, arguments);
-        FogKV::PutOptions options(keyAttrs);
+        DaqDB::PutOptions options(keyAttrs);
 
         try {
             _spKVStore->PutAsync(
                 std::move(keyBuff), std::move(valBuff),
-                [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                     const char *key, const size_t keySize, const char *value,
                     const size_t valueSize) {
                     if (!status.ok()) {
@@ -563,7 +563,7 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
                         _spKVStore->Free(std::move(keyBuff));
                 },
                 std::move(options));
-        } catch (FogKV::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot put element: " << e.status().to_string()
                  << endl;
 
@@ -585,7 +585,7 @@ void nodeCli::_cmdRemove(const std::string &strLine) {
     } else {
 
         auto key = arguments[1];
-        FogKV::Key keyBuff;
+        DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
         } catch (...) {
@@ -596,8 +596,8 @@ void nodeCli::_cmdRemove(const std::string &strLine) {
         try {
             _spKVStore->Remove(keyBuff);
             cout << format("Remove: [%1%]\n") % key;
-        } catch (FogKV::OperationFailedException &e) {
-            if (e.status()() == FogKV::KeyNotFound) {
+        } catch (DaqDB::OperationFailedException &e) {
+            if (e.status()() == DaqDB::KeyNotFound) {
                 cout << format("[%1%] not found\n") % key;
             } else {
                 cout << "Error: cannot remove element" << endl;
@@ -677,4 +677,4 @@ void nodeCli::_cmdNodeStatus(const std::string &strLine) {
         cout << "Node not connected" << endl;
     }
 }
-} // namespace FogKV
+}

@@ -18,7 +18,7 @@
 #include <asio/io_service.hpp>
 #include <dht/PureNode.h>
 
-namespace FogKV
+namespace DaqDB
 {
 
 /*!

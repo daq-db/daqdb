@@ -15,7 +15,7 @@
 
 #include <dht/PureNode.h>
 
-namespace FogKV
+namespace DaqDB
 {
 
 PureNode::PureNode() : _port(0), _dhtId(0), _dragonPort(0)

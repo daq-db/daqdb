@@ -67,7 +67,7 @@ unsigned short getFreePortNumber(asio::io_service &io_service) {
 BOOST_AUTO_TEST_CASE(GenRandomPort) {
 	asio::io_service io_service;
 
-	auto resultPort = FogKV::utils::getFreePort(io_service, 0);
+	auto resultPort = DaqDB::utils::getFreePort(io_service, 0);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
 	auto isFreeResult = isPortFree(io_service, resultPort);
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(GenRandomPort_DefaultIsUsed) {
 
 	auto portThatIsOpened = sshProtocolPort;
 
-	auto resultPort = FogKV::utils::getFreePort(io_service, portThatIsOpened, false);
+	auto resultPort = DaqDB::utils::getFreePort(io_service, portThatIsOpened, false);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
 	auto isFreeResult = isPortFree(io_service, resultPort);
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(GenRandomPort_DefaultNotUsed) {
 	asio::io_service io_service;
 
 	auto freePort = getRandomPortNumber();
-	auto resultPort = FogKV::utils::getFreePort(io_service, freePort, true);
+	auto resultPort = DaqDB::utils::getFreePort(io_service, freePort, true);
 
 	BOOST_CHECK_GT(resultPort, reservedPortsEnd);
 	auto isFreeResult = isPortFree(io_service, resultPort);

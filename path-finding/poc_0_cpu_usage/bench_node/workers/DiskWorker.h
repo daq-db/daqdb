@@ -37,7 +37,7 @@
 #include <store/KVInterface.h>
 #include "../IoMeter.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 class DiskWorker {
 public:

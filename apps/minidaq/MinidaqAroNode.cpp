@@ -15,7 +15,7 @@
 
 #include "MinidaqAroNode.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 MinidaqAroNode::MinidaqAroNode(KVStoreBase *kvs) : MinidaqRoNode(kvs) {}
 
@@ -29,12 +29,12 @@ void MinidaqAroNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
     MinidaqKey *keyTmp = new MinidaqKey;
     *keyTmp = key;
     Key fogKey(reinterpret_cast<char *>(keyTmp), sizeof(*keyTmp));
-    FogKV::Value value = _kvs->Alloc(fogKey, _fSize);
+    DaqDB::Value value = _kvs->Alloc(fogKey, _fSize);
     while (1) {
         try {
             _kvs->PutAsync(std::move(fogKey), std::move(value),
                            [keyTmp, &cnt, &cntErr](
-                               FogKV::KVStoreBase *kvs, FogKV::Status status,
+                               DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                                const char *key, const size_t keySize,
                                const char *value, const size_t valueSize) {
                                if (!status.ok()) {

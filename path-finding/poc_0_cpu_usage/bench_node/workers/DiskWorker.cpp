@@ -29,7 +29,7 @@ using namespace log4cxx::xml;
 using namespace log4cxx::helpers;
 #endif
 
-namespace FogKV {
+namespace DaqDB {
 
 DiskWorker::DiskWorker(const std::string &diskPath,
 		const unsigned int elementSize) :

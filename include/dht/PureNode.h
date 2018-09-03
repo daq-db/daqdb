@@ -17,7 +17,7 @@
 
 #include <iostream>
 
-namespace FogKV
+namespace DaqDB
 {
 
 /*!

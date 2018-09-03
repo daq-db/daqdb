@@ -25,12 +25,12 @@
 #include "spdk/queue.h"
 
 #include "RTreeEngine.h"
-#include <FogKV/KVStoreBase.h>
+#include <daqdb/KVStoreBase.h>
 #include "OffloadFreeList.h"
 
 #define OFFLOAD_DEQUEUE_RING_LIMIT 1024
 
-namespace FogKV {
+namespace DaqDB {
 
 enum class OffloadRqstOperation : std::int8_t {
     NONE = 0,
@@ -74,7 +74,7 @@ struct IoContext {
     uint64_t *lba = nullptr;
     bool updatePmemIOV = false;
 
-    std::shared_ptr<FogKV::RTreeEngine> rtree;
+    std::shared_ptr<DaqDB::RTreeEngine> rtree;
     KVStoreBase::KVStoreBaseCallback clb;
 };
 
@@ -90,7 +90,7 @@ class OffloadRqstPoolerInterface {
 
 class OffloadRqstPooler : public OffloadRqstPoolerInterface {
   public:
-    OffloadRqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+    OffloadRqstPooler(std::shared_ptr<DaqDB::RTreeEngine> rtree,
                       BdevContext &bdevContext, uint64_t offloadBlockSize);
     virtual ~OffloadRqstPooler();
 
@@ -110,14 +110,14 @@ class OffloadRqstPooler : public OffloadRqstPoolerInterface {
     unsigned short processArrayCount = 0;
     OffloadRqstMsg *processArray[OFFLOAD_DEQUEUE_RING_LIMIT];
 
-    std::shared_ptr<FogKV::RTreeEngine> rtree;
+    std::shared_ptr<DaqDB::RTreeEngine> rtree;
 
     OffloadFreeList *freeLbaList = nullptr;
 
   private:
     uint64_t _blkForLba = 0;
     struct BdevContext _bdevContext;
-    pool<FogKV::OffloadFreeList> _poolFreeList;
+    pool<DaqDB::OffloadFreeList> _poolFreeList;
 };
 
 } /* namespace FogKV */

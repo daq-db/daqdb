@@ -33,10 +33,10 @@
 #include <iostream>
 #include <vector>
 #include <libconfig.h++>
-#include <FogKV/KVStoreBase.h>
+#include <daqdb/KVStoreBase.h>
 using namespace libconfig;
 using namespace std;
-using namespace FogKV;
+using namespace DaqDB;
 
 class Configuration {
 	private:

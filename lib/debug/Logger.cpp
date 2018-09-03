@@ -15,9 +15,9 @@
 
 #include "Logger.h"
 
-namespace FogKV {
+namespace DaqDB {
 
-FogKV::Logger gLog;
+DaqDB::Logger gLog;
 
 Logger::Logger() {}
 
