@@ -16,7 +16,7 @@
 #include "RTree.h"
 #include <iostream>
 
-namespace FogKV {
+namespace DaqDB {
 #define LAYOUT "rtree"
 
 RTree::RTree(const string &_path, const size_t size) {
@@ -242,4 +242,4 @@ ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
 
     return val;
 }
-} // namespace FogKV
+}

@@ -37,7 +37,7 @@ using namespace fakeit;
 
 #define FREELIST_MAX_LBA 512
 
-pool<FogKV::OffloadFreeList> *g_poolFreeList = nullptr;
+pool<DaqDB::OffloadFreeList> *g_poolFreeList = nullptr;
 
 bool txAbortPred(const pmem::manual_tx_abort &ex) { return true; }
 
@@ -45,7 +45,7 @@ struct OffloadFreeListGlobalFixture {
     OffloadFreeListGlobalFixture() {
         if (boost::filesystem::exists(TEST_POOL_FREELIST_FILENAME))
             boost::filesystem::remove(TEST_POOL_FREELIST_FILENAME);
-        poolFreeList = pool<FogKV::OffloadFreeList>::create(
+        poolFreeList = pool<DaqDB::OffloadFreeList>::create(
             TEST_POOL_FREELIST_FILENAME, LAYOUT, TEST_POOL_FREELIST_SIZE,
             CREATE_MODE_RW);
         g_poolFreeList = &poolFreeList;
@@ -54,7 +54,7 @@ struct OffloadFreeListGlobalFixture {
         if (boost::filesystem::exists(TEST_POOL_FREELIST_FILENAME))
             boost::filesystem::remove(TEST_POOL_FREELIST_FILENAME);
     }
-    pool<FogKV::OffloadFreeList> poolFreeList;
+    pool<DaqDB::OffloadFreeList> poolFreeList;
 };
 
 BOOST_GLOBAL_FIXTURE(OffloadFreeListGlobalFixture);
@@ -68,7 +68,7 @@ struct OffloadFreeListTestFixture {
             freeLbaList->Clear(*g_poolFreeList);
         freeLbaList->maxLba = 0;
     }
-    FogKV::OffloadFreeList *freeLbaList = nullptr;
+    DaqDB::OffloadFreeList *freeLbaList = nullptr;
 };
 
 BOOST_FIXTURE_TEST_CASE(GetLbaInit, OffloadFreeListTestFixture) {

@@ -36,7 +36,7 @@
 #include "workers/AepWorker.h"
 #include "workers/DiskWorker.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 class SimFogKV {
 public:
@@ -53,8 +53,8 @@ public:
 	void TestSimpleGetPut(const unsigned int numOfGetOperations, const unsigned int numOfPutOperations);
 
 private:
-	FogKV::AepWorker _aepWorker;
-	FogKV::DiskWorker _diskWorker;
+	DaqDB::AepWorker _aepWorker;
+	DaqDB::DiskWorker _diskWorker;
 	unsigned int _limit_get;
 	unsigned int _limit_put;
 };

@@ -17,7 +17,7 @@
 
 using namespace std;
 
-namespace FogKV {
+namespace DaqDB {
 
 MinidaqTimer::MinidaqTimer() {}
 

@@ -16,13 +16,13 @@
 #pragma once
 
 #include <string>
-#include "FogKV/Status.h"
-#include "FogKV/Options.h"
-#include "FogKV/KVStoreBase.h"
+#include "daqdb/Status.h"
+#include "daqdb/Options.h"
+#include "daqdb/KVStoreBase.h"
 
 #include <boost/hana.hpp>
 
-namespace FogKV {
+namespace DaqDB {
 
 template <class T>
 bool Set(KeyDescriptor &key)
@@ -138,4 +138,4 @@ public:
 
 };
 
-} // namespace FogKV
+}

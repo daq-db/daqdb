@@ -23,7 +23,7 @@
 #include "../debug/Logger.h"
 #include "spdk/env.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 RqstMsg::RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
                  const char *value, size_t valueSize,
@@ -31,7 +31,7 @@ RqstMsg::RqstMsg(const RqstOperation op, const char *key, const size_t keySize,
     : op(op), key(key), keySize(keySize), value(value), valueSize(valueSize),
       clb(clb) {}
 
-RqstPooler::RqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+RqstPooler::RqstPooler(std::shared_ptr<DaqDB::RTreeEngine> rtree,
                        const size_t cpuCore)
     : isRunning(0), _thread(nullptr), rtree(rtree), _cpuCore(cpuCore) {
 

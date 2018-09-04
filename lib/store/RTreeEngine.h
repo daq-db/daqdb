@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "FogKV/Status.h"
+#include "daqdb/Status.h"
 
 #include <libpmemobj++/make_persistent.hpp>
 #include <libpmemobj++/make_persistent_array.hpp>
@@ -29,7 +29,7 @@ using std::to_string;
 
 enum LOCATIONS { EMPTY, PMEM, DISK };
 
-namespace FogKV {
+namespace DaqDB {
 
 class RTreeEngine {
   public:
@@ -56,4 +56,4 @@ class RTreeEngine {
     virtual StatusCode UpdateValueWrapper(const char *key, uint64_t *ptr,
                                           size_t size) = 0;
 };
-} // namespace FogKV
+}

@@ -43,7 +43,7 @@ using namespace pmem::obj;
 
 enum OBJECT_TYPES { VALUE, IOV };
 
-namespace FogKV {
+namespace DaqDB {
 
 struct locationStruct {
     locationStruct() : value(EMPTY) {}
@@ -95,7 +95,7 @@ class Tree {
   private:
 };
 
-class RTree : public FogKV::RTreeEngine {
+class RTree : public DaqDB::RTreeEngine {
   public:
     RTree(const string &path, const size_t size);
     virtual ~RTree();
@@ -119,5 +119,5 @@ class RTree : public FogKV::RTreeEngine {
   private:
     Tree *tree;
 };
-} // namespace FogKV
+}
 #endif /* LIB_STORE_RTREE_H_ */

@@ -48,7 +48,7 @@ using namespace log4cxx::xml;
 using namespace log4cxx::helpers;
 #endif
 
-namespace FogKV {
+namespace DaqDB {
 
 AepWorker::AepWorker() {
 	auto isTemporaryDb = true;
@@ -57,7 +57,7 @@ AepWorker::AepWorker() {
 	LOG4CXX_INFO(log4cxx::Logger::getRootLogger(), "New PmemKVStore created");
 #endif
 	this->_spStore.reset(
-		new FogKV::PmemKVStore(1, isTemporaryDb));
+		new DaqDB::PmemKVStore(1, isTemporaryDb));
 }
 
 AepWorker::~AepWorker() {

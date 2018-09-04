@@ -45,7 +45,7 @@
 
 using namespace boost::timer;
 
-namespace FogKV
+namespace DaqDB
 {
 
 class CpuMeter {
@@ -60,7 +60,7 @@ public:
 
 	std::string format();
 
-	void logCpuUsage(FogKV::SimFogKV* simFog);
+	void logCpuUsage(DaqDB::SimFogKV* simFog);
 
 private:
 	bool _csvEnabled;

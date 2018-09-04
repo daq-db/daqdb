@@ -25,11 +25,11 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
-#include <FogKV/KVStoreBase.h>
+#include <daqdb/KVStoreBase.h>
 
 #define DEQUEUE_RING_LIMIT 1024
 
-namespace FogKV {
+namespace DaqDB {
 
 enum class RqstOperation : std::int8_t { NONE = 0, GET = 1, PUT = 2, UPDATE = 3 };
 
@@ -59,7 +59,7 @@ class RqstPoolerInterface {
 
 class RqstPooler : public RqstPoolerInterface {
   public:
-    RqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+    RqstPooler(std::shared_ptr<DaqDB::RTreeEngine> rtree,
                const size_t cpuCore = 0);
     virtual ~RqstPooler();
 
@@ -71,7 +71,7 @@ class RqstPooler : public RqstPoolerInterface {
     OffloadRqstPooler *offloadPooler = nullptr;
 
     std::atomic<int> isRunning;
-    std::shared_ptr<FogKV::RTreeEngine> rtree;
+    std::shared_ptr<DaqDB::RTreeEngine> rtree;
     struct spdk_ring *rqstRing;
 
     unsigned short processArrayCount = 0;

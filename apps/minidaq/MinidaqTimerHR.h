@@ -19,7 +19,7 @@
 
 #include "MinidaqTimer.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 class MinidaqTimerHR : public MinidaqTimer {
   public:

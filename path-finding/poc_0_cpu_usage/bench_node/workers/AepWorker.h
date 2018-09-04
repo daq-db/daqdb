@@ -37,7 +37,7 @@
 #include "../../../lib/store/KVStore.h"
 #include "../IoMeter.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 class AepWorker {
 public:
@@ -53,7 +53,7 @@ public:
 
 private:
 	IoMeter _ioMeter;
-	std::unique_ptr<FogKV::KVStore> _spStore;
+	std::unique_ptr<DaqDB::KVStore> _spStore;
 
 };
 

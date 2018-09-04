@@ -20,7 +20,7 @@
 #include <time.h>
 #include <vector>
 
-namespace FogKV {
+namespace DaqDB {
 
 enum MinidaqMetricType {
     MINIDAQ_METRIC_RPS,

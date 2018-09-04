@@ -15,14 +15,19 @@
 
 #pragma once
 
-#include <FogKV/Types.h>
+namespace DaqDB {
 
-namespace FogKV {
+class Value {
+  public:
+    Value() : _data(nullptr), _size(0) {}
+    Value(char *data, size_t size) : _data(data), _size(size) {}
+    char *data() { return _data; }
+    inline const char *data() const { return _data; }
+    inline size_t size() const { return _size; }
 
-struct Info {
-public:
-
-	NodeId getNodeId() const;
+  protected:
+    char *_data;
+    size_t _size;
 };
 
-} // namespace FogKV
+}

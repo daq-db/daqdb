@@ -29,7 +29,7 @@
 
 #include "OffloadRqstPooler.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 using OffloadReactorShutdownCallback = std::function<void()>;
 

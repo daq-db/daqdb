@@ -14,7 +14,7 @@
  */
 
 #include "OffloadRqstPooler.h"
-#include "FogKV/Status.h"
+#include "daqdb/Status.h"
 #include "RTree.h"
 
 #include <boost/asio.hpp>
@@ -33,7 +33,7 @@
 #define LAYOUT "queue"
 #define CREATE_MODE_RW (S_IWUSR | S_IRUSR)
 
-namespace FogKV {
+namespace DaqDB {
 
 /*
  * Callback function for write io completion.
@@ -87,7 +87,7 @@ OffloadRqstMsg::OffloadRqstMsg(const OffloadRqstOperation op, const char *key,
     : op(op), key(key), keySize(keySize), value(value), valueSize(valueSize),
       clb(clb) {}
 
-OffloadRqstPooler::OffloadRqstPooler(std::shared_ptr<FogKV::RTreeEngine> rtree,
+OffloadRqstPooler::OffloadRqstPooler(std::shared_ptr<DaqDB::RTreeEngine> rtree,
                                      BdevContext &bdevContext,
                                      uint64_t offloadBlockSize)
     : rtree(rtree), _bdevContext(bdevContext) {

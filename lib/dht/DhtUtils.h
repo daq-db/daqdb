@@ -17,7 +17,7 @@
 
 #include <asio/io_service.hpp>
 
-namespace FogKV
+namespace DaqDB
 {
 namespace utils
 {

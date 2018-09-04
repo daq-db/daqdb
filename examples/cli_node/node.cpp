@@ -35,7 +35,7 @@
 
 #include <atomic>
 
-#include <FogKV/KVStoreBase.h>
+#include <daqdb/KVStoreBase.h>
 
 #include "nodeCli.h"
 
@@ -118,7 +118,7 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    FogKV::Options options;
+    DaqDB::Options options;
 
     std::atomic<int> isRunning; // used to catch SIGTERM, SIGINT
     isRunning = 1;
@@ -136,11 +136,11 @@ int main(int argc, const char *argv[]) {
     options.PMEM.Size = pmem_size;
     options.Key.field(0, sizeof(KeyType));
 
-    shared_ptr<FogKV::KVStoreBase> spKVStore;
+    shared_ptr<DaqDB::KVStoreBase> spKVStore;
     try {
         spKVStore =
-            shared_ptr<FogKV::KVStoreBase>(FogKV::KVStoreBase::Open(options));
-    } catch (FogKV::OperationFailedException &e) {
+            shared_ptr<DaqDB::KVStoreBase>(DaqDB::KVStoreBase::Open(options));
+    } catch (DaqDB::OperationFailedException &e) {
         cerr << "Failed to create KVStore: " << e.what() << endl;
         return -1;
     }
@@ -157,7 +157,7 @@ int main(int argc, const char *argv[]) {
         << flush;
 
     if (interactiveMode) {
-        FogKV::nodeCli nodeCli(spKVStore);
+        DaqDB::nodeCli nodeCli(spKVStore);
         while (nodeCli()) {
             if (!isRunning)
                 break;

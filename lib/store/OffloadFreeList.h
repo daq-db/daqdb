@@ -21,7 +21,7 @@
 #include <libpmemobj++/pool.hpp>
 #include <libpmemobj++/transaction.hpp>
 
-namespace FogKV {
+namespace DaqDB {
 
 using pmem::obj::p;
 using pmem::obj::persistent_ptr;

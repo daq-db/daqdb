@@ -17,7 +17,7 @@
 
 #include "MinidaqNode.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 class MinidaqFfNode : public MinidaqNode {
   public:

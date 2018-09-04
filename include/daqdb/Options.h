@@ -19,9 +19,9 @@
 #include <functional>
 #include <vector>
 
-#include <FogKV/Types.h>
+#include <daqdb/Types.h>
 
-namespace FogKV {
+namespace DaqDB {
 
 enum PrimaryKeyAttribute : std::int8_t {
     EMPTY       = 0,
@@ -148,4 +148,4 @@ struct Options {
     PMEMOptions PMEM;
 };
 
-} // namespace FogKV
+}

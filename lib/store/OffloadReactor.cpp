@@ -25,7 +25,7 @@
 
 #define OFFLOAD_POOLER_INTERVAL_MICR_SEC 100
 
-namespace FogKV {
+namespace DaqDB {
 
 void reactor_start_clb(void *offload_reactor, void *arg2) {
     OffloadReactor *offloadReactor =

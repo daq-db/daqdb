@@ -20,7 +20,7 @@
 #include "../dht/DhtUtils.h"
 #include "KVStoreBaseImpl.h"
 #include "common.h"
-#include <FogKV/Types.h>
+#include <daqdb/Types.h>
 
 #include <json/json.h>
 
@@ -29,7 +29,7 @@
 
 using namespace std::chrono_literals;
 
-namespace FogKV {
+namespace DaqDB {
 
 KVStoreBase *KVStoreBase::Open(const Options &options) {
     return KVStoreBaseImpl::Open(options);
@@ -382,7 +382,7 @@ KVStoreBaseImpl::KVStoreBaseImpl(const Options &options)
 KVStoreBaseImpl::~KVStoreBaseImpl() {
     mDhtNode.reset();
 
-    FogKV::RTreeEngine::Close(mRTree.get());
+    DaqDB::RTreeEngine::Close(mRTree.get());
     mRTree.reset();
 
     for (auto index = 0; index < _rqstPoolers.size(); index++) {
@@ -412,7 +412,7 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
         return mRTree->Engine();
     if (name == "fogkv.dht.peers") {
         Json::Value peers;
-        std::vector<FogKV::PureNode *> peerNodes;
+        std::vector<DaqDB::PureNode *> peerNodes;
         mDhtNode->getPeerList(peerNodes);
 
         int i = 0;
@@ -436,7 +436,7 @@ void KVStoreBaseImpl::init() {
     if (getOptions().Runtime.logFunc)
         gLog.setLogFunc(getOptions().Runtime.logFunc);
 
-    _offloadReactor = new FogKV::OffloadReactor(
+    _offloadReactor = new DaqDB::OffloadReactor(
         POOLER_CPU_CORE_BASE + poolerCount + 1, mOptions.Runtime.spdkConfigFile,
         [&]() { mOptions.Runtime.shutdownFunc(); });
 
@@ -449,20 +449,20 @@ void KVStoreBaseImpl::init() {
     }
 
     auto dhtPort =
-        getOptions().Dht.Port ?: FogKV::utils::getFreePort(io_service(), 0);
-    auto port = getOptions().Port ?: FogKV::utils::getFreePort(io_service(), 0);
+        getOptions().Dht.Port ?: DaqDB::utils::getFreePort(io_service(), 0);
+    auto port = getOptions().Port ?: DaqDB::utils::getFreePort(io_service(), 0);
 
-    mDhtNode.reset(new FogKV::CChordAdapter(io_service(), dhtPort, port,
+    mDhtNode.reset(new DaqDB::CChordAdapter(io_service(), dhtPort, port,
                                             getOptions().Dht.Id));
 
-    mRTree.reset(FogKV::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
+    mRTree.reset(DaqDB::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
                                           mOptions.PMEM.Size));
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     if (_offloadEnabled) {
         _offloadPooler =
-            new FogKV::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext,
+            new DaqDB::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext,
                                          getOptions().Value.OffloadMaxSize);
         _offloadPooler->InitFreeList();
         _offloadReactor->RegisterPooler(_offloadPooler);
@@ -470,7 +470,7 @@ void KVStoreBaseImpl::init() {
 
     for (auto index = 0; index < poolerCount; index++) {
         auto rqstPooler =
-            new FogKV::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index);
+            new DaqDB::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index);
         if (_offloadEnabled)
             rqstPooler->offloadPooler = _offloadPooler;
         _rqstPoolers.push_back(rqstPooler);
@@ -481,4 +481,4 @@ void KVStoreBaseImpl::init() {
 
 asio::io_service &KVStoreBaseImpl::io_service() { return *_io_service; }
 
-} // namespace FogKV
+}

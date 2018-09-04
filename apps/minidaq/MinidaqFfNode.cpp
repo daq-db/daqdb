@@ -16,7 +16,7 @@
 #include "MinidaqFfNode.h"
 #include <random>
 
-namespace FogKV {
+namespace DaqDB {
 
 /** @todo conisder moving to a new MinidaqSelector class */
 thread_local std::mt19937 _generator;
@@ -79,7 +79,7 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
         key.subdetectorId = baseId + i;
-        FogKV::Value value = _kvs->Get(fogKey);
+        DaqDB::Value value = _kvs->Get(fogKey);
         if (*(reinterpret_cast<uint64_t *>(value.data())) != key.eventId) {
             cntErr++;
         } else {
@@ -89,7 +89,7 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                         _kvs->UpdateAsync(
                             std::move(fogKey), UpdateOptions(LONG_TERM),
                             [keyTmp, &cnt, &cntErr](
-                                FogKV::KVStoreBase *kvs, FogKV::Status status,
+                                DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                                 const char *key, const size_t keySize,
                                 const char *value, const size_t valueSize) {
                                 if (!status.ok()) {

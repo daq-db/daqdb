@@ -50,7 +50,7 @@ using namespace log4cxx::xml;
 using namespace log4cxx::helpers;
 #endif
 
-namespace FogKV {
+namespace DaqDB {
 
 SimFogKV::SimFogKV(const std::string &diskPath, const unsigned int elementSize,
 		const unsigned int limitGet, const unsigned int limitPut) :

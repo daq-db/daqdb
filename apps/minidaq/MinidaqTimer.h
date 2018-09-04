@@ -17,7 +17,7 @@
 
 #include <cstdint>
 
-namespace FogKV {
+namespace DaqDB {
 
 class MinidaqTimer {
   public:

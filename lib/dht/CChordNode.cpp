@@ -29,7 +29,7 @@ const string dhtOverlayIdentifier = "chordTestBed";
 const string rootDirectory = ".";
 };
 
-namespace FogKV
+namespace DaqDB
 {
 
 CChordAdapter::CChordAdapter(asio::io_service &io_service, unsigned short port,
@@ -41,8 +41,8 @@ CChordAdapter::CChordAdapter(asio::io_service &io_service, unsigned short port,
 CChordAdapter::CChordAdapter(asio::io_service &io_service, unsigned short port,
                              unsigned short dragonPort, int id,
                              bool skipShutDown)
-    : FogKV::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown) {
-    auto dhtPort = FogKV::utils::getFreePort(io_service, port, true);
+    : DaqDB::DhtNode(io_service, port, dragonPort), skipShutDown(skipShutDown) {
+    auto dhtPort = DaqDB::utils::getFreePort(io_service, port, true);
 
     string backBone[] = {
         dhtBackBoneIp,

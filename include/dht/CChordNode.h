@@ -18,13 +18,13 @@
 #include <asio/io_service.hpp>
 #include <dht/DhtNode.h>
 
-namespace FogKV
+namespace DaqDB
 {
 
 /*!
  * Adapter for cChord classes.
  */
-class CChordAdapter : public FogKV::DhtNode {
+class CChordAdapter : public DaqDB::DhtNode {
 public:
 	CChordAdapter(asio::io_service &io_service, unsigned short port,
 		      unsigned short dragonPort, int id);

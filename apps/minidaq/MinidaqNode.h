@@ -20,10 +20,10 @@
 #include <string>
 #include <vector>
 
-#include "FogKV/KVStoreBase.h"
+#include "daqdb/KVStoreBase.h"
 #include "MinidaqStats.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 #define FOGKV_KEY_SIZE 24ull
 #define FOGKV_MAX_PRIMARY_ID ((1ull << FOGKV_KEY_SIZE) - 1ull)
