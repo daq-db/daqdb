@@ -42,6 +42,9 @@ include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
 include_directories(${3RDPARTY}/spdk/include)
 include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
+# Must be included before LCG version of protobuf 
+include_directories(BEFORE ${PROTOBUF_INCLUDES_EXPORT})
+include_directories(${ZHT_INCLUDES_EXPORT})
 
 set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 # Build and link fogkv library
@@ -52,7 +55,8 @@ file(GLOB_RECURSE FOGKV_SOURCES
 	lib/fabric/*.cpp lib/fabric/*.h 
 	lib/store/*.cpp lib/store/*.h)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric ${Spdk_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
+					  zht libprotobuf)
 
 # Build test folder
 add_subdirectory(tests)

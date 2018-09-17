@@ -26,8 +26,7 @@ namespace DaqDB
 class PureNode {
 public:
 	PureNode();
-	PureNode(const std::string &ip, unsigned int dhtId, unsigned short port,
-		 unsigned short dragonPort);
+	PureNode(const std::string &ip, unsigned int dhtId, unsigned short port);
 	virtual ~PureNode();
 
 	/**
@@ -45,22 +44,15 @@ public:
 	 */
 	unsigned short getPort() const;
 
-	/**
-	 * @return Port number for this node
-	 */
-	unsigned short getDragonPort() const;
-
 protected:
 	void setIp(const std::string &ip);
 	void setDhtId(unsigned int dhtId);
 	void setPort(unsigned short port);
-	void setDragonPort(unsigned short port);
 
 private:
 	std::string _ip;
 	unsigned int _dhtId;
 	unsigned short _port;
-	unsigned short _dragonPort;
 };
 
 }

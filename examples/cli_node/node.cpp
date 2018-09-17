@@ -151,10 +151,6 @@ int main(int argc, const char *argv[]) {
                spKVStore->getProperty("fogkv.listener.ip") %
                spKVStore->getProperty("fogkv.listener.port")
         << flush;
-    BOOST_LOG_SEV(lg::get(), bt::info)
-        << format("Waiting for requests on port %1%.") %
-               spKVStore->getProperty("fogkv.listener.dht_port")
-        << flush;
 
     if (interactiveMode) {
         DaqDB::nodeCli nodeCli(spKVStore);

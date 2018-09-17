@@ -402,8 +402,6 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
         return mDhtNode->getIp();
     if (name == "fogkv.listener.port")
         return std::to_string(mDhtNode->getPort());
-    if (name == "fogkv.listener.dht_port")
-        return std::to_string(mDhtNode->getDragonPort());
     if (name == "fogkv.pmem.path")
         return mOptions.PMEM.Path;
     if (name == "fogkv.pmem.size")
@@ -420,7 +418,6 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
             peers[i]["id"] = std::to_string(peer->getDhtId());
             peers[i]["port"] = std::to_string(peer->getPort());
             peers[i]["ip"] = peer->getIp();
-            peers[i]["dht_port"] = std::to_string(peer->getDragonPort());
         }
 
         Json::FastWriter writer;
@@ -445,15 +442,16 @@ void KVStoreBaseImpl::init() {
     }
     if (_offloadReactor->state == ReactorState::READY) {
         _offloadEnabled = true;
-        FOG_DEBUG("SPDK offload functionality enabled");
+        FOG_DEBUG("SPDK offload functionality is enabled");
+    } else {
+        FOG_DEBUG("SPDK offload functionality is disabled");
     }
 
     auto dhtPort =
         getOptions().Dht.Port ?: DaqDB::utils::getFreePort(io_service(), 0);
     auto port = getOptions().Port ?: DaqDB::utils::getFreePort(io_service(), 0);
 
-    mDhtNode.reset(new DaqDB::CChordAdapter(io_service(), dhtPort, port,
-                                            getOptions().Dht.Id));
+    mDhtNode.reset(new DaqDB::ZhtNode(io_service(), dhtPort));
 
     mRTree.reset(DaqDB::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
                                           mOptions.PMEM.Size));

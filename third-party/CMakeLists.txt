@@ -84,6 +84,34 @@ add_library(libconfig STATIC IMPORTED GLOBAL)
 add_dependencies(libconfig project_libconfig)
 set_target_properties(libconfig PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so)
 
+# protobuf
+set(PROTOBUF_INCLUDES ${PROJECT_SOURCE_DIR}/protobuf/src)
+include_directories(BEFORE ${PROTOBUF_INCLUDES})
+set(PROTOBUF_INCLUDES_EXPORT ${PROTOBUF_INCLUDES} PARENT_SCOPE)
+set(PROTOBUF_LIB ${PROJECT_SOURCE_DIR}/protobuf/src/.libs/libprotobuf.so.17.0.0)
+ExternalProject_Add(project_protobuf
+	PREFIX ${PROJECT_SOURCE_DIR}/protobuf
+	SOURCE_DIR ${PROJECT_SOURCE_DIR}/protobuf
+	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/protobuf
+	CONFIGURE_COMMAND libtoolize && autoreconf -I m4 -f -i -Wall,no-obsolete && ./configure --prefix=${PROJECT_SOURCE_DIR}/protobuf
+	BUILD_COMMAND make
+	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			${PROTOBUF_LIB}
+			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libprotobuf.so.17
+)
+add_library(libprotobuf STATIC IMPORTED GLOBAL)
+add_dependencies(libprotobuf project_protobuf)
+set_target_properties(libprotobuf PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libprotobuf.so.17)
+
+# zht
+set(ZHT ${PROJECT_SOURCE_DIR}/zht)
+set(ZHT_INCLUDES ${ZHT})
+set(ZHT_INCLUDES_EXPORT ${ZHT_INCLUDES} PARENT_SCOPE)
+include_directories(${ZHT_INCLUDES})
+file(GLOB_RECURSE ZHT_SOURCES ${ZHT}/*.cpp)
+add_library(zht SHARED ${ZHT_SOURCES})
+target_link_libraries(zht libprotobuf)
+
 # Cleanup tasks
 add_custom_target(clean-dep)
 add_custom_target(libpmdk_clean
