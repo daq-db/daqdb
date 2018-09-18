@@ -85,15 +85,21 @@ add_dependencies(libconfig project_libconfig)
 set_target_properties(libconfig PROPERTIES IMPORTED_LOCATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so)
 
 # protobuf
-set(PROTOBUF_INCLUDES ${PROJECT_SOURCE_DIR}/protobuf/src)
+set(PROTOBUF_DIR ${PROJECT_SOURCE_DIR}/protobuf)
+set(PROTOBUF_INCLUDES ${PROTOBUF_DIR}/src)
 include_directories(BEFORE ${PROTOBUF_INCLUDES})
 set(PROTOBUF_INCLUDES_EXPORT ${PROTOBUF_INCLUDES} PARENT_SCOPE)
-set(PROTOBUF_LIB ${PROJECT_SOURCE_DIR}/protobuf/src/.libs/libprotobuf.so.17.0.0)
+set(PROTOBUF_LIB ${PROTOBUF_DIR}/src/.libs/libprotobuf.so.17.0.0)
 ExternalProject_Add(project_protobuf
-	PREFIX ${PROJECT_SOURCE_DIR}/protobuf
-	SOURCE_DIR ${PROJECT_SOURCE_DIR}/protobuf
-	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/protobuf
-	CONFIGURE_COMMAND libtoolize && autoreconf -I m4 -f -i -Wall,no-obsolete && ./configure --prefix=${PROJECT_SOURCE_DIR}/protobuf
+	PREFIX ${PROTOBUF_SRC}
+	SOURCE_DIR ${PROTOBUF_DIR}
+	BUILD_IN_SOURCE ${PROTOBUF_DIR}
+	CONFIGURE_COMMAND libtoolize -cf &&
+		cp -r ${PROTOBUF_DIR}/m4 ${PROTOBUF_DIR}/third_party/googletest &&
+		cp -r ${PROTOBUF_DIR}/m4 ${PROTOBUF_DIR}/third_party/googletest/googlemock &&
+		cp -r ${PROTOBUF_DIR}/m4 ${PROTOBUF_DIR}/third_party/googletest/googletest &&
+		autoreconf -v -I m4 -f -i -Wall,no-obsolete &&
+		./configure --prefix=${PROTOBUF_DIR}
 	BUILD_COMMAND make
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PROTOBUF_LIB}
