@@ -56,4 +56,4 @@ class OffloadFreeList {
     persistent_ptr<FreeLba> _tail;
 };
 
-} /* namespace FogKV */
+}

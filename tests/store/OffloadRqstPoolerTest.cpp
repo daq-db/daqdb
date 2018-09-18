@@ -101,10 +101,10 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.processArray[0] =
+    pooler.requests.push_back(
         new DaqDB::OffloadRqstMsg(DaqDB::OffloadRqstOperation::GET, expectedKey,
-                                  expectedKeySize, nullptr, 0, nullptr);
-    pooler.processArrayCount = 1;
+                                  expectedKeySize, nullptr, 0, nullptr));
+    pooler.requestCount = 1;
 
     pooler.ProcessMsg();
     VerifyNoOtherInvocations(Method(poolerMock, Write));
@@ -155,10 +155,10 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.processArray[0] = new DaqDB::OffloadRqstMsg(
+    pooler.requests.push_back(new DaqDB::OffloadRqstMsg(
         DaqDB::OffloadRqstOperation::UPDATE, expectedKey, expectedKeySize,
-        nullptr, 0, nullptr);
-    pooler.processArrayCount = 1;
+        nullptr, 0, nullptr));
+    pooler.requestCount = 1;
 
     pooler.ProcessMsg();
     VerifyNoOtherInvocations(Method(poolerMock, Read));
@@ -201,10 +201,10 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.processArray[0] = new DaqDB::OffloadRqstMsg(
+    pooler.requests.push_back(new DaqDB::OffloadRqstMsg(
         DaqDB::OffloadRqstOperation::REMOVE, expectedKey, expectedKeySize,
-        nullptr, 0, nullptr);
-    pooler.processArrayCount = 1;
+        nullptr, 0, nullptr));
+    pooler.requestCount = 1;
 
     pooler.ProcessMsg();
     VerifyNoOtherInvocations(Method(poolerMock, Read));

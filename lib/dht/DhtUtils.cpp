@@ -54,5 +54,5 @@ getFreePort(asio::io_service &io_service, const unsigned short backbonePort, boo
 	return resultPort;
 }
 
-} /* namespace utils */
-} // namespace Dht
+}
+}

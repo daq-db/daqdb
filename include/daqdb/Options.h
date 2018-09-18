@@ -47,7 +47,7 @@ struct UpdateOptions {
 
 struct PutOptions {
     PutOptions() {}
-    PutOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
+    explicit PutOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
 
     void poolerId(unsigned short id) { _poolerId = id; }
 
@@ -134,7 +134,7 @@ struct PMEMOptions {
 struct Options {
   public:
     Options() {}
-    Options(const std::string &path);
+    explicit Options(const std::string &path);
 
     KeyDescriptor Key;
     ValueDescription Value;

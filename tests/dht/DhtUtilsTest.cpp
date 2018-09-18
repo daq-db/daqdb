@@ -50,16 +50,7 @@ unsigned short getRandomPortNumber() {
 
 	return gen();
 }
-
-unsigned short getFreePortNumber(asio::io_service &io_service) {
-	auto resultPort = getRandomPortNumber();
-	while (!isPortFree(io_service, resultPort)) {
-		resultPort = getRandomPortNumber();
-	}
-	return resultPort;
 }
-}
-;
 
 /**
  * Test if Dht::utils::getFreePort give free port as result when no default.

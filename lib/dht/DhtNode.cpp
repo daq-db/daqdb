@@ -26,4 +26,4 @@ DhtNode::~DhtNode()
 {
 }
 
-} /* namespace Dht */
+}

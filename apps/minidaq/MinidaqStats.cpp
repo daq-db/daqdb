@@ -94,7 +94,7 @@ MinidaqStats::MinidaqStats(const MinidaqStats &other) : MinidaqStats() {
     _totalTime_ns = other._totalTime_ns;
 }
 
-MinidaqStats MinidaqStats::operator=(MinidaqStats &&other) {
+MinidaqStats& MinidaqStats::operator=(MinidaqStats &&other) {
     _histogramRps = other._histogramRps;
     _histogramCps = other._histogramCps;
     _histogramRpsErr = other._histogramRpsErr;
@@ -106,6 +106,8 @@ MinidaqStats MinidaqStats::operator=(MinidaqStats &&other) {
     other._histogramCps = nullptr;
     other._histogramRpsErr = nullptr;
     other._histogramCpsErr = nullptr;
+
+    return *this;
 }
 
 void MinidaqStats::Combine(const MinidaqStats &stats) {
@@ -153,8 +155,6 @@ void MinidaqStats::RecordSample(const MinidaqSample &s) {
 }
 
 void MinidaqStats::Dump() {
-    double avg;
-
     std::cout << "Iterations: " << _nIterations << std::endl;
     std::cout << "Histogram overflows: " << _nOverflows << std::endl;
 
@@ -298,8 +298,6 @@ void MinidaqStats::_DumpSummaryCsv(std::fstream &f,
 }
 
 void MinidaqStats::DumpSummary() {
-    std::stringstream ss;
-
     _DumpSummary(MINIDAQ_METRIC_RPS);
     _DumpSummary(MINIDAQ_METRIC_CPS);
     _DumpSummary(MINIDAQ_METRIC_RPS_ERR);
@@ -311,8 +309,6 @@ void MinidaqStats::DumpSummary() {
 void MinidaqStats::DumpSummaryHeader() {
     std::cout << "Iterations: " << _nIterations << std::endl;
     std::cout << "Overflows: " << _nOverflows << std::endl;
-
-    std::vector<std::string> f;
 
     SHOW_HEADER("Metric");
     SHOW_HEADER("Mean");

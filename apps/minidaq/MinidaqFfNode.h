@@ -21,7 +21,7 @@ namespace DaqDB {
 
 class MinidaqFfNode : public MinidaqNode {
   public:
-    MinidaqFfNode(KVStoreBase *kvs);
+    explicit MinidaqFfNode(KVStoreBase *kvs);
     virtual ~MinidaqFfNode();
 
     void SetSubdetectors(int n);

@@ -23,7 +23,7 @@ Logger::Logger() {}
 
 Logger::~Logger() {}
 
-void Logger::setLogFunc(std::function<void(std::string)> fn) { _logFunc = fn; }
+void Logger::setLogFunc(const std::function<void(std::string)> &fn) { _logFunc = fn; }
 
 void Logger::Log(std::string msg) {
     if (_logFunc) {

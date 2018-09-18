@@ -56,10 +56,9 @@ int main(int argc, char ** argv) {
 	asio::signal_set signals(io_service, SIGINT, SIGTERM);
 	signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
 
-	DaqDB::KVStoreBase *kvs;
 	try {
-		kvs = KVStoreBase::Open(options);
-	} catch (OperationFailedException e) {
+		KVStoreBase::Open(options);
+	} catch (OperationFailedException &e) {
 		cerr << "Failed to create KVStore: " << e.what() << endl;
 		return -1;
 	}

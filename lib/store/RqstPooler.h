@@ -59,7 +59,7 @@ class RqstPoolerInterface {
 
 class RqstPooler : public RqstPoolerInterface {
   public:
-    RqstPooler(std::shared_ptr<DaqDB::RTreeEngine> rtree,
+    RqstPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                const size_t cpuCore = 0);
     virtual ~RqstPooler();
 
