@@ -41,10 +41,10 @@ public:
 	void stop();
 
 	std::shared_ptr<FabricConnection> connection(const std::string &node, const std::string &serv);
-	void disconnect(std::shared_ptr<FabricConnection> conn);
+	void disconnect(std::shared_ptr<FabricConnection> &conn);
 	void connect(std::shared_ptr<FabricConnection> &conn);
-	void connectAsync(std::shared_ptr<FabricConnection> conn);
-	void connectWait(std::shared_ptr<FabricConnection> conn);
+	void connectAsync(std::shared_ptr<FabricConnection> &conn);
+	void connectWait(std::shared_ptr<FabricConnection> &conn);
 
 	void onConnectionRequest(FabricConnectionEventHandler handler);
 	void onConnected(FabricConnectionEventHandler handler);

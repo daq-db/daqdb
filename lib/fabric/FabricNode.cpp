@@ -143,7 +143,7 @@ std::shared_ptr<FabricConnection> FabricNode::connection(const std::string &addr
 	return conn;
 }
 
-void FabricNode::disconnect(std::shared_ptr<FabricConnection> conn)
+void FabricNode::disconnect(std::shared_ptr<FabricConnection> &conn)
 {
 	conn->close();
 	std::unique_lock<std::mutex> lock(mConnLock);
@@ -153,14 +153,14 @@ void FabricNode::disconnect(std::shared_ptr<FabricConnection> conn)
 	});
 }
 
-void FabricNode::connectAsync(std::shared_ptr<FabricConnection> conn)
+void FabricNode::connectAsync(std::shared_ptr<FabricConnection> &conn)
 {
 	std::unique_lock<std::mutex> lock(mConnLock);
 	conn->connectAsync();
 	mConnecting[conn->endpoint()] = conn;
 }
 
-void FabricNode::connectWait(std::shared_ptr<FabricConnection> conn)
+void FabricNode::connectWait(std::shared_ptr<FabricConnection> &conn)
 {
 	std::unique_lock<std::mutex> lock(mConnLock);
 	mConnCond.wait(lock, [&] {
