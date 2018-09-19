@@ -90,7 +90,7 @@ class OffloadRqstPoolerInterface {
 
 class OffloadRqstPooler : public OffloadRqstPoolerInterface {
   public:
-    OffloadRqstPooler(std::shared_ptr<DaqDB::RTreeEngine> rtree,
+    OffloadRqstPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                       BdevContext &bdevContext, uint64_t offloadBlockSize);
     virtual ~OffloadRqstPooler();
 
@@ -107,8 +107,8 @@ class OffloadRqstPooler : public OffloadRqstPoolerInterface {
 
     struct spdk_ring *rqstRing;
 
-    unsigned short processArrayCount = 0;
-    OffloadRqstMsg *processArray[OFFLOAD_DEQUEUE_RING_LIMIT];
+    unsigned short requestCount = 0;
+    std::vector<OffloadRqstMsg *> requests;
 
     std::shared_ptr<DaqDB::RTreeEngine> rtree;
 

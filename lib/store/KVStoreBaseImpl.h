@@ -73,7 +73,7 @@ class KVStoreBaseImpl : public KVStoreBase {
     void LogMsg(std::string msg);
 
   protected:
-    KVStoreBaseImpl(const Options &options);
+    explicit KVStoreBaseImpl(const Options &options);
     virtual ~KVStoreBaseImpl();
 
     void init();

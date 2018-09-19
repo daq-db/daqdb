@@ -30,7 +30,7 @@ class Logger {
     Logger();
     virtual ~Logger();
 
-    void setLogFunc(std::function<void(std::string)> fn);
+    void setLogFunc(const std::function<void(std::string)> &fn);
     void Log(std::string);
 
 private:

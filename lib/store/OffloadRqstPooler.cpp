@@ -14,8 +14,8 @@
  */
 
 #include "OffloadRqstPooler.h"
-#include "daqdb/Status.h"
 #include "RTree.h"
+#include "daqdb/Status.h"
 
 #include <boost/asio.hpp>
 #include <iostream>
@@ -25,8 +25,8 @@
 #include <boost/filesystem.hpp>
 
 #include "../debug/Logger.h"
-#include "spdk/env.h"
 #include "spdk/bdev.h"
+#include "spdk/env.h"
 
 #define POOL_FREELIST_FILENAME "/mnt/pmem/offload_free.pm"
 #define POOL_FREELIST_SIZE 1ULL * 1024 * 1024 * 1024
@@ -41,7 +41,7 @@ namespace DaqDB {
 static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
 
-    IoContext *ioCtx = (IoContext *)cb_arg;
+    IoContext *ioCtx = reinterpret_cast<IoContext *>(cb_arg);
 
     if (success) {
         if (ioCtx->updatePmemIOV)
@@ -65,7 +65,7 @@ static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
  */
 static void read_complete(struct spdk_bdev_io *bdev_io, bool success,
                           void *cb_arg) {
-    IoContext *ioCtx = (IoContext *)cb_arg;
+    IoContext *ioCtx = reinterpret_cast<IoContext *>(cb_arg);
 
     if (success) {
         if (ioCtx->clb)
@@ -87,10 +87,11 @@ OffloadRqstMsg::OffloadRqstMsg(const OffloadRqstOperation op, const char *key,
     : op(op), key(key), keySize(keySize), value(value), valueSize(valueSize),
       clb(clb) {}
 
-OffloadRqstPooler::OffloadRqstPooler(std::shared_ptr<DaqDB::RTreeEngine> rtree,
+OffloadRqstPooler::OffloadRqstPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                                      BdevContext &bdevContext,
                                      uint64_t offloadBlockSize)
-    : rtree(rtree), _bdevContext(bdevContext) {
+    : rtree(rtree), _bdevContext(bdevContext),
+      requests(OFFLOAD_DEQUEUE_RING_LIMIT, 0) {
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
 
@@ -142,18 +143,18 @@ void OffloadRqstPooler::InitFreeList() {
 }
 
 void OffloadRqstPooler::DequeueMsg() {
-    processArrayCount = spdk_ring_dequeue(rqstRing, (void **)processArray,
+    requestCount = spdk_ring_dequeue(rqstRing, (void **)&requests[0],
                                           OFFLOAD_DEQUEUE_RING_LIMIT);
-    assert(processArrayCount <= OFFLOAD_DEQUEUE_RING_LIMIT);
+    assert(requestCount <= OFFLOAD_DEQUEUE_RING_LIMIT);
 }
 
 void OffloadRqstPooler::ProcessMsg() {
-    for (unsigned short MsgIndex = 0; MsgIndex < processArrayCount;
+    for (unsigned short MsgIndex = 0; MsgIndex < requestCount;
          MsgIndex++) {
-        const char *key = processArray[MsgIndex]->key;
-        const size_t keySize = processArray[MsgIndex]->keySize;
+        const char *key = requests[MsgIndex]->key;
+        const size_t keySize = requests[MsgIndex]->keySize;
 
-        auto cb_fn = processArray[MsgIndex]->clb;
+        auto cb_fn = requests[MsgIndex]->clb;
 
         /**
          * First we need discover if value is not already offloaded
@@ -169,7 +170,7 @@ void OffloadRqstPooler::ProcessMsg() {
             break;
         }
 
-        switch (processArray[MsgIndex]->op) {
+        switch (requests[MsgIndex]->op) {
         case OffloadRqstOperation::GET: {
 
             if (location == LOCATIONS::PMEM) {
@@ -202,8 +203,8 @@ void OffloadRqstPooler::ProcessMsg() {
         }
         case OffloadRqstOperation::UPDATE: {
 
-            const char *rqstVal = processArray[MsgIndex]->value;
-            size_t rqstValSize = processArray[MsgIndex]->valueSize;
+            const char *rqstVal = requests[MsgIndex]->value;
+            size_t rqstValSize = requests[MsgIndex]->valueSize;
             char *buff = nullptr;
             IoContext *ioCtx = nullptr;
             if (location == LOCATIONS::PMEM) {
@@ -279,9 +280,9 @@ void OffloadRqstPooler::ProcessMsg() {
         default:
             break;
         }
-        delete processArray[MsgIndex];
+        delete requests[MsgIndex];
     }
-    processArrayCount = 0;
+    requestCount = 0;
 }
 
 int64_t OffloadRqstPooler::GetFreeLba() {
@@ -292,4 +293,4 @@ void OffloadRqstPooler::SetBdevContext(BdevContext &bdevContext) {
     _bdevContext = bdevContext;
 }
 
-} /* namespace FogKV */
+}

@@ -23,7 +23,7 @@ typedef unsigned int NodeId;
 
 class NotImplementedException : public std::logic_error {
   public:
-    NotImplementedException(const std::string &what)
+    explicit NotImplementedException(const std::string &what)
         : logic_error("Not Implemented: " + what) {}
 
     NotImplementedException() : logic_error("Not Implemented") {}
@@ -35,11 +35,11 @@ class OperationFailedException : public std::runtime_error {
         : runtime_error(msg), _status(s) {
         set_what();
     }
-    OperationFailedException(const std::string &msg = "")
+    explicit OperationFailedException(const std::string &msg = "")
         : runtime_error(msg), _status(UnknownError) {
         set_what();
     }
-    OperationFailedException(int errnum, std::string msg = "")
+    OperationFailedException(int errnum, const std::string &msg = "")
         : runtime_error(msg), _status(errnum) {
         set_what();
     }

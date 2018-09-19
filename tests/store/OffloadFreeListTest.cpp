@@ -157,10 +157,9 @@ BOOST_FIXTURE_TEST_CASE(GetLbaAfterInit_FullDisk, OffloadFreeListTestFixture) {
     freeLbaList->Push(*g_poolFreeList, -1);
     freeLbaList->maxLba = FREELIST_MAX_LBA;
 
-    long lba = 0;
     unsigned int index;
     for (index = 0; index < FREELIST_MAX_LBA; index++)
-        lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+        freeLbaList->GetFreeLba(*g_poolFreeList);
 
     BOOST_CHECK_EXCEPTION(freeLbaList->GetFreeLba(*g_poolFreeList),
                           pmem::manual_tx_abort, txAbortPred);

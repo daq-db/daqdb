@@ -83,7 +83,6 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     MinidaqTimerHR timerTest;
     MinidaqStats stats;
     MinidaqSample s;
-    uint64_t avg_r;
     uint64_t i = 0;
 
     // Pre-test
@@ -117,7 +116,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     c_err = 0;
     while (!timerTest.IsExpired() && !_stopped) {
         // Timer precision per iteration
-        avg_r = (s.nRequests + 10) / 10;
+        auto avg_r = (s.nRequests + 10) / 10;
         s.Reset();
         timerSample.Restart_us(_tIter_us);
         do {
@@ -180,8 +179,6 @@ void MinidaqNode::Run() {
 }
 
 void MinidaqNode::Wait() {
-    int i;
-
     for (const auto &f : _futureVec) {
         f.wait();
     }

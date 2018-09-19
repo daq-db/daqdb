@@ -32,7 +32,7 @@ namespace DaqDB {
  */
 class nodeCli {
   public:
-    nodeCli(std::shared_ptr<DaqDB::KVStoreBase> &spDragonSrv);
+    explicit nodeCli(std::shared_ptr<DaqDB::KVStoreBase> &spDragonSrv);
     virtual ~nodeCli();
 
     /*!

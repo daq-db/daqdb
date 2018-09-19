@@ -97,4 +97,4 @@ void OffloadFreeList::Show(void) const {
         std::cout << n->lba << std::endl;
 }
 
-} /* namespace FogKV */
+}

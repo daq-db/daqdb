@@ -33,7 +33,7 @@ public:
 
 public:
 	FabricInfo();
-	FabricInfo(struct fi_info *info);
+	explicit FabricInfo(struct fi_info *info);
 	FabricInfo(const FabricAttributes &attr, const std::string &node, const std::string &serv, bool listener);
 	virtual ~FabricInfo();
 

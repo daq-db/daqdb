@@ -38,9 +38,8 @@ struct Status {
 
     Status() : _code(Ok) {}
 
-    Status(int errnum) : _code(static_cast<StatusCode>(errnum)) {}
-
-    Status(StatusCode c) : _code(c) {}
+    Status(long errnum) : _code(static_cast<StatusCode>(errnum)) {}
+    explicit Status(StatusCode c) : _code(c) {}
 
     bool ok() const { return _code == Ok; }
 

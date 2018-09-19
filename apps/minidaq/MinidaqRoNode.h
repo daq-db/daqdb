@@ -21,7 +21,7 @@ namespace DaqDB {
 
 class MinidaqRoNode : public MinidaqNode {
   public:
-    MinidaqRoNode(KVStoreBase *kvs);
+    explicit MinidaqRoNode(KVStoreBase *kvs);
     virtual ~MinidaqRoNode();
 
     void SetFragmentSize(size_t s);

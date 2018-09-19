@@ -43,6 +43,6 @@ class Configuration {
 		Config cfg;
 		const char * fileName;
 	public:
-		Configuration(const char *);
+		explicit Configuration(const char *);
 		void readConfiguration(Options &options);
 };

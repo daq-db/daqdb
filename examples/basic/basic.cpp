@@ -128,7 +128,6 @@ int KVStoreBaseExample() {
             value = kvs->Get(key);
         } catch (...) {
             // error
-            kvs->Free(std::move(key));
         }
 
         // success, process the data and free the buffers
@@ -164,7 +163,7 @@ int KVStoreBaseExample() {
 
                               // free the value buffer
                           });
-        } catch (DaqDB::OperationFailedException exc) {
+        } catch (DaqDB::OperationFailedException &exc) {
             // error, status in:
             // exc.status();
             kvs->Free(std::move(key));

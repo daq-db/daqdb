@@ -141,16 +141,15 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
 
 int main(int argc, const char *argv[]) {
     bool isParallel = MINIDAQ_DEFAULT_PARALLEL;
-    DaqDB::KVStoreBase *kvs;
-    double acceptLevel;
-    int startSubId;
-    size_t fSize;
-    int nAroTh;
-    int nRoTh;
-    int nFfTh;
-    int nEbTh;
-    int subId;
-    int nSub;
+    double acceptLevel = 0;
+    int startSubId = 0;
+    size_t fSize = 0;
+    int nAroTh = 0;
+    int nRoTh = 0;
+    int nFfTh = 0;
+    int nEbTh = 0;
+    int subId = 0;
+    int nSub = 0;
 
     po::options_description genericOpts("Generic options");
     genericOpts.add_options()("help,h", "Print help messages")(
@@ -268,7 +267,7 @@ int main(int argc, const char *argv[]) {
 
     try {
         std::cout << "### Opening FogKV..." << endl;
-        kvs = openKVS();
+        auto kvs = openKVS();
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<DaqDB::MinidaqNode>>
             nodes; // Configure nodes

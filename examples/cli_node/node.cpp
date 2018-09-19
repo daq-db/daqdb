@@ -67,7 +67,7 @@ int main(int argc, const char *argv[]) {
     bool interactiveMode = false;
     std::string pmem_path;
     std::string spdk_conf;
-    size_t pmem_size;
+    size_t pmem_size = 0;
 
     logging::add_console_log(std::clog,
                              keywords::format = "%TimeStamp%: %Message%");

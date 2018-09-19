@@ -53,12 +53,11 @@ FabricNode::~FabricNode()
 
 void FabricNode::eqThreadFunc()
 {
-	ssize_t sret;
 	uint32_t event;
 	struct fi_eq_cm_entry entry;
 
 	while (mEqThreadRun) {
-		sret = fi_eq_sread(mFabric.eq(), &event, &entry, sizeof(entry), -1, 0);
+		auto sret = fi_eq_sread(mFabric.eq(), &event, &entry, sizeof(entry), -1, 0);
 		if (sret == -FI_EAGAIN)
 			continue;
 
@@ -144,7 +143,7 @@ std::shared_ptr<FabricConnection> FabricNode::connection(const std::string &addr
 	return conn;
 }
 
-void FabricNode::disconnect(std::shared_ptr<FabricConnection> conn)
+void FabricNode::disconnect(std::shared_ptr<FabricConnection> &conn)
 {
 	conn->close();
 	std::unique_lock<std::mutex> lock(mConnLock);
@@ -154,14 +153,14 @@ void FabricNode::disconnect(std::shared_ptr<FabricConnection> conn)
 	});
 }
 
-void FabricNode::connectAsync(std::shared_ptr<FabricConnection> conn)
+void FabricNode::connectAsync(std::shared_ptr<FabricConnection> &conn)
 {
 	std::unique_lock<std::mutex> lock(mConnLock);
 	conn->connectAsync();
 	mConnecting[conn->endpoint()] = conn;
 }
 
-void FabricNode::connectWait(std::shared_ptr<FabricConnection> conn)
+void FabricNode::connectWait(std::shared_ptr<FabricConnection> &conn)
 {
 	std::unique_lock<std::mutex> lock(mConnLock);
 	mConnCond.wait(lock, [&] {
@@ -169,7 +168,7 @@ void FabricNode::connectWait(std::shared_ptr<FabricConnection> conn)
 	});
 }
 
-void FabricNode::connect(std::shared_ptr<FabricConnection> conn)
+void FabricNode::connect(std::shared_ptr<FabricConnection> &conn)
 {
 	connectAsync(conn);
 	connectWait(conn);

@@ -83,7 +83,7 @@ int reactor_pooler_fn(void *offload_reactor) {
     return 0;
 }
 
-OffloadReactor::OffloadReactor(const size_t cpuCore, std::string spdkConfigFile,
+OffloadReactor::OffloadReactor(const size_t cpuCore, const std::string &spdkConfigFile,
                                OffloadReactorShutdownCallback clb)
     : state(ReactorState::INIT_INPROGRESS), _thread(nullptr), _cpuCore(cpuCore),
       _shutdownClb(clb), _spdkConfigFile(spdkConfigFile) {

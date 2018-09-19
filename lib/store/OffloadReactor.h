@@ -45,7 +45,7 @@ int reactor_pooler_fn(void *offload_reactor);
 
 class OffloadReactor {
   public:
-    OffloadReactor(const size_t cpuCore = 0, std::string spdkConfigFile = "",
+    OffloadReactor(const size_t cpuCore = 0, const std::string &spdkConfigFile = "",
                    OffloadReactorShutdownCallback clb = nullptr);
     virtual ~OffloadReactor();
 
