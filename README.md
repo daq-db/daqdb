@@ -72,6 +72,8 @@ By default, all software can be found in ${daqdb_path}/bin folder.
 make clean              # remove daqdb lib build files
 make clean-dep          # remove third-party build files
 make clean-all          # remove cmake, third-party and daqdb build files
+make tests              # build tests
+make test               # execute tests
 ```
 
 ##### LCG
@@ -115,8 +117,8 @@ sudo LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH" ./clinode -i
 ```
 cd ${daqdb_path}
 cmake .
-make -j$(nproc)
-ctest
+make tests -j$(nproc)
+make test
 ```
 
 <a name="execution"></a>
