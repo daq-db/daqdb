@@ -19,8 +19,7 @@ set(APPS ${PROJECT_SOURCE_DIR}/apps)
 
 find_package(PkgConfig)
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
-# fogkv lib dependencies
-find_package(Jsoncpp)
+include_directories(${Boost_INCLUDE_DIRS})
 
 # All products will be copied to bin folder
 if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
@@ -33,8 +32,6 @@ add_custom_target(clean-all
    COMMAND ${CMAKE_BUILD_TOOL} clean-dep
    COMMAND ${CMAKE_COMMAND} -P cmake/CleanAll.cmake
 )
-
-include_directories(${Jsoncpp_INCLUDE_DIR})
 
 # dependencies from third-party folder
 add_subdirectory(third-party)
