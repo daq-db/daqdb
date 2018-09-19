@@ -22,8 +22,6 @@
 #include "common.h"
 #include <daqdb/Types.h>
 
-#include <json/json.h>
-
 /** @TODO jradtke: should be taken from configuration file */
 #define POOLER_CPU_CORE_BASE 1
 
@@ -408,21 +406,7 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
         return std::to_string(mOptions.PMEM.Size);
     if (name == "fogkv.KVEngine")
         return mRTree->Engine();
-    if (name == "fogkv.dht.peers") {
-        Json::Value peers;
-        std::vector<DaqDB::PureNode *> peerNodes;
-        mDhtNode->getPeerList(peerNodes);
 
-        int i = 0;
-        for (auto peer : peerNodes) {
-            peers[i]["id"] = std::to_string(peer->getDhtId());
-            peers[i]["port"] = std::to_string(peer->getPort());
-            peers[i]["ip"] = peer->getIp();
-        }
-
-        Json::FastWriter writer;
-        return writer.write(peers);
-    }
     return "";
 }
 

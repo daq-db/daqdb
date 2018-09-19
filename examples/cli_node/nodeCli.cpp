@@ -606,34 +606,9 @@ void nodeCli::_cmdRemove(const std::string &strLine) {
     }
 }
 
-Json::Value nodeCli::getPeersJson() {
-    Json::Reader reader;
-    Json::Value peers;
-    std::string peersStr = _spKVStore->getProperty("fogkv.dht.peers");
-    reader.parse(peersStr, peers);
-
-    return peers;
-}
-
 void nodeCli::_cmdStatus() {
-    Json::Value peers = getPeersJson();
-
-    auto npeers = peers.size();
     chrono::time_point<chrono::system_clock> timestamp;
     auto currentTime = chrono::system_clock::to_time_t(timestamp);
-
-    if (!npeers) {
-        cout << format("%1%\tno DHT peer(s)\n") % std::ctime(&currentTime);
-    } else {
-        cout << format("%1%\t%2% DHT "
-                       "peers found") %
-                    std::ctime(&currentTime) % npeers
-             << endl;
-
-        for (int i = 0; i < npeers; i++) {
-            cout << "[" << i << "]: " << peers[i].toStyledString();
-        }
-    }
 
     if (_statusMsgs.size() > 0) {
         cout << "Async operations statuses:" << endl;
@@ -663,17 +638,6 @@ void nodeCli::_cmdNodeStatus(const std::string &strLine) {
                  << endl;
             return;
         }
-
-        Json::Value peers = getPeersJson();
-
-        for (int i = 0; i < peers.size(); i++) {
-            if (peers[i]["id"].asString() == nodeId) {
-                cout << peers[i].toStyledString() << endl;
-                return;
-            }
-        }
-
-        cout << "Node not connected" << endl;
     }
 }
 }
