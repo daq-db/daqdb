@@ -17,7 +17,6 @@
 
 #include <daqdb/KVStoreBase.h>
 #include <iostream>
-#include <json/json.h>
 #include <linenoise.h>
 #include <memory>
 
@@ -65,7 +64,5 @@ class nodeCli {
 
     std::shared_ptr<DaqDB::KVStoreBase> _spKVStore;
     std::vector<std::string> _statusMsgs;
-
-    Json::Value getPeersJson();
 };
 }

@@ -16,12 +16,10 @@ set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
 find_package(Threads REQUIRED)
-find_package(Jsoncpp)
 
-include_directories(${Jsoncpp_INCLUDE_DIR})
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 
 file(GLOB MIST_SOURCES ${APPS}/mist/*.cpp ${APPS}/mist/*.hpp)
 add_executable(mist ${MIST_SOURCES})
-target_link_libraries(mist ${Jsoncpp_LIBRARY} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
+target_link_libraries(mist ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
 	fabric pmem fogkv libconfig pmemobj dl numa ${Dpdk_LIBRARIES})

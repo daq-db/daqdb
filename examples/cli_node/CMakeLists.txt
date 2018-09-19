@@ -17,15 +17,12 @@ set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 
 find_package(Boost REQUIRED COMPONENTS program_options log log_setup system filesystem thread)
 find_package(Threads REQUIRED)
-find_package(Jsoncpp)
-
-include_directories(${Jsoncpp_INCLUDE_DIR})
 
 include_directories(linenoise)
 add_library(linenoise SHARED linenoise/linenoise.c linenoise/linenoise.h)
 
 file(GLOB CLINODE_SOURCES ${EXAMPLES}/cli_node/*.cpp ${EXAMPLES}/cli_node/*.h)
 add_executable(clinode ${CLINODE_SOURCES})
-target_link_libraries(clinode ${Jsoncpp_LIBRARY} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
+target_link_libraries(clinode ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
 	fabric pmem fogkv linenoise pmemobj dl numa ${Dpdk_LIBRARIES})
 
