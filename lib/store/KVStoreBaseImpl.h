@@ -20,7 +20,7 @@
 #include "RTreeEngine.h"
 #include "RqstPooler.h"
 #include <daqdb/KVStoreBase.h>
-#include <dht/CChordNode.h>
+#include <dht/ZhtNode.h>
 #include <dht/DhtNode.h>
 #include <mutex>
 

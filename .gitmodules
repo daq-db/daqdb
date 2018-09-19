@@ -1,6 +1,3 @@
-[submodule "3rd/cChord"]
-	path = third-party/cChord
-	url = https://github.com/FogKV/cChord.git
 [submodule "src/3rd/linenoise"]
 	path = examples/cli_node/linenoise
 	url = https://github.com/antirez/linenoise.git
@@ -25,3 +22,6 @@
 [submodule "third-party/libconfig"]
 	path = third-party/libconfig
 	url = https://github.com/hyperrealm/libconfig.git
+[submodule "third-party/protobuf"]
+	path = third-party/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git

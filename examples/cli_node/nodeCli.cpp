@@ -634,8 +634,7 @@ void nodeCli::_cmdNodeStatus(const std::string &strLine) {
                            "\n\texternal_port=%4%") %
                         _spKVStore->getProperty("fogkv.dht.id") %
                         _spKVStore->getProperty("fogkv.listener.ip") %
-                        _spKVStore->getProperty("fogkv.listener.port") %
-                        _spKVStore->getProperty("fogkv.listener.dht_port")
+                        _spKVStore->getProperty("fogkv.listener.port")
                  << endl;
             return;
         }

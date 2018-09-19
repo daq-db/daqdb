@@ -26,7 +26,7 @@ namespace DaqDB
  */
 class DhtNode : public PureNode {
 public:
-	DhtNode(asio::io_service &io_service, unsigned short port, unsigned short dragonPort);
+	DhtNode(asio::io_service &io_service, unsigned short port);
 	virtual ~DhtNode();
 
 	/*!
@@ -44,11 +44,6 @@ public:
 	 */
 	virtual unsigned int
 		getPeerList(std::vector<PureNode*>& peerNodes) = 0;
-
-	/*!
-	 * Triggers dragon aggregation table update.
-	 */
-	virtual void triggerAggregationUpdate() = 0;
 };
 
 }
