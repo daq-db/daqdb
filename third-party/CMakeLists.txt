@@ -121,7 +121,7 @@ target_link_libraries(zht libprotobuf)
 # Cleanup tasks
 add_custom_target(clean-dep)
 add_custom_target(libpmdk_clean
-	COMMAND make clean
+	COMMAND make NDCTL_ENABLE=n clean
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/pmdk
 )
 add_dependencies(clean-dep libpmdk_clean)
