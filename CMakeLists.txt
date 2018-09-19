@@ -52,7 +52,11 @@ add_library(fogkv SHARED ${FOGKV_SOURCES})
 target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric ${Spdk_LIBRARIES} ${Boost_LIBRARIES})
 
 # Build test folder
-add_subdirectory(tests)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
+add_custom_target(tests
+	COMMAND ${CMAKE_BUILD_TOOL}
+	WORKING_DIRECTORY tests
+)
 
 # Build example folder
 add_subdirectory(${EXAMPLES}/cli_node)
