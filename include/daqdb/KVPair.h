@@ -23,9 +23,9 @@ class KVPair {
         return *reinterpret_cast<const T *>(key());
     }
 
-    Key key() const {}
+    Key key() const { return Key(); }
 
-    Value value() const {}
+    Value value() const { return Value(); }
 
     size_t keySize();
     size_t size() const;
