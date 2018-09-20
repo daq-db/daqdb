@@ -27,66 +27,62 @@
 
 namespace DaqDB {
 
-void reactor_start_clb(void *offload_reactor, void *arg2) {
-    OffloadReactor *offloadReactor =
-        reinterpret_cast<OffloadReactor *>(offload_reactor);
+static void set_reactor_error_state(OffloadReactor *reactor, std::string msg) {
+        FOG_DEBUG(msg);
+        reactor->state = ReactorState::REACTOR_ERROR;
+}
+
+void reactor_start_clb(void *ctx, void *arg) {
     spdk_unaffinitize_thread();
 
     // @TODO jradtke: replace with spdk_bdev_get_by_name
-    offloadReactor->bdevContext.bdev = spdk_bdev_first();
-    if (offloadReactor->bdevContext.bdev == nullptr) {
-        FOG_DEBUG("No NVMe devices detected!");
-        offloadReactor->state = ReactorState::ERROR;
+    auto *reactor = reinterpret_cast<OffloadReactor *>(ctx);
+    auto bdev = reactor->bdevCtx.bdev;
+    bdev = spdk_bdev_first();
+    if (!bdev) {
+        set_reactor_error_state(reactor, "No NVMe devices detected");
         return;
-    } else {
-        int rc = 0;
-        offloadReactor->bdevContext.bdev_desc = NULL;
-        rc = spdk_bdev_open(offloadReactor->bdevContext.bdev, true, NULL, NULL,
-                            &offloadReactor->bdevContext.bdev_desc);
-        if (rc) {
-            FOG_DEBUG("Open BDEV failed with error code [" +
-                      std::to_string(rc) + "]");
-            offloadReactor->state = ReactorState::ERROR;
-            return;
-        }
-
-        offloadReactor->bdevContext.bdev_io_channel =
-            spdk_bdev_get_io_channel(offloadReactor->bdevContext.bdev_desc);
-        if (offloadReactor->bdevContext.bdev_io_channel == NULL) {
-            FOG_DEBUG("Get io_channel failed");
-            offloadReactor->state = ReactorState::ERROR;
-            return;
-        }
-
-        offloadReactor->bdevContext.blk_size =
-            spdk_bdev_get_block_size(offloadReactor->bdevContext.bdev);
-        offloadReactor->bdevContext.buf_align =
-            spdk_bdev_get_buf_align(offloadReactor->bdevContext.bdev);
-        offloadReactor->bdevContext.blk_num =
-            spdk_bdev_get_num_blocks(offloadReactor->bdevContext.bdev);
     }
 
-    spdk_poller_register(reactor_pooler_fn, offload_reactor,
+    auto rc =
+        spdk_bdev_open(bdev, true, NULL, NULL, &reactor->bdevCtx.bdev_desc);
+    if (rc) {
+        set_reactor_error_state(reactor, "Open BDEV failed with error code [" +
+                                             std::to_string(rc) + "]");
+        return;
+    }
+
+    reactor->bdevCtx.io_channel =
+        spdk_bdev_get_io_channel(reactor->bdevCtx.bdev_desc);
+    if (!reactor->bdevCtx.io_channel) {
+        set_reactor_error_state(reactor, "Get io_channel failed");
+        return;
+    }
+
+    reactor->bdevCtx.blk_size = spdk_bdev_get_block_size(bdev);
+    reactor->bdevCtx.buf_align = spdk_bdev_get_buf_align(bdev);
+    reactor->bdevCtx.blk_num = spdk_bdev_get_num_blocks(bdev);
+
+    spdk_poller_register(reactor_pooler_fn, ctx,
                          OFFLOAD_POOLER_INTERVAL_MICR_SEC);
 
-    offloadReactor->state = ReactorState::READY;
+    reactor->state = ReactorState::REACTOR_READY;
 }
 
-int reactor_pooler_fn(void *offload_reactor) {
-    OffloadReactor *offloadReactor =
-        reinterpret_cast<OffloadReactor *>(offload_reactor);
-    for (auto pooler : offloadReactor->rqstPoolers) {
-        pooler->DequeueMsg();
-        pooler->ProcessMsg();
+int reactor_pooler_fn(void *ctx) {
+    auto *reactor = reinterpret_cast<OffloadReactor *>(ctx);
+    for (auto pooler : reactor->poolers) {
+        pooler->Dequeue();
+        pooler->Process();
     }
 
     return 0;
 }
 
-OffloadReactor::OffloadReactor(const size_t cpuCore, const std::string &spdkConfigFile,
-                               OffloadReactorShutdownCallback clb)
-    : state(ReactorState::INIT_INPROGRESS), _thread(nullptr), _cpuCore(cpuCore),
-      _shutdownClb(clb), _spdkConfigFile(spdkConfigFile) {
+OffloadReactor::OffloadReactor(const size_t cpuCore, const std::string &spdkCfg,
+                               ReactorShutClb clb)
+    : state(ReactorState::REACTOR_INIT), _thread(nullptr), _cpuCore(cpuCore),
+      _shutClb(clb), _spdkCfg(spdkCfg) {
     auto opts = new spdk_app_opts;
     spdk_app_opts_init(opts);
     opts->name = "OffloadReactor";
@@ -95,12 +91,14 @@ OffloadReactor::OffloadReactor(const size_t cpuCore, const std::string &spdkConf
     opts->print_level = SPDK_LOG_ERROR;
     _spdkAppOpts.reset(opts);
 
+    this->bdevCtx.bdev_desc = NULL;
+
     StartThread();
 }
 
 OffloadReactor::~OffloadReactor() {
     spdk_app_stop(0);
-    if (_thread != nullptr)
+    if (_thread)
         _thread->join();
 }
 
@@ -124,25 +122,25 @@ void OffloadReactor::StartThread() {
     }
 }
 
-void OffloadReactor::RegisterPooler(OffloadRqstPooler *offloadPooler) {
-    rqstPoolers.push_back(offloadPooler);
+void OffloadReactor::RegisterPooler(OffloadPooler *pooler) {
+    poolers.push_back(pooler);
 }
 
 void OffloadReactor::_ThreadMain(void) {
     int rc;
 
-    if (boost::filesystem::exists(_spdkConfigFile))
-        _spdkAppOpts->config_file = _spdkConfigFile.c_str();
+    if (boost::filesystem::exists(_spdkCfg))
+        _spdkAppOpts->config_file = _spdkCfg.c_str();
 
     rc = spdk_app_start(_spdkAppOpts.get(), reactor_start_clb, this, NULL);
 
     FOG_DEBUG("SPDK reactor exit with rc=" + std::to_string(rc));
     spdk_app_fini();
-    if (rc == 0) {
-        state = ReactorState::STOPPED;
+    if (rc) {
+        state = ReactorState::REACTOR_ERROR;
     } else {
-        state = ReactorState::ERROR;
+        state = ReactorState::REACTOR_STOPPED;
     }
-    _shutdownClb();
+    _shutClb();
 }
 }

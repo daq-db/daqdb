@@ -12,6 +12,7 @@ build
 bin
 config.log
 cmake_install.cmake
+project_protobuf-prefix
 CMakeCache.txt
 CMakeFiles
 CTestTestfile.cmake

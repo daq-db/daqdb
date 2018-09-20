@@ -15,7 +15,7 @@
 
 #include <cstdint>
 
-#include "../../lib/store/OffloadFreeList.cpp"
+#include "../../lib/offload/OffloadFreeList.cpp"
 #include "../../lib/store/RTree.h"
 
 #define BOOST_TEST_MAIN
@@ -75,7 +75,7 @@ BOOST_FIXTURE_TEST_CASE(GetLbaInit, OffloadFreeListTestFixture) {
 
     freeLbaList->Push(*g_poolFreeList, -1);
     freeLbaList->maxLba = FREELIST_MAX_LBA;
-    auto firstLBA = freeLbaList->GetFreeLba(*g_poolFreeList);
+    auto firstLBA = freeLbaList->Get(*g_poolFreeList);
     BOOST_CHECK_EQUAL(firstLBA, 1);
 }
 
@@ -89,7 +89,7 @@ BOOST_FIXTURE_TEST_CASE(GetLbaInitPhase, OffloadFreeListTestFixture) {
     uint8_t index;
     long lba = 0;
     for (index = 0; index < lbaCount; index++)
-        lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+        lba = freeLbaList->Get(*g_poolFreeList);
 
     BOOST_CHECK_EQUAL(lba, lbaCount);
 }
@@ -98,7 +98,7 @@ BOOST_FIXTURE_TEST_CASE(GetLbaAfterInit_MaxLba_NotSet,
                         OffloadFreeListTestFixture) {
     freeLbaList->Push(*g_poolFreeList, -1);
 
-    BOOST_CHECK_EXCEPTION(freeLbaList->GetFreeLba(*g_poolFreeList),
+    BOOST_CHECK_EXCEPTION(freeLbaList->Get(*g_poolFreeList),
                           pmem::manual_tx_abort, txAbortPred);
 }
 
@@ -109,7 +109,7 @@ BOOST_FIXTURE_TEST_CASE(GetLastInitLba, OffloadFreeListTestFixture) {
     long lba = 0;
     unsigned int index;
     for (index = 0; index < FREELIST_MAX_LBA - 1; index++)
-        lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+        lba = freeLbaList->Get(*g_poolFreeList);
 
     BOOST_CHECK_EQUAL(lba, index);
 }
@@ -122,7 +122,7 @@ BOOST_FIXTURE_TEST_CASE(GetLbaAfterInit_FirstLba, OffloadFreeListTestFixture) {
     long lba = 0;
     unsigned int index;
     for (index = 0; index < FREELIST_MAX_LBA; index++)
-        lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+        lba = freeLbaList->Get(*g_poolFreeList);
 
     BOOST_CHECK_EQUAL(lba, 0);
 }
@@ -136,20 +136,20 @@ BOOST_FIXTURE_TEST_CASE(GetLbaAfterInit_CheckRemoved,
     long lba = 0;
     unsigned int index;
     for (index = 0; index < FREELIST_MAX_LBA; index++)
-        lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+        lba = freeLbaList->Get(*g_poolFreeList);
 
     freeLbaList->Push(*g_poolFreeList, freeElementLba);
-    lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+    lba = freeLbaList->Get(*g_poolFreeList);
     BOOST_CHECK_EQUAL(lba, freeElementLba);
     freeLbaList->Push(*g_poolFreeList, freeElementLba + 1);
-    lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+    lba = freeLbaList->Get(*g_poolFreeList);
     BOOST_CHECK_EQUAL(lba, freeElementLba + 1);
 
     freeLbaList->Push(*g_poolFreeList, freeElementLba);
     freeLbaList->Push(*g_poolFreeList, freeElementLba + 1);
-    lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+    lba = freeLbaList->Get(*g_poolFreeList);
     BOOST_CHECK_EQUAL(lba, freeElementLba);
-    lba = freeLbaList->GetFreeLba(*g_poolFreeList);
+    lba = freeLbaList->Get(*g_poolFreeList);
     BOOST_CHECK_EQUAL(lba, freeElementLba + 1);
 }
 
@@ -159,8 +159,8 @@ BOOST_FIXTURE_TEST_CASE(GetLbaAfterInit_FullDisk, OffloadFreeListTestFixture) {
 
     unsigned int index;
     for (index = 0; index < FREELIST_MAX_LBA; index++)
-        freeLbaList->GetFreeLba(*g_poolFreeList);
+        freeLbaList->Get(*g_poolFreeList);
 
-    BOOST_CHECK_EXCEPTION(freeLbaList->GetFreeLba(*g_poolFreeList),
+    BOOST_CHECK_EXCEPTION(freeLbaList->Get(*g_poolFreeList),
                           pmem::manual_tx_abort, txAbortPred);
 }

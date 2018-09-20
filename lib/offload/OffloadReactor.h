@@ -26,17 +26,17 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
-#include "OffloadRqstPooler.h"
+#include "OffloadPooler.h"
 
 namespace DaqDB {
 
-using OffloadReactorShutdownCallback = std::function<void()>;
+using ReactorShutClb = std::function<void()>;
 
 enum class ReactorState : std::uint8_t {
-    INIT_INPROGRESS = 0,
-    READY = 1,
-    ERROR = 2,
-    STOPPED = 3
+    REACTOR_INIT = 0,
+    REACTOR_READY,
+    REACTOR_ERROR,
+    REACTOR_STOPPED
 };
 
 void reactor_start_clb(void *offload_reactor, void *arg2);
@@ -44,25 +44,25 @@ int reactor_pooler_fn(void *offload_reactor);
 
 class OffloadReactor {
   public:
-    OffloadReactor(const size_t cpuCore = 0, const std::string &spdkConfigFile = "",
-                   OffloadReactorShutdownCallback clb = nullptr);
+    OffloadReactor(const size_t cpuCore = 0, const std::string &spdkCfg = "",
+                   ReactorShutClb clb = nullptr);
     virtual ~OffloadReactor();
 
-    void RegisterPooler(OffloadRqstPooler *offloadPooler);
+    void RegisterPooler(OffloadPooler *offloadPooler);
     void StartThread();
 
     std::atomic<ReactorState> state;
-    std::vector<OffloadRqstPooler *> rqstPoolers;
+    std::vector<OffloadPooler *> poolers;
 
-    BdevContext bdevContext;
+    BdevCtx bdevCtx;
 
   private:
     void _ThreadMain(void);
 
-    std::string _spdkConfigFile;
+    std::string _spdkCfg;
     std::unique_ptr<spdk_app_opts> _spdkAppOpts;
 
-    OffloadReactorShutdownCallback _shutdownClb;
+    ReactorShutClb _shutClb;
     std::thread *_thread;
     size_t _cpuCore = 0;
 };
