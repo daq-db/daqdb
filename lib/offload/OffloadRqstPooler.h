@@ -24,7 +24,7 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
-#include "RTreeEngine.h"
+#include <RTreeEngine.h>
 #include <daqdb/KVStoreBase.h>
 #include "OffloadFreeList.h"
 

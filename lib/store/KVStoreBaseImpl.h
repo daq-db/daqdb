@@ -15,8 +15,8 @@
 
 #pragma once
 
-#include "OffloadReactor.h"
-#include "OffloadRqstPooler.h"
+#include <OffloadReactor.h>
+#include <OffloadRqstPooler.h>
 #include "RTreeEngine.h"
 #include "RqstPooler.h"
 #include <daqdb/KVStoreBase.h>

@@ -45,12 +45,9 @@ include_directories(${ZHT_INCLUDES_EXPORT})
 
 set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 # Build and link fogkv library
-include_directories(include include/db include/dht include/fabric include/FogKV include/store)
-file(GLOB_RECURSE FOGKV_SOURCES
-	lib/debug/*.cpp lib/debug/*.h 
-	lib/dht/*.cpp lib/dht/*.h 
-	lib/fabric/*.cpp lib/fabric/*.h 
-	lib/store/*.cpp lib/store/*.h)
+include_directories(include include/db include/dht include/fabric include/FogKV include/store
+	lib/debug lib/dht lib/fabric lib/offload lib/store)
+file(GLOB_RECURSE FOGKV_SOURCES lib/*.cpp)
 add_library(fogkv SHARED ${FOGKV_SOURCES})
 target_link_libraries(fogkv ${Jsoncpp_LIBRARY} fabric ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
 					  zht libprotobuf)

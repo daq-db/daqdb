@@ -13,7 +13,6 @@
  * stated in the License.
  */
 
-#include "OffloadReactor.h"
 
 #include <iostream>
 #include <pthread.h>
@@ -21,7 +20,8 @@
 
 #include <boost/filesystem.hpp>
 
-#include "../debug/Logger.h"
+#include "OffloadReactor.h"
+#include <Logger.h>
 
 #define OFFLOAD_POOLER_INTERVAL_MICR_SEC 100
 

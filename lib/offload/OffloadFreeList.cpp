@@ -15,7 +15,7 @@
 
 #include <iostream>
 
-#include "../debug/Logger.h"
+#include <Logger.h>
 #include "OffloadFreeList.h"
 
 namespace DaqDB {

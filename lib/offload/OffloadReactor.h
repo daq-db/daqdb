@@ -18,14 +18,13 @@
 #include <atomic>
 #include <cstdint>
 #include <thread>
+#include <functional>
 
 #include "spdk/bdev.h"
 #include "spdk/env.h"
 #include "spdk/event.h"
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
-
-#include <functional>
 
 #include "OffloadRqstPooler.h"
 
