@@ -7,11 +7,11 @@ find_package(PkgConfig)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(ROOT_FOGKV_DIR ${PROJECT_SOURCE_DIR}/../..)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_FOGKV_DIR}/bin)
+set(ROOT_DAQDB_DIR ${PROJECT_SOURCE_DIR}/../..)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 
-set(3RDPARTY ${ROOT_FOGKV_DIR}/third-party)
+set(3RDPARTY ${ROOT_DAQDB_DIR}/third-party)
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
