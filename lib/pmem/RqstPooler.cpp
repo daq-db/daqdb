@@ -72,7 +72,7 @@ void RqstPooler::_ThreadMain() {
     }
 }
 
-bool RqstPooler::Enqueue(Rqst *Message) {
+bool RqstPooler::Enqueue(PmemRqst *Message) {
     size_t count = spdk_ring_enqueue(rqstRing, (void **)&Message, 1);
     return (count == 1);
 }
@@ -83,7 +83,7 @@ void RqstPooler::Dequeue() {
     assert(requestCount <= DEQUEUE_RING_LIMIT);
 }
 
-void RqstPooler::_ProcessTransfer(const Rqst *rqst) {
+void RqstPooler::_ProcessTransfer(const PmemRqst *rqst) {
     if (!offloadPooler) {
         FOG_DEBUG("Request transfer failed. Offload pooler not set");
         _RqstClb(rqst, StatusCode::OffloadDisabledError);
@@ -99,7 +99,7 @@ void RqstPooler::_ProcessTransfer(const Rqst *rqst) {
     }
 }
 
-void RqstPooler::_ProcessGet(const Rqst *rqst) {
+void RqstPooler::_ProcessGet(const PmemRqst *rqst) {
     ValCtx valCtx;
     StatusCode rc = rtree->Get(rqst->key, rqst->keySize, &valCtx.val,
                                &valCtx.size, &valCtx.location);
@@ -117,7 +117,7 @@ void RqstPooler::_ProcessGet(const Rqst *rqst) {
     std::memcpy(value.data(), valCtx.val, valCtx.size);
     _RqstClb(rqst, rc, value);
 }
-void RqstPooler::_ProcessPut(const Rqst *rqst) {
+void RqstPooler::_ProcessPut(const PmemRqst *rqst) {
     StatusCode rc =
         rtree->Put(rqst->key, rqst->keySize, rqst->value, rqst->valueSize);
     _RqstClb(rqst, rc);
@@ -125,7 +125,7 @@ void RqstPooler::_ProcessPut(const Rqst *rqst) {
 
 void RqstPooler::Process() {
     for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
-        auto rqst = requests[RqstIdx];
+        PmemRqst* rqst = requests[RqstIdx];
 
         switch (rqst->op) {
         case RqstOperation::PUT:

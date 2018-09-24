@@ -24,10 +24,10 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
-#include "OffloadFreeList.h"
-#include "OffloadRqst.h"
-#include <RTreeEngine.h>
 #include <daqdb/KVStoreBase.h>
+#include <RTreeEngine.h>
+#include <Rqst.h>
+#include "OffloadFreeList.h"
 
 #define OFFLOAD_DEQUEUE_RING_LIMIT 1024
 
@@ -53,6 +53,9 @@ struct IoCtx {
     std::shared_ptr<DaqDB::RTreeEngine> rtree;
     KVStoreBase::KVStoreBaseCallback clb;
 };
+
+enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
+using OffloadRqst = Rqst<OffloadOperation>;
 
 class OffloadPoolerMockInterface { // @suppress("Class has a virtual method and non-virtual destructor")
     virtual bool Enqueue(OffloadRqst *Message) = 0;

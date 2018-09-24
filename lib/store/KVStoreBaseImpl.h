@@ -17,8 +17,8 @@
 
 #include <OffloadReactor.h>
 #include <OffloadPooler.h>
-#include "RTreeEngine.h"
-#include "RqstPooler.h"
+#include <RTreeEngine.h>
+#include <RqstPooler.h>
 #include <daqdb/KVStoreBase.h>
 #include <dht/ZhtNode.h>
 #include <dht/DhtNode.h>

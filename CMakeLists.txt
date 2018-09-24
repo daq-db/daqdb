@@ -39,7 +39,8 @@ include_directories(${ZHT_INCLUDES_EXPORT})
 
 set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 include_directories(include include/db include/dht include/fabric include/FogKV
-	include/store lib/debug lib/dht lib/fabric lib/offload lib/pmem lib/store)
+	include/store lib/common lib/debug lib/dht lib/fabric lib/offload lib/pmem
+	lib/store)
 file(GLOB_RECURSE FOGKV_SOURCES lib/*.cpp)
 
 add_library(fogkv SHARED ${FOGKV_SOURCES})

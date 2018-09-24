@@ -23,18 +23,21 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
+#include <Rqst.h>
 #include "OffloadPooler.h"
 #include "RTreeEngine.h"
-#include "Rqst.h"
 
 #define DEQUEUE_RING_LIMIT 1024
 
 namespace DaqDB {
 
+enum class RqstOperation : std::int8_t { NONE = 0, GET, PUT, UPDATE };
+using PmemRqst = Rqst<RqstOperation>;
+
 class RqstPoolerMockInterface { // @suppress("Class has a virtual method and non-virtual destructor")
     virtual void StartThread() = 0;
 
-    virtual bool Enqueue(Rqst *rqst) = 0;
+    virtual bool Enqueue(PmemRqst *rqst) = 0;
     virtual void Dequeue() = 0;
     virtual void Process() = 0;
 };
@@ -45,7 +48,7 @@ class RqstPooler : public RqstPoolerMockInterface {
                const size_t cpuCore = 0);
     virtual ~RqstPooler();
 
-    bool Enqueue(Rqst *rqst);
+    bool Enqueue(PmemRqst *rqst);
     void Dequeue();
     void Process() final;
     void StartThread();
@@ -58,20 +61,20 @@ class RqstPooler : public RqstPoolerMockInterface {
     struct spdk_ring *rqstRing;
 
     unsigned short requestCount = 0;
-    std::vector<Rqst *> requests;
+    std::vector<PmemRqst *> requests;
 
   private:
     void _ThreadMain(void);
 
-    void _ProcessGet(const Rqst *rqst);
-    void _ProcessPut(const Rqst *rqst);
-    void _ProcessTransfer(const Rqst *rqst);
+    void _ProcessGet(const PmemRqst *rqst);
+    void _ProcessPut(const PmemRqst *rqst);
+    void _ProcessTransfer(const PmemRqst *rqst);
 
-    inline void _RqstClb(const Rqst *rqst, StatusCode status) {
+    inline void _RqstClb(const PmemRqst *rqst, StatusCode status) {
         if (rqst->clb)
             rqst->clb(nullptr, status, rqst->key, rqst->keySize, nullptr, 0);
     }
-    inline void _RqstClb(const Rqst *rqst, StatusCode status, Value &val) {
+    inline void _RqstClb(const PmemRqst *rqst, StatusCode status, Value &val) {
         if (rqst->clb)
             rqst->clb(nullptr, status, rqst->key, rqst->keySize, val.data(),
                       val.size());

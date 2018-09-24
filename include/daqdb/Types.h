@@ -17,6 +17,8 @@
 
 #include <stdexcept>
 
+#include "Status.h"
+
 namespace DaqDB {
 
 typedef unsigned int NodeId;
