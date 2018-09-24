@@ -116,8 +116,8 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
-        if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
-                OffloadRqstOperation::GET, key.data(), key.size(), nullptr, 0,
+        if (!_offloadPooler->Enqueue(new OffloadRqst(
+                OffloadOperation::GET, key.data(), key.size(), nullptr, 0,
                 [&mtx, &cv, &ready, &resultValue](
                     KVStoreBase *kvs, Status status, const char *key,
                     size_t keySize, const char *value, size_t valueSize) {
@@ -152,8 +152,8 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
             throw OperationFailedException(Status(OffloadDisabledError));
 
         try {
-            if (!_offloadPooler->EnqueueMsg(
-                    new OffloadRqstMsg(OffloadRqstOperation::GET, key.data(),
+            if (!_offloadPooler->Enqueue(
+                    new OffloadRqst(OffloadOperation::GET, key.data(),
                                        key.size(), nullptr, 0, cb))) {
                 throw QueueFullException();
             }
@@ -204,8 +204,8 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
-        if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
-                OffloadRqstOperation::UPDATE, key.data(), key.size(),
+        if (!_offloadPooler->Enqueue(new OffloadRqst(
+                OffloadOperation::UPDATE, key.data(), key.size(),
                 val.data(), val.size(),
                 [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
                                     const char *key, size_t keySize,
@@ -243,8 +243,8 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
             throw OperationFailedException(Status(OffloadDisabledError));
 
         try {
-            if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
-                    OffloadRqstOperation::UPDATE, key.data(), key.size(),
+            if (!_offloadPooler->Enqueue(new OffloadRqst(
+                    OffloadOperation::UPDATE, key.data(), key.size(),
                     value.data(), value.size(), cb))) {
                 throw QueueFullException();
             }
@@ -297,8 +297,8 @@ void KVStoreBaseImpl::Remove(const Key &key) {
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
-        if (!_offloadPooler->EnqueueMsg(new OffloadRqstMsg(
-                OffloadRqstOperation::REMOVE, key.data(), key.size(), nullptr,
+        if (!_offloadPooler->Enqueue(new OffloadRqst(
+                OffloadOperation::REMOVE, key.data(), key.size(), nullptr,
                 0,
                 [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
                                     const char *key, size_t keySize,
@@ -421,10 +421,10 @@ void KVStoreBaseImpl::init() {
         POOLER_CPU_CORE_BASE + poolerCount + 1, mOptions.Runtime.spdkConfigFile,
         [&]() { mOptions.Runtime.shutdownFunc(); });
 
-    while (_offloadReactor->state == ReactorState::INIT_INPROGRESS) {
+    while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
         sleep(1);
     }
-    if (_offloadReactor->state == ReactorState::READY) {
+    if (_offloadReactor->state == ReactorState::REACTOR_READY) {
         _offloadEnabled = true;
         FOG_DEBUG("SPDK offload functionality is enabled");
     } else {
@@ -444,7 +444,7 @@ void KVStoreBaseImpl::init() {
 
     if (_offloadEnabled) {
         _offloadPooler =
-            new DaqDB::OffloadRqstPooler(mRTree, _offloadReactor->bdevContext,
+            new DaqDB::OffloadPooler(mRTree, _offloadReactor->bdevCtx,
                                          getOptions().Value.OffloadMaxSize);
         _offloadPooler->InitFreeList();
         _offloadReactor->RegisterPooler(_offloadPooler);

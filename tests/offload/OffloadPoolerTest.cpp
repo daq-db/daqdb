@@ -15,7 +15,7 @@
 
 #include <cstdint>
 
-#include "../../lib/store/OffloadRqstPooler.cpp"
+#include "../../lib/offload/OffloadPooler.cpp"
 #include "../../lib/store/RTree.h"
 
 #define BOOST_TEST_MAIN
@@ -40,13 +40,13 @@ void *spdk_zmalloc(size_t size, size_t align, uint64_t *phys_addr,
 }
 
 BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
-    Mock<DaqDB::OffloadRqstPooler> poolerMock;
+    Mock<DaqDB::OffloadPooler> poolerMock;
     Mock<DaqDB::RTree> rtreeMock;
     char valRef[] = "abc";
     size_t sizeRef = 3;
     uint8_t location = DISK;
 
-    DaqDB::OffloadRqstPooler &pooler = poolerMock.get();
+    DaqDB::OffloadPooler &pooler = poolerMock.get();
     When(OverloadedMethod(rtreeMock, Get,
                           DaqDB::StatusCode(const char *, int32_t, void **,
                                             size_t *, uint8_t *))
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     When(Method(poolerMock, Read)).Return(0);
     When(Method(poolerMock, Write)).Return(0);
 
-    pooler.ProcessMsg();
+    pooler.Process();
     VerifyNoOtherInvocations(
         OverloadedMethod(rtreeMock, Get,
                          DaqDB::StatusCode(const char *, int32_t, void **,
@@ -71,14 +71,14 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
 }
 
 BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
-    Mock<DaqDB::OffloadRqstPooler> poolerMock;
+    Mock<DaqDB::OffloadPooler> poolerMock;
     Mock<DaqDB::RTree> rtreeMock;
     uint64_t lbaRef = 123;
     size_t valSizeRef = 4;
     char valRef[] = "1234";
     uint8_t location = DISK;
 
-    DaqDB::OffloadRqstPooler &pooler = poolerMock.get();
+    DaqDB::OffloadPooler &pooler = poolerMock.get();
     When(OverloadedMethod(rtreeMock, Get,
                           DaqDB::StatusCode(const char *, int32_t, void **,
                                             size_t *, uint8_t *))
@@ -95,18 +95,18 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
 
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
-    DaqDB::BdevContext bdvCtx;
+    DaqDB::BdevCtx bdvCtx;
     bdvCtx.blk_size = 512;
     bdvCtx.blk_num = 1024;
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
     pooler.requests.push_back(
-        new DaqDB::OffloadRqstMsg(DaqDB::OffloadRqstOperation::GET, expectedKey,
+        new DaqDB::OffloadRqst(DaqDB::OffloadOperation::GET, expectedKey,
                                   expectedKeySize, nullptr, 0, nullptr));
     pooler.requestCount = 1;
 
-    pooler.ProcessMsg();
+    pooler.Process();
     VerifyNoOtherInvocations(Method(poolerMock, Write));
 
     Verify(OverloadedMethod(rtreeMock, Get,
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
 }
 
 BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
-    Mock<DaqDB::OffloadRqstPooler> poolerMock;
+    Mock<DaqDB::OffloadPooler> poolerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
     uint64_t lbaRef = 123;
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
     char valRef[] = "1234";
     uint8_t location = PMEM;
 
-    DaqDB::OffloadRqstPooler &pooler = poolerMock.get();
+    DaqDB::OffloadPooler &pooler = poolerMock.get();
     When(OverloadedMethod(rtreeMock, Get,
                           DaqDB::StatusCode(const char *, int32_t, void **,
                                             size_t *, uint8_t *))
@@ -149,18 +149,18 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
 
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
-    DaqDB::BdevContext bdvCtx;
+    DaqDB::BdevCtx bdvCtx;
     bdvCtx.blk_size = 512;
     bdvCtx.blk_num = 1024;
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.requests.push_back(new DaqDB::OffloadRqstMsg(
-        DaqDB::OffloadRqstOperation::UPDATE, expectedKey, expectedKeySize,
+    pooler.requests.push_back(new DaqDB::OffloadRqst(
+        DaqDB::OffloadOperation::UPDATE, expectedKey, expectedKeySize,
         nullptr, 0, nullptr));
     pooler.requestCount = 1;
 
-    pooler.ProcessMsg();
+    pooler.Process();
     VerifyNoOtherInvocations(Method(poolerMock, Read));
 
     Verify(OverloadedMethod(rtreeMock, Get,
@@ -171,14 +171,14 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
 }
 
 BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
-    Mock<DaqDB::OffloadRqstPooler> poolerMock;
+    Mock<DaqDB::OffloadPooler> poolerMock;
     Mock<DaqDB::RTree> rtreeMock;
     uint64_t lbaRef = 123;
     size_t valSizeRef = 4;
     char valRef[] = "1234";
     uint8_t location = PMEM;
 
-    DaqDB::OffloadRqstPooler &pooler = poolerMock.get();
+    DaqDB::OffloadPooler &pooler = poolerMock.get();
     When(OverloadedMethod(rtreeMock, Get,
                           DaqDB::StatusCode(const char *, int32_t, void **,
                                             size_t *, uint8_t *))
@@ -188,6 +188,7 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
             *val = valRef;
             *valSize = valSizeRef;
             *loc = location;
+
             return DaqDB::StatusCode::Ok;
         });
     When(Method(poolerMock, Read)).Return(0);
@@ -195,18 +196,18 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
 
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
-    DaqDB::BdevContext bdvCtx;
+    DaqDB::BdevCtx bdvCtx;
     bdvCtx.blk_size = 512;
     bdvCtx.blk_num = 1024;
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.requests.push_back(new DaqDB::OffloadRqstMsg(
-        DaqDB::OffloadRqstOperation::REMOVE, expectedKey, expectedKeySize,
+    pooler.requests.push_back(new DaqDB::OffloadRqst(
+        DaqDB::OffloadOperation::REMOVE, expectedKey, expectedKeySize,
         nullptr, 0, nullptr));
     pooler.requestCount = 1;
 
-    pooler.ProcessMsg();
+    pooler.Process();
     VerifyNoOtherInvocations(Method(poolerMock, Read));
     VerifyNoOtherInvocations(Method(poolerMock, Write));
     Verify(OverloadedMethod(rtreeMock, Get,

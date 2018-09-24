@@ -15,14 +15,10 @@
 
 #include <iostream>
 
-#include "../debug/Logger.h"
+#include <Logger.h>
 #include "OffloadFreeList.h"
 
 namespace DaqDB {
-
-OffloadFreeList::OffloadFreeList() {}
-
-OffloadFreeList::~OffloadFreeList() {}
 
 /*
  * Inserts a new element at the end of the queue.
@@ -43,7 +39,7 @@ void OffloadFreeList::Push(pool_base &pop, int64_t value) {
     });
 }
 
-int64_t OffloadFreeList::GetFreeLba(pool_base &pop) {
+int64_t OffloadFreeList::Get(pool_base &pop) {
     int64_t ret = -1;
     transaction::exec_tx(pop, [&] {
         if (_head == nullptr || maxLba == 0)

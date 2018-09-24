@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <thread>
 
-#include "OffloadRqstPooler.h"
+#include "OffloadPooler.h"
 #include "RTreeEngine.h"
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
@@ -68,7 +68,7 @@ class RqstPooler : public RqstPoolerInterface {
     void ProcessMsg() final;
     void StartThread();
 
-    OffloadRqstPooler *offloadPooler = nullptr;
+    OffloadPooler *offloadPooler = nullptr;
 
     std::atomic<int> isRunning;
     std::shared_ptr<DaqDB::RTreeEngine> rtree;

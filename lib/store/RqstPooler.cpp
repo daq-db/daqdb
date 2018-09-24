@@ -14,7 +14,7 @@
  */
 
 #include "RqstPooler.h"
-#include "OffloadRqstPooler.h"
+#include "OffloadPooler.h"
 
 #include <iostream>
 #include <pthread.h>
@@ -123,8 +123,8 @@ void RqstPooler::ProcessMsg() {
             if (location == DISK) {
                 if (offloadPooler) {
                     try {
-                        if (!offloadPooler->EnqueueMsg(new OffloadRqstMsg(
-                                OffloadRqstOperation::GET, key, keySize,
+                        if (!offloadPooler->Enqueue(new OffloadRqst(
+                                OffloadOperation::GET, key, keySize,
                                 nullptr, 0, cb_fn))) {
                             if (cb_fn)
                                 cb_fn(nullptr, Status(StatusCode::UnknownError),

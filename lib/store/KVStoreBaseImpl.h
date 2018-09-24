@@ -15,8 +15,8 @@
 
 #pragma once
 
-#include "OffloadReactor.h"
-#include "OffloadRqstPooler.h"
+#include <OffloadReactor.h>
+#include <OffloadPooler.h>
 #include "RTreeEngine.h"
 #include "RqstPooler.h"
 #include <daqdb/KVStoreBase.h>
@@ -91,7 +91,7 @@ class KVStoreBaseImpl : public KVStoreBase {
     std::vector<RqstPooler *> _rqstPoolers;
 
     OffloadReactor *_offloadReactor;
-    OffloadRqstPooler *_offloadPooler;
+    OffloadPooler *_offloadPooler;
     bool _offloadEnabled = false;
 };
 
