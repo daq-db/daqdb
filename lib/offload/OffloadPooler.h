@@ -54,12 +54,6 @@ struct IoCtx {
     KVStoreBase::KVStoreBaseCallback clb;
 };
 
-struct ValCtx {
-    uint8_t location = 0;
-    size_t size = 0;
-    void *val = nullptr;
-};
-
 class OffloadPoolerMockInterface { // @suppress("Class has a virtual method and non-virtual destructor")
     virtual bool Enqueue(OffloadRqst *Message) = 0;
     virtual void Dequeue() = 0;

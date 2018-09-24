@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.5)
 project(fogkv_test)
 
 include(CTest)
-
 include(FindPkgConfig)
 find_package(PkgConfig)
 
@@ -20,6 +19,6 @@ find_package(Threads REQUIRED)
 include_directories(mock)
 
 add_boost_test(dht/DhtUtilsTest.cpp)
-add_boost_test(store/RqstPoolerTest.cpp)
+add_boost_test(pmem/RqstPoolerTest.cpp)
 add_boost_test(offload/OffloadPoolerTest.cpp)
 add_boost_test(offload/OffloadFreeListTest.cpp)

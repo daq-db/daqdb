@@ -15,8 +15,8 @@
 
 #include <cstdint>
 
-#include "../../lib/store/RTree.h"
-#include "../../lib/store/RqstPooler.cpp"
+#include "../../lib/pmem/RTree.h"
+#include "../../lib/pmem/RqstPooler.cpp"
 
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
 
-    pooler.ProcessMsg();
+    pooler.Process();
     VerifyNoOtherInvocations(OverloadedMethod(
         rtreeMock, Put,
         DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)));
@@ -68,12 +68,12 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
 
-    pooler.processArray[0] = new DaqDB::RqstMsg(
+    pooler.requests.push_back(new DaqDB::Rqst(
         DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
-        expectedValSize, nullptr);
-    pooler.processArrayCount = 1;
+        expectedValSize, nullptr));
+    pooler.requestCount = 1;
 
-    pooler.ProcessMsg();
+    pooler.Process();
 
     Verify(OverloadedMethod(
                rtreeMock, Put,
@@ -97,13 +97,13 @@ BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
     pooler.rtree.reset(&rtree);
 
     for (int index = 0; index < DEQUEUE_RING_LIMIT; index++) {
-        pooler.processArray[index] = new DaqDB::RqstMsg(
+        pooler.requests.push_back(new DaqDB::Rqst(
             DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize,
-            expectedVal, expectedValSize, nullptr);
+            expectedVal, expectedValSize, nullptr));
     }
-    pooler.processArrayCount = DEQUEUE_RING_LIMIT;
+    pooler.requestCount = DEQUEUE_RING_LIMIT;
 
-    pooler.ProcessMsg();
+    pooler.Process();
 
     Verify(OverloadedMethod(
                rtreeMock, Put,
@@ -133,12 +133,12 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
 
-    pooler.processArray[0] =
-        new DaqDB::RqstMsg(DaqDB::RqstOperation::GET, expectedKey,
-                           expectedKeySize, nullptr, 0, nullptr);
-    pooler.processArrayCount = 1;
+    pooler.requests.push_back(new DaqDB::Rqst(DaqDB::RqstOperation::GET,
+                                              expectedKey, expectedKeySize,
+                                              nullptr, 0, nullptr));
+    pooler.requestCount = 1;
 
-    pooler.ProcessMsg();
+    pooler.Process();
 
     Verify(OverloadedMethod(rtreeMock, Get,
                             DaqDB::StatusCode(const char *, int32_t, void **,
@@ -169,13 +169,13 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
     pooler.rtree.reset(&rtree);
 
     for (int index = 0; index < DEQUEUE_RING_LIMIT; index++) {
-        pooler.processArray[index] =
-            new DaqDB::RqstMsg(DaqDB::RqstOperation::GET, expectedKey,
-                               expectedKeySize, nullptr, 0, nullptr);
+        pooler.requests.push_back(new DaqDB::Rqst(DaqDB::RqstOperation::GET,
+                                                  expectedKey, expectedKeySize,
+                                                  nullptr, 0, nullptr));
     }
-    pooler.processArrayCount = DEQUEUE_RING_LIMIT;
+    pooler.requestCount = DEQUEUE_RING_LIMIT;
 
-    pooler.ProcessMsg();
+    pooler.Process();
 
     Verify(OverloadedMethod(rtreeMock, Get,
                             DaqDB::StatusCode(const char *, int32_t, void **,
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
 
-    pooler.processArray[0] = new DaqDB::RqstMsg(
+    pooler.requests.push_back(new DaqDB::Rqst(
         DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
         expectedValSize,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
@@ -207,11 +207,11 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
             BOOST_REQUIRE(status.ok());
             BOOST_CHECK_EQUAL(key, expectedKey);
             BOOST_CHECK_EQUAL(keySize, expectedKeySize);
-            BOOST_CHECK_EQUAL(value, expectedVal);
-            BOOST_CHECK_EQUAL(valueSize, expectedValSize);
-        });
+            BOOST_CHECK_EQUAL(value, nullptr);
+            BOOST_CHECK_EQUAL(valueSize, 0);
+        }));
 
-    pooler.processArray[1] = new DaqDB::RqstMsg(
+    pooler.requests.push_back(new DaqDB::Rqst(
         DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
         expectedKeySize,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
@@ -219,12 +219,12 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
             BOOST_REQUIRE(!status.ok());
             BOOST_CHECK_EQUAL(key, expectedKey);
             BOOST_CHECK_EQUAL(keySize, expectedKeySize);
-            BOOST_CHECK_EQUAL(value, expectedVal);
-            BOOST_CHECK_EQUAL(valueSize, expectedValSize);
-        });
-    pooler.processArrayCount = 2;
+            BOOST_CHECK_EQUAL(value, nullptr);
+            BOOST_CHECK_EQUAL(valueSize, 0);
+        }));
+    pooler.requestCount = 2;
 
-    pooler.ProcessMsg();
+    pooler.Process();
 
     Verify(OverloadedMethod(
                rtreeMock, Put,
@@ -260,26 +260,26 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     pooler.rtree.reset(&rtree);
 
-    pooler.processArray[0] = new DaqDB::RqstMsg(
+    pooler.requests.push_back(new DaqDB::Rqst(
         DaqDB::RqstOperation::GET, expectedKey, expectedKeySize, nullptr, 0,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
             const size_t keySize, const char *value, const size_t valueSize) {
             BOOST_REQUIRE(status.ok());
             BOOST_CHECK_EQUAL(key, expectedKey);
             BOOST_CHECK_EQUAL(keySize, expectedKeySize);
-        });
+        }));
 
-    pooler.processArray[1] = new DaqDB::RqstMsg(
+    pooler.requests.push_back(new DaqDB::Rqst(
         DaqDB::RqstOperation::GET, expectedKey, expectedKeySize, nullptr, 0,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
             const size_t keySize, const char *value, const size_t valueSize) {
             BOOST_REQUIRE(!status.ok());
             BOOST_CHECK_EQUAL(key, expectedKey);
             BOOST_CHECK_EQUAL(keySize, expectedKeySize);
-        });
-    pooler.processArrayCount = 2;
+        }));
+    pooler.requestCount = 2;
 
-    pooler.ProcessMsg();
+    pooler.Process();
 
     Verify(OverloadedMethod(rtreeMock, Get,
                             DaqDB::StatusCode(const char *, int32_t, void **,
