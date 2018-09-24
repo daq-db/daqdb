@@ -1,27 +1,23 @@
-set(cmake_generated ${CMAKE_BINARY_DIR}/bin
-                    ${CMAKE_BINARY_DIR}/CMakeCache.txt
-                    ${CMAKE_BINARY_DIR}/cmake_install.cmake  
-                    ${CMAKE_BINARY_DIR}/Makefile
-                    ${CMAKE_BINARY_DIR}/CMakeFiles
-                    ${CMAKE_BINARY_DIR}/Testing
-                    ${CMAKE_BINARY_DIR}/CTestTestfile.cmake
-                    ${CMAKE_BINARY_DIR}/DartConfiguration.tcl
-                    ${CMAKE_BINARY_DIR}/third-party/CMakeFiles
-                    ${CMAKE_BINARY_DIR}/third-party/cmake_install.cmake
-                    ${CMAKE_BINARY_DIR}/third-party/MakeFile
-                    ${CMAKE_BINARY_DIR}/third-party/CTestTestfile.cmake
-                    ${CMAKE_BINARY_DIR}/tests/CMakeFiles
-                    ${CMAKE_BINARY_DIR}/tests/cmake_install.cmake
-                    ${CMAKE_BINARY_DIR}/tests/MakeFile
-                    ${CMAKE_BINARY_DIR}/tests/CTestTestfile.cmake
-                    ${CMAKE_BINARY_DIR}/examples/cli_node/CMakeFiles
-                    ${CMAKE_BINARY_DIR}/examples/cli_node/cmake_install.cmake
-                    ${CMAKE_BINARY_DIR}/examples/cli_node/Makefile
-                    ${CMAKE_BINARY_DIR}/examples/cli_node/CTestTestfile.cmake                   
+set(ROOT_DAQDB_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
+set(cmake_generated bin
+                    CMakeCache.txt
+                    cmake_install.cmake
+                    Makefile
+                    CMakeFiles
+                    Testing
+                    CTestTestfile.cmake
+                    DartConfiguration.tcl
 )
+set(folders_to_clean . apps apps/minidaq apps/mist
+	examples examples/basic examples/cli_node examples/fabric_node
+	tests
+	third-party)
 
+file(REMOVE_RECURSE ${ROOT_DAQDB_DIR}/bin)
 foreach(file ${cmake_generated})
-  if (EXISTS ${file})
-     file(REMOVE_RECURSE ${file})
-  endif()
+	foreach(folder ${folders_to_clean})
+		if (EXISTS ${ROOT_DAQDB_DIR}/${folder}/${file})
+			file(REMOVE_RECURSE ${ROOT_DAQDB_DIR}/${folder}/${file})
+		endif()
+	endforeach(folder)
 endforeach(file)
