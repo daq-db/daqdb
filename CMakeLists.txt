@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(fogkv)
+project(daqdb)
 
 include(FindPkgConfig)
 include(CTest)
@@ -48,10 +48,11 @@ target_link_libraries(fogkv fabric ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
 					  zht libprotobuf )
 
 ###############################################################################
-# Unit Tests
+# Unit and functional tests
 ###############################################################################
 
-add_subdirectory(tests EXCLUDE_FROM_ALL)
+add_subdirectory(tests/unit EXCLUDE_FROM_ALL)
+add_subdirectory(tests/functional EXCLUDE_FROM_ALL)
 
 ###############################################################################
 # Examples
@@ -81,10 +82,16 @@ add_custom_target(clean-all
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
-add_custom_target(tests
+add_custom_target(tests_unit
 	COMMAND ${CMAKE_BUILD_TOOL}
-	WORKING_DIRECTORY tests
+	WORKING_DIRECTORY tests/unit
 )
+add_custom_target(tests_func
+	COMMAND ${CMAKE_BUILD_TOOL}
+	WORKING_DIRECTORY tests/functional
+)
+add_custom_target(tests)
+add_dependencies(tests tests_unit tests_func)
 
 # Initiate githooks for clang-format
 ADD_CUSTOM_TARGET(do_always ALL COMMAND git config core.hooksPath "${PROJECT_SOURCE_DIR}/scripts/githooks")

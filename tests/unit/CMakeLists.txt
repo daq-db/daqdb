@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(fogkv_test)
+project(daqdb_unit_test)
 
 include(CTest)
 include(FindPkgConfig)
@@ -10,8 +10,6 @@ include(BoostTestHelpers)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_TEST_DYN_LINK")
-
-set(ROOT_DAQDB_DIR ${PROJECT_SOURCE_DIR}/..)
 
 find_package(Boost REQUIRED COMPONENTS unit_test_framework program_options system filesystem)
 find_package(Threads REQUIRED)
