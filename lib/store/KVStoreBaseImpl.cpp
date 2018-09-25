@@ -16,11 +16,11 @@
 #include <chrono>
 #include <condition_variable>
 
-#include "../debug/Logger.h"
-#include "../dht/DhtUtils.h"
-#include "KVStoreBaseImpl.h"
-#include "common.h"
 #include <daqdb/Types.h>
+#include <Logger.h>
+#include <DhtUtils.h>
+
+#include "KVStoreBaseImpl.h"
 
 /** @TODO jradtke: should be taken from configuration file */
 #define POOLER_CPU_CORE_BASE 1
@@ -79,9 +79,9 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
         throw OperationFailedException(EINVAL);
     }
     try {
-        RqstMsg *msg = new RqstMsg(RqstOperation::PUT, key.data(), key.size(),
+        PmemRqst *msg = new PmemRqst(RqstOperation::PUT, key.data(), key.size(),
                                    value.data(), value.size(), cb);
-        if (!_rqstPoolers.at(poolerId)->EnqueueMsg(msg)) {
+        if (!_rqstPoolers.at(poolerId)->Enqueue(msg)) {
             throw QueueFullException();
         }
     } catch (OperationFailedException &e) {
@@ -173,8 +173,8 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
             throw OperationFailedException(EINVAL);
         }
         try {
-            if (!_rqstPoolers.at(poolerId)->EnqueueMsg(
-                    new RqstMsg(RqstOperation::GET, key.data(), key.size(),
+            if (!_rqstPoolers.at(poolerId)->Enqueue(
+                    new PmemRqst(RqstOperation::GET, key.data(), key.size(),
                                 nullptr, 0, cb))) {
                 throw QueueFullException();
             }

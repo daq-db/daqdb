@@ -16,7 +16,7 @@
 #include <cstdint>
 
 #include "../../lib/offload/OffloadPooler.cpp"
-#include "../../lib/store/RTree.h"
+#include "../../lib/pmem/RTree.h"
 
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>

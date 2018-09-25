@@ -17,9 +17,16 @@
 
 #include <stdexcept>
 
+#include "Status.h"
+
 namespace DaqDB {
 
 typedef unsigned int NodeId;
+
+#define FUNC_NOT_IMPLEMENTED                                                   \
+    NotImplementedException("function: " + std::string(__func__) + " [" +      \
+                            std::string(__FILE__) + ":" +                      \
+                            std::to_string(__LINE__) + "]")
 
 class NotImplementedException : public std::logic_error {
   public:

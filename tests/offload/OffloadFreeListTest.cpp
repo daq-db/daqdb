@@ -16,7 +16,7 @@
 #include <cstdint>
 
 #include "../../lib/offload/OffloadFreeList.cpp"
-#include "../../lib/store/RTree.h"
+#include "../../lib/pmem/RTree.h"
 
 #define BOOST_TEST_MAIN
 #include <boost/filesystem.hpp>

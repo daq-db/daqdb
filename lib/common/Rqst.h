@@ -22,24 +22,30 @@
 
 namespace DaqDB {
 
-enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
+struct ValCtx {
+    uint8_t location = 0;
+    size_t size = 0;
+    void *val = nullptr;
+};
 
-class OffloadRqst {
+template <class T>
+class Rqst {
   public:
-    OffloadRqst(const OffloadOperation op, const char *key,
-                const size_t keySize, const char *value, size_t valueSize,
-                KVStoreBase::KVStoreBaseCallback clb)
+    Rqst(const T op, const char *key, const size_t keySize,
+         const char *value, size_t valueSize,
+         KVStoreBase::KVStoreBaseCallback clb)
         : op(op), key(key), keySize(keySize), value(value),
           valueSize(valueSize), clb(clb) {}
 
-    const OffloadOperation op = OffloadOperation::NONE;
+    const T op;
     const char *key = nullptr;
     size_t keySize = 0;
     const char *value = nullptr;
     size_t valueSize = 0;
 
-    // @TODO jradtke need to check if passing function object has impact on performance
+    // @TODO jradtke need to check if passing function object has impact on
+    // performance
     KVStoreBase::KVStoreBaseCallback clb;
 };
 
-}
+} // namespace DaqDB
