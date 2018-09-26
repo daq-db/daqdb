@@ -18,10 +18,6 @@
 	path = third-party/pmdk
 	url = https://github.com/pmem/pmdk
     ignore = dirty
-[submodule "third-party/libfabric"]
-	path = third-party/libfabric
-	url = https://github.com/ofiwg/libfabric.git
-    ignore = dirty
 [submodule "third-party/HdrHistogram_c"]
 	path = third-party/HdrHistogram_c
 	url = https://github.com/HdrHistogram/HdrHistogram_c.git

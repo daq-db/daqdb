@@ -22,4 +22,4 @@ include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 file(GLOB MIST_SOURCES ${APPS}/mist/*.cpp ${APPS}/mist/*.hpp)
 add_executable(mist ${MIST_SOURCES})
 target_link_libraries(mist ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-	fabric pmem fogkv libconfig pmemobj dl numa ${Dpdk_LIBRARIES})
+	pmem fogkv libconfig pmemobj dl numa ${Dpdk_LIBRARIES})

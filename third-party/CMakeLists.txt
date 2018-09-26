@@ -10,7 +10,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${DAQDB_BIN_DIR})
 ###############################################################################
 # Dependencies - External projects
 ###############################################################################
-include(libfabric.cmake)
 include(pmdk.cmake)
 include(spdk.cmake)
 include(libconfig.cmake)
