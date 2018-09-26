@@ -84,6 +84,19 @@ void daqdb_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key) 
     }
 }
 
+void daqdb_async_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
+                          DaqDB::Key &key,
+                          DaqDB::KVStoreBase::KVStoreBaseCallback cb) {
+    try {
+        DaqDB::UpdateOptions options(DaqDB::PrimaryKeyAttribute::LONG_TERM);
+        spKvs->UpdateAsync(std::move(key), std::move(options), cb);
+    } catch (DaqDB::OperationFailedException &e) {
+        BOOST_LOG_SEV(lg::get(), bt::info)
+            << "Error: cannot update element: " << e.status().to_string()
+            << std::flush;
+    }
+}
+
 void daqdb_remove(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key) {
 
     try {

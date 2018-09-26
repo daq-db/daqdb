@@ -113,6 +113,7 @@ int main(int argc, const char *argv[]) {
     RUN_USE_CASE(use_case_sync_base(spKVStore));
     RUN_USE_CASE(use_case_async_base(spKVStore));
     RUN_USE_CASE(use_case_sync_offload(spKVStore));
+    RUN_USE_CASE(use_case_async_offload(spKVStore));
 
     BOOST_LOG_SEV(lg::get(), bt::info) << "Closing DHT node." << flush;
 
