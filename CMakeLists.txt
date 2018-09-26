@@ -28,6 +28,7 @@ set(3RDPARTY ${PROJECT_SOURCE_DIR}/third-party)
 add_subdirectory(${3RDPARTY})
 include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
+include_directories(${3RDPARTY}/libpmemobj-cpp/include)
 include_directories(${3RDPARTY}/spdk/include)
 include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 include_directories(BEFORE ${PROTOBUF_INCLUDES_EXPORT}) # Must be before LCG

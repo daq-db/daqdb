@@ -25,7 +25,7 @@
 #include <libpmemobj++/pool.hpp>
 #include <libpmemobj++/transaction.hpp>
 #include <libpmemobj++/utils.hpp>
-#include <libpmemobj++/v.hpp>
+#include <libpmemobj++/experimental/v.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -34,6 +34,7 @@
 #include <cmath>
 #include <iostream>
 
+using namespace pmem::obj::experimental;
 using namespace pmem::obj;
 
 // Number of keys slots inside Node (not key bits)
