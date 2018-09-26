@@ -61,7 +61,7 @@ class RqstPooler : public RqstPoolerMockInterface {
     struct spdk_ring *rqstRing;
 
     unsigned short requestCount = 0;
-    std::vector<PmemRqst *> requests;
+    PmemRqst **requests;
 
   private:
     void _ThreadMain(void);

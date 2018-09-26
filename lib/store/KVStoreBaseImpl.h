@@ -70,6 +70,8 @@ class KVStoreBaseImpl : public KVStoreBase {
     virtual void Free(Key &&key);
     virtual void ChangeOptions(Key &key, const AllocOptions &options);
 
+    virtual bool IsOffloaded(Key &key);
+
     void LogMsg(std::string msg);
 
   protected:

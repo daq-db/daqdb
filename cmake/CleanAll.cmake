@@ -10,7 +10,7 @@ set(cmake_generated bin
 )
 set(folders_to_clean . apps apps/minidaq apps/mist
 	examples examples/basic examples/cli_node examples/fabric_node
-	tests
+	tests tests/unit tests/functional 
 	third-party)
 
 file(REMOVE_RECURSE ${ROOT_DAQDB_DIR}/bin)

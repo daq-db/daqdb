@@ -36,6 +36,7 @@ class Rqst {
          KVStoreBase::KVStoreBaseCallback clb)
         : op(op), key(key), keySize(keySize), value(value),
           valueSize(valueSize), clb(clb) {}
+    Rqst() {};
 
     const T op;
     const char *key = nullptr;

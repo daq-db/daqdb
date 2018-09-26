@@ -101,9 +101,10 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.requests.push_back(
+    pooler.requests = new DaqDB::OffloadRqst*[1];
+    pooler.requests[0] =
         new DaqDB::OffloadRqst(DaqDB::OffloadOperation::GET, expectedKey,
-                                  expectedKeySize, nullptr, 0, nullptr));
+                                  expectedKeySize, nullptr, 0, nullptr);
     pooler.requestCount = 1;
 
     pooler.Process();
@@ -114,6 +115,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
                                               size_t *, uint8_t *)))
         .Exactly(1);
     Verify(Method(poolerMock, Read)).Exactly(1);
+
+    delete[] pooler.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
@@ -155,9 +158,10 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.requests.push_back(new DaqDB::OffloadRqst(
+    pooler.requests = new DaqDB::OffloadRqst*[1];
+    pooler.requests[0] = new DaqDB::OffloadRqst(
         DaqDB::OffloadOperation::UPDATE, expectedKey, expectedKeySize,
-        nullptr, 0, nullptr));
+        nullptr, 0, nullptr);
     pooler.requestCount = 1;
 
     pooler.Process();
@@ -168,6 +172,7 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
                                               size_t *, uint8_t *)))
         .Exactly(1);
     Verify(Method(poolerMock, Write)).Exactly(1);
+    delete[] pooler.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
@@ -202,9 +207,10 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
     bdvCtx.buf_align = 1;
     pooler.SetBdevContext(bdvCtx);
 
-    pooler.requests.push_back(new DaqDB::OffloadRqst(
+    pooler.requests = new DaqDB::OffloadRqst*[1];
+    pooler.requests[0] = new DaqDB::OffloadRqst(
         DaqDB::OffloadOperation::REMOVE, expectedKey, expectedKeySize,
-        nullptr, 0, nullptr));
+        nullptr, 0, nullptr);
     pooler.requestCount = 1;
 
     pooler.Process();
@@ -214,4 +220,5 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
                             DaqDB::StatusCode(const char *, int32_t, void **,
                                               size_t *, uint8_t *)))
         .Exactly(1);
+    delete[] pooler.requests;
 }
