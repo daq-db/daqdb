@@ -381,6 +381,16 @@ class KVStoreBase {
      *
      */
     virtual void ChangeOptions(Key &key, const AllocOptions &options) = 0;
+
+    /**
+     * CHecks if given key is moved to long term storage.
+     *
+     * @param[in] key Key buffer.
+     *
+     * @throw OperationFailedException if any error occurred XXX
+     *
+     */
+    virtual bool IsOffloaded(Key &key) = 0;
 };
 
 }

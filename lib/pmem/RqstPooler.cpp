@@ -19,17 +19,17 @@
 
 #include "spdk/env.h"
 
-#include "RqstPooler.h"
 #include "OffloadPooler.h"
+#include "RqstPooler.h"
 #include <Logger.h>
 
 namespace DaqDB {
 
 RqstPooler::RqstPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                        const size_t cpuCore)
-    : isRunning(0), _thread(nullptr), rtree(rtree), _cpuCore(cpuCore),
-      requests(OFFLOAD_DEQUEUE_RING_LIMIT, 0) {
+    : isRunning(0), _thread(nullptr), rtree(rtree), _cpuCore(cpuCore) {
 
+    requests = new PmemRqst *[OFFLOAD_DEQUEUE_RING_LIMIT];
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
 
@@ -38,6 +38,7 @@ RqstPooler::RqstPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
 
 RqstPooler::~RqstPooler() {
     spdk_ring_free(rqstRing);
+    delete[] requests;
     isRunning = 0;
     if (_thread != nullptr)
         _thread->join();
@@ -124,22 +125,24 @@ void RqstPooler::_ProcessPut(const PmemRqst *rqst) {
 }
 
 void RqstPooler::Process() {
-    for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
-        PmemRqst* rqst = requests[RqstIdx];
+    if (requestCount > 0) {
+        for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
+            PmemRqst *rqst = requests[RqstIdx];
 
-        switch (rqst->op) {
-        case RqstOperation::PUT:
-            _ProcessPut(rqst);
-            break;
-        case RqstOperation::GET: {
-            _ProcessGet(rqst);
-            break;
+            switch (rqst->op) {
+            case RqstOperation::PUT:
+                _ProcessPut(rqst);
+                break;
+            case RqstOperation::GET: {
+                _ProcessGet(rqst);
+                break;
+            }
+            default:
+                break;
+            }
+            delete requests[RqstIdx];
         }
-        default:
-            break;
-        }
-        delete requests[RqstIdx];
+        requestCount = 0;
     }
-    requestCount = 0;
 }
-}
+} // namespace DaqDB

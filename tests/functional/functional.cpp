@@ -25,7 +25,7 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#include "use_cases.h"
+#include <uc.h>
 #include "debug.h"
 
 #define RUN_USE_CASE(name) if (name) \
@@ -45,7 +45,7 @@ int main(int argc, const char *argv[]) {
     unsigned short nodeId = 0;
     std::string pmem_path;
     std::string spdk_conf;
-    size_t pmem_size = 1ull * 1024 * 1024 * 1024;
+    size_t pmem_size = 2ull * 1024 * 1024 * 1024;
 
     logging::add_console_log(std::clog,
                              keywords::format = "%TimeStamp%: %Message%");
@@ -84,6 +84,9 @@ int main(int argc, const char *argv[]) {
 
     DaqDB::Options options;
     options.Runtime.spdkConfigFile = spdk_conf;
+    options.Runtime.logFunc = [](std::string msg) {
+        BOOST_LOG_SEV(lg::get(), bt::debug) << msg << flush;
+    };
 
     options.Dht.Id = nodeId;
     options.Port = port;
@@ -110,7 +113,6 @@ int main(int argc, const char *argv[]) {
     RUN_USE_CASE(use_case_sync_base(spKVStore));
     RUN_USE_CASE(use_case_async_base(spKVStore));
     RUN_USE_CASE(use_case_sync_offload(spKVStore));
-    RUN_USE_CASE(use_case_async_offload(spKVStore));
 
     BOOST_LOG_SEV(lg::get(), bt::info) << "Closing DHT node." << flush;
 

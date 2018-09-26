@@ -16,17 +16,11 @@
 #include <chrono>
 #include <condition_variable>
 
-#include "base_operations.h"
-#include "debug.h"
-#include "use_cases.h"
+#include "uc.h"
+#include <base_operations.h>
+#include <debug.h>
 
 using namespace std::chrono_literals;
-
-#define USE_CASE_LOG(name)                                                     \
-    BOOST_LOG_SEV(lg::get(), bt::info) << std::endl                            \
-                                       << std::string(80, '-') << std::endl    \
-                                       << name << std::endl                    \
-                                       << std::string(80, '-') << std::flush;
 
 bool use_case_sync_base(std::shared_ptr<DaqDB::KVStoreBase> &spKvs) {
     bool result = true;
@@ -147,25 +141,27 @@ bool use_case_async_base(std::shared_ptr<DaqDB::KVStoreBase> &spKvs) {
     daqdb_remove(spKvs, key);
     BOOST_LOG_SEV(lg::get(), bt::info) << format("Remove: [%1%]") % key.data();
 
-    daqdb_async_get(
-        spKvs, key,
-        [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
-            size_t keySize, const char *value, size_t valueSize) {
-            std::unique_lock<std::mutex> lck(mtx);
+    daqdb_async_get(spKvs, key,
+                    [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
+                        const char *key, size_t keySize, const char *value,
+                        size_t valueSize) {
+                        std::unique_lock<std::mutex> lck(mtx);
 
-            if (status.ok()) {
-                BOOST_LOG_SEV(lg::get(), bt::info)
-                    << boost::format("GetAsync: [%1%] = %2%") % key % value;
-                result = false;
-            } else {
-                BOOST_LOG_SEV(lg::get(), bt::info)
-                    << boost::format("Error: cannot get element: %1%") %
-                           status.to_string();
-            }
+                        if (status.ok()) {
+                            BOOST_LOG_SEV(lg::get(), bt::info)
+                                << boost::format("Error GetAsync found removed "
+                                                 "element: [%1%] = %2%") %
+                                       key % value;
+                            result = false;
+                        } else {
+                            BOOST_LOG_SEV(lg::get(), bt::info)
+                                << boost::format("Cannot get element: %1%") %
+                                       status.to_string();
+                        }
 
-            ready = true;
-            cv.notify_all();
-        });
+                        ready = true;
+                        cv.notify_all();
+                    });
 
     // wait for completion
     {
@@ -182,14 +178,4 @@ bool use_case_async_base(std::shared_ptr<DaqDB::KVStoreBase> &spKvs) {
     }
 
     return result;
-}
-
-bool use_case_sync_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs) {
-    USE_CASE_LOG("use_case_sync_offload");
-    return true;
-}
-
-bool use_case_async_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs) {
-    USE_CASE_LOG("use_case_async_offload");
-    return true;
 }

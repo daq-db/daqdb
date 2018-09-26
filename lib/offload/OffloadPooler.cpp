@@ -82,10 +82,10 @@ static void read_complete(struct spdk_bdev_io *bdev_io, bool success,
 
 OffloadPooler::OffloadPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                              BdevCtx &bdevCtx, uint64_t offloadBlockSize)
-    : rtree(rtree), _bdevCtx(bdevCtx),
-      requests(OFFLOAD_DEQUEUE_RING_LIMIT, 0) {
+    : rtree(rtree), _bdevCtx(bdevCtx) {
     rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
                                 SPDK_ENV_SOCKET_ID_ANY);
+    requests = new OffloadRqst *[OFFLOAD_DEQUEUE_RING_LIMIT];
 
     if (_bdevCtx.blk_size > 0) {
         auto aligned =
@@ -94,23 +94,21 @@ OffloadPooler::OffloadPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
     }
 }
 
-OffloadPooler::~OffloadPooler() { spdk_ring_free(rqstRing); }
-
-bool OffloadPooler::Enqueue(OffloadRqst *rqst) {
-    size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1);
-    return (count == 1);
+OffloadPooler::~OffloadPooler() {
+    spdk_ring_free(rqstRing);
+    delete[] requests;
 }
 
 bool OffloadPooler::Read(IoCtx *ioCtx) {
     return spdk_bdev_read_blocks(_bdevCtx.bdev_desc, _bdevCtx.io_channel,
                                  ioCtx->buff, *ioCtx->lba * _blkForLba,
-                                 ioCtx->size, read_complete, ioCtx);
+                                 ioCtx->blockSize, read_complete, ioCtx);
 }
 
 bool OffloadPooler::Write(IoCtx *ioCtx) {
     return spdk_bdev_write_blocks(_bdevCtx.bdev_desc, _bdevCtx.io_channel,
                                   ioCtx->buff, *ioCtx->lba * _blkForLba,
-                                  ioCtx->size, write_complete, ioCtx);
+                                  ioCtx->blockSize, write_complete, ioCtx);
 }
 
 void OffloadPooler::InitFreeList() {
@@ -134,8 +132,13 @@ void OffloadPooler::InitFreeList() {
     }
 }
 
+bool OffloadPooler::Enqueue(OffloadRqst *rqst) {
+    size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1);
+    return (count == 1);
+}
+
 void OffloadPooler::Dequeue() {
-    requestCount = spdk_ring_dequeue(rqstRing, (void **)&requests[0],
+    requestCount = spdk_ring_dequeue(rqstRing, (void **)requests,
                                      OFFLOAD_DEQUEUE_RING_LIMIT);
     assert(requestCount <= OFFLOAD_DEQUEUE_RING_LIMIT);
 }
@@ -164,15 +167,11 @@ void OffloadPooler::_ProcessGet(const OffloadRqst *rqst) {
 
     char *buff = (char *)spdk_dma_zmalloc(size, _bdevCtx.buf_align, NULL);
 
-    IoCtx *ioCtx = new IoCtx{buff,
-                             _GetSizeInBlk(size),
-                             rqst->key,
-                             rqst->keySize,
-                             static_cast<uint64_t *>(valCtx.val),
-                             false,
-                             rtree,
-                             rqst->clb};
-    if (Read(ioCtx))
+    IoCtx *ioCtx =
+        new IoCtx{buff,      valCtx.size,   _GetSizeInBlk(size),
+                  rqst->key, rqst->keySize, static_cast<uint64_t *>(valCtx.val),
+                  false,     rtree,         rqst->clb};
+    if (Read(ioCtx) != 0)
         _RqstClb(rqst, StatusCode::UnknownError);
 }
 
@@ -190,7 +189,7 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
 
         const char *val;
         size_t valSize = 0;
-        if (valCtx.size > 0) {
+        if (rqst->valueSize > 0) {
             val = rqst->value;
             valSize = rqst->valueSize;
         } else {
@@ -203,10 +202,9 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
             spdk_dma_zmalloc(valSizeAlign, _bdevCtx.buf_align, NULL));
 
         memcpy(buff, val, valSize);
-        ioCtx = new IoCtx{buff,      _GetSizeInBlk(valSizeAlign),
-                          rqst->key, rqst->keySize,
-                          nullptr,   true,
-                          rtree,     rqst->clb};
+        ioCtx = new IoCtx{buff,      valSize,       _GetSizeInBlk(valSizeAlign),
+                          rqst->key, rqst->keySize, nullptr,
+                          true,      rtree,         rqst->clb};
         rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
         *ioCtx->lba = GetFreeLba();
 
@@ -220,10 +218,10 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
             spdk_dma_zmalloc(valSizeAlign, _bdevCtx.buf_align, NULL));
         memcpy(buff, rqst->value, rqst->valueSize);
 
-        ioCtx = new IoCtx{buff,         _GetSizeInBlk(valSizeAlign),
-                          rqst->key,    rqst->keySize,
-                          new uint64_t, false,
-                          rtree,        rqst->clb};
+        ioCtx =
+            new IoCtx{buff,      rqst->valueSize, _GetSizeInBlk(valSizeAlign),
+                      rqst->key, rqst->keySize,   new uint64_t,
+                      false,     rtree,           rqst->clb};
         *ioCtx->lba = *(static_cast<uint64_t *>(valCtx.val));
 
     } else {
@@ -231,9 +229,8 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
         return;
     }
 
-    if (Write(ioCtx)) {
+    if (Write(ioCtx) != 0)
         _RqstClb(rqst, StatusCode::UnknownError);
-    }
 }
 
 void OffloadPooler::_ProcessRemove(const OffloadRqst *rqst) {
@@ -246,7 +243,6 @@ void OffloadPooler::_ProcessRemove(const OffloadRqst *rqst) {
         return;
     }
 
-
     if (_ValInPmem(valCtx)) {
         _RqstClb(rqst, StatusCode::KeyNotFound);
         return;
@@ -255,34 +251,33 @@ void OffloadPooler::_ProcessRemove(const OffloadRqst *rqst) {
     uint64_t lba = *(static_cast<uint64_t *>(valCtx.val));
 
     freeLbaList->Push(_poolFreeList, lba);
-
     rtree->Remove(rqst->key);
-
     _RqstClb(rqst, StatusCode::Ok);
 }
 
 void OffloadPooler::Process() {
-    for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
-        auto rqst = requests[RqstIdx];
-
-        switch (requests[RqstIdx]->op) {
-        case OffloadOperation::GET:
-            _ProcessGet(const_cast<const OffloadRqst*>(rqst));
-            break;
-        case OffloadOperation::UPDATE: {
-            _ProcessUpdate(const_cast<const OffloadRqst*>(rqst));
-            break;
+    if (requestCount > 0) {
+        for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
+            OffloadRqst *rqst = requests[RqstIdx];
+            switch (rqst->op) {
+            case OffloadOperation::GET:
+                _ProcessGet(const_cast<const OffloadRqst *>(rqst));
+                break;
+            case OffloadOperation::UPDATE: {
+                _ProcessUpdate(const_cast<const OffloadRqst *>(rqst));
+                break;
+            }
+            case OffloadOperation::REMOVE: {
+                _ProcessRemove(const_cast<const OffloadRqst *>(rqst));
+                break;
+            }
+            default:
+                break;
+            }
+            delete requests[RqstIdx];
         }
-        case OffloadOperation::REMOVE: {
-            _ProcessRemove(const_cast<const OffloadRqst*>(rqst));
-            break;
-        }
-        default:
-            break;
-        }
-        delete requests[RqstIdx];
+        requestCount = 0;
     }
-    requestCount = 0;
 }
 
 int64_t OffloadPooler::GetFreeLba() { return freeLbaList->Get(_poolFreeList); }

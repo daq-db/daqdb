@@ -45,10 +45,11 @@ struct BdevCtx {
 
 struct IoCtx {
     char *buff;
-    uint32_t size = 0;
+    size_t size = 0;
+    uint32_t blockSize = 0;
     const char *key = nullptr;
     size_t keySize = 0;
-    uint64_t *lba = nullptr;
+    uint64_t *lba = nullptr; // pointer used to store pmem allocated memory
     bool updatePmemIOV = false;
     std::shared_ptr<DaqDB::RTreeEngine> rtree;
     KVStoreBase::KVStoreBaseCallback clb;
@@ -87,7 +88,7 @@ class OffloadPooler : public OffloadPoolerMockInterface {
     struct spdk_ring *rqstRing;
 
     unsigned short requestCount = 0;
-    std::vector<OffloadRqst *> requests;
+    OffloadRqst **requests;
 
     std::shared_ptr<DaqDB::RTreeEngine> rtree;
 

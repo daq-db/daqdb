@@ -204,6 +204,7 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
+
         if (!_offloadPooler->Enqueue(new OffloadRqst(
                 OffloadOperation::UPDATE, key.data(), key.size(),
                 val.data(), val.size(),
@@ -219,7 +220,7 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
         // wait for completion
         {
             std::unique_lock<std::mutex> lk(mtx);
-            cv.wait_for(lk, 10s, [&ready] { return ready; });
+            cv.wait_for(lk, 1s, [&ready] { return ready; });
             if (!ready)
                 throw OperationFailedException(Status(TimeOutError));
         }
@@ -313,7 +314,7 @@ void KVStoreBaseImpl::Remove(const Key &key) {
         // wait for completion
         {
             std::unique_lock<std::mutex> lk(mtx);
-            cv.wait_for(lk, 10s, [&ready] { return ready; });
+            cv.wait_for(lk, 1s, [&ready] { return ready; });
             if (!ready)
                 throw OperationFailedException(Status(TimeOutError));
         }
@@ -366,6 +367,21 @@ void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
     throw FUNC_NOT_IMPLEMENTED;
+}
+
+bool KVStoreBaseImpl::IsOffloaded(Key &key) {
+    bool result = false;
+
+    ValCtx valCtx;
+    StatusCode rc = mRTree->Get(key.data(), key.size(), &valCtx.val,
+                               &valCtx.size, &valCtx.location);
+    if (rc != StatusCode::Ok) {
+        if (rc == StatusCode::KeyNotFound)
+            throw OperationFailedException(KeyNotFound);
+
+        throw OperationFailedException(EINVAL);
+    }
+    return (valCtx.location == LOCATIONS::DISK);
 }
 
 KVStoreBaseImpl::KVStoreBaseImpl(const Options &options)

@@ -59,10 +59,24 @@ void daqdb_put(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key,
             << std::flush;
     }
 }
-void daqdb_update(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key,
-                  DaqDB::Value &val) {
+
+void daqdb_update(
+    std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key,
+    DaqDB::Value &val,
+    const DaqDB::UpdateOptions &options = DaqDB::UpdateOptions()) {
     try {
-        spKvs->Update(std::move(key), std::move(val));
+        spKvs->Update(std::move(key), std::move(val), std::move(options));
+    } catch (DaqDB::OperationFailedException &e) {
+        BOOST_LOG_SEV(lg::get(), bt::info)
+            << "Error: cannot update element: " << e.status().to_string()
+            << std::flush;
+    }
+}
+
+void daqdb_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key) {
+    try {
+        DaqDB::UpdateOptions options(DaqDB::PrimaryKeyAttribute::LONG_TERM);
+        spKvs->Update(std::move(key), std::move(options));
     } catch (DaqDB::OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()
