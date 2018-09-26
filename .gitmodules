@@ -33,3 +33,6 @@
 [submodule "third-party/libpmemobj-cpp"]
 	path = third-party/libpmemobj-cpp
 	url = https://github.com/pmem/libpmemobj-cpp.git
+[submodule "third-party/eRPC"]
+	path = third-party/eRPC
+	url = https://github.com/anujkaliaiitd/eRPC.git

@@ -43,7 +43,6 @@ target_link_libraries(zht libprotobuf)
 # Cleanup tasks
 add_custom_target(clean-dep)
 add_dependencies(clean-dep libpmdk_clean)
-add_dependencies(clean-dep libfabric_clean)
 add_dependencies(clean-dep libconfig_clean)
 add_dependencies(clean-dep libspdk_clean)
 add_dependencies(clean-dep protobuf_clean)
