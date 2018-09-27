@@ -83,20 +83,11 @@ static void read_complete(struct spdk_bdev_io *bdev_io, bool success,
 OffloadPooler::OffloadPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                              BdevCtx &bdevCtx, uint64_t offloadBlockSize)
     : rtree(rtree), _bdevCtx(bdevCtx) {
-    rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
-                                SPDK_ENV_SOCKET_ID_ANY);
-    requests = new OffloadRqst *[OFFLOAD_DEQUEUE_RING_LIMIT];
-
     if (_bdevCtx.blk_size > 0) {
         auto aligned =
             offloadBlockSize + _bdevCtx.blk_size - 1 & ~(_bdevCtx.blk_size - 1);
         _blkForLba = aligned / _bdevCtx.blk_size;
     }
-}
-
-OffloadPooler::~OffloadPooler() {
-    spdk_ring_free(rqstRing);
-    delete[] requests;
 }
 
 bool OffloadPooler::Read(IoCtx *ioCtx) {
@@ -130,17 +121,6 @@ void OffloadPooler::InitFreeList() {
             freeLbaList->Push(_poolFreeList, -1);
         }
     }
-}
-
-bool OffloadPooler::Enqueue(OffloadRqst *rqst) {
-    size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1);
-    return (count == 1);
-}
-
-void OffloadPooler::Dequeue() {
-    requestCount = spdk_ring_dequeue(rqstRing, (void **)requests,
-                                     OFFLOAD_DEQUEUE_RING_LIMIT);
-    assert(requestCount <= OFFLOAD_DEQUEUE_RING_LIMIT);
 }
 
 StatusCode OffloadPooler::_GetValCtx(const OffloadRqst *rqst,
@@ -280,7 +260,9 @@ void OffloadPooler::Process() {
     }
 }
 
-int64_t OffloadPooler::GetFreeLba() { return freeLbaList->Get(_poolFreeList); }
+int64_t OffloadPooler::GetFreeLba() {
+    return freeLbaList->Get(_poolFreeList);
+}
 
 void OffloadPooler::SetBdevContext(BdevCtx &bdevContext) {
     _bdevCtx = bdevContext;

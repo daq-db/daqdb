@@ -24,6 +24,7 @@
 #include "spdk/queue.h"
 
 #include <Rqst.h>
+#include <Pooler.h>
 #include "OffloadPooler.h"
 #include "RTreeEngine.h"
 
@@ -34,22 +35,12 @@ namespace DaqDB {
 enum class RqstOperation : std::int8_t { NONE = 0, GET, PUT, UPDATE };
 using PmemRqst = Rqst<RqstOperation>;
 
-class RqstPoolerMockInterface { // @suppress("Class has a virtual method and non-virtual destructor")
-    virtual void StartThread() = 0;
-
-    virtual bool Enqueue(PmemRqst *rqst) = 0;
-    virtual void Dequeue() = 0;
-    virtual void Process() = 0;
-};
-
-class RqstPooler : public RqstPoolerMockInterface {
+class PmemPooler : public Pooler<PmemRqst> {
   public:
-    RqstPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
+    PmemPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                const size_t cpuCore = 0);
-    virtual ~RqstPooler();
+    virtual ~PmemPooler();
 
-    bool Enqueue(PmemRqst *rqst);
-    void Dequeue();
     void Process() final;
     void StartThread();
 
@@ -57,11 +48,6 @@ class RqstPooler : public RqstPoolerMockInterface {
 
     std::atomic<int> isRunning;
     std::shared_ptr<DaqDB::RTreeEngine> rtree;
-
-    struct spdk_ring *rqstRing;
-
-    unsigned short requestCount = 0;
-    PmemRqst **requests;
 
   private:
     void _ThreadMain(void);
