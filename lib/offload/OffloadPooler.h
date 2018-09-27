@@ -27,6 +27,7 @@
 #include <daqdb/KVStoreBase.h>
 #include <RTreeEngine.h>
 #include <Rqst.h>
+#include <Pooler.h>
 #include "OffloadFreeList.h"
 
 #define OFFLOAD_DEQUEUE_RING_LIMIT 1024
@@ -58,37 +59,20 @@ struct IoCtx {
 enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
 using OffloadRqst = Rqst<OffloadOperation>;
 
-class OffloadPoolerMockInterface { // @suppress("Class has a virtual method and non-virtual destructor")
-    virtual bool Enqueue(OffloadRqst *Message) = 0;
-    virtual void Dequeue() = 0;
-    virtual void Process() = 0;
-    virtual bool Read(IoCtx *ioCtx) = 0;
-    virtual bool Write(IoCtx *ioCtx) = 0;
-    virtual int64_t GetFreeLba() = 0;
-};
-
-class OffloadPooler : public OffloadPoolerMockInterface {
+class OffloadPooler : public Pooler<OffloadRqst> {
   public:
     OffloadPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                   BdevCtx &bdevContext, uint64_t offloadBlockSize);
-    virtual ~OffloadPooler();
+    virtual ~OffloadPooler() {};
 
-    bool Enqueue(OffloadRqst *Message);
-    void Dequeue();
     void Process() final;
 
-    bool Read(IoCtx *ioCtx);
-    bool Write(IoCtx *ioCtx);
-
-    int64_t GetFreeLba();
+    virtual bool Read(IoCtx *ioCtx);
+    virtual bool Write(IoCtx *ioCtx);
+    virtual int64_t GetFreeLba();
 
     void InitFreeList();
     void SetBdevContext(BdevCtx &_bdevContext);
-
-    struct spdk_ring *rqstRing;
-
-    unsigned short requestCount = 0;
-    OffloadRqst **requests;
 
     std::shared_ptr<DaqDB::RTreeEngine> rtree;
 

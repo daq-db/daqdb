@@ -452,7 +452,7 @@ void KVStore::init() {
 
     for (auto index = 0; index < poolerCount; index++) {
         auto rqstPooler =
-            new DaqDB::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index);
+            new DaqDB::PmemPooler(mRTree, POOLER_CPU_CORE_BASE + index);
         if (_offloadEnabled)
             rqstPooler->offloadPooler = _offloadPooler;
         _rqstPoolers.push_back(rqstPooler);

@@ -20,12 +20,12 @@
 #include <OffloadReactor.h>
 #include <OffloadPooler.h>
 #include <RTreeEngine.h>
-#include <RqstPooler.h>
 #include <daqdb/KVStoreBase.h>
 #include <dht/ZhtNode.h>
 #include <dht/DhtNode.h>
 
 #include "core/Env.h"
+#include "pmem/PmemPooler.h"
 
 namespace DaqDB {
 
@@ -89,7 +89,7 @@ class KVStore : public KVStoreBase {
     std::shared_ptr<DaqDB::RTreeEngine> mRTree;
     std::mutex mLock;
 
-    std::vector<RqstPooler *> _rqstPoolers;
+    std::vector<PmemPooler *> _rqstPoolers;
 
     OffloadReactor *_offloadReactor;
     OffloadPooler *_offloadPooler;

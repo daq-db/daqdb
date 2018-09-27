@@ -13,6 +13,8 @@
  * stated in the License.
  */
 
+#include "PmemPooler.h"
+
 #include <iostream>
 #include <pthread.h>
 #include <string>
@@ -20,33 +22,25 @@
 #include "spdk/env.h"
 
 #include "OffloadPooler.h"
-#include "RqstPooler.h"
 #include <Logger.h>
 
 namespace DaqDB {
 
-RqstPooler::RqstPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
+PmemPooler::PmemPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                        const size_t cpuCore)
     : isRunning(0), _thread(nullptr), rtree(rtree), _cpuCore(cpuCore) {
-
-    requests = new PmemRqst *[OFFLOAD_DEQUEUE_RING_LIMIT];
-    rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
-                                SPDK_ENV_SOCKET_ID_ANY);
-
     StartThread();
 }
 
-RqstPooler::~RqstPooler() {
-    spdk_ring_free(rqstRing);
-    delete[] requests;
+PmemPooler::~PmemPooler() {
     isRunning = 0;
     if (_thread != nullptr)
         _thread->join();
 }
 
-void RqstPooler::StartThread() {
+void PmemPooler::StartThread() {
     isRunning = 1;
-    _thread = new std::thread(&RqstPooler::_ThreadMain, this);
+    _thread = new std::thread(&PmemPooler::_ThreadMain, this);
 
     if (_cpuCore) {
         cpu_set_t cpuset;
@@ -66,25 +60,14 @@ void RqstPooler::StartThread() {
     }
 }
 
-void RqstPooler::_ThreadMain() {
+void PmemPooler::_ThreadMain() {
     while (isRunning) {
         Dequeue();
         Process();
     }
 }
 
-bool RqstPooler::Enqueue(PmemRqst *Message) {
-    size_t count = spdk_ring_enqueue(rqstRing, (void **)&Message, 1);
-    return (count == 1);
-}
-
-void RqstPooler::Dequeue() {
-    requestCount =
-        spdk_ring_dequeue(rqstRing, (void **)&requests[0], DEQUEUE_RING_LIMIT);
-    assert(requestCount <= DEQUEUE_RING_LIMIT);
-}
-
-void RqstPooler::_ProcessTransfer(const PmemRqst *rqst) {
+void PmemPooler::_ProcessTransfer(const PmemRqst *rqst) {
     if (!offloadPooler) {
         FOG_DEBUG("Request transfer failed. Offload pooler not set");
         _RqstClb(rqst, StatusCode::OffloadDisabledError);
@@ -100,7 +83,7 @@ void RqstPooler::_ProcessTransfer(const PmemRqst *rqst) {
     }
 }
 
-void RqstPooler::_ProcessGet(const PmemRqst *rqst) {
+void PmemPooler::_ProcessGet(const PmemRqst *rqst) {
     ValCtx valCtx;
     StatusCode rc = rtree->Get(rqst->key, rqst->keySize, &valCtx.val,
                                &valCtx.size, &valCtx.location);
@@ -119,13 +102,13 @@ void RqstPooler::_ProcessGet(const PmemRqst *rqst) {
     std::memcpy(value.data(), valCtx.val, valCtx.size);
     _RqstClb(rqst, rc, value);
 }
-void RqstPooler::_ProcessPut(const PmemRqst *rqst) {
+void PmemPooler::_ProcessPut(const PmemRqst *rqst) {
     StatusCode rc =
         rtree->Put(rqst->key, rqst->keySize, rqst->value, rqst->valueSize);
     _RqstClb(rqst, rc);
 }
 
-void RqstPooler::Process() {
+void PmemPooler::Process() {
     if (requestCount > 0) {
         for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
             PmemRqst *rqst = requests[RqstIdx];
