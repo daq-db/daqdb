@@ -14,6 +14,7 @@
  */
 
 #include "RTree.h"
+#include <daqdb/Types.h>
 #include <iostream>
 
 namespace DaqDB {
@@ -56,6 +57,18 @@ Tree::Tree(const string &path, const size_t size) {
         level_bits = treeRoot->level_bits;
         tree_heigh = treeRoot->tree_heigh;
     }
+
+    // Define custom allocation class
+    struct pobj_alloc_class_desc alloc_class_daqdb;
+    alloc_class_daqdb.header_type = POBJ_HEADER_NONE;
+    alloc_class_daqdb.unit_size = 1024;
+    alloc_class_daqdb.units_per_block = 1024 * 1000000;
+    alloc_class_daqdb.alignment = 0;
+    int rc = pmemobj_ctl_set(_pm_pool.get_handle(),
+                             "heap.alloc_class.129.desc",
+                              &alloc_class_daqdb);
+    if (rc)
+        throw OperationFailedException(Status(KeyNotFound));
 }
 
 StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
@@ -132,8 +145,8 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     try {
         val->actionValue = new pobj_action[1];
         pmemoid poid;
-        poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
-                               &(val->actionValue[0]), size, VALUE);
+        poid = pmemobj_xreserve(tree->_pm_pool.get_handle(),
+                                &(val->actionValue[0]), size, VALUE, POBJ_CLASS_ID(129));
         val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
         val->size = size;
     } catch (std::exception &e) {
