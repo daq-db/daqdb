@@ -112,6 +112,7 @@ void RqstPooler::_ProcessGet(const PmemRqst *rqst) {
 
     if (_ValOffloaded(valCtx)) {
         _ProcessTransfer(rqst);
+        return;
     }
 
     Value value(new char[valCtx.size], valCtx.size);

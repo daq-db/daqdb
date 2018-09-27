@@ -26,3 +26,4 @@
 bool use_case_sync_base(std::shared_ptr<DaqDB::KVStoreBase> &spKvs);
 bool use_case_async_base(std::shared_ptr<DaqDB::KVStoreBase> &spKvs);
 bool use_case_sync_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs);
+bool use_case_async_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs);
