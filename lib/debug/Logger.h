@@ -33,7 +33,7 @@ class Logger {
     void setLogFunc(const std::function<void(std::string)> &fn);
     void Log(std::string);
 
-private:
+  private:
     std::function<void(std::string)> _logFunc = nullptr;
 };
 

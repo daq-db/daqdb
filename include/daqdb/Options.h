@@ -24,10 +24,10 @@
 namespace DaqDB {
 
 enum PrimaryKeyAttribute : std::int8_t {
-    EMPTY       = 0,
-    LOCKED      = (1 << 0),
-    READY       = (1 << 1),
-    LONG_TERM   = (1 << 2)
+    EMPTY = 0,
+    LOCKED = (1 << 0),
+    READY = (1 << 1),
+    LONG_TERM = (1 << 2)
 };
 
 inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
@@ -111,7 +111,7 @@ struct KeyDescriptor {
 };
 
 struct ValueDescription {
-    size_t OffloadMaxSize = 16  * 1024;
+    size_t OffloadMaxSize = 16 * 1024;
 };
 
 struct RuntimeOptions {
@@ -127,8 +127,9 @@ struct DhtOptions {
 };
 
 struct PMEMOptions {
-    std::string Path;
-    size_t Size = 0;
+    std::string poolPath;
+    size_t totalSize = 0;
+    size_t minValueSize = 8;
 };
 
 struct Options {
@@ -147,5 +148,4 @@ struct Options {
     std::string KVEngine = "kvtree";
     PMEMOptions PMEM;
 };
-
 }

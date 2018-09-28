@@ -16,9 +16,9 @@
 #include <chrono>
 #include <condition_variable>
 
-#include <daqdb/Types.h>
-#include <Logger.h>
 #include <DhtUtils.h>
+#include <Logger.h>
+#include <daqdb/Types.h>
 
 #include "KVStoreBaseImpl.h"
 
@@ -80,7 +80,7 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
     }
     try {
         PmemRqst *msg = new PmemRqst(RqstOperation::PUT, key.data(), key.size(),
-                                   value.data(), value.size(), cb);
+                                     value.data(), value.size(), cb);
         if (!_rqstPoolers.at(poolerId)->Enqueue(msg)) {
             throw QueueFullException();
         }
@@ -152,9 +152,9 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
             throw OperationFailedException(Status(OffloadDisabledError));
 
         try {
-            if (!_offloadPooler->Enqueue(
-                    new OffloadRqst(OffloadOperation::GET, key.data(),
-                                       key.size(), nullptr, 0, cb))) {
+            if (!_offloadPooler->Enqueue(new OffloadRqst(OffloadOperation::GET,
+                                                         key.data(), key.size(),
+                                                         nullptr, 0, cb))) {
                 throw QueueFullException();
             }
         } catch (OperationFailedException &e) {
@@ -175,7 +175,7 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
         try {
             if (!_rqstPoolers.at(poolerId)->Enqueue(
                     new PmemRqst(RqstOperation::GET, key.data(), key.size(),
-                                nullptr, 0, cb))) {
+                                 nullptr, 0, cb))) {
                 throw QueueFullException();
             }
         } catch (OperationFailedException &e) {
@@ -205,8 +205,8 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
         std::condition_variable cv;
         bool ready = false;
         if (!_offloadPooler->Enqueue(new OffloadRqst(
-                OffloadOperation::UPDATE, key.data(), key.size(),
-                val.data(), val.size(),
+                OffloadOperation::UPDATE, key.data(), key.size(), val.data(),
+                val.size(),
                 [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
                                     const char *key, size_t keySize,
                                     const char *value, size_t valueSize) {
@@ -298,8 +298,7 @@ void KVStoreBaseImpl::Remove(const Key &key) {
         std::condition_variable cv;
         bool ready = false;
         if (!_offloadPooler->Enqueue(new OffloadRqst(
-                OffloadOperation::REMOVE, key.data(), key.size(), nullptr,
-                0,
+                OffloadOperation::REMOVE, key.data(), key.size(), nullptr, 0,
                 [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
                                     const char *key, size_t keySize,
                                     const char *value, size_t valueSize) {
@@ -401,9 +400,11 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
     if (name == "fogkv.listener.port")
         return std::to_string(mDhtNode->getPort());
     if (name == "fogkv.pmem.path")
-        return mOptions.PMEM.Path;
+        return mOptions.PMEM.poolPath;
     if (name == "fogkv.pmem.size")
-        return std::to_string(mOptions.PMEM.Size);
+        return std::to_string(mOptions.PMEM.totalSize);
+    if (name == "fogkv.pmem.min_value_size")
+        return std::to_string(mOptions.PMEM.minValueSize);
     if (name == "fogkv.KVEngine")
         return mRTree->Engine();
 
@@ -437,15 +438,16 @@ void KVStoreBaseImpl::init() {
 
     mDhtNode.reset(new DaqDB::ZhtNode(io_service(), dhtPort));
 
-    mRTree.reset(DaqDB::RTreeEngine::Open(mOptions.KVEngine, mOptions.PMEM.Path,
-                                          mOptions.PMEM.Size));
+    mRTree.reset(DaqDB::RTreeEngine::Open(
+        mOptions.KVEngine, mOptions.PMEM.poolPath, mOptions.PMEM.totalSize,
+        mOptions.PMEM.minValueSize));
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     if (_offloadEnabled) {
         _offloadPooler =
             new DaqDB::OffloadPooler(mRTree, _offloadReactor->bdevCtx,
-                                         getOptions().Value.OffloadMaxSize);
+                                     getOptions().Value.OffloadMaxSize);
         _offloadPooler->InitFreeList();
         _offloadReactor->RegisterPooler(_offloadPooler);
     }
@@ -462,5 +464,4 @@ void KVStoreBaseImpl::init() {
 }
 
 asio::io_service &KVStoreBaseImpl::io_service() { return *_io_service; }
-
 }

@@ -32,66 +32,66 @@
 
 #include "config.h"
 
-Configuration::Configuration(const char * file) : fileName(file){
-	try {
-		cfg.readFile(file);
-	}
-	catch(const FileIOException &fioex) {
-		std::cerr << "I/O error while reading file." << std::endl;
-	}
-	catch(const ParseException &pex) {
-		std::cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
-        		<< " - " << pex.getError() << std::endl;
-	}
+Configuration::Configuration(const char *file) : fileName(file) {
+    try {
+        cfg.readFile(file);
+    } catch (const FileIOException &fioex) {
+        std::cerr << "I/O error while reading file." << std::endl;
+    } catch (const ParseException &pex) {
+        std::cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
+                  << " - " << pex.getError() << std::endl;
+    }
 }
 
 void Configuration::readConfiguration(Options &options) {
-	// required parameters
-	// TODO move mode to FogKV options
-	string mode;
-	cfg.lookupValue("mode", mode);
-	int port;
-	cfg.lookupValue("port", port);
-	options.Port = port;
+    // required parameters
+    // TODO move mode to DaqDB options
+    string mode;
+    cfg.lookupValue("mode", mode);
+    int port;
+    cfg.lookupValue("port", port);
+    options.Port = port;
 
-	// TODO move hashes to FogKV options
-	string primaryHash, replicaHash;
-	cfg.lookupValue("primaryHash", primaryHash);
-	cfg.lookupValue("replicaHash", replicaHash);
+    // TODO move hashes to DaqDB options
+    string primaryHash, replicaHash;
+    cfg.lookupValue("primaryHash", primaryHash);
+    cfg.lookupValue("replicaHash", replicaHash);
 
-	// Configure key structure
-	string primaryKey;
-	cfg.lookupValue("primaryKey", primaryKey);
-	vector<int> keysStructure;
-	const Setting &keys_settings = cfg.lookup("keys_structure");
-	for (int n = 0; n < keys_settings.getLength(); ++n) {
-		keysStructure.push_back(keys_settings[n]);
-		// TODO extend functionality of primary key definition
-		options.Key.field(n, keysStructure[n], (n==0)?true:false);
-	}
+    // Configure key structure
+    string primaryKey;
+    cfg.lookupValue("primaryKey", primaryKey);
+    vector<int> keysStructure;
+    const Setting &keys_settings = cfg.lookup("keys_structure");
+    for (int n = 0; n < keys_settings.getLength(); ++n) {
+        keysStructure.push_back(keys_settings[n]);
+        // TODO extend functionality of primary key definition
+        options.Key.field(n, keysStructure[n], (n == 0) ? true : false);
+    }
 
-	// optional parameters
-	string pmem_path = "";
-	int pmem_size = 0;
-	cfg.lookupValue("pmem_path", pmem_path);
-	cfg.lookupValue("pmem_size", pmem_size);
-	options.PMEM.Path = pmem_path;
-	options.PMEM.Size = pmem_size;
-	// TODO add logging to FogKV options
-	string loggingLevel = "WARN";
-	cfg.lookupValue("logging_level", loggingLevel);
+    // optional parameters
+    string pmem_path = "";
+    int pmem_size = 0;
+    int min_size = 0;
+    cfg.lookupValue("pmem_path", pmem_path);
+    cfg.lookupValue("pmem_size", pmem_size);
+    cfg.lookupValue("min_value_size", min_size);
+    options.PMEM.poolPath = pmem_path;
+    options.PMEM.totalSize = pmem_size;
+    options.PMEM.minValueSize = min_size;
+    // TODO add logging to DaqDB options
+    string loggingLevel = "WARN";
+    cfg.lookupValue("logging_level", loggingLevel);
 
-	// TODO check if those are required, and how/where should be defined
-	options.Dht.Id = 0;
-	options.Dht.Port = 5455;
+    // TODO check if those are required, and how/where should be defined
+    options.Dht.Id = 0;
+    options.Dht.Port = 5455;
 
-	// TODO shift placement for configuration printing
-	// TODO make the printing full
-	cout << "FogKV/mode=" << mode << "; file=" << pmem_path
-				<< "; size=" << pmem_size
-				<< endl;
-	cout << "keys structure=";
-	for (auto n: keysStructure)
-		cout << n << " ";
-	cout << endl;
+    // TODO shift placement for configuration printing
+    // TODO make the printing full
+    cout << "DaqDB/mode=" << mode << "; file=" << pmem_path
+         << "; size=" << pmem_size << "; min value size=" << min_size << endl;
+    cout << "keys structure=";
+    for (auto n : keysStructure)
+        cout << n << " ";
+    cout << endl;
 }

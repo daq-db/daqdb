@@ -17,10 +17,10 @@
 #include <iostream>
 #include <memory>
 
-#include "daqdb/KVStoreBase.h"
 #include "MinidaqAroNode.h"
 #include "MinidaqFfNode.h"
 #include "MinidaqRoNode.h"
+#include "daqdb/KVStoreBase.h"
 
 using namespace std;
 
@@ -63,6 +63,7 @@ int tRamp_ms;
 int delay;
 int nCores;
 int bCoreId;
+size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
 
 static void logStd(std::string m) {
@@ -73,8 +74,9 @@ static void logStd(std::string m) {
 /** @todo move to MinidaqFogServer for distributed version */
 static DaqDB::KVStoreBase *openKVS() {
     DaqDB::Options options;
-    options.PMEM.Path = pmem_path;
-    options.PMEM.Size = pmem_size;
+    options.PMEM.poolPath = pmem_path;
+    options.PMEM.totalSize = pmem_size;
+    options.PMEM.minValueSize = fSize;
     options.Key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
     options.Key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
     options.Key.field(2, sizeof(DaqDB::MinidaqKey::runId));
@@ -143,7 +145,6 @@ int main(int argc, const char *argv[]) {
     bool isParallel = MINIDAQ_DEFAULT_PARALLEL;
     double acceptLevel = 0;
     int startSubId = 0;
-    size_t fSize = 0;
     int nAroTh = 0;
     int nRoTh = 0;
     int nFfTh = 0;
@@ -163,9 +164,8 @@ int main(int argc, const char *argv[]) {
         "time-ramp",
         po::value<int>(&tRamp_ms)->default_value(MINIDAQ_DEFAULT_T_RAMP_MS),
         "Desired ramp up time in milliseconds.")(
-        "pmem-path",
-        po::value<std::string>(&pmem_path)
-            ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
+        "pmem-path", po::value<std::string>(&pmem_path)
+                         ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
         "Persistent memory pool file.")(
         "pmem-size",
         po::value<size_t>(&pmem_size)->default_value(MINIDAQ_DEFAULT_PMEM_SIZE),
@@ -190,9 +190,8 @@ int main(int argc, const char *argv[]) {
         "tid-file", po::value<std::string>(&tid_file),
         "If set a file with thread IDs of benchmark worker threads will be "
         "generated.")("log,l", "Enable logging")(
-        "spdk-conf-file,c",
-        po::value<std::string>(&spdk_conf)
-            ->default_value(MINIDAQ_DEFAULT_SPDK_CONF),
+        "spdk-conf-file,c", po::value<std::string>(&spdk_conf)
+                                ->default_value(MINIDAQ_DEFAULT_SPDK_CONF),
         "SPDK configuration file");
 
     po::options_description readoutOpts("Readout-specific options");
