@@ -41,8 +41,8 @@ endif()
 
 set(3RDPARTY ${PROJECT_SOURCE_DIR}/third-party)
 add_subdirectory(${3RDPARTY})
-include_directories(${3RDPARTY}/libfabric/include)
 include_directories(${3RDPARTY}/pmdk/src/include)
+include_directories(${3RDPARTY}/libpmemobj-cpp/include)
 include_directories(${3RDPARTY}/spdk/include)
 include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 include_directories(BEFORE ${PROTOBUF_INCLUDES_EXPORT}) # Must be before LCG
@@ -53,13 +53,13 @@ include_directories(${ZHT_INCLUDES_EXPORT})
 ###############################################################################
 
 set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
-include_directories(include include/db include/dht include/fabric include/FogKV
-	include/store lib/common lib/debug lib/dht lib/fabric lib/offload lib/pmem
+include_directories(include include/db include/dht include/FogKV
+	include/store lib/common lib/debug lib/dht lib/offload lib/pmem
 	lib/core)
 file(GLOB_RECURSE FOGKV_SOURCES lib/*.cpp)
 
 add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv fabric ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
+target_link_libraries(fogkv ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
 					  zht libprotobuf )
 
 ###############################################################################
@@ -76,7 +76,6 @@ add_subdirectory(tests/functional EXCLUDE_FROM_ALL)
 set(EXAMPLES ${PROJECT_SOURCE_DIR}/examples)
 add_subdirectory(${EXAMPLES}/cli_node)
 add_subdirectory(${EXAMPLES}/basic)
-add_subdirectory(${EXAMPLES}/fabric_node)
 
 ###############################################################################
 # Applications

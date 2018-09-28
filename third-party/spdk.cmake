@@ -22,3 +22,5 @@ add_custom_target(libspdk_clean
 	COMMAND make clean && rm -f ${PROJECT_SOURCE_DIR}/spdk/libdpdk.a
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/spdk
 )
+
+set(DPDK_PATH ${PROJECT_SOURCE_DIR}/spdk/dpdk/build)
