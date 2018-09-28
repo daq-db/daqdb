@@ -13,14 +13,14 @@
  * stated in the License.
  */
 
+#include "KVStore.h"
+
 #include <chrono>
 #include <condition_variable>
 
 #include <DhtUtils.h>
 #include <Logger.h>
 #include <daqdb/Types.h>
-
-#include "KVStoreBaseImpl.h"
 
 /** @TODO jradtke: should be taken from configuration file */
 #define POOLER_CPU_CORE_BASE 1
@@ -30,31 +30,41 @@ using namespace std::chrono_literals;
 namespace DaqDB {
 
 KVStoreBase *KVStoreBase::Open(const Options &options) {
-    return KVStoreBaseImpl::Open(options);
+    return KVStore::Open(options);
 }
 
-KVStoreBase *KVStoreBaseImpl::Open(const Options &options) {
-    KVStoreBaseImpl *kvs = new KVStoreBaseImpl(options);
+KVStoreBase *KVStore::Open(const Options &options) {
+    KVStore *kvs = new KVStore(options);
 
     kvs->init();
 
     return kvs;
 }
 
-size_t KVStoreBaseImpl::KeySize() {
-    std::unique_lock<std::mutex> l(mLock);
-    return mKeySize;
+KVStore::KVStore(const Options &options)
+    : env(options), _offloadPooler(nullptr), _offloadReactor(nullptr) {}
+
+KVStore::~KVStore() {
+    mDhtNode.reset();
+
+    DaqDB::RTreeEngine::Close(mRTree.get());
+    mRTree.reset();
+
+    for (auto index = 0; index < _rqstPoolers.size(); index++) {
+        delete _rqstPoolers.at(index);
+    }
 }
 
-const Options &KVStoreBaseImpl::getOptions() { return mOptions; }
+const Options &KVStore::getOptions() { return env.getOptions(); }
+size_t KVStore::KeySize() { return env.keySize(); }
 
-void KVStoreBaseImpl::LogMsg(std::string msg) {
+void KVStore::LogMsg(std::string msg) {
     if (getOptions().Runtime.logFunc) {
         getOptions().Runtime.logFunc(msg);
     }
 }
 
-void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
+void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
         throw FUNC_NOT_IMPLEMENTED;
     }
@@ -65,8 +75,8 @@ void KVStoreBaseImpl::Put(Key &&key, Value &&val, const PutOptions &options) {
         throw OperationFailedException(EINVAL);
 }
 
-void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
-                               const PutOptions &options) {
+void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
+                       const PutOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
         throw FUNC_NOT_IMPLEMENTED;
     }
@@ -90,7 +100,7 @@ void KVStoreBaseImpl::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
     }
 }
 
-Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
+Value KVStore::Get(const Key &key, const GetOptions &options) {
 
     size_t size;
     char *pVal;
@@ -145,8 +155,8 @@ Value KVStoreBaseImpl::Get(const Key &key, const GetOptions &options) {
     }
 }
 
-void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
-                               const GetOptions &options) {
+void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
+                       const GetOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
         if (!_offloadEnabled)
             throw OperationFailedException(Status(OffloadDisabledError));
@@ -186,17 +196,15 @@ void KVStoreBaseImpl::GetAsync(const Key &key, KVStoreBaseCallback cb,
     }
 }
 
-Key KVStoreBaseImpl::GetAny(const GetOptions &options) {
+Key KVStore::GetAny(const GetOptions &options) { throw FUNC_NOT_IMPLEMENTED; }
+
+void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
+                          const GetOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
-                                  const GetOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
-}
-
-void KVStoreBaseImpl::Update(const Key &key, Value &&val,
-                             const UpdateOptions &options) {
+void KVStore::Update(const Key &key, Value &&val,
+                     const UpdateOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
         if (!_offloadEnabled)
             throw OperationFailedException(Status(OffloadDisabledError));
@@ -204,6 +212,7 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
+
         if (!_offloadPooler->Enqueue(new OffloadRqst(
                 OffloadOperation::UPDATE, key.data(), key.size(), val.data(),
                 val.size(),
@@ -219,7 +228,7 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
         // wait for completion
         {
             std::unique_lock<std::mutex> lk(mtx);
-            cv.wait_for(lk, 10s, [&ready] { return ready; });
+            cv.wait_for(lk, 1s, [&ready] { return ready; });
             if (!ready)
                 throw OperationFailedException(Status(TimeOutError));
         }
@@ -230,14 +239,13 @@ void KVStoreBaseImpl::Update(const Key &key, Value &&val,
     }
 }
 
-void KVStoreBaseImpl::Update(const Key &key, const UpdateOptions &options) {
+void KVStore::Update(const Key &key, const UpdateOptions &options) {
     Value emptyVal;
     Update(key, std::move(emptyVal), options);
 }
 
-void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
-                                  KVStoreBaseCallback cb,
-                                  const UpdateOptions &options) {
+void KVStore::UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
+                          const UpdateOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
         if (!_offloadEnabled)
             throw OperationFailedException(Status(OffloadDisabledError));
@@ -259,24 +267,24 @@ void KVStoreBaseImpl::UpdateAsync(const Key &key, Value &&value,
     }
 }
 
-void KVStoreBaseImpl::UpdateAsync(const Key &key, const UpdateOptions &options,
-                                  KVStoreBaseCallback cb) {
+void KVStore::UpdateAsync(const Key &key, const UpdateOptions &options,
+                          KVStoreBaseCallback cb) {
     Value emptyVal;
     UpdateAsync(key, std::move(emptyVal), cb, options);
 }
 
-std::vector<KVPair> KVStoreBaseImpl::GetRange(const Key &beg, const Key &end,
-                                              const GetOptions &options) {
+std::vector<KVPair> KVStore::GetRange(const Key &beg, const Key &end,
+                                      const GetOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::GetRangeAsync(const Key &beg, const Key &end,
-                                    KVStoreBaseRangeCallback cb,
-                                    const GetOptions &options) {
+void KVStore::GetRangeAsync(const Key &beg, const Key &end,
+                            KVStoreBaseRangeCallback cb,
+                            const GetOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::Remove(const Key &key) {
+void KVStore::Remove(const Key &key) {
 
     size_t size;
     char *pVal;
@@ -312,7 +320,7 @@ void KVStoreBaseImpl::Remove(const Key &key) {
         // wait for completion
         {
             std::unique_lock<std::mutex> lk(mtx);
-            cv.wait_for(lk, 10s, [&ready] { return ready; });
+            cv.wait_for(lk, 1s, [&ready] { return ready; });
             if (!ready)
                 throw OperationFailedException(Status(TimeOutError));
         }
@@ -328,12 +336,11 @@ void KVStoreBaseImpl::Remove(const Key &key) {
     }
 }
 
-void KVStoreBaseImpl::RemoveRange(const Key &beg, const Key &end) {
+void KVStore::RemoveRange(const Key &beg, const Key &end) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-Value KVStoreBaseImpl::Alloc(const Key &key, size_t size,
-                             const AllocOptions &options) {
+Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
     char *val = nullptr;
     mRTree->AllocValueForKey(key.data(), size, &val);
     if (!val) {
@@ -342,55 +349,46 @@ Value KVStoreBaseImpl::Alloc(const Key &key, size_t size,
     return Value(val, size);
 }
 
-void KVStoreBaseImpl::Free(Value &&value) { delete[] value.data(); }
+void KVStore::Free(Value &&value) { delete[] value.data(); }
 
-void KVStoreBaseImpl::Realloc(Value &value, size_t size,
-                              const AllocOptions &options) {
+void KVStore::Realloc(Value &value, size_t size, const AllocOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreBaseImpl::ChangeOptions(Value &value, const AllocOptions &options) {
+void KVStore::ChangeOptions(Value &value, const AllocOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-Key KVStoreBaseImpl::AllocKey(const AllocOptions &options) {
-    return Key(new char[mKeySize], mKeySize);
+Key KVStore::AllocKey(const AllocOptions &options) {
+    return Key(new char[env.keySize()], env.keySize());
 }
 
-void KVStoreBaseImpl::Free(Key &&key) { delete[] key.data(); }
+void KVStore::Free(Key &&key) { delete[] key.data(); }
 
-void KVStoreBaseImpl::ChangeOptions(Key &key, const AllocOptions &options) {
+void KVStore::ChangeOptions(Key &key, const AllocOptions &options) {
     std::unique_lock<std::mutex> l(mLock);
 
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-KVStoreBaseImpl::KVStoreBaseImpl(const Options &options)
-    : mOptions(options), mKeySize(0), _offloadPooler(nullptr),
-      _offloadReactor(nullptr) {
-    _io_service = new asio::io_service();
+bool KVStore::IsOffloaded(Key &key) {
+    bool result = false;
 
-    for (size_t i = 0; i < options.Key.nfields(); i++)
-        mKeySize += options.Key.field(i).Size;
-}
+    ValCtx valCtx;
+    StatusCode rc = mRTree->Get(key.data(), key.size(), &valCtx.val,
+                                &valCtx.size, &valCtx.location);
+    if (rc != StatusCode::Ok) {
+        if (rc == StatusCode::KeyNotFound)
+            throw OperationFailedException(KeyNotFound);
 
-KVStoreBaseImpl::~KVStoreBaseImpl() {
-    mDhtNode.reset();
-
-    DaqDB::RTreeEngine::Close(mRTree.get());
-    mRTree.reset();
-
-    for (auto index = 0; index < _rqstPoolers.size(); index++) {
-        delete _rqstPoolers.at(index);
+        throw OperationFailedException(EINVAL);
     }
-
-    if (_io_service)
-        delete _io_service;
+    return (valCtx.location == LOCATIONS::DISK);
 }
 
-std::string KVStoreBaseImpl::getProperty(const std::string &name) {
+std::string KVStore::getProperty(const std::string &name) {
     std::unique_lock<std::mutex> l(mLock);
 
     if (name == "fogkv.dht.id")
@@ -400,27 +398,29 @@ std::string KVStoreBaseImpl::getProperty(const std::string &name) {
     if (name == "fogkv.listener.port")
         return std::to_string(mDhtNode->getPort());
     if (name == "fogkv.pmem.path")
-        return mOptions.PMEM.poolPath;
+        return getOptions().PMEM.poolPath;
     if (name == "fogkv.pmem.size")
-        return std::to_string(mOptions.PMEM.totalSize);
+        return std::to_string(getOptions().PMEM.totalSize);
     if (name == "fogkv.pmem.min_value_size")
-        return std::to_string(mOptions.PMEM.minValueSize);
+        return std::to_string(getOptions().PMEM.minValueSize);
     if (name == "fogkv.KVEngine")
         return mRTree->Engine();
 
     return "";
 }
 
-void KVStoreBaseImpl::init() {
+void KVStore::init() {
 
     auto poolerCount = getOptions().Runtime.numOfPoolers;
 
     if (getOptions().Runtime.logFunc)
         gLog.setLogFunc(getOptions().Runtime.logFunc);
 
-    _offloadReactor = new DaqDB::OffloadReactor(
-        POOLER_CPU_CORE_BASE + poolerCount + 1, mOptions.Runtime.spdkConfigFile,
-        [&]() { mOptions.Runtime.shutdownFunc(); });
+    _offloadReactor =
+        new DaqDB::OffloadReactor(POOLER_CPU_CORE_BASE + poolerCount + 1,
+                                  getOptions().Runtime.spdkConfigFile, [&]() {
+                                      getOptions().Runtime.shutdownFunc();
+                                  });
 
     while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
         sleep(1);
@@ -433,14 +433,15 @@ void KVStoreBaseImpl::init() {
     }
 
     auto dhtPort =
-        getOptions().Dht.Port ?: DaqDB::utils::getFreePort(io_service(), 0);
-    auto port = getOptions().Port ?: DaqDB::utils::getFreePort(io_service(), 0);
+        getOptions().Dht.Port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
+    auto port =
+        getOptions().Port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
 
-    mDhtNode.reset(new DaqDB::ZhtNode(io_service(), dhtPort));
+    mDhtNode.reset(new DaqDB::ZhtNode(env.ioService(), dhtPort));
 
     mRTree.reset(DaqDB::RTreeEngine::Open(
-        mOptions.KVEngine, mOptions.PMEM.poolPath, mOptions.PMEM.totalSize,
-        mOptions.PMEM.minValueSize));
+        getOptions().KVEngine, getOptions().PMEM.poolPath,
+        getOptions().PMEM.totalSize, getOptions().PMEM.minValueSize));
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
@@ -454,7 +455,7 @@ void KVStoreBaseImpl::init() {
 
     for (auto index = 0; index < poolerCount; index++) {
         auto rqstPooler =
-            new DaqDB::RqstPooler(mRTree, POOLER_CPU_CORE_BASE + index);
+            new DaqDB::PmemPooler(mRTree, POOLER_CPU_CORE_BASE + index);
         if (_offloadEnabled)
             rqstPooler->offloadPooler = _offloadPooler;
         _rqstPoolers.push_back(rqstPooler);
@@ -463,5 +464,4 @@ void KVStoreBaseImpl::init() {
     FOG_DEBUG("KVStoreBaseImpl initialization completed");
 }
 
-asio::io_service &KVStoreBaseImpl::io_service() { return *_io_service; }
-}
+} // namespace DaqDB

@@ -57,7 +57,7 @@ struct PutOptions {
 
     bool roundRobin() const { return _roundRobin; }
 
-    PrimaryKeyAttribute Attr;
+    PrimaryKeyAttribute Attr = PrimaryKeyAttribute::EMPTY;
     unsigned short _poolerId = 0;
     bool _roundRobin = true;
 };
@@ -67,6 +67,8 @@ struct GetOptions {
     GetOptions(PrimaryKeyAttribute attr, PrimaryKeyAttribute newAttr)
         : Attr(attr), NewAttr(newAttr) {}
 
+    explicit GetOptions(PrimaryKeyAttribute attr) : Attr(attr), NewAttr(attr) {}
+
     void poolerId(unsigned short id) { _poolerId = id; }
 
     void roundRobin(bool rr) { _roundRobin = rr; }
@@ -75,8 +77,8 @@ struct GetOptions {
 
     bool roundRobin() const { return _roundRobin; }
 
-    PrimaryKeyAttribute Attr;
-    PrimaryKeyAttribute NewAttr;
+    PrimaryKeyAttribute Attr = PrimaryKeyAttribute::EMPTY;
+    PrimaryKeyAttribute NewAttr = PrimaryKeyAttribute::EMPTY;
 
     unsigned short _poolerId = 0;
     bool _roundRobin = true;

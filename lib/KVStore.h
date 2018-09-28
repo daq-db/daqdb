@@ -15,22 +15,24 @@
 
 #pragma once
 
+#include <mutex>
+
 #include <OffloadReactor.h>
 #include <OffloadPooler.h>
 #include <RTreeEngine.h>
-#include <RqstPooler.h>
 #include <daqdb/KVStoreBase.h>
 #include <dht/ZhtNode.h>
 #include <dht/DhtNode.h>
-#include <mutex>
+
+#include "core/Env.h"
+#include "pmem/PmemPooler.h"
 
 namespace DaqDB {
 
-class KVStoreBaseImpl : public KVStoreBase {
+class KVStore : public KVStoreBase {
   public:
     static KVStoreBase *Open(const Options &options);
 
-  public:
     virtual size_t KeySize();
     virtual const Options &getOptions();
     virtual std::string getProperty(const std::string &name);
@@ -70,25 +72,24 @@ class KVStoreBaseImpl : public KVStoreBase {
     virtual void Free(Key &&key);
     virtual void ChangeOptions(Key &key, const AllocOptions &options);
 
+    virtual bool IsOffloaded(Key &key);
+
     void LogMsg(std::string msg);
 
   protected:
-    explicit KVStoreBaseImpl(const Options &options);
-    virtual ~KVStoreBaseImpl();
+    explicit KVStore(const Options &options);
+    virtual ~KVStore();
 
     void init();
     void registerProperties();
 
-    asio::io_service &io_service();
-    asio::io_service *_io_service;
+    DaqDB::Env env;
 
-    size_t mKeySize;
-    Options mOptions;
     std::unique_ptr<DaqDB::DhtNode> mDhtNode;
     std::shared_ptr<DaqDB::RTreeEngine> mRTree;
     std::mutex mLock;
 
-    std::vector<RqstPooler *> _rqstPoolers;
+    std::vector<PmemPooler *> _rqstPoolers;
 
     OffloadReactor *_offloadReactor;
     OffloadPooler *_offloadPooler;
