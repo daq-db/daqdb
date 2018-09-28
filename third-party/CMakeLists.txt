@@ -14,6 +14,7 @@ include(pmdk.cmake)
 include(spdk.cmake)
 include(libconfig.cmake)
 include(protobuf.cmake)
+include(erpc.cmake)
 
 ###############################################################################
 # Dependencies - Libraries
@@ -46,3 +47,4 @@ add_dependencies(clean-dep libpmdk_clean)
 add_dependencies(clean-dep libconfig_clean)
 add_dependencies(clean-dep libspdk_clean)
 add_dependencies(clean-dep protobuf_clean)
+add_dependencies(clean-dep liberpc_clean)
