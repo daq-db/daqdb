@@ -22,14 +22,14 @@ namespace DaqDB {
 #define LAYOUT "rtree"
 
 RTree::RTree(const string &_path, const size_t size,
-             const size_t minAllocSize) {
-    tree = new Tree(_path, size, minAllocSize);
+             const size_t allocUnitSize) {
+    tree = new Tree(_path, size, allocUnitSize);
 }
 
 RTree::~RTree() {
     // TODO Auto-generated destructor stub
 }
-Tree::Tree(const string &path, const size_t size, const size_t minAllocSize) {
+Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
     if (!boost::filesystem::exists(path)) {
         try {
             _pm_pool =
@@ -63,8 +63,8 @@ Tree::Tree(const string &path, const size_t size, const size_t minAllocSize) {
     // Define custom allocation class
     struct pobj_alloc_class_desc alloc_daqdb;
     alloc_daqdb.header_type = POBJ_HEADER_COMPACT;
-    alloc_daqdb.unit_size = minAllocSize;
-    alloc_daqdb.units_per_block = size / (minAllocSize * MAXIMUM_MEMORY_BLOCKS);
+    alloc_daqdb.unit_size = allocUnitSize;
+    alloc_daqdb.units_per_block = size / (allocUnitSize * MAXIMUM_MEMORY_BLOCKS);
     alloc_daqdb.alignment = 0;
     int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
                              &alloc_daqdb);

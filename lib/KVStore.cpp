@@ -401,8 +401,8 @@ std::string KVStore::getProperty(const std::string &name) {
         return getOptions().PMEM.poolPath;
     if (name == "fogkv.pmem.size")
         return std::to_string(getOptions().PMEM.totalSize);
-    if (name == "fogkv.pmem.min_value_size")
-        return std::to_string(getOptions().PMEM.minValueSize);
+    if (name == "fogkv.pmem.alloc_unit_size")
+        return std::to_string(getOptions().PMEM.allocUnitSize);
     if (name == "fogkv.KVEngine")
         return mRTree->Engine();
 
@@ -441,7 +441,7 @@ void KVStore::init() {
 
     mRTree.reset(DaqDB::RTreeEngine::Open(
         getOptions().KVEngine, getOptions().PMEM.poolPath,
-        getOptions().PMEM.totalSize, getOptions().PMEM.minValueSize));
+        getOptions().PMEM.totalSize, getOptions().PMEM.allocUnitSize));
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 

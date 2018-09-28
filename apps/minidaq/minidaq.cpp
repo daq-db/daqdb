@@ -76,7 +76,7 @@ static DaqDB::KVStoreBase *openKVS() {
     DaqDB::Options options;
     options.PMEM.poolPath = pmem_path;
     options.PMEM.totalSize = pmem_size;
-    options.PMEM.minValueSize = fSize;
+    options.PMEM.allocUnitSize = fSize;
     options.Key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
     options.Key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
     options.Key.field(2, sizeof(DaqDB::MinidaqKey::runId));

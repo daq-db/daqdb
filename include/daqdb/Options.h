@@ -131,7 +131,7 @@ struct DhtOptions {
 struct PMEMOptions {
     std::string poolPath;
     size_t totalSize = 0;
-    size_t minValueSize = 8;
+    size_t allocUnitSize = 8;
 };
 
 struct Options {

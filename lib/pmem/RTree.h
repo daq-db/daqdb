@@ -87,7 +87,7 @@ struct TreeRoot {
 
 class Tree {
   public:
-    Tree(const string &path, const size_t size, const size_t minAllocSize);
+    Tree(const string &path, const size_t size, const size_t allocUnitSize);
     ValueWrapper *findValueInNode(persistent_ptr<Node> current,
                                   const char *key);
     void allocateLevel(persistent_ptr<Node> current, int depth, int *count);
@@ -102,7 +102,7 @@ class Tree {
 
 class RTree : public DaqDB::RTreeEngine {
   public:
-    RTree(const string &path, const size_t size, const size_t minAllocSize);
+    RTree(const string &path, const size_t size, const size_t allocUnitSize);
     virtual ~RTree();
     string Engine() final { return "RTree"; }
     StatusCode Get(const char *key, int32_t keybytes, void **value,
