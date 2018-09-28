@@ -18,8 +18,8 @@
 namespace DaqDB {
 RTreeEngine *RTreeEngine::Open(const string &engine, // open storage engine
                                const string &path,   // path to persistent pool
-                               size_t size) {
-    return new DaqDB::RTree(path, size);
+                               size_t size, size_t allocUnitSize) {
+    return new DaqDB::RTree(path, size, allocUnitSize);
 }
 
 void RTreeEngine::Close(RTreeEngine *kv) {} // close storage engine

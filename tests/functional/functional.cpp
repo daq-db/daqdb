@@ -90,8 +90,8 @@ int main(int argc, const char *argv[]) {
 
     options.Dht.Id = nodeId;
     options.Port = port;
-    options.PMEM.Path = pmem_path;
-    options.PMEM.Size = pmem_size;
+    options.PMEM.poolPath = pmem_path;
+    options.PMEM.totalSize = pmem_size;
     options.Key.field(0, sizeof(KeyType));
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;

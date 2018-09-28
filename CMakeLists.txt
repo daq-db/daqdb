@@ -9,6 +9,21 @@ find_package(PkgConfig)
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
 
+###############################################################################
+# User options
+###############################################################################
+option(DEBUG "Enables debug mode" OFF)
+
+if(DEBUG)
+	add_definitions(-DDEBUG)
+	MESSAGE(STATUS "Debug mode enabled")
+else(DEBUG)
+	MESSAGE(STATUS "Debug mode disabled")
+endif(DEBUG)
+
+###############################################################################
+# Internal options
+###############################################################################
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
