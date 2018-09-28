@@ -15,10 +15,10 @@
 
 #pragma once
 
-#ifdef NDEBUG
-#define FOG_DEBUG(msg)
-#else
+#ifdef DEBUG
 #define FOG_DEBUG(msg) gLog.Log(msg)
+#else
+#define FOG_DEBUG(msg)
 #endif
 
 #include <functional>
