@@ -1,15 +1,3 @@
-[submodule "src/3rd/linenoise"]
-	path = examples/cli_node/linenoise
-	url = https://github.com/antirez/linenoise.git
-	ignore = dirty
-[submodule "src/3rd/cpu-stat"]
-	path = path-finding/poc_0_cpu_usage/third-party/cpu-stat
-	url = https://github.com/vivaladav/cpu-stat
-	ignore = dirty
-[submodule "src/3rd/csvpp"]
-	path = path-finding/poc_0_cpu_usage/third-party/csvpp
-	url = https://github.com/Plaristote/csvpp.git
-	ignore = dirty
 [submodule "third-party/spdk"]
 	path = third-party/spdk
 	url = https://github.com/spdk/spdk.git

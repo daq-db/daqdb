@@ -92,4 +92,5 @@ add_custom_target(tests_func
 add_custom_target(tests)
 add_dependencies(tests tests_unit tests_func)
 
-# cnitiate githooks for clang-format
+# Initiate githooks for clang-format
+ADD_CUSTOM_TARGET(do_always ALL COMMAND git config core.hooksPath "${PROJECT_SOURCE_DIR}/scripts/githooks")
