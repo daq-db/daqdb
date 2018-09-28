@@ -74,7 +74,7 @@ void Configuration::readConfiguration(Options &options) {
     int aunit_size = 0;
     cfg.lookupValue("pmem_path", pmem_path);
     cfg.lookupValue("pmem_size", pmem_size);
-    cfg.lookupValue("min_value_size", aunit_size);
+    cfg.lookupValue("alloc_unit_size", aunit_size);
     options.PMEM.poolPath = pmem_path;
     options.PMEM.totalSize = pmem_size;
     options.PMEM.allocUnitSize = aunit_size;
@@ -89,7 +89,7 @@ void Configuration::readConfiguration(Options &options) {
     // TODO shift placement for configuration printing
     // TODO make the printing full
     cout << "DaqDB/mode=" << mode << "; file=" << pmem_path
-         << "; size=" << pmem_size << "; min value size=" << aunit_size << endl;
+         << "; size=" << pmem_size << "; alloc unit size=" << aunit_size << endl;
     cout << "keys structure=";
     for (auto n : keysStructure)
         cout << n << " ";
