@@ -342,8 +342,8 @@ void KVStore::RemoveRange(const Key &beg, const Key &end) {
 
 Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
     char *val = nullptr;
-    mRTree->AllocValueForKey(key.data(), size, &val);
-    if (!val) {
+    StatusCode rc = mRTree->AllocValueForKey(key.data(), size, &val);
+    if (rc != StatusCode::Ok) {
         throw OperationFailedException(AllocationError);
     }
     return Value(val, size);

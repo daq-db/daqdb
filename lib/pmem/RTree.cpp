@@ -64,15 +64,18 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
     struct pobj_alloc_class_desc alloc_daqdb;
     alloc_daqdb.header_type = POBJ_HEADER_COMPACT;
     alloc_daqdb.unit_size = allocUnitSize;
-    alloc_daqdb.units_per_block = size / (allocUnitSize * MAXIMUM_MEMORY_BLOCKS);
-    alloc_daqdb.alignment = 0;
+    alloc_daqdb.units_per_block =
+        size / (allocUnitSize * MAXIMUM_MEMORY_BLOCKS);
+    alloc_daqdb.alignment = ALLOC_CLASS_ALIGNMENT;
     int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
                              &alloc_daqdb);
     if (rc)
-        throw OperationFailedException(Status(KeyNotFound));
+        throw OperationFailedException(Status(AllocationError));
     alloc_class = alloc_daqdb.class_id;
     FOG_DEBUG("RTree New allocation class (" + std::to_string(alloc_class) +
-              ") defined");
+              ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
+              " units_per_block=" +
+              std::to_string(alloc_daqdb.units_per_block));
 }
 
 StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
@@ -149,18 +152,17 @@ StatusCode RTree::Remove(const char *key) {
 
 StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    try {
-        val->actionValue = new pobj_action[1];
-        pmemoid poid;
-        poid = pmemobj_xreserve(tree->_pm_pool.get_handle(),
-                                &(val->actionValue[0]), size, VALUE,
-                                POBJ_CLASS_ID(tree->alloc_class));
-        val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
-        val->size = size;
-    } catch (std::exception &e) {
-        std::cout << "Error " << e.what();
-        return StatusCode::UnknownError;
+    val->actionValue = new pobj_action[1];
+    pmemoid poid =
+        pmemobj_xreserve(tree->_pm_pool.get_handle(), &(val->actionValue[0]),
+                         size, VALUE, POBJ_CLASS_ID(tree->alloc_class));
+    if (OID_IS_NULL(poid)) {
+        delete val->actionValue;
+        val->actionValue = nullptr;
+        return StatusCode::AllocationError;
     }
+    val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
+    val->size = size;
     *value = reinterpret_cast<char *>(
         pmemobj_direct(*(val->locationPtr.value.raw_ptr())));
     return StatusCode::Ok;
@@ -174,18 +176,18 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
 StatusCode RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
                                     size_t size) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    try {
-        val->actionUpdate = new pobj_action[3];
-        pmemoid poid;
-        poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
-                               &(val->actionUpdate[0]), size, IOV);
-        *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
-    } catch (std::exception &e) {
-        std::cout << "Error " << e.what();
-        return StatusCode::UnknownError;
+    val->actionUpdate = new pobj_action[3];
+    pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
+                                   &(val->actionUpdate[0]), size, IOV);
+    if (OID_IS_NULL(poid)) {
+        delete val->actionUpdate;
+        val->actionUpdate = nullptr;
+        return StatusCode::AllocationError;
     }
+    *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
     return StatusCode::Ok;
 }
+
 /*
  *	Updates location and locationPtr to STORAGE.
  *	Calls persist on IOVVector.
