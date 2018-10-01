@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * ZHTUtil.cpp
  *
@@ -28,84 +29,93 @@
  *      Contributor: Xiaobingo, KWang, DZhao
  */
 
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
+ */
+
 #include "ZHTUtil.h"
 
-#include "Util.h"
 #include "ConfHandler.h"
+#include "Util.h"
 
-#include <arpa/inet.h>
 #include <algorithm>
+#include <arpa/inet.h>
 #include <netdb.h>
 
-#include  "zpack.pb.h"
+#include "zpack.pb.h"
 
 using namespace iit::datasys::zht::dm;
 
-ZHTUtil::ZHTUtil() {
+ZHTUtil::ZHTUtil() {}
+
+ZHTUtil::~ZHTUtil() {}
+
+HostEntity ZHTUtil::getHostEntityByKey(const string &msg) {
+
+    ZPack zpack;
+    zpack.ParseFromString(msg); // to debug
+
+    uint64_t hascode = HashUtil::genHash(zpack.key());
+    size_t node_size = ConfHandler::NeighborVector.size();
+    int index = hascode % node_size;
+
+    ConfEntry ce = ConfHandler::NeighborVector.at(index);
+
+    return buildHostEntity(ce.name(), atoi(ce.value().c_str()));
 }
 
-ZHTUtil::~ZHTUtil() {
-}
+HostEntity ZHTUtil::buildHostEntity(const string &host, const uint &port) {
 
-HostEntity ZHTUtil::getHostEntityByKey(const string& msg) {
+    HostEntity he;
 
-	ZPack zpack;
-	zpack.ParseFromString(msg); //to debug
+    /*
+     struct sockaddr_in si_other;
+     hostent *record;
+     in_addr *address;
+     string ip_address;
 
-	uint64_t hascode = HashUtil::genHash(zpack.key());
-	size_t node_size = ConfHandler::NeighborVector.size();
-	int index = hascode % node_size;
+     record = gethostbyname(host.c_str());
+     address = (in_addr *) record->h_addr;
+     ip_address = inet_ntoa(*address);
 
-	ConfEntry ce = ConfHandler::NeighborVector.at(index);
+     memset((char *) &si_other, 0, sizeof(si_other));
+     si_other.sin_family = AF_INET;
+     si_other.sin_port = htons(port);
+     if (inet_aton(ip_address.c_str(), &si_other.sin_addr) == 0) {
+     fprintf(stderr, "inet_aton() failed\n");
+     }
 
-	return buildHostEntity(ce.name(), atoi(ce.value().c_str()));
+     he.si = si_other;
+     he.host = host;
+     he.port = port;
+     he.valid = true;
+     he.sock = -1;*/
 
-}
+    he.host = host;
+    he.port = port;
+    he.sock = -1;
 
-HostEntity ZHTUtil::buildHostEntity(const string& host, const uint& port) {
-
-	HostEntity he;
-
-	/*
-	 struct sockaddr_in si_other;
-	 hostent *record;
-	 in_addr *address;
-	 string ip_address;
-
-	 record = gethostbyname(host.c_str());
-	 address = (in_addr *) record->h_addr;
-	 ip_address = inet_ntoa(*address);
-
-	 memset((char *) &si_other, 0, sizeof(si_other));
-	 si_other.sin_family = AF_INET;
-	 si_other.sin_port = htons(port);
-	 if (inet_aton(ip_address.c_str(), &si_other.sin_addr) == 0) {
-	 fprintf(stderr, "inet_aton() failed\n");
-	 }
-
-	 he.si = si_other;
-	 he.host = host;
-	 he.port = port;
-	 he.valid = true;
-	 he.sock = -1;*/
-
-	he.host = host;
-	he.port = port;
-	he.sock = -1;
-
-	return he;
+    return he;
 }
 
 const uint IdHelper::ID_LEN = 20;
 
-IdHelper::IdHelper() {
-}
+IdHelper::IdHelper() {}
 
-IdHelper::~IdHelper() {
-}
+IdHelper::~IdHelper() {}
 
 uint64_t IdHelper::genId() {
 
-	return HashUtil::genHash(HashUtil::randomString(62).c_str());
+    return HashUtil::genHash(HashUtil::randomString(62).c_str());
 }
-

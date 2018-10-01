@@ -14,18 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * StrTokenizer.cpp
  *
  *  Created on: Jul 6, 2013
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
+ */
+
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
  */
 
 #include "StrTokenizer.h"
@@ -35,31 +51,29 @@ using std::string;
  of the next token and end is the end.
  */
 void StrTokenizer::find_next() {
-	// Find the first character that is not a delimiter.
-	start = the_source.find_first_not_of(the_delim, end);
-	// Find the next delimiter.
-	end = the_source.find_first_of(the_delim, start);
+    // Find the first character that is not a delimiter.
+    start = the_source.find_first_not_of(the_delim, end);
+    // Find the next delimiter.
+    end = the_source.find_first_of(the_delim, start);
 }
 
 /** Determine if there are more tokens.
  @return true if there are more tokens
  */
-bool StrTokenizer::has_more_tokens() {
-	return start != string::npos;
-}
+bool StrTokenizer::has_more_tokens() { return start != string::npos; }
 
 /** Retrieve the next token.
  @return The next token. If there are no more
  tokens, an empty string is returned
  */
 string StrTokenizer::next_token() {
-	// Make sure there is a next token
-	if (!has_more_tokens())
-		return "";
-	// Save the next token.
-	string token = the_source.substr(start, end - start); //to debug
-	// Find the following token.
-	find_next();
-	// Return the next token.
-	return token;
+    // Make sure there is a next token
+    if (!has_more_tokens())
+        return "";
+    // Save the next token.
+    string token = the_source.substr(start, end - start); // to debug
+    // Find the following token.
+    find_next();
+    // Return the next token.
+    return token;
 }

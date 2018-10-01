@@ -14,18 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * Const.cpp
  *
  *  Created on: Jul 23, 2012
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
+ */
+
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
  */
 
 #include "Const-impl.h"
@@ -112,6 +128,9 @@ const string Const::ZSC_OPC_MIGDONETGT = "094";
 const string Const::ZSC_OPC_MIGDONESRC = "095";
 const string Const::ZSC_OPC_MIGTARGET = "096";
 const string Const::ZSC_OPC_MIGSOURCE = "097";
+
+const string Const::ZSC_OPC_PING = "098";
+
 const string Const::ZSC_REC_EMPTYKEY = "-01";
 const string Const::ZSC_REC_CLTFAIL = "-02";
 const string Const::ZSC_REC_SRVFAIL = "-03";
@@ -157,20 +176,18 @@ const int Const::ZSI_REC_UOPC = -98;
 const int Const::ZSI_REC_UNPR = -99;
 const int Const::ZSI_REC_SUCC = 0;
 
-Const::Const() {
-}
+Const::Const() {}
 
-Const::~Const() {
-}
+Const::~Const() {}
 
-string Const::trim(const string& value) {
+string Const::trim(const string &value) {
 
-	string str = value;
-	stringstream trimmer;
-	trimmer << str;
-	trimmer >> str;
+    string str = value;
+    stringstream trimmer;
+    trimmer << str;
+    trimmer >> str;
 
-	return str;
+    return str;
 }
 
 } /* namespace dm */

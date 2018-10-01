@@ -22,9 +22,9 @@
  * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
  * Raicu(iraicu@cs.iit.edu).
  *
- * ZProcessor.h
+ * mq_proxy_stub.cpp
  *
- *  Created on: Aug 9, 2012
+ *  Created on: Jun 21, 2013
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
  */
@@ -44,35 +44,48 @@
  * stated in the License.
  */
 
-#ifndef ZPROCESSOR_H_
-#define ZPROCESSOR_H_
+#include "mq_proxy_stub.h"
 
-#include <stddef.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+MQProxy::MQProxy() : _mc(1) {}
 
-namespace iit {
-namespace datasys {
-namespace zht {
-namespace dm {
+MQProxy::MQProxy(const unsigned int key0) : _mc(key0) {}
 
-/*
- *
- */
-class ZProcessor {
-  public:
-    ZProcessor();
-    virtual ~ZProcessor();
+MQProxy::~MQProxy() {}
 
-    virtual void process(const int &fd, const char *const buf,
-                         sockaddr sender) = 0;
+bool MQProxy::send(const void *sendbuf, const size_t sendcount) {
 
-    virtual void sendback(const int &fd, const char *buf, const size_t &count,
-                          sockaddr receiver, const int &protocol);
-};
+    return _mc.xmit(sendbuf, sendcount);
+}
 
-} /* namespace dm */
-} /* namespace zht */
-} /* namespace datasys */
-} /* namespace iit */
-#endif /* ZPROCESSOR_H_ */
+bool MQProxy::recv(void *recvbuf, size_t &recvcount) {
+
+    return _mc.recv(recvbuf, recvcount);
+}
+
+bool MQProxy::sendrecv(const void *sendbuf, const size_t sendcount,
+                       void *recvbuf, size_t &recvcount) {
+
+    bool sent_bool = _mc.xmit(sendbuf, sendcount);
+
+    bool recv_bool = _mc.recv(recvbuf, recvcount);
+
+    return sent_bool && recv_bool;
+}
+
+MQStub::MQStub() : _ms(1) {}
+
+MQStub::MQStub(const unsigned int key0) : _ms(key0) {}
+
+MQStub::~MQStub() {}
+
+bool MQStub::send(const void *sendbuf, const size_t sendcount) {
+
+    return _ms.xmit(sendbuf, sendcount);
+}
+
+bool MQStub::recv(void *recvbuf, size_t &recvcount) {
+
+    return _ms.recv(recvbuf, recvcount);
+}
+
+bool MQStub::teardown() { return _ms.destroy(); }

@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * proxy_stub.cpp
  *
@@ -28,93 +29,78 @@
  *      Contributor: Tony, KWang, DZhao
  */
 
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
+ */
+
 #include "proxy_stub.h"
 
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <string.h>
+#include <sys/socket.h>
 
-ProtoAddr::ProtoAddr() :
-		fd(-1), sender(NULL) {
+ProtoAddr::ProtoAddr() : fd(-1), sender(NULL) {}
+
+ProtoAddr::ProtoAddr(const ProtoAddr &addr) {
+
+    fd = addr.fd;
+    sender = calloc(1, sizeof(sockaddr));
+    memcpy(sender, &addr.sender, sizeof(sockaddr));
 }
 
-ProtoAddr::ProtoAddr(const ProtoAddr& addr) {
+ProtoAddr::~ProtoAddr() { free(sender); }
 
-	fd = addr.fd;
-	sender = calloc(1, sizeof(sockaddr));
-	memcpy(sender, &addr.sender, sizeof(sockaddr));
-}
+ProtoProxy::ProtoProxy() {}
 
-ProtoAddr::~ProtoAddr() {
+ProtoProxy::~ProtoProxy() {}
 
-	free(sender);
-}
-
-ProtoProxy::ProtoProxy() {
-}
-
-ProtoProxy::~ProtoProxy() {
-}
-
-bool ProtoProxy::init(int argc, char **argv) {
-
-	return false;
-}
+bool ProtoProxy::init(int argc, char **argv) { return false; }
 
 bool ProtoProxy::send(const void *sendbuf, const size_t sendcount) {
 
-	return false;
+    return false;
 }
 
-bool ProtoProxy::recv(void *recvbuf, size_t &recvcount) {
-
-	return false;
-}
+bool ProtoProxy::recv(void *recvbuf, size_t &recvcount) { return false; }
 
 bool ProtoProxy::sendrecv(const void *sendbuf, const size_t sendcount,
-		void *recvbuf, size_t &recvcount) {
+                          void *recvbuf, size_t &recvcount) {
 
-	return false;
+    return false;
 }
 
-bool ProtoProxy::teardown() {
+bool ProtoProxy::teardown() { return false; }
 
-	return false;
-}
+ProtoStub::ProtoStub() {}
 
-ProtoStub::ProtoStub() {
-}
+ProtoStub::~ProtoStub() {}
 
-ProtoStub::~ProtoStub() {
-}
-
-bool ProtoStub::init(int argc, char **argv) {
-
-	return false;
-}
+bool ProtoStub::init(int argc, char **argv) { return false; }
 
 bool ProtoStub::send(const void *sendbuf, const size_t sendcount) {
 
-	return false;
+    return false;
 }
 
-bool ProtoStub::recv(void *recvbuf, size_t &recvcount) {
+bool ProtoStub::recv(void *recvbuf, size_t &recvcount) { return false; }
 
-	return false;
-}
+bool ProtoStub::recvsend(ProtoAddr addr, const void *recvbuf) { return false; }
 
-bool ProtoStub::recvsend(ProtoAddr addr, const void *recvbuf) {
+bool ProtoStub::teardown() { return false; }
 
-	return false;
-}
+int ProtoStub::sendBack(ProtoAddr addr, const void *sendbuf,
+                        int sendcount) const {
 
-bool ProtoStub::teardown() {
-
-	return false;
-}
-
-int ProtoStub::sendBack(ProtoAddr addr, const void* sendbuf,
-		int sendcount) const {
-
-	return -1;
+    return -1;
 }

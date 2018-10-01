@@ -22,9 +22,9 @@
  * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
  * Raicu(iraicu@cs.iit.edu).
  *
- * ZProcessor.h
+ * udp_proxy_stub.h
  *
- *  Created on: Aug 9, 2012
+ *  Created on: Jun 21, 2013
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
  */
@@ -44,35 +44,71 @@
  * stated in the License.
  */
 
-#ifndef ZPROCESSOR_H_
-#define ZPROCESSOR_H_
+#ifndef UDP_PROXY_STUB_H_
+#define UDP_PROXY_STUB_H_
 
-#include <stddef.h>
+#include "ip_proxy_stub.h"
+#include <map>
+#include <netinet/in.h>
+#include <pthread.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-
-namespace iit {
-namespace datasys {
-namespace zht {
-namespace dm {
+using namespace std;
 
 /*
  *
  */
-class ZProcessor {
+class UDPProxy : public IPProtoProxy {
   public:
-    ZProcessor();
-    virtual ~ZProcessor();
+    typedef map<string, int> SMAP;
+    typedef SMAP::iterator SIT;
+    typedef map<string, sockaddr_in> AMAP;
+    typedef AMAP::iterator AIT;
 
-    virtual void process(const int &fd, const char *const buf,
-                         sockaddr sender) = 0;
+  public:
+    UDPProxy();
+    virtual ~UDPProxy();
 
-    virtual void sendback(const int &fd, const char *buf, const size_t &count,
-                          sockaddr receiver, const int &protocol);
+    virtual bool sendrecv(const void *sendbuf, const size_t sendcount,
+                          void *recvbuf, size_t &recvcount);
+    virtual bool teardown();
+
+  protected:
+    virtual int getSockCached(const string &host, const uint &port);
+    virtual int makeClientSocket(const string &host, const uint &port);
+    virtual int recvFrom(int sock, void *recvbuf);
+    virtual int loopedrecv(int sock, string &srecv);
+
+    virtual sockaddr_in getAddrCached(const string &host, const uint &port);
+    virtual sockaddr_in makeClientAddr(const string &host, const uint &port);
+
+  private:
+    int sendTo(int sock, const string &host, uint port, const void *sendbuf,
+               int sendcount);
+
+  private:
+    static void init_AC_MUTEX();
+
+  private:
+    static bool INIT_AC_MUTEX;
+    static pthread_mutex_t AC_MUTEX; // mutex for address cache
+
+  private:
+    // static SMAP SOCK_CACHE;
+    // static AMAP ADDR_CACHE;
+    SMAP SOCK_CACHE;
+    AMAP ADDR_CACHE;
 };
 
-} /* namespace dm */
-} /* namespace zht */
-} /* namespace datasys */
-} /* namespace iit */
-#endif /* ZPROCESSOR_H_ */
+class UDPStub : public IPProtoStub {
+  public:
+    UDPStub();
+    virtual ~UDPStub();
+
+    virtual bool recvsend(ProtoAddr addr, const void *recvbuf);
+
+  public:
+    virtual int sendBack(ProtoAddr addr, const void *sendbuf,
+                         int sendcount) const;
+};
+
+#endif /* UDP_PROXY_STUB_H_ */

@@ -36,6 +36,7 @@ include_directories(${ZHT_INCLUDES})
 file(GLOB_RECURSE ZHT_SOURCES ${ZHT}/*.cpp)
 add_library(zht SHARED ${ZHT_SOURCES})
 target_link_libraries(zht libprotobuf)
+target_compile_definitions(zht PRIVATE PF_INET=1 SML_MSG=1)
 
 ###############################################################################
 # Custom Targets

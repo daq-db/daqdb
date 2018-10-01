@@ -14,18 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * protocol_shared.h
  *
  *  Created on: Jun 21, 2013
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
+ */
+
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
  */
 
 #ifndef PROTOCOL_SHARED_H_

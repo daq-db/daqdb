@@ -1,6 +1,6 @@
 /*
- * Copyright 2010-2020 DatasysLab@iit.edu(http://datasys.cs.iit.edu/index.html)
- *      Director: Ioan Raicu(iraicu@cs.iit.edu)
+ * Copyright 2013-2020
+ *      Advisor: Zhiling Lan(lan@iit.edu), Ioan Raicu(iraicu@cs.iit.edu)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT
- * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
- * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
- * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
- * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
- * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
- * Raicu(iraicu@cs.iit.edu).
+ * This file is part of iit::cs550::finalproj(Diskon: Distributed tasK executiON
+ *framework) Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Hao
+ *Chen(hchen71@hawk.iit.edu) with nickname Hchen, Iman
+ *Sadooghi(isadoogh@iit.edu) with nickname Iman, Ke Wang(kwang22@hawk.iit.edu)
+ *with nickname KWang.
  *
- * ZProcessor.h
+ * TSafeQueue.cpp
  *
- *  Created on: Aug 9, 2012
- *      Author: Xiaobingo
- *      Contributor: Tony, KWang, DZhao
+ *  Created on: Nov 20, 2013
+ *      Author: Xiaobingo, Hchen
+ *      Contributor: Iman, KWang
  */
 
 /**
@@ -44,35 +42,10 @@
  * stated in the License.
  */
 
-#ifndef ZPROCESSOR_H_
-#define ZPROCESSOR_H_
-
-#include <stddef.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include "TSafeQueue-impl.h"
 
 namespace iit {
-namespace datasys {
-namespace zht {
-namespace dm {
-
-/*
- *
- */
-class ZProcessor {
-  public:
-    ZProcessor();
-    virtual ~ZProcessor();
-
-    virtual void process(const int &fd, const char *const buf,
-                         sockaddr sender) = 0;
-
-    virtual void sendback(const int &fd, const char *buf, const size_t &count,
-                          sockaddr receiver, const int &protocol);
-};
-
-} /* namespace dm */
-} /* namespace zht */
-} /* namespace datasys */
+namespace cs550 {
+namespace finalproj {} /* namespace finalproj */
+} /* namespace cs550 */
 } /* namespace iit */
-#endif /* ZPROCESSOR_H_ */

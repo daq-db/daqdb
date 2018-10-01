@@ -22,9 +22,9 @@
  * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
  * Raicu(iraicu@cs.iit.edu).
  *
- * ZProcessor.h
+ * tcp_proxy_stub.h
  *
- *  Created on: Aug 9, 2012
+ *  Created on: Jun 21, 2013
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
  */
@@ -44,35 +44,56 @@
  * stated in the License.
  */
 
-#ifndef ZPROCESSOR_H_
-#define ZPROCESSOR_H_
+#ifndef TCP_PROXY_STUB_H_
+#define TCP_PROXY_STUB_H_
 
-#include <stddef.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include "HTWorker.h"
+#include "ip_proxy_stub.h"
+#include <pthread.h>
 
-namespace iit {
-namespace datasys {
-namespace zht {
-namespace dm {
+#include <map>
+using namespace std;
 
 /*
  *
  */
-class ZProcessor {
+class TCPProxy : public IPProtoProxy {
   public:
-    ZProcessor();
-    virtual ~ZProcessor();
+    typedef map<string, int> MAP;
+    typedef MAP::iterator MIT;
 
-    virtual void process(const int &fd, const char *const buf,
-                         sockaddr sender) = 0;
+  public:
+    TCPProxy();
+    virtual ~TCPProxy();
 
-    virtual void sendback(const int &fd, const char *buf, const size_t &count,
-                          sockaddr receiver, const int &protocol);
+    virtual bool sendrecv(const void *sendbuf, const size_t sendcount,
+                          void *recvbuf, size_t &recvcount);
+    virtual bool teardown();
+
+  protected:
+    virtual int getSockCached(const string &host, const uint &port);
+    virtual int makeClientSocket(const string &host, const uint &port);
+    virtual int recvFrom(int sock, void *recvbuf);
+    virtual int loopedrecv(int sock, string &srecv);
+
+  private:
+    int sendTo(int sock, const void *sendbuf, int sendcount);
+
+  private:
+    // static MAP CONN_CACHE;
+    MAP CONN_CACHE;
 };
 
-} /* namespace dm */
-} /* namespace zht */
-} /* namespace datasys */
-} /* namespace iit */
-#endif /* ZPROCESSOR_H_ */
+class TCPStub : public IPProtoStub {
+  public:
+    TCPStub();
+    virtual ~TCPStub();
+
+    virtual bool recvsend(ProtoAddr addr, const void *recvbuf);
+
+  public:
+    virtual int sendBack(ProtoAddr addr, const void *sendbuf,
+                         int sendcount) const;
+};
+
+#endif /* TCP_PROXY_STUB_H_ */

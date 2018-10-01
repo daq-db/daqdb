@@ -14,18 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * proxy_stub.h
  *
  *  Created on: Jun 26, 2013
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
+ */
+
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
  */
 
 #ifndef PROXY_STUB_H_
@@ -37,51 +53,51 @@
 
 class ProtoAddr {
 
-public:
-	ProtoAddr();
-	ProtoAddr(const ProtoAddr& addr);
-	virtual ~ProtoAddr();
+  public:
+    ProtoAddr();
+    ProtoAddr(const ProtoAddr &addr);
+    virtual ~ProtoAddr();
 
-	int fd;
-	void *sender;
+    int fd;
+    void *sender;
 };
 
 class ProtoProxy {
 
-public:
-	ProtoProxy();
-	virtual ~ProtoProxy();
+  public:
+    ProtoProxy();
+    virtual ~ProtoProxy();
 
-	virtual bool init(int argc, char **argv);
+    virtual bool init(int argc, char **argv);
 
-	virtual bool send(const void *sendbuf, const size_t sendcount);
+    virtual bool send(const void *sendbuf, const size_t sendcount);
 
-	virtual bool recv(void *recvbuf, size_t &recvcount);
+    virtual bool recv(void *recvbuf, size_t &recvcount);
 
-	virtual bool sendrecv(const void *sendbuf, const size_t sendcount,
-			void *recvbuf, size_t &recvcount);
+    virtual bool sendrecv(const void *sendbuf, const size_t sendcount,
+                          void *recvbuf, size_t &recvcount);
 
-	virtual bool teardown();
+    virtual bool teardown();
 };
 
 class ProtoStub {
 
-public:
-	ProtoStub();
-	virtual ~ProtoStub();
+  public:
+    ProtoStub();
+    virtual ~ProtoStub();
 
-	virtual bool init(int argc, char **argv);
+    virtual bool init(int argc, char **argv);
 
-	virtual bool send(const void *sendbuf, const size_t sendcount);
+    virtual bool send(const void *sendbuf, const size_t sendcount);
 
-	virtual bool recv(void *recvbuf, size_t &recvcount);
+    virtual bool recv(void *recvbuf, size_t &recvcount);
 
-	virtual bool recvsend(ProtoAddr addr, const void *recvbuf);
+    virtual bool recvsend(ProtoAddr addr, const void *recvbuf);
 
-	virtual bool teardown();
+    virtual bool teardown();
 
-public:
-	virtual int sendBack(ProtoAddr addr, const void* sendbuf,
-			int sendcount) const;
+  public:
+    virtual int sendBack(ProtoAddr addr, const void *sendbuf,
+                         int sendcount) const;
 };
 #endif /* PROXY_STUB_H_ */

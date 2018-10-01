@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * Env.cpp
  *
@@ -28,34 +29,49 @@
  *      Contributor: Tony, KWang, DZhao
  */
 
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
+ */
+
 #include "Env.h"
 #include "ConfHandler.h"
 
 using namespace iit::datasys::zht::dm;
 
-const uint Env::BUF_SIZE = 512 + 38; //512 is pkg size of big message transferring, 38 is header length, include uuid.
-const int Env::MSG_DEFAULTSIZE = 1024 * 1024 * 2; //2M
-const int Env::SCCB_POLL_DEFAULT_INTERVAL = 1; //1 ms;
+const uint Env::BUF_SIZE =
+    512 + 38; // 512 is pkg size of big message transferring, 38 is header
+              // length, include uuid.
+const int Env::MSG_DEFAULTSIZE = 1024 * 1024 * 2; // 2M
+const int Env::SCCB_POLL_DEFAULT_INTERVAL = 1;    // 1 ms;
 
 int Env::NUM_REPLICAS = 0;
-int Env::REPLICATION_TYPE = 0; //1 for Client-side replication
+int Env::REPLICATION_TYPE = 0; // 1 for Client-side replication
 
-Env::Env() {
-}
+Env::Env() {}
 
-Env::~Env() {
-}
+Env::~Env() {}
 
 int Env::get_msg_maxsize() {
 
-	string val = ConfHandler::get_zhtconf_parameter(Const::MSG_MAXSIZE);
+    string val = ConfHandler::get_zhtconf_parameter(Const::MSG_MAXSIZE);
 
-	return val.empty() ? MSG_DEFAULTSIZE : atoi(val.c_str());
+    return val.empty() ? MSG_DEFAULTSIZE : atoi(val.c_str());
 }
 
 int Env::get_sccb_poll_interval() {
 
-	string val = ConfHandler::get_zhtconf_parameter(Const::SCCB_POLL_INTERVAL);
+    string val = ConfHandler::get_zhtconf_parameter(Const::SCCB_POLL_INTERVAL);
 
-	return val.empty() ? SCCB_POLL_DEFAULT_INTERVAL : atoi(val.c_str());
+    return val.empty() ? SCCB_POLL_DEFAULT_INTERVAL : atoi(val.c_str());
 }

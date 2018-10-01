@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * Util.cpp
  *
@@ -28,12 +29,27 @@
  *      Contributor: Tony, KWang, DZhao
  */
 
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
+ */
+
 #include "Util.h"
 
-#include <sys/time.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <sstream>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/time.h>
 using namespace std;
 
 namespace iit {
@@ -41,108 +57,93 @@ namespace datasys {
 namespace zht {
 namespace dm {
 
-TimeUtil::TimeUtil() {
+TimeUtil::TimeUtil() {}
 
-}
-
-TimeUtil::~TimeUtil() {
-
-}
+TimeUtil::~TimeUtil() {}
 
 double TimeUtil::getTime_usec() {
 
-	struct timeval tp;
+    struct timeval tp;
 
-	gettimeofday(&tp, NULL);
-	return static_cast<double>(tp.tv_sec) * 1E6
-			+ static_cast<double>(tp.tv_usec);
+    gettimeofday(&tp, NULL);
+    return static_cast<double>(tp.tv_sec) * 1E6 +
+           static_cast<double>(tp.tv_usec);
 }
 
 double TimeUtil::getTime_msec() {
 
-	struct timeval tp;
+    struct timeval tp;
 
-	gettimeofday(&tp, NULL);
-	return static_cast<double>(tp.tv_sec) * 1E3
-			+ static_cast<double>(tp.tv_usec) / 1E3;
-
+    gettimeofday(&tp, NULL);
+    return static_cast<double>(tp.tv_sec) * 1E3 +
+           static_cast<double>(tp.tv_usec) / 1E3;
 }
 
 double TimeUtil::getTime_sec() {
 
-	struct timeval tp;
+    struct timeval tp;
 
-	gettimeofday(&tp, NULL);
-	return static_cast<double>(tp.tv_sec)
-			+ static_cast<double>(tp.tv_usec) / 1E6;
+    gettimeofday(&tp, NULL);
+    return static_cast<double>(tp.tv_sec) +
+           static_cast<double>(tp.tv_usec) / 1E6;
 }
 
 const int HashUtil::LEN_BASE = 15;
-const uint64_t HashUtil::ULL_MAX = (uint64_t) -1;
+const uint64_t HashUtil::ULL_MAX = (uint64_t)-1;
 
-HashUtil::HashUtil() {
+HashUtil::HashUtil() {}
 
-}
-
-HashUtil::~HashUtil() {
-}
+HashUtil::~HashUtil() {}
 
 uint64_t HashUtil::genHash(const char *pc) {
 
-	uint64_t hash = 0;
-	uint64_t c; //int c;
+    uint64_t hash = 0;
+    uint64_t c; // int c;
 
-	while (c = (*pc++)) {
-		hash = c + (hash << 6) + (hash << 16) - hash;
-	}
+    while (c = (*pc++)) {
+        hash = c + (hash << 6) + (hash << 16) - hash;
+    }
 
-	return hash;
-
+    return hash;
 }
 
-uint64_t HashUtil::genHash(const string& base) {
+uint64_t HashUtil::genHash(const string &base) { return genHash(base.c_str()); }
 
-	return genHash(base.c_str());
-}
+string HashUtil::genBase(const string &host, const int &port) {
 
-string HashUtil::genBase(const string& host, const int& port) {
+    stringstream ss;
+    ss << host;
+    ss << ":";
+    ss << port;
 
-	stringstream ss;
-	ss << host;
-	ss << ":";
-	ss << port;
-
-	return ss.str();
+    return ss.str();
 }
 
 string HashUtil::randomString(int len) {
 
-	string s(len, ' ');
+    string s(len, ' ');
 
-	static const char alphanum[] = "0123456789"
-			"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-			"abcdefghijklmnopqrstuvwxyz";
-	for (int i = 0; i < len; ++i) {
-		s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
-	}
-	return s;
+    static const char alphanum[] = "0123456789"
+                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                   "abcdefghijklmnopqrstuvwxyz";
+    for (int i = 0; i < len; ++i) {
+        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+    return s;
 }
 
 const uint64_t RingUtil::RING_BASE = 1;
 const uint64_t RingUtil::TOKEN_MAX = HashUtil::ULL_MAX;
 
-RingUtil::RingUtil() {
+RingUtil::RingUtil() {}
 
-}
+RingUtil::~RingUtil() {}
 
-RingUtil::~RingUtil() {
-}
+void RingUtil::unwrap(uint64_t &begin, uint64_t &end) {
 
-void RingUtil::unwrap(uint64_t& begin, uint64_t& end) {
+    uint64_t unend = end;
 
-	uint64_t unend = end;
-
-	begin > end && end == RING_BASE ? end = RingUtil::TOKEN_MAX : end = unend;
+    begin > end &&end == RING_BASE ? end = RingUtil::TOKEN_MAX : end = unend;
 }
 
 } /* namespace dm */
