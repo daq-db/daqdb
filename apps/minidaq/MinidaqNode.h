@@ -63,6 +63,8 @@ class MinidaqNode {
                        std::atomic<std::uint64_t> &cntErr) = 0;
     virtual void _Setup(int executorId, MinidaqKey &key) = 0;
     virtual void _NextKey(MinidaqKey &key) = 0;
+    void _FillValue(MinidaqKey &key, DaqDB::Value &value);
+    void _CheckValue(MinidaqKey &key, DaqDB::Value &value);
     virtual std::string _GetType() = 0;
 
     KVStoreBase *_kvs;

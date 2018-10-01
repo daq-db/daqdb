@@ -30,6 +30,11 @@ void MinidaqAroNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
     *keyTmp = key;
     Key fogKey(reinterpret_cast<char *>(keyTmp), sizeof(*keyTmp));
     DaqDB::Value value = _kvs->Alloc(fogKey, _fSize);
+
+#ifdef WITH_INTEGRITY_CHECK
+    _FillValue(key, value);
+#endif /* WITH_INTEGRITY_CHECK */
+
     while (1) {
         try {
             _kvs->PutAsync(std::move(fogKey), std::move(value),

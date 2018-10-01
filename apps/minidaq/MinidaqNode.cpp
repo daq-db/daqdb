@@ -235,4 +235,17 @@ void MinidaqNode::SaveSummary(std::string &fs, std::string &tname) {
 
     _statsAll.DumpSummary(fs, tname);
 }
+
+void MinidaqNode::_FillValue(MinidaqKey &key, DaqDB::Value &value) {
+    *(reinterpret_cast<uint64_t *>(value.data())) = key.eventId;
+}
+
+void MinidaqNode::_CheckValue(MinidaqKey &key, DaqDB::Value &value) {
+    if (*(reinterpret_cast<uint64_t *>(value.data())) != key.eventId) {
+        std::cout << "EventId=" << key.eventId << ": mismatch" << std::endl;
+    } else {
+        std::cout << "EventId=" << key.eventId << ": okey" << std::endl;
+    }
+}
+
 }
