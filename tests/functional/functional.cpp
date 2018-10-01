@@ -48,7 +48,8 @@ int main(int argc, const char *argv[]) {
     unsigned short nodeId = 0;
     std::string pmem_path;
     std::string spdk_conf;
-    size_t pmem_size = 2ull * 1024 * 1024 * 1024;
+    size_t pmem_size = 8ull * 1024 * 1024 * 1024;
+    size_t alloc_size = 8;
 
     logging::add_console_log(std::clog,
                              keywords::format = "%TimeStamp%: %Message%");
@@ -94,8 +95,9 @@ int main(int argc, const char *argv[]) {
     options.Dht.Id = nodeId;
     options.Port = port;
     options.Dht.Port = port;
-    options.PMEM.Path = pmem_path;
-    options.PMEM.Size = pmem_size;
+    options.PMEM.poolPath = pmem_path;
+    options.PMEM.totalSize = pmem_size;
+    options.PMEM.allocUnitSize = alloc_size;
     options.Key.field(0, sizeof(KeyType));
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;

@@ -68,6 +68,7 @@ int main(int argc, const char *argv[]) {
     std::string pmem_path;
     std::string spdk_conf;
     size_t pmem_size = 0;
+    size_t alloc_size = 0;
 
     logging::add_console_log(std::clog,
                              keywords::format = "%TimeStamp%: %Message%");
@@ -88,8 +89,10 @@ int main(int argc, const char *argv[]) {
         po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pool.pm"),
         "Rtree persistent memory pool file")(
         "pmem-size",
-        po::value<size_t>(&pmem_size)->default_value(2ull * 1024 * 1024 * 1024),
+        po::value<size_t>(&pmem_size)->default_value(8ull * 1024 * 1024 * 1024),
         "Rtree persistent memory pool size")(
+        "alloc-unit-size", po::value<size_t>(&alloc_size)->default_value(8),
+        "Allocation unit size")(
         "spdk-conf-file,c",
         po::value<std::string>(&spdk_conf)->default_value("../config.spdk"),
         "SPDK configuration file");
@@ -132,8 +135,9 @@ int main(int argc, const char *argv[]) {
     options.Dht.Id = nodeId;
     options.Dht.Port = dhtPort;
     options.Port = inputPort;
-    options.PMEM.Path = pmem_path;
-    options.PMEM.Size = pmem_size;
+    options.PMEM.poolPath = pmem_path;
+    options.PMEM.totalSize = pmem_size;
+    options.PMEM.allocUnitSize = alloc_size;
     options.Key.field(0, sizeof(KeyType));
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;

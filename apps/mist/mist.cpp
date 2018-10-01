@@ -30,42 +30,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream>
-#include <iomanip>
 #include "config.h"
-#include <daqdb/KVStoreBase.h>
 #include <asio/io_service.hpp>
-#include <boost/bind.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/signal_set.hpp>
+#include <boost/bind.hpp>
+#include <daqdb/KVStoreBase.h>
+#include <iomanip>
+#include <iostream>
 
+int main(int argc, char **argv) {
+    // TODO utilize boost::program_options for help on each parameter
+    if (argc != 2) {
+        cout << "Please specify configuration file, e.g. ./mist myConfig.cfg"
+             << endl;
+        return -1;
+    }
 
-int main(int argc, char ** argv) {
-	// TODO utilize boost::program_options for help on each parameter
-	if (argc != 2) {
-		cout << "Please specify configuration file, e.g. ./mist myConfig.cfg" << endl;
-		return -1;
-	}
+    Configuration fogServerConfiguration(argv[1]);
 
-	Configuration fogServerConfiguration(argv[1]);
+    Options options;
+    fogServerConfiguration.readConfiguration(options);
 
-	Options options;
-	fogServerConfiguration.readConfiguration(options);
+    asio::io_service io_service;
+    asio::signal_set signals(io_service, SIGINT, SIGTERM);
+    signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
 
-	asio::io_service io_service;
-	asio::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
+    try {
+        KVStoreBase::Open(options);
+    } catch (OperationFailedException &e) {
+        cerr << "Failed to create KVStore: " << e.what() << endl;
+        return -1;
+    }
+    cout << "DaqDB server running" << endl;
 
-	try {
-		KVStoreBase::Open(options);
-	} catch (OperationFailedException &e) {
-		cerr << "Failed to create KVStore: " << e.what() << endl;
-		return -1;
-	}
-	cout << "FogKV server running" << endl;
-
-	io_service.run();
-	//cleanup code
-	cout << "Exiting gracefuly" << endl;
-	return 0;
+    io_service.run();
+    // cleanup code
+    cout << "Exiting gracefuly" << endl;
+    return 0;
 }

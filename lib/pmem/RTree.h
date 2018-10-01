@@ -25,7 +25,7 @@
 #include <libpmemobj++/pool.hpp>
 #include <libpmemobj++/transaction.hpp>
 #include <libpmemobj++/utils.hpp>
-#include <libpmemobj++/v.hpp>
+#include <libpmemobj++/experimental/v.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -34,12 +34,17 @@
 #include <cmath>
 #include <iostream>
 
+using namespace pmem::obj::experimental;
 using namespace pmem::obj;
 
 // Number of keys slots inside Node (not key bits)
 #define LEVEL_SIZE 4
 // Number of key bits
 #define KEY_SIZE 24 /** @TODO jschmieg: target value is 24 bits */
+// The maximum number of memory blocks to use.
+// The size of a single block will be:
+//      TOTAL_PMEM_SIZE / (MIN_VALUE_SIZE * MAXIMUM_MEMORY_BLOCKS)
+#define MAXIMUM_MEMORY_BLOCKS 16
 
 enum OBJECT_TYPES { VALUE, IOV };
 
@@ -83,7 +88,7 @@ struct TreeRoot {
 
 class Tree {
   public:
-    Tree(const string &path, const size_t size);
+    Tree(const string &path, const size_t size, const size_t allocUnitSize);
     ValueWrapper *findValueInNode(persistent_ptr<Node> current,
                                   const char *key);
     void allocateLevel(persistent_ptr<Node> current, int depth, int *count);
@@ -91,13 +96,14 @@ class Tree {
     pool<TreeRoot> _pm_pool;
     int level_bits;
     int tree_heigh;
+    int alloc_class;
 
   private:
 };
 
 class RTree : public DaqDB::RTreeEngine {
   public:
-    RTree(const string &path, const size_t size);
+    RTree(const string &path, const size_t size, const size_t allocUnitSize);
     virtual ~RTree();
     string Engine() final { return "RTree"; }
     StatusCode Get(const char *key, int32_t keybytes, void **value,

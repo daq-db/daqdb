@@ -24,4 +24,4 @@ add_executable(func_tests ${FUNC_TEST_SOURCES})
 
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 target_link_libraries(func_tests ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-	fabric pmem fogkv pmemobj dl numa ${Dpdk_LIBRARIES})
+	pmem fogkv pmemobj dl numa ${Dpdk_LIBRARIES})

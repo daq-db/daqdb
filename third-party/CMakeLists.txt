@@ -10,11 +10,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${DAQDB_BIN_DIR})
 ###############################################################################
 # Dependencies - External projects
 ###############################################################################
-include(libfabric.cmake)
 include(pmdk.cmake)
 include(spdk.cmake)
 include(libconfig.cmake)
 include(protobuf.cmake)
+include(erpc.cmake)
 
 ###############################################################################
 # Dependencies - Libraries
@@ -45,7 +45,7 @@ target_compile_definitions(zht PRIVATE PF_INET=1 SML_MSG=1)
 # Cleanup tasks
 add_custom_target(clean-dep)
 add_dependencies(clean-dep libpmdk_clean)
-add_dependencies(clean-dep libfabric_clean)
 add_dependencies(clean-dep libconfig_clean)
 add_dependencies(clean-dep libspdk_clean)
 add_dependencies(clean-dep protobuf_clean)
+add_dependencies(clean-dep liberpc_clean)

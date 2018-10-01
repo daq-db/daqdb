@@ -14,19 +14,22 @@
  */
 
 #include "RTree.h"
+#include <Logger.h>
+#include <daqdb/Types.h>
 #include <iostream>
 
 namespace DaqDB {
 #define LAYOUT "rtree"
 
-RTree::RTree(const string &_path, const size_t size) {
-    tree = new Tree(_path, size);
+RTree::RTree(const string &_path, const size_t size,
+             const size_t allocUnitSize) {
+    tree = new Tree(_path, size, allocUnitSize);
 }
 
 RTree::~RTree() {
     // TODO Auto-generated destructor stub
 }
-Tree::Tree(const string &path, const size_t size) {
+Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
     if (!boost::filesystem::exists(path)) {
         try {
             _pm_pool =
@@ -56,6 +59,20 @@ Tree::Tree(const string &path, const size_t size) {
         level_bits = treeRoot->level_bits;
         tree_heigh = treeRoot->tree_heigh;
     }
+
+    // Define custom allocation class
+    struct pobj_alloc_class_desc alloc_daqdb;
+    alloc_daqdb.header_type = POBJ_HEADER_COMPACT;
+    alloc_daqdb.unit_size = allocUnitSize;
+    alloc_daqdb.units_per_block = size / (allocUnitSize * MAXIMUM_MEMORY_BLOCKS);
+    alloc_daqdb.alignment = 0;
+    int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
+                             &alloc_daqdb);
+    if (rc)
+        throw OperationFailedException(Status(KeyNotFound));
+    alloc_class = alloc_daqdb.class_id;
+    FOG_DEBUG("RTree New allocation class (" + std::to_string(alloc_class) +
+              ") defined");
 }
 
 StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
@@ -67,22 +84,25 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
     } else if (val->location == DISK) {
         *value = val->locationPtr.IOVptr.get();
         *location = val->location;
-    } else if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
+    } else if (val->location == EMPTY ||
+               val->locationVolatile.get().value == EMPTY) {
         return StatusCode::KeyNotFound;
     }
     *size = val->size;
     return StatusCode::Ok;
 }
 
-StatusCode RTree::Get(const char *key, void **value, size_t *size, uint8_t *location) {
+StatusCode RTree::Get(const char *key, void **value, size_t *size,
+                      uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-   if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
+    if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
         *location = val->location;
     } else if (val->location == DISK) {
         *value = val->locationPtr.IOVptr.get();
         *location = val->location;
-    } else if (val->location == EMPTY || val->locationVolatile.get().value == EMPTY) {
+    } else if (val->location == EMPTY ||
+               val->locationVolatile.get().value == EMPTY) {
         return StatusCode::KeyNotFound;
     }
     *size = val->size;
@@ -111,7 +131,7 @@ StatusCode RTree::Remove(const char *key) {
     }
     try {
         if (val->location == PMEM &&
-			val->locationVolatile.get().value != EMPTY) {
+            val->locationVolatile.get().value != EMPTY) {
             pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
         } else if (val->location == DISK) {
             // @TODO jradtke need to confirm if no extra action required here
@@ -132,8 +152,9 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     try {
         val->actionValue = new pobj_action[1];
         pmemoid poid;
-        poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
-                               &(val->actionValue[0]), size, VALUE);
+        poid = pmemobj_xreserve(tree->_pm_pool.get_handle(),
+                                &(val->actionValue[0]), size, VALUE,
+                                POBJ_CLASS_ID(tree->alloc_class));
         val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
         val->size = size;
     } catch (std::exception &e) {
