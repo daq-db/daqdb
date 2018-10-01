@@ -32,7 +32,7 @@ void MinidaqAroNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
     DaqDB::Value value = _kvs->Alloc(fogKey, _fSize);
 
 #ifdef WITH_INTEGRITY_CHECK
-    _FillValue(key, value);
+    _FillBuffer(key, value.data(), value.size());
 #endif /* WITH_INTEGRITY_CHECK */
 
     while (1) {

@@ -20,8 +20,8 @@
 #include <string>
 #include <vector>
 
-#include "daqdb/KVStoreBase.h"
 #include "MinidaqStats.h"
+#include "daqdb/KVStoreBase.h"
 
 namespace DaqDB {
 
@@ -63,13 +63,20 @@ class MinidaqNode {
                        std::atomic<std::uint64_t> &cntErr) = 0;
     virtual void _Setup(int executorId, MinidaqKey &key) = 0;
     virtual void _NextKey(MinidaqKey &key) = 0;
-    void _FillValue(MinidaqKey &key, DaqDB::Value &value);
-    void _CheckValue(MinidaqKey &key, DaqDB::Value &value);
+#ifdef WITH_INTEGRITY_CHECK
+    char _GetBufferByte(MinidaqKey &key, size_t i);
+    void _FillBuffer(MinidaqKey &key, char *buf, size_t s);
+    void _CheckBuffer(MinidaqKey &key, char *buf, size_t s);
+#endif /* WITH_INTEGRITY_CHECK */
     virtual std::string _GetType() = 0;
 
     KVStoreBase *_kvs;
     int _runId = 599;
     int _nTh = 1; // number of worker threads
+#ifdef WITH_INTEGRITY_CHECK
+    std::atomic<std::uint64_t> _nIntegrityChecks;
+    std::atomic<std::uint64_t> _nIntegrityErrors;
+#endif /* WITH_INTEGRITY_CHECK */
 
   private:
     MinidaqStats _Execute(int executorId);

@@ -81,17 +81,17 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
         key.subdetectorId = baseId + i;
         DaqDB::Value value = _kvs->Get(fogKey);
 #ifdef WITH_INTEGRITY_CHECK
-        _CheckValue(key, value);
+        _CheckBuffer(key, value.data(), value.size());
 #endif /* WITH_INTEGRITY_CHECK */
         if (accept) {
             while (1) {
                 try {
                     _kvs->UpdateAsync(
                         std::move(fogKey), UpdateOptions(LONG_TERM),
-                        [keyTmp, &cnt, &cntErr](
-                            DaqDB::KVStoreBase *kvs, DaqDB::Status status,
-                            const char *key, const size_t keySize,
-                            const char *value, const size_t valueSize) {
+                        [keyTmp, &cnt,
+                         &cntErr](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
+                                  const char *key, const size_t keySize,
+                                  const char *value, const size_t valueSize) {
                             if (!status.ok()) {
                                 cntErr++;
                             } else {
