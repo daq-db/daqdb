@@ -185,7 +185,12 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
         ioCtx = new IoCtx{buff,      valSize,       _GetSizeInBlk(valSizeAlign),
                           rqst->key, rqst->keySize, nullptr,
                           true,      rtree,         rqst->clb};
-        rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
+        rc = rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
+        if (rc != StatusCode::Ok) {
+            delete ioCtx;
+            _RqstClb(rqst, rc);
+            return;
+        }
         *ioCtx->lba = GetFreeLba();
 
     } else if (_ValOffloaded(valCtx)) {
@@ -260,9 +265,7 @@ void OffloadPooler::Process() {
     }
 }
 
-int64_t OffloadPooler::GetFreeLba() {
-    return freeLbaList->Get(_poolFreeList);
-}
+int64_t OffloadPooler::GetFreeLba() { return freeLbaList->Get(_poolFreeList); }
 
 void OffloadPooler::SetBdevContext(BdevCtx &bdevContext) {
     _bdevCtx = bdevContext;

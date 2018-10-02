@@ -18,6 +18,7 @@
 
 #include "RTreeEngine.h"
 
+#include <libpmemobj++/experimental/v.hpp>
 #include <libpmemobj++/make_persistent_array_atomic.hpp>
 #include <libpmemobj++/make_persistent_atomic.hpp>
 #include <libpmemobj++/p.hpp>
@@ -25,7 +26,6 @@
 #include <libpmemobj++/pool.hpp>
 #include <libpmemobj++/transaction.hpp>
 #include <libpmemobj++/utils.hpp>
-#include <libpmemobj++/experimental/v.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -45,6 +45,8 @@ using namespace pmem::obj;
 // The size of a single block will be:
 //      TOTAL_PMEM_SIZE / (MIN_VALUE_SIZE * MAXIMUM_MEMORY_BLOCKS)
 #define MAXIMUM_MEMORY_BLOCKS 16
+// Allocation class alignment
+#define ALLOC_CLASS_ALIGNMENT 0
 
 enum OBJECT_TYPES { VALUE, IOV };
 
