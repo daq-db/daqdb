@@ -29,7 +29,13 @@
 namespace DaqDB {
 
 MinidaqNode::MinidaqNode(KVStoreBase *kvs)
-    : _kvs(kvs), _stopped(false), _statsReady(false) {}
+    : _kvs(kvs), _stopped(false), _statsReady(false)
+#ifdef WITH_INTEGRITY_CHECK
+      ,
+      _nIntegrityChecks(0), _nIntegrityErrors(0)
+#endif /* WITH_INTEGRITY_CHECK */
+{
+}
 
 MinidaqNode::~MinidaqNode() {}
 
