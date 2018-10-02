@@ -22,9 +22,9 @@
  * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
  * Raicu(iraicu@cs.iit.edu).
  *
- * ConfEntry.h
+ * HTWorker.h
  *
- *  Created on: Aug 7, 2012
+ *  Created on: Sep 10, 2012
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
  */
@@ -44,46 +44,84 @@
  * stated in the License.
  */
 
-#ifndef CONFIGENTRY_H_
-#define CONFIGENTRY_H_
+#ifndef HTWORKER_H_
+#define HTWORKER_H_
 
+#include "TSafeQueue-impl.h"
+#include "novoht.h"
+#include "proxy_stub.h"
+#include "zpack.pb.h"
+#include <queue>
 #include <string>
 using namespace std;
+using namespace iit::cs550::finalproj;
 
-namespace iit {
-namespace datasys {
-namespace zht {
-namespace dm {
+class HTWorker;
 
+class WorkerThreadArg {
+
+  public:
+    WorkerThreadArg();
+    WorkerThreadArg(const ZPack &zpack, const ProtoAddr &addr,
+                    const ProtoStub *const stub);
+    virtual ~WorkerThreadArg();
+
+    ZPack _zpack;
+    ProtoAddr _addr;
+    const ProtoStub *_stub;
+};
 /*
  *
  */
-class ConfEntry {
+class HTWorker {
   public:
-    ConfEntry();
-    ConfEntry(const string &sConfigEntry);
-    ConfEntry(const string &name, const string &value);
-    virtual ~ConfEntry();
+    typedef TSafeQueue<WorkerThreadArg *> QUEUE;
 
-    string name() const;
-    void name(const string &name);
+  public:
+    HTWorker();
+    HTWorker(const ProtoAddr &addr, const ProtoStub *const stub);
+    virtual ~HTWorker();
 
-    string value() const;
-    void value(const string &value);
-
-    string operator()() const;
-    string toString() const;
-    ConfEntry &assign(string sconfigEntry);
-
-    static string getFormat();
+  public:
+    string run(const char *buf);
 
   private:
-    string _name;
-    string _value;
+    string ping(const ZPack &zpack);
+    string insert(const ZPack &zpack);
+    string lookup(const ZPack &zpack);
+    string append(const ZPack &zpack);
+    string remove(const ZPack &zpack);
+    string compare_swap(const ZPack &zpack);
+    string state_change_callback(const ZPack &zpack);
+
+    string insert_shared(const ZPack &zpack);
+    string lookup_shared(const ZPack &zpack);
+    string append_shared(const ZPack &zpack);
+    string remove_shared(const ZPack &zpack);
+
+  private:
+    static void *threaded_state_change_callback(void *arg);
+    static string state_change_callback_internal(const ZPack &zpack);
+
+  private:
+    string compare_swap_internal(const ZPack &zpack);
+
+  private:
+    string erase_status_code(string &val);
+    string get_novoht_file();
+    void init_me();
+    bool get_instant_swap();
+
+  private:
+    ProtoAddr _addr;
+    const ProtoStub *const _stub;
+    bool _instant_swap;
+
+  private:
+    static NoVoHT *PMAP;
+    static QUEUE *PQUEUE;
+    static bool FIRST_ASYNC;
+    static int SCCB_POLL_INTERVAL;
 };
 
-} /* namespace dm */
-} /* namespace zht */
-} /* namespace datasys */
-} /* namespace iit */
-#endif /* CONFIGENTRY_H_ */
+#endif /* HTWORKER_H_ */

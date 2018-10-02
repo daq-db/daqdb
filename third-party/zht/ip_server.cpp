@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * ip_server.cpp
  *
@@ -28,45 +29,58 @@
  *      Contributor: Tony, KWang, DZhao
  */
 
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
+ */
+
 #include "ip_server.h"
 
-#include  "ProxyStubFactory.h"
+#include "ProxyStubFactory.h"
 
-#include <string.h>
-#include <string>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <string>
 
 using namespace std;
 
-IPServer::IPServer() :
-		_stub(ProxyStubFactory::createStub()) {
-}
+IPServer::IPServer() : _stub(ProxyStubFactory::createStub()) {}
 
 IPServer::~IPServer() {
 
-	if (_stub != NULL) {
+    if (_stub != NULL) {
 
-		delete _stub;
-		_stub = NULL;
-	}
+        delete _stub;
+        _stub = NULL;
+    }
 }
 
-void IPServer::process(const int& fd, const char * const buf, sockaddr sender) {
+void IPServer::process(const int &fd, const char *const buf, sockaddr sender) {
 
-	if (_stub == 0) {
+    if (_stub == 0) {
 
-		fprintf(stderr,
-				"IPServer::process(): error on ProxyStubFactory::createStub().\n");
-		return;
-	}
+        fprintf(
+            stderr,
+            "IPServer::process(): error on ProxyStubFactory::createStub().\n");
+        return;
+    }
 
-	ProtoAddr pa;
-	pa.fd = fd;
-	pa.sender = calloc(1, sizeof(sockaddr));
-	memcpy(pa.sender, &sender, sizeof(sockaddr));
+    ProtoAddr pa;
+    pa.fd = fd;
+    pa.sender = calloc(1, sizeof(sockaddr));
+    memcpy(pa.sender, &sender, sizeof(sockaddr));
 
-	string bufstr(buf);
-	_stub->recvsend(pa, bufstr.c_str());
+    string bufstr(buf);
+    _stub->recvsend(pa, bufstr.c_str());
 }
-

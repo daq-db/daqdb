@@ -25,12 +25,15 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#include <uc.h>
 #include "debug.h"
+#include <uc.h>
 
-#define RUN_USE_CASE(name) if (name) \
-        { BOOST_LOG_SEV(lg::get(), bt::info) << "Test completed successfully"; \
-        } else { BOOST_LOG_SEV(lg::get(), bt::info) << "Test failed"; }
+#define RUN_USE_CASE(name)                                                     \
+    if (name) {                                                                \
+        BOOST_LOG_SEV(lg::get(), bt::info) << "Test completed successfully";   \
+    } else {                                                                   \
+        BOOST_LOG_SEV(lg::get(), bt::info) << "Test failed";                   \
+    }
 
 using namespace std;
 
@@ -41,11 +44,12 @@ namespace po = boost::program_options;
 typedef char KeyType[16];
 
 int main(int argc, const char *argv[]) {
-    unsigned short port;
+    unsigned short port = 10001;
     unsigned short nodeId = 0;
     std::string pmem_path;
     std::string spdk_conf;
-    size_t pmem_size = 2ull * 1024 * 1024 * 1024;
+    size_t pmem_size = 8ull * 1024 * 1024 * 1024;
+    size_t alloc_size = 8;
 
     logging::add_console_log(std::clog,
                              keywords::format = "%TimeStamp%: %Message%");
@@ -90,8 +94,10 @@ int main(int argc, const char *argv[]) {
 
     options.Dht.Id = nodeId;
     options.Port = port;
+    options.Dht.Port = port;
     options.PMEM.poolPath = pmem_path;
     options.PMEM.totalSize = pmem_size;
+    options.PMEM.allocUnitSize = alloc_size;
     options.Key.field(0, sizeof(KeyType));
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;
@@ -115,7 +121,10 @@ int main(int argc, const char *argv[]) {
     RUN_USE_CASE(use_case_sync_offload(spKVStore));
     RUN_USE_CASE(use_case_async_offload(spKVStore));
 
+    prepare_zht_tests();
+    RUN_USE_CASE(use_case_zht_connect(spKVStore));
     BOOST_LOG_SEV(lg::get(), bt::info) << "Closing DHT node." << flush;
+    cleanup_zht_tests();
 
     return 0;
 }

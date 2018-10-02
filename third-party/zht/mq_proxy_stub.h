@@ -22,9 +22,9 @@
  * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
  * Raicu(iraicu@cs.iit.edu).
  *
- * ZProcessor.h
+ * mq_proxy_stub.h
  *
- *  Created on: Aug 9, 2012
+ *  Created on: Jun 21, 2013
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
  */
@@ -44,35 +44,48 @@
  * stated in the License.
  */
 
-#ifndef ZPROCESSOR_H_
-#define ZPROCESSOR_H_
+#ifndef MQ_PROXY_STUB_H_
+#define MQ_PROXY_STUB_H_
 
-#include <stddef.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include "proxy_stub.h"
 
-namespace iit {
-namespace datasys {
-namespace zht {
-namespace dm {
+#include "ipc_plus.h"
+using namespace IPC;
 
 /*
  *
  */
-class ZProcessor {
+class MQProxy : public ProtoProxy {
   public:
-    ZProcessor();
-    virtual ~ZProcessor();
+    MQProxy();
+    explicit MQProxy(const unsigned int key0);
+    virtual ~MQProxy();
 
-    virtual void process(const int &fd, const char *const buf,
-                         sockaddr sender) = 0;
+    virtual bool send(const void *sendbuf, const size_t sendcount);
 
-    virtual void sendback(const int &fd, const char *buf, const size_t &count,
-                          sockaddr receiver, const int &protocol);
+    virtual bool recv(void *recvbuf, size_t &recvcount);
+
+    virtual bool sendrecv(const void *sendbuf, const size_t sendcount,
+                          void *recvbuf, size_t &recvcount);
+
+  private:
+    MsgClient _mc;
 };
 
-} /* namespace dm */
-} /* namespace zht */
-} /* namespace datasys */
-} /* namespace iit */
-#endif /* ZPROCESSOR_H_ */
+class MQStub : public ProtoStub {
+  public:
+    MQStub();
+    explicit MQStub(const unsigned int key0);
+    virtual ~MQStub();
+
+    virtual bool send(const void *sendbuf, const size_t sendcount);
+
+    virtual bool recv(void *recvbuf, size_t &recvcount);
+
+    virtual bool teardown();
+
+  private:
+    MsgServer _ms;
+};
+
+#endif /* MQ_PROXY_STUB_H_ */

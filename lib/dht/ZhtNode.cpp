@@ -18,7 +18,7 @@
 
 #include "ZhtNode.h"
 #include "DhtUtils.h"
-#include "../debug/Logger.h"
+#include <Logger.h>
 
 #include "EpollServer.h"
 #include "ip_server.h"

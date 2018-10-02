@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * ip_proxy_stub.cpp
  *
@@ -28,16 +29,31 @@
  *      Contributor: Tony, KWang, DZhao
  */
 
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
+ */
+
 #include "ip_proxy_stub.h"
 #include "Env.h"
+#include "Util.h"
 #include "bigdata_transfer.h"
 #include "lock_guard.h"
-#include "Util.h"
 
-#include <sys/socket.h>
-#include <string.h>
 #include <errno.h>
 #include <iostream>
+#include <string.h>
+#include <sys/socket.h>
 
 using namespace std;
 using namespace iit::datasys::zht::dm;
@@ -48,145 +64,137 @@ bool IPProtoProxy::INIT_MC_MUTEX = false;
 pthread_mutex_t IPProtoProxy::CC_MUTEX;
 pthread_mutex_t IPProtoProxy::MC_MUTEX;
 
-IPProtoProxy::IPProtoProxy() :
-		MUTEX_CACHE() {
+IPProtoProxy::IPProtoProxy() : MUTEX_CACHE() { init_XX_MUTEX(); }
 
-	init_XX_MUTEX();
-}
-
-IPProtoProxy::~IPProtoProxy() {
-}
+IPProtoProxy::~IPProtoProxy() {}
 
 bool IPProtoProxy::teardown() {
 
-	bool result = true;
+    bool result = true;
 
-	MIT it;
-	for (it = MUTEX_CACHE.begin(); it != MUTEX_CACHE.end(); it++) {
+    MIT it;
+    for (it = MUTEX_CACHE.begin(); it != MUTEX_CACHE.end(); it++) {
 
-		int rc = pthread_mutex_destroy(&it->second);
+        int rc = pthread_mutex_destroy(&it->second);
 
-		result &= rc == 0;
-	}
+        result &= rc == 0;
+    }
 
-	MUTEX_CACHE.clear();
+    MUTEX_CACHE.clear();
 
-	return result;
+    return result;
 }
 
 int IPProtoProxy::reuseSock(int sock) {
 
-	int reuse_addr = 1;
-	int ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_addr,
-			sizeof(reuse_addr));
-	if (ret < 0) {
-		cerr << "resuse socket failed: [" << sock << "], " << strerror(errno)
-				<< endl;
-		return -1;
-	} else
-		return 0;
+    int reuse_addr = 1;
+    int ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_addr,
+                         sizeof(reuse_addr));
+    if (ret < 0) {
+        cerr << "resuse socket failed: [" << sock << "], " << strerror(errno)
+             << endl;
+        return -1;
+    } else
+        return 0;
 }
 
-pthread_mutex_t* IPProtoProxy::getSockMutex(const string& host,
-		const uint& port) {
+pthread_mutex_t *IPProtoProxy::getSockMutex(const string &host,
+                                            const uint &port) {
 
-	LockGuard lock(&MC_MUTEX);
+    LockGuard lock(&MC_MUTEX);
 
-	string hashKey = HashUtil::genBase(host, port);
+    string hashKey = HashUtil::genBase(host, port);
 
-	MIT it = MUTEX_CACHE.find(hashKey);
+    MIT it = MUTEX_CACHE.find(hashKey);
 
-	if (it != MUTEX_CACHE.end()) {
+    if (it != MUTEX_CACHE.end()) {
 
-		return &MUTEX_CACHE[hashKey];
-	}
+        return &MUTEX_CACHE[hashKey];
+    }
 
-	return NULL;
+    return NULL;
 }
 
-void IPProtoProxy::putSockMutex(const string& host, const uint& port) {
+void IPProtoProxy::putSockMutex(const string &host, const uint &port) {
 
-	LockGuard lock(&MC_MUTEX);
+    LockGuard lock(&MC_MUTEX);
 
-	string hashKey = HashUtil::genBase(host, port);
+    string hashKey = HashUtil::genBase(host, port);
 
-	MIT it = MUTEX_CACHE.find(hashKey);
+    MIT it = MUTEX_CACHE.find(hashKey);
 
-	if (it == MUTEX_CACHE.end()) {
+    if (it == MUTEX_CACHE.end()) {
 
-		pthread_mutex_t sock_mutex;
-		pthread_mutex_init(&sock_mutex, NULL);
+        pthread_mutex_t sock_mutex;
+        pthread_mutex_init(&sock_mutex, NULL);
 
-		MUTEX_CACHE[hashKey] = sock_mutex;
-	}
+        MUTEX_CACHE[hashKey] = sock_mutex;
+    }
 }
 
 int IPProtoProxy::loopedrecv(int sock, void *senderAddr, string &srecv) {
 
-	ssize_t recvcount = -2;
-	socklen_t addr_len = sizeof(struct sockaddr);
+    ssize_t recvcount = -2;
+    socklen_t addr_len = sizeof(struct sockaddr);
 
-	BdRecvBase *pbrb = new BdRecvFromServer();
+    BdRecvBase *pbrb = new BdRecvFromServer();
 
-	char buf[Env::BUF_SIZE];
+    char buf[Env::BUF_SIZE];
 
-	while (1) {
+    while (1) {
 
-		memset(buf, '\0', sizeof(buf));
+        memset(buf, '\0', sizeof(buf));
 
-		ssize_t count;
-		if (senderAddr == NULL)
-			count = ::recv(sock, buf, sizeof(buf), 0);
-		else
-			count = ::recvfrom(sock, buf, sizeof(buf), 0,
-					(struct sockaddr *) senderAddr, &addr_len);
+        ssize_t count;
+        if (senderAddr == NULL)
+            count = ::recv(sock, buf, sizeof(buf), 0);
+        else
+            count = ::recvfrom(sock, buf, sizeof(buf), 0,
+                               (struct sockaddr *)senderAddr, &addr_len);
 
-		if (count == -1 || count == 0) {
+        if (count == -1 || count == 0) {
 
-			recvcount = count;
+            recvcount = count;
 
-			break;
-		}
+            break;
+        }
 
-		bool ready = false;
+        bool ready = false;
 
-		string bd = pbrb->getBdStr(sock, buf, count, ready);
+        string bd = pbrb->getBdStr(sock, buf, count, ready);
 
-		if (ready) {
+        if (ready) {
 
-			srecv = bd;
-			recvcount = srecv.size();
+            srecv = bd;
+            recvcount = srecv.size();
 
-			break;
-		}
+            break;
+        }
 
-		memset(buf, '\0', sizeof(buf));
-	}
+        memset(buf, '\0', sizeof(buf));
+    }
 
-	delete pbrb;
-	pbrb = NULL;
+    delete pbrb;
+    pbrb = NULL;
 
-	return recvcount;
+    return recvcount;
 }
 
 void IPProtoProxy::init_XX_MUTEX() {
 
-	if (!INIT_CC_MUTEX) {
+    if (!INIT_CC_MUTEX) {
 
-		pthread_mutex_init(&CC_MUTEX, NULL);
-		INIT_CC_MUTEX = true;
-	}
+        pthread_mutex_init(&CC_MUTEX, NULL);
+        INIT_CC_MUTEX = true;
+    }
 
-	if (!INIT_MC_MUTEX) {
+    if (!INIT_MC_MUTEX) {
 
-		pthread_mutex_init(&MC_MUTEX, NULL);
-		INIT_MC_MUTEX = true;
-	}
+        pthread_mutex_init(&MC_MUTEX, NULL);
+        INIT_MC_MUTEX = true;
+    }
 }
 
-IPProtoStub::IPProtoStub() {
-}
+IPProtoStub::IPProtoStub() {}
 
-IPProtoStub::~IPProtoStub() {
-}
-
+IPProtoStub::~IPProtoStub() {}

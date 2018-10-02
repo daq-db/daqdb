@@ -89,7 +89,7 @@ int main(int argc, const char *argv[]) {
         po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pool.pm"),
         "Rtree persistent memory pool file")(
         "pmem-size",
-        po::value<size_t>(&pmem_size)->default_value(2ull * 1024 * 1024 * 1024),
+        po::value<size_t>(&pmem_size)->default_value(8ull * 1024 * 1024 * 1024),
         "Rtree persistent memory pool size")(
         "alloc-unit-size", po::value<size_t>(&alloc_size)->default_value(8),
         "Allocation unit size")(

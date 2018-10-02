@@ -37,12 +37,12 @@ void reactor_start_clb(void *ctx, void *arg) {
 
     // @TODO jradtke: replace with spdk_bdev_get_by_name
     auto *reactor = reinterpret_cast<OffloadReactor *>(ctx);
-    auto bdev = reactor->bdevCtx.bdev;
-    bdev = spdk_bdev_first();
+    auto bdev = spdk_bdev_first();
     if (!bdev) {
         set_reactor_error_state(reactor, "No NVMe devices detected");
         return;
     }
+    reactor->bdevCtx.bdev = bdev;
 
     auto rc =
         spdk_bdev_open(bdev, true, NULL, NULL, &reactor->bdevCtx.bdev_desc);

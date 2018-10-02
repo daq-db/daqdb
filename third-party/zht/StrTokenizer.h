@@ -14,18 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * StrTokenizer.h
  *
  *  Created on: Jul 6, 2013
  *      Author: Xiaobingo
  *      Contributor: Tony, KWang, DZhao
+ */
+
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
  */
 
 #ifndef STRTOKENIZER_H_
@@ -36,46 +52,45 @@
 /** The StrTokenizer class splits a string into a sequence of
  subtrings, called tokens, separated by delimiters.*/
 class StrTokenizer {
-public:
+  public:
+    /** Construct a StrTokenizer.
+     @param source The string to be split into tokens
+     @param delim The string containing the delimiters. If
+     this parameter is omitted, a space character is
+     assumed
+     */
+    StrTokenizer(std::string source, std::string delim = " ")
+        : the_source(source), the_delim(delim), start(0), end(0) {
+        find_next();
+    }
 
-	/** Construct a StrTokenizer.
-	 @param source The string to be split into tokens
-	 @param delim The string containing the delimiters. If
-	 this parameter is omitted, a space character is
-	 assumed
-	 */
-	StrTokenizer(std::string source, std::string delim = " ") :
-			the_source(source), the_delim(delim), start(0), end(0) {
-		find_next();
-	}
+    /** Determine if there are more tokens.
+     @return true if there are more tokens
+     */
+    bool has_more_tokens();
 
-	/** Determine if there are more tokens.
-	 @return true if there are more tokens
-	 */
-	bool has_more_tokens();
+    /** Retrieve the next token.
+     @return The next token. If there are no more tokens, an empty
+     string is returned  */
+    std::string next_token();
 
-	/** Retrieve the next token.
-	 @return The next token. If there are no more tokens, an empty
-	 string is returned  */
-	std::string next_token();
+  private:
+    /** Position start and end so that start is the index of the start
+     of the next token and end is the end.
+     */
+    void find_next();
 
-private:
-	/** Position start and end so that start is the index of the start
-	 of the next token and end is the end.
-	 */
-	void find_next();
+    /** The string to be split into tokens */
+    std::string the_source;
 
-	/** The string to be split into tokens */
-	std::string the_source;
+    /** The string of delimiters */
+    std::string the_delim;
 
-	/** The string of delimiters */
-	std::string the_delim;
+    /** The index of the start of the next token */
+    size_t start;
 
-	/** The index of the start of the next token */
-	size_t start;
-
-	/** The index of the end of the next token */
-	size_t end;
+    /** The index of the end of the next token */
+    size_t end;
 };
 
 #endif /* STRTOKENIZER_H_ */

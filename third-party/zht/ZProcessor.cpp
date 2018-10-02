@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is part of ZHT library(http://datasys.cs.iit.edu/projects/ZHT/index.html).
- *      Tonglin Li(tli13@hawk.iit.edu) with nickname Tony,
- *      Xiaobing Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo,
- *      Ke Wang(kwang22@hawk.iit.edu) with nickname KWang,
- *      Dongfang Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao,
- *      Ioan Raicu(iraicu@cs.iit.edu).
+ * This file is part of ZHT
+ * library(http://datasys.cs.iit.edu/projects/ZHT/index.html). Tonglin
+ * Li(tli13@hawk.iit.edu) with nickname Tony, Xiaobing
+ * Zhou(xzhou40@hawk.iit.edu) with nickname Xiaobingo, Ke
+ * Wang(kwang22@hawk.iit.edu) with nickname KWang, Dongfang
+ * Zhao(dzhao8@@hawk.iit.edu) with nickname DZhao, Ioan
+ * Raicu(iraicu@cs.iit.edu).
  *
  * ZProcessor.cpp
  *
@@ -28,11 +29,26 @@
  *      Contributor: Tony, KWang, DZhao
  */
 
+/**
+ * Copyright 2018 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you (Intel OBL Internal Use License).
+ * Unless the License provides otherwise, you may not use, modify, copy,
+ * publish, distribute, disclose or transmit this software or the related
+ * documents without Intel's prior written permission.
+ *
+ * This software and the related documents are provided as is, with no
+ * express or implied warranties, other than those that are expressly
+ * stated in the License.
+ */
+
 #include "ZProcessor.h"
 #include "Const-impl.h"
 
-#include <sys/socket.h>
 #include <stdio.h>
+#include <sys/socket.h>
 
 using namespace std;
 
@@ -41,47 +57,42 @@ namespace datasys {
 namespace zht {
 namespace dm {
 
-ZProcessor::ZProcessor() {
+ZProcessor::ZProcessor() {}
 
-}
+ZProcessor::~ZProcessor() {}
 
-ZProcessor::~ZProcessor() {
+void ZProcessor::sendback(const int &fd, const char *buf, const size_t &count,
+                          sockaddr receiver, const int &protocol) {
 
-}
+    int i = -2;
+    try {
+        if (protocol == Const::PROTO_STREAM) {
 
-void ZProcessor::sendback(const int& fd, const char *buf, const size_t& count,
-		sockaddr receiver, const int& protocol) {
-
-	int i = -2;
-	try {
-		if (protocol == Const::PROTO_STREAM) {
-
-			i = send(fd, buf, count, 0);
+            i = send(fd, buf, count, 0);
 #if ILOG
-			fprintf(stdout, "in sendback, send to sock(%d), %d bytes sent\n",
-					fd, i);
+            fprintf(stdout, "in sendback, send to sock(%d), %d bytes sent\n",
+                    fd, i);
 #endif
-		} else if (protocol == Const::PROTO_UGRADM) {
+        } else if (protocol == Const::PROTO_UGRADM) {
 
-			i = sendto(fd, buf, count, 0, (struct sockaddr*) &receiver,
-					sizeof(struct sockaddr));
+            i = sendto(fd, buf, count, 0, (struct sockaddr *)&receiver,
+                       sizeof(struct sockaddr));
 #if ILOG
-			fprintf(stdout, "in sendback, send to sock(%d), %d bytes sent\n",
-					fd, i);
+            fprintf(stdout, "in sendback, send to sock(%d), %d bytes sent\n",
+                    fd, i);
 #endif
-		} else {
-		}
-	} catch (exception& e) {
+        } else {
+        }
+    } catch (exception &e) {
 
-		fprintf(stderr, "%s, exception caught:\n\t%s",
-				"ZProcessor::sendback(const int& fd, const char *buf, const size_t& count, const sockaddr& receiver, const int& protocol)",
-				e.what());
-	}
-
+        fprintf(stderr, "%s, exception caught:\n\t%s",
+                "ZProcessor::sendback(const int& fd, const char *buf, const "
+                "size_t& count, const sockaddr& receiver, const int& protocol)",
+                e.what());
+    }
 }
 
 } /* namespace dm */
 } /* namespace zht */
 } /* namespace datasys */
 } /* namespace iit */
-
