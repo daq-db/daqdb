@@ -346,6 +346,7 @@ Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
     if (rc != StatusCode::Ok) {
         throw OperationFailedException(AllocationError);
     }
+    assert(val);
     return Value(val, size);
 }
 
