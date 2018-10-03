@@ -65,7 +65,7 @@ int main(int argc, const char *argv[]) {
     auto dhtPort = dhtBackBonePort;
     bool interactiveMode = false;
     std::string pmem_path;
-    // @TODO jradtke move below's configs to singel one
+    // @TODO jradtke move below's config files to single one
     std::string spdk_conf;
     std::string zht_conf;
     std::string neighbors_conf;
