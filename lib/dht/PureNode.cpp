@@ -13,7 +13,7 @@
  * stated in the License.
  */
 
-#include <dht/PureNode.h>
+#include "PureNode.h"
 
 namespace DaqDB
 {

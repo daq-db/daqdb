@@ -50,7 +50,7 @@ void Configuration::readConfiguration(Options &options) {
     cfg.lookupValue("mode", mode);
     int port;
     cfg.lookupValue("port", port);
-    options.Port = port;
+    options.Dht.Port = port;
 
     // TODO move hashes to DaqDB options
     string primaryHash, replicaHash;
@@ -81,10 +81,6 @@ void Configuration::readConfiguration(Options &options) {
     // TODO add logging to DaqDB options
     string loggingLevel = "WARN";
     cfg.lookupValue("logging_level", loggingLevel);
-
-    // TODO check if those are required, and how/where should be defined
-    options.Dht.Id = 0;
-    options.Dht.Port = 5455;
 
     // TODO shift placement for configuration printing
     // TODO make the printing full

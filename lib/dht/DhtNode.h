@@ -15,35 +15,31 @@
 
 #pragma once
 
+#include "PureNode.h"
 #include <asio/io_service.hpp>
-#include <dht/PureNode.h>
 
-namespace DaqDB
-{
+namespace DaqDB {
 
 /*!
  * Class that defines interface for DHT
  */
 class DhtNode : public PureNode {
-public:
-	DhtNode(asio::io_service &io_service, unsigned short port);
-	virtual ~DhtNode();
+  public:
+    DhtNode(asio::io_service &io_service, unsigned short port);
+    virtual ~DhtNode();
 
-	/*!
-	 * Prints DHT status.
-	 * @return
-	 */
-	virtual std::string printStatus() = 0;
+    /*!
+     * Prints DHT status.
+     * @return
+     */
+    virtual std::string printStatus() = 0;
 
-	/*!
-	 * Fill peerNodes vector with peer node list from DHT.
-	 * This is a subset of full list of nodes in system.
-	 *
-	 * @param peerNodes vector to insert peer nodes
-	 * @return number of peer nodes
-	 */
-	virtual unsigned int
-		getPeerList(std::vector<PureNode*>& peerNodes) = 0;
+    /*!
+     * Prints DHT neighbors.
+     * @return
+     */
+    virtual std::string printNeighbors() = 0;
+
 };
 
-}
+} // namespace DaqDB

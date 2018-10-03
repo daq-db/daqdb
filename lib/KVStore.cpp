@@ -15,6 +15,7 @@
 
 #include "KVStore.h"
 
+#include <sstream>
 #include <chrono>
 #include <condition_variable>
 
@@ -119,7 +120,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
         std::memcpy(value.data(), pVal, size);
         return value;
     } else if (location == DISK) {
-        if (!_offloadEnabled)
+        if (!_offloadReactor->isEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         Value *resultValue = nullptr;
@@ -158,7 +159,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
 void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
                        const GetOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
-        if (!_offloadEnabled)
+        if (!_offloadReactor->isEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         try {
@@ -206,7 +207,7 @@ void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
 void KVStore::Update(const Key &key, Value &&val,
                      const UpdateOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
-        if (!_offloadEnabled)
+        if (!_offloadReactor->isEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         std::mutex mtx;
@@ -247,7 +248,7 @@ void KVStore::Update(const Key &key, const UpdateOptions &options) {
 void KVStore::UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
                           const UpdateOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
-        if (!_offloadEnabled)
+        if (!_offloadReactor->isEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         try {
@@ -299,7 +300,7 @@ void KVStore::Remove(const Key &key) {
     }
 
     if (location == DISK) {
-        if (!_offloadEnabled)
+        if (!_offloadReactor->isEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         std::mutex mtx;
@@ -392,19 +393,27 @@ bool KVStore::IsOffloaded(Key &key) {
 std::string KVStore::getProperty(const std::string &name) {
     std::unique_lock<std::mutex> l(mLock);
 
-    if (name == "fogkv.dht.id")
+    if (name == "daqdb.dht.id")
         return std::to_string(mDhtNode->getDhtId());
-    if (name == "fogkv.listener.ip")
+    if (name == "daqdb.dht.neighbours")
+        return mDhtNode->printNeighbors();
+    if (name == "daqdb.dht.status") {
+        std::stringstream result;
+        result << mDhtNode->printStatus() << endl;
+        result << _offloadReactor->printStatus() << endl;
+        return result.str();
+    }
+    if (name == "daqdb.dht.ip")
         return mDhtNode->getIp();
-    if (name == "fogkv.listener.port")
+    if (name == "daqdb.dht.port")
         return std::to_string(mDhtNode->getPort());
-    if (name == "fogkv.pmem.path")
+    if (name == "daqdb.pmem.path")
         return getOptions().PMEM.poolPath;
-    if (name == "fogkv.pmem.size")
+    if (name == "daqdb.pmem.size")
         return std::to_string(getOptions().PMEM.totalSize);
-    if (name == "fogkv.pmem.alloc_unit_size")
+    if (name == "daqdb.pmem.alloc_unit_size")
         return std::to_string(getOptions().PMEM.allocUnitSize);
-    if (name == "fogkv.KVEngine")
+    if (name == "daqdb.KVEngine")
         return mRTree->Engine();
 
     return "";
@@ -426,19 +435,18 @@ void KVStore::init() {
     while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
         sleep(1);
     }
-    if (_offloadReactor->state == ReactorState::REACTOR_READY) {
-        _offloadEnabled = true;
-        FOG_DEBUG("SPDK offload functionality is enabled");
+    if (_offloadReactor->isEnabled()) {
+        DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {
-        FOG_DEBUG("SPDK offload functionality is disabled");
+        DAQ_DEBUG("SPDK offload functionality is disabled");
     }
 
     auto dhtPort =
         getOptions().Dht.Port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
-    auto port =
-        getOptions().Port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
 
-    mDhtNode.reset(new DaqDB::ZhtNode(env.ioService(), dhtPort));
+    mDhtNode.reset(new DaqDB::ZhtNode(env.ioService(), dhtPort,
+                                      getOptions().Dht.configFile,
+                                      getOptions().Dht.neighborsFile));
 
     mRTree.reset(DaqDB::RTreeEngine::Open(
         getOptions().KVEngine, getOptions().PMEM.poolPath,
@@ -446,7 +454,7 @@ void KVStore::init() {
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    if (_offloadEnabled) {
+    if (_offloadReactor->isEnabled()) {
         _offloadPooler =
             new DaqDB::OffloadPooler(mRTree, _offloadReactor->bdevCtx,
                                      getOptions().Value.OffloadMaxSize);
@@ -457,12 +465,12 @@ void KVStore::init() {
     for (auto index = 0; index < poolerCount; index++) {
         auto rqstPooler =
             new DaqDB::PmemPooler(mRTree, POOLER_CPU_CORE_BASE + index);
-        if (_offloadEnabled)
+        if (_offloadReactor->isEnabled())
             rqstPooler->offloadPooler = _offloadPooler;
         _rqstPoolers.push_back(rqstPooler);
     }
 
-    FOG_DEBUG("KVStoreBaseImpl initialization completed");
+    DAQ_DEBUG("KVStoreBaseImpl initialization completed");
 }
 
 } // namespace DaqDB

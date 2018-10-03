@@ -87,7 +87,7 @@ class ZHTClient {
                               int lease);
     int teardown();
 
-    int ping();
+    int ping(unsigned int neighborIndex);
 
   private:
     int commonOp(const string &opcode, const string &key, const string &val,

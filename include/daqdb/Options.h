@@ -126,6 +126,8 @@ struct RuntimeOptions {
 struct DhtOptions {
     unsigned short Port = 0;
     NodeId Id = 0;
+    std::string configFile = "";
+    std::string neighborsFile = "";
 };
 
 struct PMEMOptions {
@@ -143,9 +145,6 @@ struct Options {
     ValueDescription Value;
     RuntimeOptions Runtime;
     DhtOptions Dht;
-
-    // TODO move to struct ?
-    unsigned short Port = 0;
 
     std::string KVEngine = "kvtree";
     PMEMOptions PMEM;

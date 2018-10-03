@@ -15,34 +15,16 @@
 
 #pragma once
 
-#include <thread>
-
-#include <DhtNode.h>
-
 namespace DaqDB {
-
-class ZhtNode : public DaqDB::DhtNode {
+template <class T> class DhtClient {
   public:
-    ZhtNode(asio::io_service &io_service, unsigned short port);
-    virtual ~ZhtNode();
+    DhtClient() : _initialized(false) {}
+    T c;
 
-    /*!
-     * @return Status of the Node - format determined by 3rd party lib
-     */
-    std::string printStatus();
-
-    /*!
-     * Fill peerNodes vector with peer node list from DHT.
-     * This is a subset of full list of nodes in system.
-     *
-     * @param peerNodes vector to insert peer nodes
-     * @return number of peer nodes
-     */
-    unsigned int getPeerList(std::vector<PureNode *> &peerNodes);
+    inline bool isInitialized() { return _initialized; }
+    inline void setInitialized() { _initialized = true; }
 
   private:
-    void _ThreadMain(void);
-    std::thread *_thread;
+    bool _initialized;
 };
-
-}
+} // namespace DaqDB

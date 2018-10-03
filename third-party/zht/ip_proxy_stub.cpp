@@ -91,8 +91,9 @@ int IPProtoProxy::reuseSock(int sock) {
     int ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_addr,
                          sizeof(reuse_addr));
     if (ret < 0) {
-        cerr << "resuse socket failed: [" << sock << "], " << strerror(errno)
-             << endl;
+        // @TODO temporary solution, should be passed to LOGGER not to cerr
+        // cerr << "resuse socket failed: [" << sock << "], " << strerror(errno)
+        // << endl;
         return -1;
     } else
         return 0;

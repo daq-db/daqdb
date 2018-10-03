@@ -44,9 +44,10 @@ map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
                                             " <key> [-o <long_term> <0|1>]")(
     "put", " <key> <value> [-o <lock|ready|long_term> <0|1>]")(
     "aput", " <key> <value> [-o <lock|ready|long_term> <0|1>]")("status", "")(
-    "remove", " <key>")("quit", "")("node", " <id>")(
+    "remove", " <key>")("quit", "")(
     "update", " <key> [value] [-o <lock|ready|long_term> <0|1>]")(
-    "aupdate", " <key> [value] [-o <lock|ready|long_term> <0|1>]");
+    "aupdate", " <key> [value] [-o <lock|ready|long_term> <0|1>]")("neighbors",
+                                                                   "");
 
 /*!
  * Provides completion functionality to dragon shell.
@@ -68,7 +69,7 @@ void completion(const char *buf, linenoiseCompletions *lc) {
     } else if (buf[0] == 's') {
         linenoiseAddCompletion(lc, "status");
     } else if (buf[0] == 'n') {
-        linenoiseAddCompletion(lc, "node");
+        linenoiseAddCompletion(lc, "neighbors");
     } else if (buf[0] == 'r') {
         linenoiseAddCompletion(lc, "remove");
     } else if (buf[0] == 'a') {
@@ -146,7 +147,7 @@ int nodeCli::operator()() {
         } else if (starts_with(strLine, "s")) {
             this->_cmdStatus();
         } else if (starts_with(strLine, "n")) {
-            this->_cmdNodeStatus(strLine);
+            this->_cmdNeighbors();
         } else if (starts_with(strLine, "q")) {
             return false;
         } else {
@@ -610,8 +611,16 @@ void nodeCli::_cmdStatus() {
     chrono::time_point<chrono::system_clock> timestamp;
     auto currentTime = chrono::system_clock::to_time_t(timestamp);
 
+    cout << format("DHT ID = %1%\nDHT ip:port = localhost:%2%\n") %
+                _spKVStore->getProperty("daqdb.dht.id") %
+                _spKVStore->getProperty("daqdb.dht.port")
+         << flush;
+
+    cout << format("%1%") % _spKVStore->getProperty("daqdb.dht.status")
+         << flush;
+
     if (_statusMsgs.size() > 0) {
-        cout << "Async operations statuses:" << endl;
+        cout << endl << "Async operations:" << endl;
         for (std::string message : _statusMsgs) {
             cout << "\t- " << message << endl;
         }
@@ -619,25 +628,10 @@ void nodeCli::_cmdStatus() {
     }
 }
 
-void nodeCli::_cmdNodeStatus(const std::string &strLine) {
-    vector<string> arguments;
-    split(arguments, strLine, is_any_of("\t "), boost::token_compress_on);
-
-    if (arguments.size() != 2) {
-        cout << "Error: expects one argument" << endl;
-    } else {
-        auto nodeId = arguments[1];
-
-        if (nodeId == _spKVStore->getProperty("fogkv.dht.id")) {
-            cout << format("Node status:\n\t "
-                           "dht_id=%1%\n\tdht_ip:port=%2%:%3%"
-                           "\n\texternal_port=%4%") %
-                        _spKVStore->getProperty("fogkv.dht.id") %
-                        _spKVStore->getProperty("fogkv.listener.ip") %
-                        _spKVStore->getProperty("fogkv.listener.port")
-                 << endl;
-            return;
-        }
-    }
+void nodeCli::_cmdNeighbors() {
+    cout << format("Neighbors:\n%1%") %
+                _spKVStore->getProperty("daqdb.dht.neighbours")
+         << endl;
 }
-}
+
+} // namespace DaqDB

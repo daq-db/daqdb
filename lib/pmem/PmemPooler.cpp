@@ -51,10 +51,10 @@ void PmemPooler::StartThread() {
         const int set_result = pthread_setaffinity_np(
             _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
         if (set_result == 0) {
-            FOG_DEBUG("Started RqstPooler on CPU core [" +
+            DAQ_DEBUG("Started RqstPooler on CPU core [" +
                       std::to_string(_cpuCore) + "]");
         } else {
-            FOG_DEBUG("Cannot set affinity on CPU core [" +
+            DAQ_DEBUG("Cannot set affinity on CPU core [" +
                       std::to_string(_cpuCore) + "]");
         }
     }
@@ -69,7 +69,7 @@ void PmemPooler::_ThreadMain() {
 
 void PmemPooler::_ProcessTransfer(const PmemRqst *rqst) {
     if (!offloadPooler) {
-        FOG_DEBUG("Request transfer failed. Offload pooler not set");
+        DAQ_DEBUG("Request transfer failed. Offload pooler not set");
         _RqstClb(rqst, StatusCode::OffloadDisabledError);
     }
     try {

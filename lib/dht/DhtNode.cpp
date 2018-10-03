@@ -13,7 +13,7 @@
  * stated in the License.
  */
 
-#include <dht/DhtNode.h>
+#include "DhtNode.h"
 
 namespace DaqDB
 {

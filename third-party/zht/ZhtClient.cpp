@@ -126,11 +126,14 @@ int ZHTClient::lookup(const string &key, string &result) {
     return rc;
 }
 
-int ZHTClient::ping() {
+int ZHTClient::ping(unsigned int neighborIndex) {
     string val;
     string val2;
     string result;
-    int rc = commonOp(Const::ZSC_OPC_INSERT, "ping", val, val2, result, 1);
+
+    // @TODO jradtke using key as temporary solution
+    string key = "_" + std::to_string(neighborIndex);
+    int rc = commonOp(Const::ZSC_OPC_INSERT, key, val, val2, result, 1);
     return rc;
 }
 

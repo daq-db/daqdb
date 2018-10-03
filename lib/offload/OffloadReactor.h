@@ -17,8 +17,8 @@
 
 #include <atomic>
 #include <cstdint>
-#include <thread>
 #include <functional>
+#include <thread>
 
 #include "spdk/bdev.h"
 #include "spdk/env.h"
@@ -50,6 +50,10 @@ class OffloadReactor {
 
     void RegisterPooler(OffloadPooler *offloadPooler);
     void StartThread();
+    std::string printStatus();
+    inline bool isEnabled() {
+        return state == ReactorState::REACTOR_READY;
+    }
 
     std::atomic<ReactorState> state;
     std::vector<OffloadPooler *> poolers;
@@ -65,5 +69,7 @@ class OffloadReactor {
     ReactorShutClb _shutClb;
     std::thread *_thread;
     size_t _cpuCore = 0;
+
+    bool _offloadEnabled = false;
 };
-}
+} // namespace DaqDB
