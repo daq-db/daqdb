@@ -40,14 +40,6 @@ class DhtNode : public PureNode {
      */
     virtual std::string printNeighbors() = 0;
 
-    /*!
-     * Fill peerNodes vector with peer node list from DHT.
-     * This is a subset of full list of nodes in system.
-     *
-     * @param peerNodes vector to insert peer nodes
-     * @return number of peer nodes
-     */
-    virtual unsigned int getPeerList(std::vector<PureNode *> &peerNodes) = 0;
 };
 
 } // namespace DaqDB

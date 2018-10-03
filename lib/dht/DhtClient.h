@@ -21,8 +21,8 @@ template <class T> class DhtClient {
     DhtClient() : _initialized(false) {}
     T c;
 
-    inline bool isInitized() { return _initialized; }
-    inline void setInitized() { _initialized = true; }
+    inline bool isInitialized() { return _initialized; }
+    inline void setInitialized() { _initialized = true; }
 
   private:
     bool _initialized;

@@ -42,15 +42,6 @@ class ZhtNode : public DaqDB::DhtNode {
      */
     virtual std::string printNeighbors();
 
-    /*!
-     * Fill peerNodes vector with peer node list from DHT.
-     * This is a subset of full list of nodes in system.
-     *
-     * @param peerNodes vector to insert peer nodes
-     * @return number of peer nodes
-     */
-    unsigned int getPeerList(std::vector<PureNode *> &peerNodes);
-
   private:
     void _ThreadMain(void);
     void _initNeighbors(void);

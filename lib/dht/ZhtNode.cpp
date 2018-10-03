@@ -48,7 +48,7 @@ ZhtNode::ZhtNode(asio::io_service &io_service, unsigned short port,
     if (boost::filesystem::exists(_confFile) &&
         boost::filesystem::exists(_neighborsFile)) {
         _client.c.init(_confFile, _neighborsFile);
-        _client.setInitized();
+        _client.setInitialized();
         _initNeighbors();
     } else {
         DAQ_DEBUG("Cannot initialize ZHT (Invalid configuration files)");
@@ -85,7 +85,7 @@ void ZhtNode::_initNeighbors() {
 std::string ZhtNode::printStatus() {
     std::stringstream result;
 
-    if (_client.isInitized()) {
+    if (_client.isInitialized()) {
         result << "DHT: active";
     } else {
         result << "DHT: inactive";
@@ -116,10 +116,6 @@ std::string ZhtNode::printNeighbors() {
     }
 
     return result.str();
-}
-
-unsigned int ZhtNode::getPeerList(std::vector<PureNode *> &peerNodes) {
-    return peerNodes.size();
 }
 
 } // namespace DaqDB

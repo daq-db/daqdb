@@ -97,10 +97,10 @@ int main(int argc, const char *argv[]) {
         "spdk-conf-file,c",
         po::value<std::string>(&spdk_conf)->default_value("../config.spdk"),
         "SPDK configuration file")(
-        "zht-conf-file,c",
+        "zht-conf-file,z",
         po::value<std::string>(&zht_conf)->default_value("../zht.conf"),
         "ZHT configuration file")(
-        "neighbors-file,c",
+        "neighbors-file,x",
         po::value<std::string>(&neighbors_conf)->default_value("../neighbors.conf"),
         "Neighbors configuration file");
 
