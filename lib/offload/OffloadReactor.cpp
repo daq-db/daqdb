@@ -28,7 +28,7 @@
 namespace DaqDB {
 
 static void set_reactor_error_state(OffloadReactor *reactor, std::string msg) {
-        FOG_DEBUG(msg);
+        DAQ_DEBUG(msg);
         reactor->state = ReactorState::REACTOR_ERROR;
 }
 
@@ -113,10 +113,10 @@ void OffloadReactor::StartThread() {
         const int set_result = pthread_setaffinity_np(
             _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
         if (set_result == 0) {
-            FOG_DEBUG("Started OffloadReactor on CPU core [" +
+            DAQ_DEBUG("Started OffloadReactor on CPU core [" +
                       std::to_string(_cpuCore) + "]");
         } else {
-            FOG_DEBUG("Cannot set affinity on CPU core [" +
+            DAQ_DEBUG("Cannot set affinity on CPU core [" +
                       std::to_string(_cpuCore) + "] for OffloadReactor");
         }
     }
@@ -134,7 +134,7 @@ void OffloadReactor::_ThreadMain(void) {
 
     rc = spdk_app_start(_spdkAppOpts.get(), reactor_start_clb, this, NULL);
 
-    FOG_DEBUG("SPDK reactor exit with rc=" + std::to_string(rc));
+    DAQ_DEBUG("SPDK reactor exit with rc=" + std::to_string(rc));
     spdk_app_fini();
     if (rc) {
         state = ReactorState::REACTOR_ERROR;

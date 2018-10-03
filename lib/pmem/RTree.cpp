@@ -53,7 +53,7 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
         }
 
     } else {
-        std::cout << "Opening existing pool " << std::endl;
+        DAQ_DEBUG("RTree Opening existing pool");
         _pm_pool = pool<TreeRoot>::open(path, LAYOUT);
         treeRoot = _pm_pool.get_root().get();
         level_bits = treeRoot->level_bits;
@@ -72,7 +72,7 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
     if (rc)
         throw OperationFailedException(Status(AllocationError));
     alloc_class = alloc_daqdb.class_id;
-    FOG_DEBUG("RTree New allocation class (" + std::to_string(alloc_class) +
+    DAQ_DEBUG("RTree New allocation class (" + std::to_string(alloc_class) +
               ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
               " units_per_block=" +
               std::to_string(alloc_daqdb.units_per_block));

@@ -616,12 +616,11 @@ void nodeCli::_cmdStatus() {
                 _spKVStore->getProperty("daqdb.dht.port")
          << flush;
 
-    cout << format("%1%") %
-                _spKVStore->getProperty("daqdb.dht.status")
-         << endl;
+    cout << format("%1%") % _spKVStore->getProperty("daqdb.dht.status")
+         << flush;
 
     if (_statusMsgs.size() > 0) {
-        cout << "Async operations:" << endl;
+        cout << endl << "Async operations:" << endl;
         for (std::string message : _statusMsgs) {
             cout << "\t- " << message << endl;
         }

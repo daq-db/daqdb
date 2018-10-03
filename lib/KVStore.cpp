@@ -436,9 +436,9 @@ void KVStore::init() {
         sleep(1);
     }
     if (_offloadReactor->isEnabled()) {
-        FOG_DEBUG("SPDK offload functionality is enabled");
+        DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {
-        FOG_DEBUG("SPDK offload functionality is disabled");
+        DAQ_DEBUG("SPDK offload functionality is disabled");
     }
 
     auto dhtPort =
@@ -470,7 +470,7 @@ void KVStore::init() {
         _rqstPoolers.push_back(rqstPooler);
     }
 
-    FOG_DEBUG("KVStoreBaseImpl initialization completed");
+    DAQ_DEBUG("KVStoreBaseImpl initialization completed");
 }
 
 } // namespace DaqDB

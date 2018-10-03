@@ -51,7 +51,7 @@ ZhtNode::ZhtNode(asio::io_service &io_service, unsigned short port,
         _client.setInitized();
         _initNeighbors();
     } else {
-        FOG_DEBUG("Cannot initialize ZHT (Invalid configuration files)");
+        DAQ_DEBUG("Cannot initialize ZHT (Invalid configuration files)");
     }
 }
 
@@ -61,7 +61,7 @@ void ZhtNode::_ThreadMain() {
     auto zhtPort = to_string(getPort());
     ConfHandler::initConf(_confFile, _neighborsFile);
     EpollServer zhtServer(zhtPort.c_str(), new IPServer());
-    FOG_DEBUG("Started zhtServer on port " + zhtPort);
+    DAQ_DEBUG("ZHT server started on port " + zhtPort);
     zhtServer.serve();
 }
 

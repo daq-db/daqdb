@@ -16,9 +16,9 @@
 #pragma once
 
 #ifdef DEBUG
-#define FOG_DEBUG(msg) gLog.Log(msg)
+#define DAQ_DEBUG(msg) gLog.Log(msg)
 #else
-#define FOG_DEBUG(msg)
+#define DAQ_DEBUG(msg)
 #endif
 
 #include <functional>
