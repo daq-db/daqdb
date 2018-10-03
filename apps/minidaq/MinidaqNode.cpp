@@ -29,7 +29,13 @@
 namespace DaqDB {
 
 MinidaqNode::MinidaqNode(KVStoreBase *kvs)
-    : _kvs(kvs), _stopped(false), _statsReady(false) {}
+    : _kvs(kvs), _stopped(false), _statsReady(false)
+#ifdef WITH_INTEGRITY_CHECK
+      ,
+      _nIntegrityChecks(0), _nIntegrityErrors(0)
+#endif /* WITH_INTEGRITY_CHECK */
+{
+}
 
 MinidaqNode::~MinidaqNode() {}
 
@@ -127,10 +133,10 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
             s.nRequests++;
             try {
                 _Task(minidaqKey, c, c_err);
-                _NextKey(minidaqKey);
             } catch (...) {
                 s.nErrRequests++;
             }
+            _NextKey(minidaqKey);
         } while (!_stopped &&
                  ((s.nRequests % avg_r) || !timerSample.IsExpired()));
         s.interval_ns = timerSample.GetElapsed_ns();
@@ -209,6 +215,13 @@ void MinidaqNode::Show() {
 
     std::cout << "all-" << _GetType() << std::endl;
     _statsAll.DumpSummary();
+
+#ifdef WITH_INTEGRITY_CHECK
+    std::cout << "Integrity checks: " << std::to_string(_nIntegrityChecks)
+              << std::endl;
+    std::cout << "Integrity errors: " << std::to_string(_nIntegrityErrors)
+              << std::endl;
+#endif /* WITH_INTEGRITY_CHECK */
 }
 
 void MinidaqNode::Save(std::string &fp) {
@@ -235,4 +248,43 @@ void MinidaqNode::SaveSummary(std::string &fs, std::string &tname) {
 
     _statsAll.DumpSummary(fs, tname);
 }
+
+#ifdef WITH_INTEGRITY_CHECK
+char MinidaqNode::_GetBufferByte(MinidaqKey &key, size_t i) {
+    return ((key.eventId + i) % 256);
+}
+
+void MinidaqNode::_FillBuffer(MinidaqKey &key, char *buf, size_t s) {
+    for (int i = 0; i < s; i++) {
+        buf[i] = _GetBufferByte(key, i);
+    }
+}
+
+void MinidaqNode::_CheckBuffer(MinidaqKey &key, char *buf, size_t s) {
+    std::stringstream msg;
+    unsigned char b_exp;
+    unsigned char b_act;
+    bool err = false;
+
+    _nIntegrityChecks++;
+    for (int i = 0; i < s; i++) {
+        b_exp = _GetBufferByte(key, i);
+        b_act = buf[i];
+        if (b_exp != b_act) {
+            if (!err) {
+                err = true;
+                msg << "Integrity check failed (" << _GetType()
+                    << ") EventId=" << key.eventId
+                    << " SubdetectorId=" << key.subdetectorId << std::endl;
+                _nIntegrityErrors++;
+            }
+            msg << "  buf[" << i << "] = "
+                << "0x" << std::hex << static_cast<int>(b_act) << " Expected: "
+                << "0x" << static_cast<int>(b_exp) << std::dec << std::endl;
+        }
+    }
+    if (err)
+        std::cout << msg.str();
+}
+#endif /* WITH_INTEGRITY_CHECK */
 }

@@ -80,39 +80,38 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
         /** @todo change to GetRange once implemented */
         key.subdetectorId = baseId + i;
         DaqDB::Value value = _kvs->Get(fogKey);
-        if (*(reinterpret_cast<uint64_t *>(value.data())) != key.eventId) {
-            cntErr++;
-        } else {
-            if (accept) {
-                while (1) {
-                    try {
-                        _kvs->UpdateAsync(
-                            std::move(fogKey), UpdateOptions(LONG_TERM),
-                            [keyTmp, &cnt, &cntErr](
-                                DaqDB::KVStoreBase *kvs, DaqDB::Status status,
-                                const char *key, const size_t keySize,
-                                const char *value, const size_t valueSize) {
-                                if (!status.ok()) {
-                                    cntErr++;
-                                } else {
-                                    cnt++;
-                                }
-                                delete keyTmp;
-                            });
-                    } catch (QueueFullException &e) {
-                        // Keep retrying
-                        continue;
-                    } catch (...) {
-                        delete keyTmp;
-                        delete value.data();
-                        throw;
-                    }
-                    break;
+#ifdef WITH_INTEGRITY_CHECK
+        _CheckBuffer(key, value.data(), value.size());
+#endif /* WITH_INTEGRITY_CHECK */
+        if (accept) {
+            while (1) {
+                try {
+                    _kvs->UpdateAsync(
+                        std::move(fogKey), UpdateOptions(LONG_TERM),
+                        [keyTmp, &cnt,
+                         &cntErr](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
+                                  const char *key, const size_t keySize,
+                                  const char *value, const size_t valueSize) {
+                            if (!status.ok()) {
+                                cntErr++;
+                            } else {
+                                cnt++;
+                            }
+                            delete keyTmp;
+                        });
+                } catch (QueueFullException &e) {
+                    // Keep retrying
+                    continue;
+                } catch (...) {
+                    delete keyTmp;
+                    delete value.data();
+                    throw;
                 }
-            } else {
-                _kvs->Remove(fogKey);
-                cnt++;
+                break;
             }
+        } else {
+            _kvs->Remove(fogKey);
+            cnt++;
         }
         delete value.data();
     }

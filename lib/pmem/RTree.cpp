@@ -62,7 +62,7 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
 
     // Define custom allocation class
     struct pobj_alloc_class_desc alloc_daqdb;
-    alloc_daqdb.header_type = POBJ_HEADER_COMPACT;
+    alloc_daqdb.header_type = POBJ_HEADER_NONE;
     alloc_daqdb.unit_size = allocUnitSize;
     alloc_daqdb.units_per_block =
         size / (allocUnitSize * MAXIMUM_MEMORY_BLOCKS);

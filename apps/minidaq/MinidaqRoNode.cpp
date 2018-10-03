@@ -35,7 +35,11 @@ void MinidaqRoNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
     Key fogKey(reinterpret_cast<char *>(&key), sizeof(key));
     DaqDB::Value value = _kvs->Alloc(fogKey, _fSize);
-    *(reinterpret_cast<uint64_t *>(value.data())) = key.eventId;
+
+#ifdef WITH_INTEGRITY_CHECK
+    _FillBuffer(key, value.data(), value.size());
+#endif /* WITH_INTEGRITY_CHECK */
+
     _kvs->Put(std::move(fogKey), std::move(value));
     cnt++;
 }
