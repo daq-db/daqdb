@@ -100,6 +100,11 @@ uint64_t HashUtil::genHash(const char *pc) {
     uint64_t hash = 0;
     uint64_t c; // int c;
 
+    // @TODO temporary solution, will be replaced by key section's mapping
+    if (*pc == '_') {
+        return std::stoi(pc + 1);
+    }
+
     while (c = (*pc++)) {
         hash = c + (hash << 6) + (hash << 16) - hash;
     }

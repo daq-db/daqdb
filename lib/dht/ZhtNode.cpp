@@ -13,11 +13,18 @@
  * stated in the License.
  */
 
+#include <sstream>
 
-#include <future>
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/format.hpp>
+#include <boost/assign/list_of.hpp>
 
-#include "ZhtNode.h"
+#include <ConfHandler.h>
+#include <Util.h>
+
 #include "DhtUtils.h"
+#include "ZhtNode.h"
 #include <Logger.h>
 
 #include "EpollServer.h"
@@ -25,25 +32,94 @@
 
 namespace DaqDB {
 
-ZhtNode::ZhtNode(asio::io_service &io_service, unsigned short port)
-    : DaqDB::DhtNode(io_service, port) {
+using zht_const = iit::datasys::zht::dm::Const;
+using boost::format;
+
+std::map<NodeState, std::string> NodeStateStr = boost::assign::map_list_of(
+    NodeState::Ready, "Ready")(NodeState::NotResponding, "Not Responding");
+
+ZhtNode::ZhtNode(asio::io_service &io_service, unsigned short port,
+                 const std::string &confFile, const std::string &neighborsFile)
+    : DaqDB::DhtNode(io_service, port), _confFile(confFile),
+      _neighborsFile(neighborsFile) {
     setPort(DaqDB::utils::getFreePort(io_service, port, true));
     _thread = new std::thread(&ZhtNode::_ThreadMain, this);
+
+    if (boost::filesystem::exists(_confFile) &&
+        boost::filesystem::exists(_neighborsFile)) {
+        _client.c.init(_confFile, _neighborsFile);
+        _client.setInitized();
+        _initNeighbors();
+    } else {
+        FOG_DEBUG("Cannot initialize ZHT (Invalid configuration files)");
+    }
 }
 
 ZhtNode::~ZhtNode() {}
 
 void ZhtNode::_ThreadMain() {
     auto zhtPort = to_string(getPort());
+    ConfHandler::initConf(_confFile, _neighborsFile);
     EpollServer zhtServer(zhtPort.c_str(), new IPServer());
-    FOG_DEBUG("Started zhtServer on port " + zhtPort) ;
+    FOG_DEBUG("Started zhtServer on port " + zhtPort);
     zhtServer.serve();
 }
 
-std::string ZhtNode::printStatus() { return ""; }
+void ZhtNode::_initNeighbors() {
+    for (unsigned int index = 0; index < ConfHandler::NeighborVector.size();
+         ++index) {
+        auto entry = ConfHandler::NeighborVector.at(index);
+        auto dhtNode =
+            new PureNode(entry.name(), index, std::stoi(entry.value()));
+        auto dhtNodeInfo = new DhtNodeInfo();
+        if (_client.c.ping(index) ==
+            zht_const::toInt(zht_const::ZSC_REC_SUCC)) {
+            dhtNodeInfo->state = NodeState::Ready;
+        } else {
+            dhtNodeInfo->state = NodeState::NotResponding;
+        }
+        _neighbors[dhtNode] = dhtNodeInfo;
+    }
+}
+
+std::string ZhtNode::printStatus() {
+    std::stringstream result;
+
+    if (_client.isInitized()) {
+        result << "DHT: active";
+    } else {
+        result << "DHT: inactive";
+    }
+
+    return result.str();
+}
+
+std::string ZhtNode::printNeighbors() {
+    std::stringstream result;
+
+    if (_neighbors.size()) {
+        for (auto neighbor : _neighbors) {
+
+            if (_client.c.ping(neighbor.first->getDhtId()) ==
+                zht_const::toInt(zht_const::ZSC_REC_SUCC)) {
+                neighbor.second->state = NodeState::Ready;
+            } else {
+                neighbor.second->state = NodeState::NotResponding;
+            }
+            result << boost::str(boost::format("[%1%:%2%]: %3%") %
+                                 neighbor.first->getIp() %
+                                 to_string(neighbor.first->getPort()) %
+                                 NodeStateStr[neighbor.second->state]);
+        }
+    } else {
+        result << "No neighbors";
+    }
+
+    return result.str();
+}
 
 unsigned int ZhtNode::getPeerList(std::vector<PureNode *> &peerNodes) {
     return peerNodes.size();
 }
 
-}
+} // namespace DaqDB

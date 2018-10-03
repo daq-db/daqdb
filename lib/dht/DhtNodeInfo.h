@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2017-2018 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -13,24 +13,22 @@
  * stated in the License.
  */
 
-#include "Logger.h"
+#pragma once
+
+#include <cstdint>
 
 namespace DaqDB {
 
-DaqDB::Logger gLog;
+enum class NodeState : std::uint8_t {
+    Ready = 0,
+    NotResponding
+};
 
-Logger::Logger() {}
-
-Logger::~Logger() {}
-
-void Logger::setLogFunc(const std::function<void(std::string)> &fn) {
-    _logFunc = fn;
-}
-
-void Logger::Log(std::string msg) {
-    if (_logFunc) {
-        _logFunc(msg);
-    }
-}
+class DhtNodeInfo {
+  public:
+    DhtNodeInfo()
+        : state(NodeState::NotResponding) {}
+    NodeState state;
+};
 
 } // namespace DaqDB

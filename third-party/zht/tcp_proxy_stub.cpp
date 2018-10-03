@@ -181,18 +181,18 @@ int TCPProxy::makeClientSocket(const string &host, const uint &port) {
         0); // try change here.................................................
 
     if (to_sock < 0) {
-
-        cerr << "TCPProxy::makeClientSocket(): error on ::socket(...): "
-             << strerror(errno) << endl;
+        // @TODO temporary solution, should be passed to LOGGER not to cerr
+        // cerr << "TCPProxy::makeClientSocket(): error on ::socket(...): "
+        // << strerror(errno) << endl;
         return -1;
     }
 
     int ret_con = connect(to_sock, (struct sockaddr *)&dest, sizeof(sockaddr));
 
     if (ret_con < 0) {
-
-        cerr << "TCPProxy::makeClientSocket(): error on ::connect(...): "
-             << strerror(errno) << endl;
+        // @TODO temporary solution, should be passed to LOGGER not to cerr
+        // cerr << "TCPProxy::makeClientSocket(): error on ::connect(...): "
+        // << strerror(errno) << endl;
         return -1;
     }
 
@@ -226,9 +226,9 @@ int TCPProxy::sendTo(int sock, const void *sendbuf, int sendcount) {
 
     // prompt errors
     if (sentSize < sendcount) {
-
-        cerr << "TCPProxy::sendTo(): error on BdSendToServer::bsend(...): "
-             << strerror(errno) << endl;
+        // @TODO temporary solution, should be passed to LOGGER not to cerr
+        // cerr << "TCPProxy::sendTo(): error on BdSendToServer::bsend(...): "
+        // << strerror(errno) << endl;
     }
 
     return sentSize;
@@ -266,9 +266,9 @@ int TCPProxy::recvFrom(int sock, void *recvbuf) {
 
     // prompt errors
     if (recvcount < 0) {
-
-        cerr << "TCPProxy::recvFrom(): error on ::recv(...): "
-             << strerror(errno) << endl;
+        // @TODO temporary solution, should be passed to LOGGER not to cerr
+        // cerr << "TCPProxy::recvFrom(): error on ::recv(...): "
+        // << strerror(errno) << endl;
     }
 
     memset(buf, '\0', sizeof(buf));

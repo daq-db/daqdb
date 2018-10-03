@@ -39,4 +39,4 @@ class Logger {
 
 extern DaqDB::Logger gLog;
 
-} /* namespace FogKV */
+} // namespace DaqDB

@@ -51,7 +51,7 @@ class nodeCli {
     void _cmdUpdateAsync(const std::string &strLine);
     void _cmdRemove(const std::string &strLine);
     void _cmdStatus();
-    void _cmdNodeStatus(const std::string &strLine);
+    void _cmdNeighbors();
 
     DaqDB::Key _strToKey(const std::string &key);
     DaqDB::Value _strToValue(const std::string &valStr);

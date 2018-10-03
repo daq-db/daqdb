@@ -21,8 +21,8 @@
 #include <OffloadPooler.h>
 #include <RTreeEngine.h>
 #include <daqdb/KVStoreBase.h>
-#include <dht/ZhtNode.h>
-#include <dht/DhtNode.h>
+#include "ZhtNode.h"
+#include "DhtNode.h"
 
 #include "core/Env.h"
 #include "pmem/PmemPooler.h"
@@ -93,7 +93,6 @@ class KVStore : public KVStoreBase {
 
     OffloadReactor *_offloadReactor;
     OffloadPooler *_offloadPooler;
-    bool _offloadEnabled = false;
 };
 
 }

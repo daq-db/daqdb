@@ -43,6 +43,9 @@ namespace po = boost::program_options;
 
 typedef char KeyType[16];
 
+const string zhtConf = "zht-ft.conf";
+const string neighborConf = "neighbor-ft.conf";
+
 int main(int argc, const char *argv[]) {
     unsigned short port = 10001;
     unsigned short nodeId = 0;
@@ -93,12 +96,16 @@ int main(int argc, const char *argv[]) {
     };
 
     options.Dht.Id = nodeId;
-    options.Port = port;
     options.Dht.Port = port;
     options.PMEM.poolPath = pmem_path;
     options.PMEM.totalSize = pmem_size;
     options.PMEM.allocUnitSize = alloc_size;
     options.Key.field(0, sizeof(KeyType));
+
+    /* ZHT configuration files must be prepared before KVStore is created */
+    prepare_zht_tests(zhtConf, neighborConf);
+    options.Dht.configFile = zhtConf;
+    options.Dht.neighborsFile = neighborConf;
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;
     try {
@@ -111,20 +118,20 @@ int main(int argc, const char *argv[]) {
 
     BOOST_LOG_SEV(lg::get(), bt::info)
         << format("DHT node (id=%1%) is running on %2%:%3%") %
-               spKVStore->getProperty("fogkv.dht.id") %
-               spKVStore->getProperty("fogkv.listener.ip") %
-               spKVStore->getProperty("fogkv.listener.port")
+               spKVStore->getProperty("daqdb.dht.id") %
+               spKVStore->getProperty("daqdb.listener.ip") %
+               spKVStore->getProperty("daqdb.listener.port")
         << flush;
 
     RUN_USE_CASE(use_case_sync_base(spKVStore));
     RUN_USE_CASE(use_case_async_base(spKVStore));
     RUN_USE_CASE(use_case_sync_offload(spKVStore));
     RUN_USE_CASE(use_case_async_offload(spKVStore));
+    RUN_USE_CASE(use_case_zht_connect(spKVStore, zhtConf, neighborConf));
 
-    prepare_zht_tests();
-    RUN_USE_CASE(use_case_zht_connect(spKVStore));
     BOOST_LOG_SEV(lg::get(), bt::info) << "Closing DHT node." << flush;
-    cleanup_zht_tests();
+
+    cleanup_zht_tests(zhtConf, neighborConf);
 
     return 0;
 }

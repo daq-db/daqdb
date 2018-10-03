@@ -24,12 +24,10 @@
 
 using zht_const = iit::datasys::zht::dm::Const;
 
-static const string zhtConf = "zht-ft.conf";
-static const string neighborConf = "neighbor-ft.conf";
-
-void prepare_zht_tests() {
-    if (!boost::filesystem::exists(zhtConf)) {
-        std::ofstream confOut(zhtConf, std::ios::out);
+void prepare_zht_tests(const std::string &confFile,
+                       const std::string &neighborsFile) {
+    if (!boost::filesystem::exists(confFile)) {
+        std::ofstream confOut(confFile, std::ios::out);
         confOut << "PROTOCOL TCP" << std::endl;
         confOut << "PORT 10001" << std::endl;
         confOut << "MSG_MAXSIZE 1000000" << std::endl;
@@ -38,34 +36,37 @@ void prepare_zht_tests() {
         confOut.close();
         BOOST_LOG_SEV(lg::get(), bt::info) << "ZHT config file created";
     }
-    if (!boost::filesystem::exists(neighborConf)) {
-        std::ofstream neighbourOut(neighborConf, std::ios::out);
+    if (!boost::filesystem::exists(neighborsFile)) {
+        std::ofstream neighbourOut(neighborsFile, std::ios::out);
         neighbourOut << "localhost 10001" << std::endl;
         neighbourOut.close();
         BOOST_LOG_SEV(lg::get(), bt::info) << "ZHT neighbour file created";
     }
 }
 
-void cleanup_zht_tests() {
-    if (boost::filesystem::exists(zhtConf)) {
-        boost::filesystem::remove(zhtConf);
+void cleanup_zht_tests(const std::string &confFile,
+                       const std::string &neighborsFile) {
+    if (boost::filesystem::exists(confFile)) {
+        boost::filesystem::remove(confFile);
         BOOST_LOG_SEV(lg::get(), bt::info) << "ZHT config file removed";
     }
-    if (boost::filesystem::exists(neighborConf)) {
-        boost::filesystem::remove(neighborConf);
-        BOOST_LOG_SEV(lg::get(), bt::info) << "ZHT neighbour file removed";
+    if (boost::filesystem::exists(neighborsFile)) {
+        boost::filesystem::remove(neighborsFile);
+        BOOST_LOG_SEV(lg::get(), bt::info) << "ZHT neighbors file removed";
     }
 }
 
-bool use_case_zht_connect(std::shared_ptr<DaqDB::KVStoreBase> &spKvs) {
+bool use_case_zht_connect(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
+                          const std::string &confFile,
+                          const std::string &neighborsFile) {
     USE_CASE_LOG("use_case_zht_connect");
 
     bool result = true;
     ZHTClient zc;
-    zc.init(zhtConf, neighborConf);
+    zc.init(confFile, neighborsFile);
 
     string rsStr;
-    int rc = zc.ping();
+    int rc = zc.ping(0);
 
     if (rc == zht_const::toInt(zht_const::ZSC_REC_SUCC)) {
         BOOST_LOG_SEV(lg::get(), bt::info) << "Ping: OK";

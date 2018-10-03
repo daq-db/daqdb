@@ -18,18 +18,29 @@
 #include <thread>
 
 #include <DhtNode.h>
+#include "DhtNodeInfo.h"
+#include "DhtClient.h"
+#include <ZhtClient.h>
 
 namespace DaqDB {
 
 class ZhtNode : public DaqDB::DhtNode {
   public:
-    ZhtNode(asio::io_service &io_service, unsigned short port);
+    ZhtNode(asio::io_service &io_service, unsigned short port,
+            const std::string &confFile = "",
+            const std::string &neighborsFile = "");
     virtual ~ZhtNode();
 
     /*!
      * @return Status of the Node - format determined by 3rd party lib
      */
     std::string printStatus();
+
+    /*!
+     * Prints DHT neighbors.
+     * @return
+     */
+    virtual std::string printNeighbors();
 
     /*!
      * Fill peerNodes vector with peer node list from DHT.
@@ -42,7 +53,15 @@ class ZhtNode : public DaqDB::DhtNode {
 
   private:
     void _ThreadMain(void);
+    void _initNeighbors(void);
+
     std::thread *_thread;
+
+    DhtClient<ZHTClient> _client;
+    map<PureNode*, DhtNodeInfo*> _neighbors;
+
+    std::string _confFile;
+    std::string _neighborsFile;
 };
 
-}
+} // namespace DaqDB

@@ -13,7 +13,7 @@
  * stated in the License.
  */
 
-
+#include <sstream>
 #include <iostream>
 #include <pthread.h>
 #include <string>
@@ -143,4 +143,17 @@ void OffloadReactor::_ThreadMain(void) {
     }
     _shutClb();
 }
+
+std::string OffloadReactor::printStatus() {
+    std::stringstream result;
+
+    if (state == ReactorState::REACTOR_READY) {
+        result << "Offload: active";
+    } else {
+        result << "Offload: inactive";
+    }
+
+    return result.str();
+}
+
 }

@@ -61,12 +61,15 @@ const unsigned short dhtBackBonePort = 11000;
 }
 
 int main(int argc, const char *argv[]) {
-    unsigned short inputPort;
     unsigned short nodeId = 0;
     auto dhtPort = dhtBackBonePort;
     bool interactiveMode = false;
     std::string pmem_path;
+    // @TODO jradtke move below's configs to singel one
     std::string spdk_conf;
+    std::string zht_conf;
+    std::string neighbors_conf;
+
     size_t pmem_size = 0;
     size_t alloc_size = 0;
 
@@ -79,9 +82,7 @@ int main(int argc, const char *argv[]) {
 
     po::options_description argumentsDescription{"Options"};
     argumentsDescription.add_options()("help,h", "Print help messages")(
-        "port,p", po::value<unsigned short>(&inputPort),
-        "Node Communication port")("dht,d", po::value<unsigned short>(&dhtPort),
-                                   "DHT Communication port")(
+        "dht,d", po::value<unsigned short>(&dhtPort), "DHT Communication port")(
         "nodeid,n", po::value<unsigned short>(&nodeId)->default_value(0),
         "Node ID used to match database file")(
         "interactive,i", "Enable interactive mode")("log,l", "Enable logging")(
@@ -95,7 +96,13 @@ int main(int argc, const char *argv[]) {
         "Allocation unit size")(
         "spdk-conf-file,c",
         po::value<std::string>(&spdk_conf)->default_value("../config.spdk"),
-        "SPDK configuration file");
+        "SPDK configuration file")(
+        "zht-conf-file,c",
+        po::value<std::string>(&zht_conf)->default_value("../zht.conf"),
+        "ZHT configuration file")(
+        "neighbors-file,c",
+        po::value<std::string>(&neighbors_conf)->default_value("../neighbors.conf"),
+        "Neighbors configuration file");
 
     po::variables_map parsedArguments;
     try {
@@ -134,7 +141,8 @@ int main(int argc, const char *argv[]) {
 
     options.Dht.Id = nodeId;
     options.Dht.Port = dhtPort;
-    options.Port = inputPort;
+    options.Dht.configFile = zht_conf;
+    options.Dht.neighborsFile = neighbors_conf;
     options.PMEM.poolPath = pmem_path;
     options.PMEM.totalSize = pmem_size;
     options.PMEM.allocUnitSize = alloc_size;
@@ -150,10 +158,9 @@ int main(int argc, const char *argv[]) {
     }
 
     BOOST_LOG_SEV(lg::get(), bt::info)
-        << format("DHT node (id=%1%) is running on %2%:%3%") %
-               spKVStore->getProperty("fogkv.dht.id") %
-               spKVStore->getProperty("fogkv.listener.ip") %
-               spKVStore->getProperty("fogkv.listener.port")
+        << format("DHT node (id=%1%) is running on localhost:%2%") %
+               spKVStore->getProperty("daqdb.dht.id") %
+               spKVStore->getProperty("daqdb.dht.port")
         << flush;
 
     if (interactiveMode) {
@@ -169,10 +176,9 @@ int main(int argc, const char *argv[]) {
     }
 
     BOOST_LOG_SEV(lg::get(), bt::info)
-        << format("Closing DHT node (id=%1%) on %2%:%3%") %
-               spKVStore->getProperty("fogkv.dht.id") %
-               spKVStore->getProperty("fogkv.listener.ip") %
-               spKVStore->getProperty("fogkv.listener.port")
+        << format("Closing DHT node (id=%1%) on localhost:%2%") %
+               spKVStore->getProperty("daqdb.dht.id") %
+               spKVStore->getProperty("daqdb.dht.port")
         << flush;
 
     return 0;
