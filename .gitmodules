@@ -19,7 +19,7 @@
 	url = https://github.com/protocolbuffers/protobuf.git
 	ignore = dirty
 [submodule "src/3rd/linenoise"]
-	path = examples/cli_node/linenoise
+	path = examples/clinode/linenoise
 	url = https://github.com/antirez/linenoise.git
 	ignore = dirty
 [submodule "third-party/libpmemobj-cpp"]

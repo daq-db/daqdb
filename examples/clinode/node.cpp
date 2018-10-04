@@ -23,20 +23,13 @@
 #include <boost/program_options.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/attributes/timer.hpp>
-#include <boost/log/common.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/support/date_time.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/utility/setup/console.hpp>
-
 #include <atomic>
+#include <iostream>
 
 #include <daqdb/KVStoreBase.h>
 
+#include "debug.h"
+#include "config.h"
 #include "nodeCli.h"
 
 using namespace std;
@@ -45,34 +38,11 @@ using namespace boost::algorithm;
 
 namespace po = boost::program_options;
 
-namespace logging = boost::log;
-namespace bt = logging::trivial;
-namespace attrs = boost::log::attributes;
-namespace keywords = boost::log::keywords;
-namespace src = boost::log::sources;
-
-typedef char KeyType[16];
-
-BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(
-    lg, src::severity_logger_mt<logging::trivial::severity_level>)
-
-namespace {
-const unsigned short dhtBackBonePort = 11000;
-}
-
 int main(int argc, const char *argv[]) {
-    unsigned short nodeId = 0;
-    auto dhtPort = dhtBackBonePort;
     bool interactiveMode = false;
-    std::string pmem_path;
-    // @TODO jradtke move below's config files to single one
-    std::string spdk_conf;
-    std::string zht_conf;
-    std::string neighbors_conf;
+    string configFile;
 
-    size_t pmem_size = 0;
-    size_t alloc_size = 0;
-
+    std::atomic<int> isRunning;
     logging::add_console_log(std::clog,
                              keywords::format = "%TimeStamp%: %Message%");
     logging::add_common_attributes();
@@ -82,27 +52,10 @@ int main(int argc, const char *argv[]) {
 
     po::options_description argumentsDescription{"Options"};
     argumentsDescription.add_options()("help,h", "Print help messages")(
-        "dht,d", po::value<unsigned short>(&dhtPort), "DHT Communication port")(
-        "nodeid,n", po::value<unsigned short>(&nodeId)->default_value(0),
-        "Node ID used to match database file")(
         "interactive,i", "Enable interactive mode")("log,l", "Enable logging")(
-        "pmem-path",
-        po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pool.pm"),
-        "Rtree persistent memory pool file")(
-        "pmem-size",
-        po::value<size_t>(&pmem_size)->default_value(8ull * 1024 * 1024 * 1024),
-        "Rtree persistent memory pool size")(
-        "alloc-unit-size", po::value<size_t>(&alloc_size)->default_value(8),
-        "Allocation unit size")(
-        "spdk-conf-file,c",
-        po::value<std::string>(&spdk_conf)->default_value("../config.spdk"),
-        "SPDK configuration file")(
-        "zht-conf-file,z",
-        po::value<std::string>(&zht_conf)->default_value("../zht.conf"),
-        "ZHT configuration file")(
-        "neighbors-file,x",
-        po::value<std::string>(&neighbors_conf)->default_value("../neighbors.conf"),
-        "Neighbors configuration file");
+        "config-file,c",
+        po::value<string>(&configFile)->default_value("clinode.cfg"),
+        "Configuration file");
 
     po::variables_map parsedArguments;
     try {
@@ -129,24 +82,9 @@ int main(int argc, const char *argv[]) {
     }
 
     DaqDB::Options options;
-
-    std::atomic<int> isRunning; // used to catch SIGTERM, SIGINT
     isRunning = 1;
-
-    options.Runtime.logFunc = [](std::string msg) {
-        BOOST_LOG_SEV(lg::get(), bt::debug) << msg << flush;
-    };
     options.Runtime.shutdownFunc = [&isRunning]() { isRunning = 0; };
-    options.Runtime.spdkConfigFile = spdk_conf;
-
-    options.Dht.Id = nodeId;
-    options.Dht.Port = dhtPort;
-    options.Dht.configFile = zht_conf;
-    options.Dht.neighborsFile = neighbors_conf;
-    options.PMEM.poolPath = pmem_path;
-    options.PMEM.totalSize = pmem_size;
-    options.PMEM.allocUnitSize = alloc_size;
-    options.Key.field(0, sizeof(KeyType));
+    initKvsOptions(options, configFile);
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;
     try {
@@ -183,3 +121,4 @@ int main(int argc, const char *argv[]) {
 
     return 0;
 }
+

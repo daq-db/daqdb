@@ -112,28 +112,47 @@ struct KeyDescriptor {
     std::vector<KeyFieldDescriptor> _fields;
 };
 
-struct ValueDescription {
-    size_t OffloadMaxSize = 16 * 1024;
+struct OffloadOptions {
+    size_t allocUnitSize = 16 * 1024;
+    std::string nvmeAddr = "";
+    std::string nvmeName = "";
 };
 
 struct RuntimeOptions {
-    std::string spdkConfigFile = "";
     std::function<void(std::string)> logFunc = nullptr;
     std::function<void()> shutdownFunc = nullptr;
     unsigned short numOfPoolers = 1;
 };
 
+struct DhtKeyRange {
+    std::string mask = "";
+    std::string start = "";
+    std::string end = "";
+};
+
+struct DhtNeighbor {
+    std::string ip;
+    unsigned short port = 0;
+    DhtKeyRange keyRange;
+};
+
 struct DhtOptions {
-    unsigned short Port = 0;
+    unsigned short port = 0;
     NodeId Id = 0;
-    std::string configFile = "";
-    std::string neighborsFile = "";
+    DhtKeyRange localKeyRange;
+
+    std::string protocol = "";
+    size_t msgMaxsize = 0;
+    unsigned int sccbPoolInterval = 0;
+    unsigned int instantSwap = 0;
+
+    std::vector<DhtNeighbor*> neighbors;
 };
 
 struct PMEMOptions {
-    std::string poolPath;
+    std::string poolPath = "";
     size_t totalSize = 0;
-    size_t allocUnitSize = 8;
+    size_t allocUnitSize = 0;
 };
 
 struct Options {
@@ -142,11 +161,10 @@ struct Options {
     explicit Options(const std::string &path);
 
     KeyDescriptor Key;
-    ValueDescription Value;
+    OffloadOptions Offload;
     RuntimeOptions Runtime;
     DhtOptions Dht;
 
-    std::string KVEngine = "kvtree";
     PMEMOptions PMEM;
 };
 }

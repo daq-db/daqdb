@@ -23,7 +23,9 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(Threads REQUIRED)
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 
+configure_file(minidaq.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/minidaq.cfg COPYONLY)
+
 file(GLOB MINIDAQ_SOURCES *.cpp *.h)
 add_executable(minidaq ${MINIDAQ_SOURCES})
 target_link_libraries(minidaq ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-					  pmem fogkv pmemobj dl numa z hdr_histogram ${Dpdk_LIBRARIES})
+					  pmem daqdb pmemobj dl numa z hdr_histogram ${Dpdk_LIBRARIES})

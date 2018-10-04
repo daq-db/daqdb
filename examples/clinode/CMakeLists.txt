@@ -19,9 +19,11 @@ set(3RDPARTY ${ROOT_DAQDB_DIR}/third-party)
 include_directories(linenoise)
 add_library(linenoise SHARED linenoise/linenoise.c linenoise/linenoise.h)
 
-file(GLOB CLINODE_SOURCES ${EXAMPLES}/cli_node/*.cpp ${EXAMPLES}/cli_node/*.h)
+file(GLOB CLINODE_SOURCES ${EXAMPLES}/clinode/*.cpp ${EXAMPLES}/clinode/*.h)
 add_executable(clinode ${CLINODE_SOURCES})
+
+configure_file(clinode.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/clinode.cfg COPYONLY)
 
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 target_link_libraries(clinode ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-	pmem fogkv linenoise pmemobj dl numa ${Dpdk_LIBRARIES})
+	pmem daqdb linenoise pmemobj dl numa ${Dpdk_LIBRARIES})

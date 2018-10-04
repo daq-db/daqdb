@@ -13,7 +13,6 @@
  * stated in the License.
  */
 
-#include "../cli_node/nodeCli.h"
 #include <daqdb/Types.h>
 
 #include <boost/algorithm/string.hpp>
@@ -25,6 +24,8 @@
 #include <chrono>
 #include <iostream>
 #include <map>
+
+#include "nodeCli.h"
 
 using namespace std;
 using namespace boost::algorithm;

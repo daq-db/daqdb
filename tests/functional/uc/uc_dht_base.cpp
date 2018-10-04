@@ -66,7 +66,7 @@ bool use_case_zht_connect(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
     zc.init(confFile, neighborsFile);
 
     string rsStr;
-    int rc = zc.ping(0);
+    int rc = zc.ping();
 
     if (rc == zht_const::toInt(zht_const::ZSC_REC_SUCC)) {
         BOOST_LOG_SEV(lg::get(), bt::info) << "Ping: OK";

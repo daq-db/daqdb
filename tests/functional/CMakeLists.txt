@@ -18,10 +18,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 
 set(3RDPARTY ${ROOT_DAQDB_DIR}/third-party)
 
+configure_file(functest.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functest.cfg COPYONLY)
+
 include_directories(${PROJECT_SOURCE_DIR} uc)
 file(GLOB_RECURSE FUNC_TEST_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
-add_executable(func_tests ${FUNC_TEST_SOURCES})
+add_executable(functests ${FUNC_TEST_SOURCES})
 
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
-target_link_libraries(func_tests ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-	pmem fogkv pmemobj dl numa ${Dpdk_LIBRARIES})
+target_link_libraries(functests ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
+	pmem daqdb pmemobj dl numa ${Dpdk_LIBRARIES})
