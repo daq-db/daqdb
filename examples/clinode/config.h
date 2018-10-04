@@ -13,13 +13,13 @@
  * stated in the License.
  */
 
-#include "RTreeEngine.h"
-#include "RTree.h"
-namespace DaqDB {
-RTreeEngine *RTreeEngine::Open(const string &path, // path to persistent pool
-                               size_t size, size_t allocUnitSize) {
-    return new DaqDB::RTree(path, size, allocUnitSize);
-}
+#pragma once
 
-void RTreeEngine::Close(RTreeEngine *kv) {} // close storage engine
-} // namespace DaqDB
+#include <libconfig.h++>
+
+#include <daqdb/Options.h>
+
+#include "debug.h"
+#include <config/Configuration.h>
+
+void initKvsOptions(DaqDB::Options &options, const std::string &configFile);

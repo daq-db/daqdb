@@ -87,6 +87,7 @@ class ZHTClient {
                               int lease);
     int teardown();
 
+    int ping();
     int ping(unsigned int neighborIndex);
 
   private:

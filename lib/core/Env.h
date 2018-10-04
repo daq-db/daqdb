@@ -28,10 +28,23 @@ class Env {
     inline size_t keySize() { return _keySize; }
     const Options &getOptions();
 
+    inline std::string getZhtConfFile() { return _zhtConfFile; };
+    inline std::string getZhtNeighborsFile() { return _zhtNeighborsFile; };
+    inline std::string getSpdkConfFile() { return _spdkConfFile; };
+
+    void createZhtConfFiles();
+    void removeZhtConfFiles();
+    void createSpdkConfFiles();
+    void removeSpdkConfFiles();
+
   private:
     asio::io_service _ioService;
     size_t _keySize;
     Options _options;
+
+    std::string _zhtConfFile;
+    std::string _zhtNeighborsFile;
+    std::string _spdkConfFile;
 };
 
 } // namespace DaqDB

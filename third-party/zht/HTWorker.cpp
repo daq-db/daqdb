@@ -191,12 +191,7 @@ string HTWorker::lookup_shared(const ZPack &zpack) {
 }
 
 string HTWorker::ping(const ZPack &zpack) {
-    const std::string expectedKey("ping");
-    if (expectedKey.compare(zpack.key()) == 0) {
-        return Const::ZSC_REC_SUCC;
-    } else {
-        return Const::ZSC_REC_NONEXISTKEY;
-    }
+    return Const::ZSC_REC_SUCC;
 }
 
 string HTWorker::lookup(const ZPack &zpack) {

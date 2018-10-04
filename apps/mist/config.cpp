@@ -50,7 +50,7 @@ void Configuration::readConfiguration(Options &options) {
     cfg.lookupValue("mode", mode);
     int port;
     cfg.lookupValue("port", port);
-    options.Dht.Port = port;
+    options.Dht.port = port;
 
     // TODO move hashes to DaqDB options
     string primaryHash, replicaHash;

@@ -25,6 +25,7 @@
 
 #include <daqdb/KVStoreBase.h>
 
+#include "config.h"
 #include "debug.h"
 #include <uc.h>
 
@@ -46,13 +47,10 @@ typedef char KeyType[16];
 const string zhtConf = "zht-ft.conf";
 const string neighborConf = "neighbor-ft.conf";
 
+typedef char DEFAULT_KeyType[16];
+
 int main(int argc, const char *argv[]) {
-    unsigned short port = 10001;
-    unsigned short nodeId = 0;
-    std::string pmem_path;
-    std::string spdk_conf;
-    size_t pmem_size = 8ull * 1024 * 1024 * 1024;
-    size_t alloc_size = 8;
+    string configFile;
 
     logging::add_console_log(std::clog,
                              keywords::format = "%TimeStamp%: %Message%");
@@ -65,13 +63,9 @@ int main(int argc, const char *argv[]) {
 
     po::options_description argumentsDescription{"Options"};
     argumentsDescription.add_options()("help,h", "Print help messages")(
-        "port,p", po::value<unsigned short>(&port), "Node Communication port")(
-        "pmem-path",
-        po::value<std::string>(&pmem_path)->default_value("/mnt/pmem/pool.pm"),
-        "Rtree persistent memory pool file")(
-        "spdk-conf-file,c",
-        po::value<std::string>(&spdk_conf)->default_value("../config.spdk"),
-        "SPDK configuration file");
+        "config-file,c",
+        po::value<string>(&configFile)->default_value("functest.cfg"),
+        "Configuration file");
 
     po::variables_map parsedArguments;
     try {
@@ -90,22 +84,13 @@ int main(int argc, const char *argv[]) {
     }
 
     DaqDB::Options options;
-    options.Runtime.spdkConfigFile = spdk_conf;
     options.Runtime.logFunc = [](std::string msg) {
         BOOST_LOG_SEV(lg::get(), bt::debug) << msg << flush;
     };
-
-    options.Dht.Id = nodeId;
-    options.Dht.Port = port;
-    options.PMEM.poolPath = pmem_path;
-    options.PMEM.totalSize = pmem_size;
-    options.PMEM.allocUnitSize = alloc_size;
-    options.Key.field(0, sizeof(KeyType));
+    initKvsOptions(options, configFile);
 
     /* ZHT configuration files must be prepared before KVStore is created */
     prepare_zht_tests(zhtConf, neighborConf);
-    options.Dht.configFile = zhtConf;
-    options.Dht.neighborsFile = neighborConf;
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;
     try {

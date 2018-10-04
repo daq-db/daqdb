@@ -47,19 +47,20 @@ include_directories(${3RDPARTY}/spdk/include)
 include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 include_directories(BEFORE ${PROTOBUF_INCLUDES_EXPORT}) # Must be before LCG
 include_directories(${ZHT_INCLUDES_EXPORT})
+include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 
 ###############################################################################
 # Main library
 ###############################################################################
 
 set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
-include_directories(include include/db include/dht include/FogKV
+include_directories(include include/daqdb include/config
 	include/store lib/common lib/dht lib/offload lib/pmem lib/core)
-file(GLOB_RECURSE FOGKV_SOURCES lib/*.cpp)
+file(GLOB_RECURSE daqdb_SOURCES lib/*.cpp)
 
-add_library(fogkv SHARED ${FOGKV_SOURCES})
-target_link_libraries(fogkv ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
-					  zht libprotobuf )
+add_library(daqdb SHARED ${daqdb_SOURCES})
+target_link_libraries(daqdb ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
+					  zht libprotobuf libconfig )
 
 ###############################################################################
 # Unit and functional tests
@@ -73,7 +74,7 @@ add_subdirectory(tests/functional EXCLUDE_FROM_ALL)
 ###############################################################################
 
 set(EXAMPLES ${PROJECT_SOURCE_DIR}/examples)
-add_subdirectory(${EXAMPLES}/cli_node)
+add_subdirectory(${EXAMPLES}/clinode)
 add_subdirectory(${EXAMPLES}/basic)
 
 ###############################################################################

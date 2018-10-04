@@ -1,0 +1,80 @@
+// Configuration file for cli_node example
+
+//*****************************************************************************
+//******************************* MAIN SECTION ********************************
+//*****************************************************************************
+
+/**
+ * pmem_path      - location of file created on top of persistent memory
+ *                  enabled filesystem
+ * pmem_size      - total size of the persistent memory pool to use
+ * alloc_unit_size - unit allocation size for the values stored in DaqDB
+ */
+pmem_path = "/mnt/pmem/pool.pm";
+pmem_size = 8589934592L;
+alloc_unit_size = 8;
+
+/**
+ * logging_level - valid parameters:
+ *                 logging_level = "DEBUG";
+ *                 logging_level = "FATAL";
+ */
+logging_level = "DEBUG";
+
+//*****************************************************************************
+//******************************* DATA SECTION ********************************
+//*****************************************************************************
+
+/**
+ * keys_structure - defines how compound structure of a key looks like
+ *                  format: /1/8/4/16, representing 29 bytes total key
+ *                  with four parts
+ * primaryKey     - primary key is being used to derive positioning of
+ *                  data. It is defined by operation on key parts.
+ *                  described by consecutive numbers starting with 1, e.g.
+ *                  1*3
+ *                  Result has to be unique for all the key stored.
+ */
+keys_structure = [ 1, 31, 8, 24];
+primaryKey = "1*3";
+
+//*****************************************************************************
+//******************************* DHT SECTION ********************************
+//*****************************************************************************
+
+protocol = "TCP";
+port = 11000;
+msg_maxsize = 1000000L;
+sccb_pool_interval = 100;
+instant_swap = 0;
+
+/**
+ * local_keys - neighbors and key-to-node mapping
+ * neighbors
+ */
+local_keys = { key_mask = "1", start = "0", end = "128" };
+neighbors :
+(
+    {
+        ip = "10.102.108.53";
+        port = 11000;
+        keys = { key_mask = "1", start = "129", end = "255"}
+	},
+);
+
+//*****************************************************************************
+//***************************** OFFLOAD SECTION *******************************
+//*****************************************************************************
+
+/**
+ * offload_unit_alloc_size
+ * offload_nvme_addr
+ *		e.g. "0000:1a:00.0"
+ * offload_nvme_name
+ *		e.g. "Nvme0"
+ */
+offload_unit_alloc_size = 16384;
+offload_nvme_addr = "";
+offload_nvme_name = "";
+
+//************************************ EOF ************************************

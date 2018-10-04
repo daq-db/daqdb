@@ -126,6 +126,17 @@ int ZHTClient::lookup(const string &key, string &result) {
     return rc;
 }
 
+int ZHTClient::ping() {
+    string val;
+    string val2;
+    string result;
+
+    // @TODO jradtke using key as temporary solution
+    string key = "ping";
+    int rc = commonOp(Const::ZSC_OPC_PING, key, val, val2, result, 1);
+    return rc;
+}
+
 int ZHTClient::ping(unsigned int neighborIndex) {
     string val;
     string val2;
@@ -133,7 +144,7 @@ int ZHTClient::ping(unsigned int neighborIndex) {
 
     // @TODO jradtke using key as temporary solution
     string key = "_" + std::to_string(neighborIndex);
-    int rc = commonOp(Const::ZSC_OPC_INSERT, key, val, val2, result, 1);
+    int rc = commonOp(Const::ZSC_OPC_PING, key, val, val2, result, 1);
     return rc;
 }
 

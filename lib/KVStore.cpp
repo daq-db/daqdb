@@ -413,8 +413,6 @@ std::string KVStore::getProperty(const std::string &name) {
         return std::to_string(getOptions().PMEM.totalSize);
     if (name == "daqdb.pmem.alloc_unit_size")
         return std::to_string(getOptions().PMEM.allocUnitSize);
-    if (name == "daqdb.KVEngine")
-        return mRTree->Engine();
 
     return "";
 }
@@ -426,11 +424,11 @@ void KVStore::init() {
     if (getOptions().Runtime.logFunc)
         gLog.setLogFunc(getOptions().Runtime.logFunc);
 
-    _offloadReactor =
-        new DaqDB::OffloadReactor(POOLER_CPU_CORE_BASE + poolerCount + 1,
-                                  getOptions().Runtime.spdkConfigFile, [&]() {
-                                      getOptions().Runtime.shutdownFunc();
-                                  });
+    _offloadReactor = new DaqDB::OffloadReactor(
+        POOLER_CPU_CORE_BASE + poolerCount + 1, env.getSpdkConfFile(), [&]() {
+            // @TODO jradtke move to separate function/wrapper
+            getOptions().Runtime.shutdownFunc();
+        });
 
     while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
         sleep(1);
@@ -442,22 +440,22 @@ void KVStore::init() {
     }
 
     auto dhtPort =
-        getOptions().Dht.Port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
+        getOptions().Dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
 
     mDhtNode.reset(new DaqDB::ZhtNode(env.ioService(), dhtPort,
-                                      getOptions().Dht.configFile,
-                                      getOptions().Dht.neighborsFile));
+                                      env.getZhtConfFile(),
+                                      env.getZhtNeighborsFile()));
 
-    mRTree.reset(DaqDB::RTreeEngine::Open(
-        getOptions().KVEngine, getOptions().PMEM.poolPath,
-        getOptions().PMEM.totalSize, getOptions().PMEM.allocUnitSize));
+    mRTree.reset(DaqDB::RTreeEngine::Open(getOptions().PMEM.poolPath,
+                                          getOptions().PMEM.totalSize,
+                                          getOptions().PMEM.allocUnitSize));
     if (mRTree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     if (_offloadReactor->isEnabled()) {
         _offloadPooler =
             new DaqDB::OffloadPooler(mRTree, _offloadReactor->bdevCtx,
-                                     getOptions().Value.OffloadMaxSize);
+                                     getOptions().Offload.allocUnitSize);
         _offloadPooler->InitFreeList();
         _offloadReactor->RegisterPooler(_offloadPooler);
     }
@@ -470,6 +468,8 @@ void KVStore::init() {
         _rqstPoolers.push_back(rqstPooler);
     }
 
+    env.removeSpdkConfFiles();
+    env.removeZhtConfFiles();
     DAQ_DEBUG("KVStoreBaseImpl initialization completed");
 }
 

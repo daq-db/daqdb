@@ -81,7 +81,6 @@ static DaqDB::KVStoreBase *openKVS() {
     options.Key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
     options.Key.field(2, sizeof(DaqDB::MinidaqKey::runId));
     options.Runtime.numOfPoolers = nPoolers;
-    options.Runtime.spdkConfigFile = spdk_conf;
     if (enableLog) {
         options.Runtime.logFunc = logStd;
     }
