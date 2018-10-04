@@ -23,7 +23,7 @@ PROJECT_NAME = "DaqDB"
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER = "0.1"
+PROJECT_NUMBER = "0.2"
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a
@@ -85,7 +85,7 @@ QUIET = YES
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT = include/FogKV
+INPUT = include/daqdb
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -174,7 +174,7 @@ STRIP_FROM_INC_PATH = ../src/include/
 # If the GENERATE_LATEX tag is set to YES doxygen will generate LATEX output
 # The default value is: YES.
 
-GENERATE_LATEX = NO
+GENERATE_LATEX = YES
 
 #---------------------------------------------------------------------------
 # Configuration options related to the HTML output
@@ -206,7 +206,7 @@ HTML_FILE_EXTENSION = .html
 # The default value is: YES.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_TIMESTAMP = NO
+HTML_TIMESTAMP = YES
 
 #---------------------------------------------------------------------------
 # Configuration options related to the preprocessor
