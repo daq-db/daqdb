@@ -64,6 +64,8 @@ class TCPProxy : public IPProtoProxy {
 
   public:
     TCPProxy();
+    TCPProxy(int hash_mask,
+            map<std::pair<int, int>, int> &rangeToHost);
     virtual ~TCPProxy();
 
     virtual bool sendrecv(const void *sendbuf, const size_t sendcount,
@@ -82,11 +84,16 @@ class TCPProxy : public IPProtoProxy {
   private:
     // static MAP CONN_CACHE;
     MAP CONN_CACHE;
+    // @TODO create separate class for DAQDB customizations
+    map<std::pair<int, int>, int> _rangeToHost;
+    int _hash_mask = 0;
 };
 
 class TCPStub : public IPProtoStub {
   public:
     TCPStub();
+    TCPStub(int hash_mask,
+            map<std::pair<int, int>, int> &rangeToHost);
     virtual ~TCPStub();
 
     virtual bool recvsend(ProtoAddr addr, const void *recvbuf);
@@ -94,6 +101,7 @@ class TCPStub : public IPProtoStub {
   public:
     virtual int sendBack(ProtoAddr addr, const void *sendbuf,
                          int sendcount) const;
+
 };
 
 #endif /* TCP_PROXY_STUB_H_ */

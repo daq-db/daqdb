@@ -18,7 +18,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 
 set(3RDPARTY ${ROOT_DAQDB_DIR}/third-party)
 
-configure_file(functest.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functest.cfg COPYONLY)
+configure_file(functests.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functests.cfg COPYONLY)
 
 include_directories(${PROJECT_SOURCE_DIR} uc)
 file(GLOB_RECURSE FUNC_TEST_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)

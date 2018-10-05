@@ -21,7 +21,8 @@ namespace DaqDB {
 
 enum class NodeState : std::uint8_t {
     Ready = 0,
-    NotResponding
+    NotResponding,
+    Unknown
 };
 
 class DhtNodeInfo {
@@ -29,6 +30,9 @@ class DhtNodeInfo {
     DhtNodeInfo()
         : state(NodeState::NotResponding) {}
     NodeState state;
+    int mask = 0;
+    int start = 0;
+    int end = 0;
 };
 
 } // namespace DaqDB

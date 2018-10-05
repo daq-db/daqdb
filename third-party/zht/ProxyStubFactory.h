@@ -48,6 +48,7 @@
 #define PROXYSTUBFACTORY_H_
 
 #include "proxy_stub.h"
+#include <map>
 /*
  *
  */
@@ -57,8 +58,12 @@ class ProxyStubFactory {
     virtual ~ProxyStubFactory();
 
     static ProtoProxy *createProxy();
+    static ProtoProxy *createProxy(int hash_mask,
+                                   std::map<std::pair<int, int>, int> &rangeToHost);
 
     static ProtoStub *createStub();
+    static ProtoStub *createStub(int hash_mask,
+                                 std::map<std::pair<int, int>, int> &rangeToHost);
 };
 
 #endif /* PROXYSTUBFACTORY_H_ */

@@ -168,6 +168,11 @@ string HTWorker::lookup_shared(const ZPack &zpack) {
 
     string result;
 
+    result = Const::ZSC_REC_SUCC;
+    result.append("Value from remote node");
+    return result;
+
+    /*
     if (zpack.key().empty())
         return Const::ZSC_REC_EMPTYKEY; //-1
 
@@ -188,6 +193,7 @@ string HTWorker::lookup_shared(const ZPack &zpack) {
     }
 
     return result;
+    */
 }
 
 string HTWorker::ping(const ZPack &zpack) {

@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <Value.h>
+#include <Key.h>
 #include "PureNode.h"
 #include <asio/io_service.hpp>
 
@@ -40,6 +42,7 @@ class DhtNode : public PureNode {
      */
     virtual std::string printNeighbors() = 0;
 
+    virtual Value Get(const Key &key) = 0;
 };
 
 } // namespace DaqDB

@@ -85,6 +85,31 @@ ProtoProxy *ProxyStubFactory::createProxy() {
     return 0;
 }
 
+ProtoProxy *
+ProxyStubFactory::createProxy(int hash_mask,
+                              std::map<std::pair<int, int>, int> &rangeToHost) {
+
+    ConfHandler::MAP *zpmap = &ConfHandler::ZHTParameters;
+
+    ConfEntry ce_tcp(Const::PROTO_NAME, Const::PROTO_VAL_TCP); // TCP
+    ConfEntry ce_udp(Const::PROTO_NAME, Const::PROTO_VAL_UDP); // UDP
+    ConfEntry ce_mpi(Const::PROTO_NAME, Const::PROTO_VAL_MPI); // MPI
+
+#ifdef PF_INET
+
+    if (zpmap->find(ce_tcp.toString()) != zpmap->end())
+        return new TCPProxy(hash_mask, rangeToHost);
+
+    if (zpmap->find(ce_udp.toString()) != zpmap->end())
+        return new UDPProxy();
+
+    if (zpmap->find(ce_mpi.toString()) != zpmap->end())
+        return new MQProxy();
+#endif
+
+    return 0;
+}
+
 ProtoStub *ProxyStubFactory::createStub() {
 
     ConfHandler::MAP *zpmap = &ConfHandler::ZHTParameters;
@@ -97,6 +122,32 @@ ProtoStub *ProxyStubFactory::createStub() {
 
     // if (zpmap->find(ce_tcp.toString()) != zpmap->end())
     return new TCPStub();
+
+    if (zpmap->find(ce_udp.toString()) != zpmap->end())
+        return new UDPStub();
+#elif MPI_INET
+
+    if (zpmap->find(ce_mpi.toString()) != zpmap->end())
+        return new MPIStub();
+#endif
+
+    return 0;
+}
+
+ProtoStub *
+ProxyStubFactory::createStub(int hash_mask,
+                             std::map<std::pair<int, int>, int> &rangeToHost) {
+
+    ConfHandler::MAP *zpmap = &ConfHandler::ZHTParameters;
+
+    ConfEntry ce_tcp(Const::PROTO_NAME, Const::PROTO_VAL_TCP); // TCP
+    ConfEntry ce_udp(Const::PROTO_NAME, Const::PROTO_VAL_UDP); // UDP
+    ConfEntry ce_mpi(Const::PROTO_NAME, Const::PROTO_VAL_MPI); // MPI
+
+#ifdef PF_INET
+
+    // if (zpmap->find(ce_tcp.toString()) != zpmap->end())
+    return new TCPStub(hash_mask, rangeToHost);
 
     if (zpmap->find(ce_udp.toString()) != zpmap->end())
         return new UDPStub();

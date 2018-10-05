@@ -73,6 +73,12 @@ using namespace iit::datasys::zht::dm;
 // TCPProxy::MAP TCPProxy::CONN_CACHE = TCPProxy::MAP();
 TCPProxy::TCPProxy() : CONN_CACHE() {}
 
+TCPProxy::TCPProxy(int hash_mask,
+        map<std::pair<int, int>, int> &rangeToHost) : CONN_CACHE() {
+    _hash_mask = hash_mask;
+    _rangeToHost = rangeToHost;
+}
+
 TCPProxy::~TCPProxy() {}
 
 bool TCPProxy::sendrecv(const void *sendbuf, const size_t sendcount,
@@ -81,7 +87,7 @@ bool TCPProxy::sendrecv(const void *sendbuf, const size_t sendcount,
     /*get client sock fd*/
     ZHTUtil zu;
     string msg((char *)sendbuf, sendcount);
-    HostEntity he = zu.getHostEntityByKey(msg);
+    HostEntity he = zu.getHostEntityByKey(msg, _hash_mask, _rangeToHost);
 
     int sock = getSockCached(he.host, he.port);
 
@@ -283,6 +289,10 @@ int TCPProxy::loopedrecv(int sock, string &srecv) {
 }
 
 TCPStub::TCPStub() {}
+
+TCPStub::TCPStub(int hash_mask,
+        map<std::pair<int, int>, int> &rangeToHost) {
+}
 
 TCPStub::~TCPStub() {}
 

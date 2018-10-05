@@ -27,7 +27,8 @@ enum PrimaryKeyAttribute : std::int8_t {
     EMPTY = 0,
     LOCKED = (1 << 0),
     READY = (1 << 1),
-    LONG_TERM = (1 << 2)
+    LONG_TERM = (1 << 2),
+    REMOTE = (1 << 3)
 };
 
 inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
@@ -139,7 +140,6 @@ struct DhtNeighbor {
 struct DhtOptions {
     unsigned short port = 0;
     NodeId Id = 0;
-    DhtKeyRange localKeyRange;
 
     std::string protocol = "";
     size_t msgMaxsize = 0;

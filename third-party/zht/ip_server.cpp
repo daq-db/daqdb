@@ -57,6 +57,10 @@ using namespace std;
 
 IPServer::IPServer() : _stub(ProxyStubFactory::createStub()) {}
 
+IPServer::IPServer(int hash_mask,
+                   std::map<std::pair<int, int>, int> &rangeToHost)
+    : _stub(ProxyStubFactory::createStub(hash_mask, rangeToHost)) {}
+
 IPServer::~IPServer() {
 
     if (_stub != NULL) {

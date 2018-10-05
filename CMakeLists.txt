@@ -56,9 +56,9 @@ include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 include_directories(include include/daqdb include/config
 	include/store lib/common lib/dht lib/offload lib/pmem lib/core)
-file(GLOB_RECURSE daqdb_SOURCES lib/*.cpp)
+file(GLOB_RECURSE DAQDB_SOURCES lib/*.cpp)
 
-add_library(daqdb SHARED ${daqdb_SOURCES})
+add_library(daqdb SHARED ${DAQDB_SOURCES})
 target_link_libraries(daqdb ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
 					  zht libprotobuf libconfig )
 

@@ -48,18 +48,14 @@ msg_maxsize = 1000000L;
 sccb_pool_interval = 100;
 instant_swap = 0;
 
-/**
- * local_keys - neighbors and key-to-node mapping
- * neighbors
- */
-local_keys = { key_mask = "1", start = "0", end = "128" };
+dht_key_mask = "1";
 neighbors :
 (
     {
         ip = "localhost";
         port = 10001;
-        keys = { key_mask = "1", start = "129", end = "255"}
-	},
+        keys = { start = "0", end = "64"}
+    },
 );
 
 //*****************************************************************************
