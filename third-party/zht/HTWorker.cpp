@@ -169,6 +169,7 @@ string HTWorker::lookup_shared(const ZPack &zpack) {
     string result;
 
     result = Const::ZSC_REC_SUCC;
+    // @TODO jradtke value should be taken from db here
     result.append("Value from remote node");
     return result;
 

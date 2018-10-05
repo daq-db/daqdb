@@ -136,6 +136,7 @@ int ZHTClient::lookup(const string &key, string &result) {
     string val2;
     int rc = commonOp(Const::ZSC_OPC_LOOKUP, key, val, val2, result, 1);
 
+    // @TODO jradtke uncomment when protobuf used for lookup
     // result = extract_value(result);
 
     return rc;

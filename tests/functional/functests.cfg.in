@@ -54,7 +54,7 @@ neighbors :
     {
         ip = "localhost";
         port = 10001;
-        keys = { start = "0", end = "64"}
+        keys = { start = "0", end = "255"}
     },
 );
 

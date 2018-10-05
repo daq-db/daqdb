@@ -118,7 +118,7 @@ HashUtil::genHash(const string &key, int mask,
     }
 
     return hash;
-} // namespace dm
+}
 
 uint64_t HashUtil::genHash(const char *pc) {
 
