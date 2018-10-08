@@ -28,6 +28,10 @@ enum PrimaryKeyAttribute : std::int8_t {
     LOCKED = (1 << 0),
     READY = (1 << 1),
     LONG_TERM = (1 << 2),
+    /*
+     * @TODO jradtke REMOTE flag added only for early testing purposes,
+     * value location will be calculated from the key.
+     */
     REMOTE = (1 << 3)
 };
 
