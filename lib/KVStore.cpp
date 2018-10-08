@@ -107,13 +107,18 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
     char *pVal;
     uint8_t location;
 
+    if (options.Attr & PrimaryKeyAttribute::REMOTE) {
+        return mDhtNode->Get(key);
+    }
+
     StatusCode rc = mRTree->Get(key.data(), reinterpret_cast<void **>(&pVal),
                                 &size, &location);
     if (rc != StatusCode::Ok || !pVal) {
-        if (rc == StatusCode::KeyNotFound)
+        if (rc == StatusCode::KeyNotFound) {
             throw OperationFailedException(Status(KeyNotFound));
-
-        throw OperationFailedException(EINVAL);
+        } else {
+            throw OperationFailedException(EINVAL);
+        }
     }
     if (location == PMEM) {
         Value value(new char[size], size);
@@ -442,7 +447,7 @@ void KVStore::init() {
     auto dhtPort =
         getOptions().Dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
 
-    mDhtNode.reset(new DaqDB::ZhtNode(env.ioService(), dhtPort,
+    mDhtNode.reset(new DaqDB::ZhtNode(env.ioService(), getOptions(), dhtPort,
                                       env.getZhtConfFile(),
                                       env.getZhtNeighborsFile()));
 

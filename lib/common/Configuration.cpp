@@ -77,10 +77,8 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.Offload.allocUnitSize = offloadAllocUnitSize;
     cfg.lookupValue("offload_nvme_addr", options.Offload.nvmeAddr);
     cfg.lookupValue("offload_nvme_name", options.Offload.nvmeName);
-
-    cfg.lookupValue("local_keys.key_mask", options.Dht.localKeyRange.mask);
-    cfg.lookupValue("local_keys.start", options.Dht.localKeyRange.start);
-    cfg.lookupValue("local_keys.end", options.Dht.localKeyRange.end);
+    std::string range_mask;
+    cfg.lookupValue("dht_key_mask", range_mask);
 
     try {
         const libconfig::Setting &neighbors = cfg.lookup("neighbors");
@@ -89,7 +87,7 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
             const libconfig::Setting &neighbor = neighbors[n];
             dhtNeighbor->ip = neighbor["ip"].c_str();
             dhtNeighbor->port = (unsigned int)(neighbor["port"]);
-            dhtNeighbor->keyRange.mask = neighbor["keys"]["key_mask"].c_str();
+            dhtNeighbor->keyRange.mask = range_mask;
             dhtNeighbor->keyRange.start = neighbor["keys"]["start"].c_str();
             dhtNeighbor->keyRange.end = neighbor["keys"]["end"].c_str();
             options.Dht.neighbors.push_back(dhtNeighbor);

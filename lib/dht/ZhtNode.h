@@ -17,6 +17,10 @@
 
 #include <thread>
 
+#include <Options.h>
+#include <Value.h>
+#include <Key.h>
+
 #include <DhtNode.h>
 #include "DhtNodeInfo.h"
 #include "DhtClient.h"
@@ -26,7 +30,7 @@ namespace DaqDB {
 
 class ZhtNode : public DaqDB::DhtNode {
   public:
-    ZhtNode(asio::io_service &io_service, unsigned short port,
+    ZhtNode(asio::io_service &io_service, Options options, unsigned short port,
             const std::string &confFile = "",
             const std::string &neighborsFile = "");
     virtual ~ZhtNode();
@@ -42,6 +46,8 @@ class ZhtNode : public DaqDB::DhtNode {
      */
     virtual std::string printNeighbors();
 
+    virtual Value Get(const Key &key);
+
   private:
     void _ThreadMain(void);
     void _initNeighbors(void);
@@ -53,6 +59,7 @@ class ZhtNode : public DaqDB::DhtNode {
 
     std::string _confFile;
     std::string _neighborsFile;
+    Options _options;
 };
 
 } // namespace DaqDB

@@ -86,6 +86,21 @@ int ZHTClient::init(const string &zhtConf, const string &neighborConf) {
         return 0;
 }
 
+int ZHTClient::init(const string &zhtConf, const string &neighborConf,
+                    int hash_mask, map<std::pair<int, int>, int> &rangeToHost) {
+
+    ConfHandler::initConf(zhtConf, neighborConf);
+
+    _msg_maxsize = Env::get_msg_maxsize();
+
+    _proxy = ProxyStubFactory::createProxy(hash_mask, rangeToHost);
+
+    if (_proxy == 0)
+        return -1;
+    else
+        return 0;
+}
+
 int ZHTClient::init(const char *zhtConf, const char *neighborConf) {
 
     string szhtconf(zhtConf);
@@ -121,7 +136,8 @@ int ZHTClient::lookup(const string &key, string &result) {
     string val2;
     int rc = commonOp(Const::ZSC_OPC_LOOKUP, key, val, val2, result, 1);
 
-    result = extract_value(result);
+    // @TODO jradtke uncomment when protobuf used for lookup
+    // result = extract_value(result);
 
     return rc;
 }
@@ -132,7 +148,7 @@ int ZHTClient::ping() {
     string result;
 
     // @TODO jradtke using key as temporary solution
-    string key = "ping";
+    string key = "_0";
     int rc = commonOp(Const::ZSC_OPC_PING, key, val, val2, result, 1);
     return rc;
 }

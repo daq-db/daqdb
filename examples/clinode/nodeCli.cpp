@@ -41,7 +41,7 @@ using boost::format;
 #define KEY_ATTRS_OPT_VAL_POS_OFFSET 2
 
 map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
-    "get", " <key> [-o <long_term> <0|1>]")("aget",
+    "get", " <key> [-o <long_term|remote> <0|1>]")("aget",
                                             " <key> [-o <long_term> <0|1>]")(
     "put", " <key> <value> [-o <lock|ready|long_term> <0|1>]")(
     "aput", " <key> <value> [-o <lock|ready|long_term> <0|1>]")("status", "")(
@@ -284,6 +284,8 @@ nodeCli::_getKeyAttr(unsigned char start,
             return DaqDB::PrimaryKeyAttribute::READY;
         } else if (optName == "long_term") {
             return DaqDB::PrimaryKeyAttribute::LONG_TERM;
+        } else if (optName == "remote") {
+            return DaqDB::PrimaryKeyAttribute::REMOTE;
         }
     }
     return DaqDB::PrimaryKeyAttribute::EMPTY;

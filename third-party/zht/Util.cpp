@@ -50,6 +50,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
+
 using namespace std;
 
 namespace iit {
@@ -95,15 +96,35 @@ HashUtil::HashUtil() {}
 
 HashUtil::~HashUtil() {}
 
+// @TODO jradtke temporary implementation of hash function
+uint64_t
+HashUtil::genHash(const string &key, int mask,
+                      std::map<std::pair<int, int>, int> &rangeToHost) {
+    uint64_t hash = 0;
+    uint64_t c; // int c;
+
+    if (key.at(0) == '_') {
+        int hostIndex = key.at(1) - '0';
+        if ((hostIndex >= 0) && hostIndex <= rangeToHost.size()) {
+            for (auto element : rangeToHost) {
+                if (element.second == hostIndex)
+                    return element.first.first;
+            }
+        }
+    }
+    auto maskCount = mask;
+    auto pc = key.c_str();
+    while ((c = (*pc++)) && (--maskCount >= 0)) {
+        hash += c << maskCount;
+    }
+
+    return hash;
+}
+
 uint64_t HashUtil::genHash(const char *pc) {
 
     uint64_t hash = 0;
     uint64_t c; // int c;
-
-    // @TODO temporary solution, will be replaced by key section's mapping
-    if (*pc == '_') {
-        return std::stoi(pc + 1);
-    }
 
     while (c = (*pc++)) {
         hash = c + (hash << 6) + (hash << 16) - hash;

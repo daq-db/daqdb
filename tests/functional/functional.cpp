@@ -64,7 +64,7 @@ int main(int argc, const char *argv[]) {
     po::options_description argumentsDescription{"Options"};
     argumentsDescription.add_options()("help,h", "Print help messages")(
         "config-file,c",
-        po::value<string>(&configFile)->default_value("functest.cfg"),
+        po::value<string>(&configFile)->default_value("functests.cfg"),
         "Configuration file");
 
     po::variables_map parsedArguments;

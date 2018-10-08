@@ -49,17 +49,22 @@ sccb_pool_interval = 100;
 instant_swap = 0;
 
 /**
- * local_keys - neighbors and key-to-node mapping
+ * key_mask
  * neighbors
  */
-local_keys = { key_mask = "1", start = "0", end = "128" };
+dht_key_mask = "1";
 neighbors :
 (
     {
+        ip = "localhost";
+        port = 11000;
+        keys = { start = "0", end = "64"}
+    },
+    {
         ip = "10.102.108.53";
         port = 11000;
-        keys = { key_mask = "1", start = "129", end = "255"}
-	},
+        keys = { start = "65", end = "255"}
+    },
 );
 
 //*****************************************************************************

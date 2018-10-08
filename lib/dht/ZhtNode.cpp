@@ -16,9 +16,9 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
-#include <boost/assign/list_of.hpp>
 
 #include <ConfHandler.h>
 #include <Util.h>
@@ -38,18 +38,16 @@ using boost::format;
 std::map<NodeState, std::string> NodeStateStr = boost::assign::map_list_of(
     NodeState::Ready, "Ready")(NodeState::NotResponding, "Not Responding");
 
-ZhtNode::ZhtNode(asio::io_service &io_service, unsigned short port,
-                 const std::string &confFile, const std::string &neighborsFile)
+ZhtNode::ZhtNode(asio::io_service &io_service, Options options,
+                 unsigned short port, const std::string &confFile,
+                 const std::string &neighborsFile)
     : DaqDB::DhtNode(io_service, port), _confFile(confFile),
-      _neighborsFile(neighborsFile) {
+      _neighborsFile(neighborsFile), _options(options) {
     setPort(DaqDB::utils::getFreePort(io_service, port, true));
-    _thread = new std::thread(&ZhtNode::_ThreadMain, this);
 
     if (boost::filesystem::exists(_confFile) &&
         boost::filesystem::exists(_neighborsFile)) {
-        _client.c.init(_confFile, _neighborsFile);
-        _client.setInitialized();
-        _initNeighbors();
+        _thread = new std::thread(&ZhtNode::_ThreadMain, this);
     } else {
         DAQ_DEBUG("Cannot initialize ZHT (Invalid configuration files)");
     }
@@ -60,7 +58,26 @@ ZhtNode::~ZhtNode() {}
 void ZhtNode::_ThreadMain() {
     auto zhtPort = to_string(getPort());
     ConfHandler::initConf(_confFile, _neighborsFile);
-    EpollServer zhtServer(zhtPort.c_str(), new IPServer());
+
+    _initNeighbors();
+
+    int hash_mask = 0;
+    std::map<std::pair<int, int>, int> rangeToHost;
+    std::pair<int, int> local_key;
+    for (auto neighbor : _neighbors) {
+        std::pair<int, int> key;
+        key.first = neighbor.second->start;
+        key.second = neighbor.second->end;
+        // @TODO this value should be calculated differently
+        hash_mask = neighbor.second->mask;
+        rangeToHost[key] = neighbor.first->getDhtId();
+    }
+
+    EpollServer zhtServer(zhtPort.c_str(),
+                          new IPServer(hash_mask, rangeToHost));
+    _client.c.init(_confFile, _neighborsFile, hash_mask, rangeToHost);
+    _client.setInitialized();
+
     DAQ_DEBUG("ZHT server started on port " + zhtPort);
     zhtServer.serve();
 }
@@ -72,13 +89,35 @@ void ZhtNode::_initNeighbors() {
         auto dhtNode =
             new PureNode(entry.name(), index, std::stoi(entry.value()));
         auto dhtNodeInfo = new DhtNodeInfo();
-        if (_client.c.ping(index) ==
-            zht_const::toInt(zht_const::ZSC_REC_SUCC)) {
-            dhtNodeInfo->state = NodeState::Ready;
-        } else {
-            dhtNodeInfo->state = NodeState::NotResponding;
+        dhtNodeInfo->state = NodeState::Unknown;
+        for (auto option : _options.Dht.neighbors) {
+            if (option->ip == dhtNode->getIp() &&
+                option->port == dhtNode->getPort()) {
+                try {
+                    dhtNodeInfo->mask = std::stoi(option->keyRange.mask);
+                    dhtNodeInfo->start = std::stoi(option->keyRange.start);
+                    dhtNodeInfo->end = std::stoi(option->keyRange.end);
+                } catch (std::invalid_argument &ia) {
+                    // no action needed
+                }
+            }
         }
         _neighbors[dhtNode] = dhtNodeInfo;
+    }
+}
+
+Value ZhtNode::Get(const Key &key) {
+    string lookupResult;
+    auto rc = _client.c.lookup(key.data(), lookupResult);
+
+    if (rc == 0) {
+        auto size = lookupResult.size();
+        auto result = Value(new char[size], size);
+        std::memcpy(result.data(), lookupResult.c_str(), size);
+        result.data()[result.size()] = '\0';
+        return result;
+    } else {
+        throw OperationFailedException(Status(KeyNotFound));
     }
 }
 
@@ -106,7 +145,7 @@ std::string ZhtNode::printNeighbors() {
             } else {
                 neighbor.second->state = NodeState::NotResponding;
             }
-            result << boost::str(boost::format("[%1%:%2%]: %3%") %
+            result << boost::str(boost::format("[%1%:%2%]: %3%\n") %
                                  neighbor.first->getIp() %
                                  to_string(neighbor.first->getPort()) %
                                  NodeStateStr[neighbor.second->state]);
