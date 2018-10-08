@@ -96,7 +96,7 @@ HashUtil::HashUtil() {}
 
 HashUtil::~HashUtil() {}
 
-// @TODO jradtke temporary implemetntation of  hash function
+// @TODO jradtke temporary implementation of hash function
 uint64_t
 HashUtil::genHash(const string &key, int mask,
                       std::map<std::pair<int, int>, int> &rangeToHost) {
