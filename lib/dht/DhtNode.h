@@ -43,6 +43,7 @@ class DhtNode : public PureNode {
     virtual std::string printNeighbors() = 0;
 
     virtual Value Get(const Key &key) = 0;
+    virtual void Put(const Key &key, const Value &val) = 0;
 };
 
 } // namespace DaqDB

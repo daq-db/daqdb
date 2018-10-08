@@ -50,6 +50,7 @@
 #include "HTWorker.h"
 #include "ip_proxy_stub.h"
 #include <pthread.h>
+#include <daqdb/KVStoreBase.h>
 
 #include <map>
 using namespace std;
@@ -93,7 +94,7 @@ class TCPStub : public IPProtoStub {
   public:
     TCPStub();
     TCPStub(int hash_mask,
-            map<std::pair<int, int>, int> &rangeToHost);
+            map<std::pair<int, int>, int> &rangeToHost, DaqDB::KVStoreBase *kvs);
     virtual ~TCPStub();
 
     virtual bool recvsend(ProtoAddr addr, const void *recvbuf);
@@ -101,7 +102,7 @@ class TCPStub : public IPProtoStub {
   public:
     virtual int sendBack(ProtoAddr addr, const void *sendbuf,
                          int sendcount) const;
-
+    DaqDB::KVStoreBase *_daqdb;
 };
 
 #endif /* TCP_PROXY_STUB_H_ */

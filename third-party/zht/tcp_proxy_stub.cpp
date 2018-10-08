@@ -73,11 +73,8 @@ using namespace iit::datasys::zht::dm;
 // TCPProxy::MAP TCPProxy::CONN_CACHE = TCPProxy::MAP();
 TCPProxy::TCPProxy() : CONN_CACHE() {}
 
-TCPProxy::TCPProxy(int hash_mask,
-        map<std::pair<int, int>, int> &rangeToHost) : CONN_CACHE() {
-    _hash_mask = hash_mask;
-    _rangeToHost = rangeToHost;
-}
+TCPProxy::TCPProxy(int hash_mask, map<std::pair<int, int>, int> &rangeToHost)
+    : CONN_CACHE(), _hash_mask(hash_mask), _rangeToHost(rangeToHost) {}
 
 TCPProxy::~TCPProxy() {}
 
@@ -288,11 +285,11 @@ int TCPProxy::loopedrecv(int sock, string &srecv) {
     return IPProtoProxy::loopedrecv(sock, NULL, srecv);
 }
 
-TCPStub::TCPStub() {}
+TCPStub::TCPStub() { _daqdb = nullptr; }
 
-TCPStub::TCPStub(int hash_mask,
-        map<std::pair<int, int>, int> &rangeToHost) {
-}
+TCPStub::TCPStub(int hash_mask, map<std::pair<int, int>, int> &rangeToHost,
+                 DaqDB::KVStoreBase *kvs)
+    : _daqdb(kvs) {}
 
 TCPStub::~TCPStub() {}
 
@@ -304,7 +301,7 @@ bool TCPStub::recvsend(ProtoAddr addr, const void *recvbuf) {
 #ifdef SCCB
     HTWorker htw(addr, this);
 #else
-    HTWorker htw;
+    HTWorker htw(_daqdb);
 #endif
 
     string result = htw.run(recvstr.c_str());

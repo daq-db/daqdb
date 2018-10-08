@@ -15,19 +15,19 @@
 
 #pragma once
 
+#include <daqdb/KVStoreBase.h>
 #include <daqdb/Options.h>
 
 namespace DaqDB {
 
 class Env {
   public:
-    Env(const DaqDB::Options &options);
+    Env(const DaqDB::Options &options, KVStoreBase* parent);
     virtual ~Env();
 
     asio::io_service &ioService();
     inline size_t keySize() { return _keySize; }
     const Options &getOptions();
-
     inline std::string getZhtConfFile() { return _zhtConfFile; };
     inline std::string getZhtNeighborsFile() { return _zhtNeighborsFile; };
     inline std::string getSpdkConfFile() { return _spdkConfFile; };
@@ -37,6 +37,8 @@ class Env {
     void createSpdkConfFiles();
     void removeSpdkConfFiles();
 
+    KVStoreBase *getKvs() { return _parent; }
+
   private:
     asio::io_service _ioService;
     size_t _keySize;
@@ -45,6 +47,8 @@ class Env {
     std::string _zhtConfFile;
     std::string _zhtNeighborsFile;
     std::string _spdkConfFile;
+
+    KVStoreBase* _parent;
 };
 
 } // namespace DaqDB

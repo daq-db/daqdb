@@ -43,13 +43,13 @@ KVStoreBase *KVStore::Open(const Options &options) {
 }
 
 KVStore::KVStore(const Options &options)
-    : env(options), _offloadPooler(nullptr), _offloadReactor(nullptr) {}
+    : env(options, this), _offloadPooler(nullptr), _offloadReactor(nullptr) {}
 
 KVStore::~KVStore() {
-    mDhtNode.reset();
+    _dht.reset();
 
-    DaqDB::RTreeEngine::Close(mRTree.get());
-    mRTree.reset();
+    DaqDB::RTreeEngine::Close(_rtree.get());
+    _rtree.reset();
 
     for (auto index = 0; index < _rqstPoolers.size(); index++) {
         delete _rqstPoolers.at(index);
@@ -69,8 +69,12 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
         throw FUNC_NOT_IMPLEMENTED;
     }
+    // @TODO jradtke REMOTE attribute will be remove
+    if (options.Attr & PrimaryKeyAttribute::REMOTE) {
+        return _dht->Put(key, val);
+    }
 
-    StatusCode rc = mRTree->Put(key.data(), val.data());
+    StatusCode rc = _rtree->Put(key.data(), val.data());
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
     if (rc != StatusCode::Ok)
         throw OperationFailedException(EINVAL);
@@ -108,10 +112,10 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
     uint8_t location;
 
     if (options.Attr & PrimaryKeyAttribute::REMOTE) {
-        return mDhtNode->Get(key);
+        return _dht->Get(key);
     }
 
-    StatusCode rc = mRTree->Get(key.data(), reinterpret_cast<void **>(&pVal),
+    StatusCode rc = _rtree->Get(key.data(), reinterpret_cast<void **>(&pVal),
                                 &size, &location);
     if (rc != StatusCode::Ok || !pVal) {
         if (rc == StatusCode::KeyNotFound) {
@@ -296,7 +300,7 @@ void KVStore::Remove(const Key &key) {
     char *pVal;
     uint8_t location;
 
-    StatusCode rc = mRTree->Get(key.data(), reinterpret_cast<void **>(&pVal),
+    StatusCode rc = _rtree->Get(key.data(), reinterpret_cast<void **>(&pVal),
                                 &size, &location);
     if (rc != StatusCode::Ok || !pVal) {
         if (rc == StatusCode::KeyNotFound)
@@ -332,7 +336,7 @@ void KVStore::Remove(const Key &key) {
         }
 
     } else {
-        StatusCode rc = mRTree->Remove(key.data());
+        StatusCode rc = _rtree->Remove(key.data());
         if (rc != StatusCode::Ok) {
             if (rc == StatusCode::KeyNotFound)
                 throw OperationFailedException(KeyNotFound);
@@ -348,7 +352,7 @@ void KVStore::RemoveRange(const Key &beg, const Key &end) {
 
 Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
     char *val = nullptr;
-    StatusCode rc = mRTree->AllocValueForKey(key.data(), size, &val);
+    StatusCode rc = _rtree->AllocValueForKey(key.data(), size, &val);
     if (rc != StatusCode::Ok) {
         throw OperationFailedException(AllocationError);
     }
@@ -363,7 +367,7 @@ void KVStore::Realloc(Value &value, size_t size, const AllocOptions &options) {
 }
 
 void KVStore::ChangeOptions(Value &value, const AllocOptions &options) {
-    std::unique_lock<std::mutex> l(mLock);
+    std::unique_lock<std::mutex> l(_lock);
 
     throw FUNC_NOT_IMPLEMENTED;
 }
@@ -375,7 +379,7 @@ Key KVStore::AllocKey(const AllocOptions &options) {
 void KVStore::Free(Key &&key) { delete[] key.data(); }
 
 void KVStore::ChangeOptions(Key &key, const AllocOptions &options) {
-    std::unique_lock<std::mutex> l(mLock);
+    std::unique_lock<std::mutex> l(_lock);
 
     throw FUNC_NOT_IMPLEMENTED;
 }
@@ -384,7 +388,7 @@ bool KVStore::IsOffloaded(Key &key) {
     bool result = false;
 
     ValCtx valCtx;
-    StatusCode rc = mRTree->Get(key.data(), key.size(), &valCtx.val,
+    StatusCode rc = _rtree->Get(key.data(), key.size(), &valCtx.val,
                                 &valCtx.size, &valCtx.location);
     if (rc != StatusCode::Ok) {
         if (rc == StatusCode::KeyNotFound)
@@ -396,22 +400,22 @@ bool KVStore::IsOffloaded(Key &key) {
 }
 
 std::string KVStore::getProperty(const std::string &name) {
-    std::unique_lock<std::mutex> l(mLock);
+    std::unique_lock<std::mutex> l(_lock);
 
     if (name == "daqdb.dht.id")
-        return std::to_string(mDhtNode->getDhtId());
+        return std::to_string(_dht->getDhtId());
     if (name == "daqdb.dht.neighbours")
-        return mDhtNode->printNeighbors();
+        return _dht->printNeighbors();
     if (name == "daqdb.dht.status") {
         std::stringstream result;
-        result << mDhtNode->printStatus() << endl;
+        result << _dht->printStatus() << endl;
         result << _offloadReactor->printStatus() << endl;
         return result.str();
     }
     if (name == "daqdb.dht.ip")
-        return mDhtNode->getIp();
+        return _dht->getIp();
     if (name == "daqdb.dht.port")
-        return std::to_string(mDhtNode->getPort());
+        return std::to_string(_dht->getPort());
     if (name == "daqdb.pmem.path")
         return getOptions().PMEM.poolPath;
     if (name == "daqdb.pmem.size")
@@ -447,19 +451,15 @@ void KVStore::init() {
     auto dhtPort =
         getOptions().Dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
 
-    mDhtNode.reset(new DaqDB::ZhtNode(env.ioService(), getOptions(), dhtPort,
-                                      env.getZhtConfFile(),
-                                      env.getZhtNeighborsFile()));
-
-    mRTree.reset(DaqDB::RTreeEngine::Open(getOptions().PMEM.poolPath,
+    _rtree.reset(DaqDB::RTreeEngine::Open(getOptions().PMEM.poolPath,
                                           getOptions().PMEM.totalSize,
                                           getOptions().PMEM.allocUnitSize));
-    if (mRTree == nullptr)
+    if (_rtree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     if (_offloadReactor->isEnabled()) {
         _offloadPooler =
-            new DaqDB::OffloadPooler(mRTree, _offloadReactor->bdevCtx,
+            new DaqDB::OffloadPooler(_rtree, _offloadReactor->bdevCtx,
                                      getOptions().Offload.allocUnitSize);
         _offloadPooler->InitFreeList();
         _offloadReactor->RegisterPooler(_offloadPooler);
@@ -467,14 +467,14 @@ void KVStore::init() {
 
     for (auto index = 0; index < poolerCount; index++) {
         auto rqstPooler =
-            new DaqDB::PmemPooler(mRTree, POOLER_CPU_CORE_BASE + index);
+            new DaqDB::PmemPooler(_rtree, POOLER_CPU_CORE_BASE + index);
         if (_offloadReactor->isEnabled())
             rqstPooler->offloadPooler = _offloadPooler;
         _rqstPoolers.push_back(rqstPooler);
     }
 
-    env.removeSpdkConfFiles();
-    env.removeZhtConfFiles();
+    _dht.reset(new DaqDB::ZhtNode(env.ioService(), &env, dhtPort));
+
     DAQ_DEBUG("KVStoreBaseImpl initialization completed");
 }
 

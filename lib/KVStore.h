@@ -85,9 +85,9 @@ class KVStore : public KVStoreBase {
 
     DaqDB::Env env;
 
-    std::unique_ptr<DaqDB::DhtNode> mDhtNode;
-    std::shared_ptr<DaqDB::RTreeEngine> mRTree;
-    std::mutex mLock;
+    std::unique_ptr<DaqDB::DhtNode> _dht;
+    std::shared_ptr<DaqDB::RTreeEngine> _rtree;
+    std::mutex _lock;
 
     std::vector<PmemPooler *> _rqstPoolers;
 

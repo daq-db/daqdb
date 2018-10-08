@@ -38,27 +38,34 @@ using boost::format;
 std::map<NodeState, std::string> NodeStateStr = boost::assign::map_list_of(
     NodeState::Ready, "Ready")(NodeState::NotResponding, "Not Responding");
 
-ZhtNode::ZhtNode(asio::io_service &io_service, Options options,
-                 unsigned short port, const std::string &confFile,
-                 const std::string &neighborsFile)
-    : DaqDB::DhtNode(io_service, port), _confFile(confFile),
-      _neighborsFile(neighborsFile), _options(options) {
+ZhtNode::ZhtNode(asio::io_service &io_service, DaqDB::Env *env,
+                 unsigned short port)
+    : DaqDB::DhtNode(io_service, port), _env(env),
+      _confFile(env->getZhtConfFile()),
+      _neighborsFile(env->getZhtNeighborsFile()) {
     setPort(DaqDB::utils::getFreePort(io_service, port, true));
 
-    if (boost::filesystem::exists(_confFile) &&
-        boost::filesystem::exists(_neighborsFile)) {
-        _thread = new std::thread(&ZhtNode::_ThreadMain, this);
-    } else {
-        DAQ_DEBUG("Cannot initialize ZHT (Invalid configuration files)");
+    _initZhtConf();
+    _thread = new std::thread(&ZhtNode::_ThreadMain, this);
+}
+
+ZhtNode::~ZhtNode() {
+    for (auto neighbor : _neighbors) {
+        delete neighbor.first;
+        delete neighbor.second;
     }
 }
 
-ZhtNode::~ZhtNode() {}
+void ZhtNode::_initZhtConf() {
+    _env->createZhtConfFiles();
+    _env->createSpdkConfFiles();
+    ConfHandler::initConf(_confFile, _neighborsFile);
+    _env->removeSpdkConfFiles();
+    _env->removeZhtConfFiles();
+}
 
 void ZhtNode::_ThreadMain() {
     auto zhtPort = to_string(getPort());
-    ConfHandler::initConf(_confFile, _neighborsFile);
-
     _initNeighbors();
 
     int hash_mask = 0;
@@ -74,11 +81,10 @@ void ZhtNode::_ThreadMain() {
     }
 
     EpollServer zhtServer(zhtPort.c_str(),
-                          new IPServer(hash_mask, rangeToHost));
+                          new IPServer(hash_mask, rangeToHost, _env->getKvs()));
     _client.c.init(_confFile, _neighborsFile, hash_mask, rangeToHost);
     _client.setInitialized();
 
-    DAQ_DEBUG("ZHT server started on port " + zhtPort);
     zhtServer.serve();
 }
 
@@ -90,7 +96,7 @@ void ZhtNode::_initNeighbors() {
             new PureNode(entry.name(), index, std::stoi(entry.value()));
         auto dhtNodeInfo = new DhtNodeInfo();
         dhtNodeInfo->state = NodeState::Unknown;
-        for (auto option : _options.Dht.neighbors) {
+        for (auto option : _env->getOptions().Dht.neighbors) {
             if (option->ip == dhtNode->getIp() &&
                 option->port == dhtNode->getPort()) {
                 try {
@@ -118,6 +124,13 @@ Value ZhtNode::Get(const Key &key) {
         return result;
     } else {
         throw OperationFailedException(Status(KeyNotFound));
+    }
+}
+
+void ZhtNode::Put(const Key &key, const Value &val) {
+    auto rc = _client.c.insert(key.data(), val.data());
+    if (rc != 0) {
+        throw OperationFailedException(Status(UnknownError));
     }
 }
 
