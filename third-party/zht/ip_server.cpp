@@ -58,8 +58,9 @@ using namespace std;
 IPServer::IPServer() : _stub(ProxyStubFactory::createStub()) {}
 
 IPServer::IPServer(int hash_mask,
-                   std::map<std::pair<int, int>, int> &rangeToHost)
-    : _stub(ProxyStubFactory::createStub(hash_mask, rangeToHost)) {}
+                   std::map<std::pair<int, int>, int> &rangeToHost,
+                   DaqDB::KVStoreBase *kvs)
+    : _stub(ProxyStubFactory::createStub(hash_mask, rangeToHost, kvs)) {}
 
 IPServer::~IPServer() {
 

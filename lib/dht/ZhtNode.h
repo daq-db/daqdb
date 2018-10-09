@@ -17,22 +17,22 @@
 
 #include <thread>
 
+#include <Key.h>
 #include <Options.h>
 #include <Value.h>
-#include <Key.h>
 
-#include <DhtNode.h>
-#include "DhtNodeInfo.h"
 #include "DhtClient.h"
+#include "DhtNodeInfo.h"
+#include <DhtNode.h>
 #include <ZhtClient.h>
+
+#include "../core/Env.h"
 
 namespace DaqDB {
 
 class ZhtNode : public DaqDB::DhtNode {
   public:
-    ZhtNode(asio::io_service &io_service, Options options, unsigned short port,
-            const std::string &confFile = "",
-            const std::string &neighborsFile = "");
+    ZhtNode(asio::io_service &io_service, DaqDB::Env *env, unsigned short port);
     virtual ~ZhtNode();
 
     /*!
@@ -47,19 +47,21 @@ class ZhtNode : public DaqDB::DhtNode {
     virtual std::string printNeighbors();
 
     virtual Value Get(const Key &key);
+    virtual void Put(const Key &key, const Value &val);
 
   private:
     void _ThreadMain(void);
     void _initNeighbors(void);
+    void _initZhtConf(void);
 
     std::thread *_thread;
 
     DhtClient<ZHTClient> _client;
-    map<PureNode*, DhtNodeInfo*> _neighbors;
+    map<PureNode *, DhtNodeInfo *> _neighbors;
 
     std::string _confFile;
     std::string _neighborsFile;
-    Options _options;
+    DaqDB::Env *_env;
 };
 
 } // namespace DaqDB

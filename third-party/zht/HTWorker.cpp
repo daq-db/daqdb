@@ -79,6 +79,11 @@ HTWorker::HTWorker() : _stub(NULL), _instant_swap(get_instant_swap()) {
     init_me();
 }
 
+HTWorker::HTWorker(DaqDB::KVStoreBase *kvs)
+    : _stub(NULL), _daqdb(kvs), _instant_swap(get_instant_swap()) {
+    init_me();
+}
+
 HTWorker::HTWorker(const ProtoAddr &addr, const ProtoStub *const stub)
     : _addr(addr), _stub(stub), _instant_swap(get_instant_swap()) {
 
@@ -130,23 +135,22 @@ string HTWorker::insert_shared(const ZPack &zpack) {
     if (zpack.key().empty())
         return Const::ZSC_REC_EMPTYKEY; //-1
 
-    string key = zpack.key();
-    int ret = PMAP->put(key, zpack.SerializeAsString());
+    string keyStr = zpack.key();
+    string valStr = zpack.val();
 
-    if (ret != 0) {
+    DaqDB::Key key = _daqdb->AllocKey();
+    std::memset(key.data(), 0, key.size());
+    std::memcpy(key.data(), keyStr.c_str(), keyStr.size());
 
-        printf("thread[%lu] DB Error: fail to insert, rcode = %d\n",
-               pthread_self(), ret);
-        fflush(stdout);
+    DaqDB::Value val = _daqdb->Alloc(key, valStr.size() + 1);
+    std::memcpy(val.data(), valStr.c_str(), valStr.size());
+    val.data()[val.size() - 1] = '\0';
 
-        result = Const::ZSC_REC_NONEXISTKEY; //-92
-    } else {
-
-        if (_instant_swap) {
-            PMAP->writeFileFG();
-        }
-
-        result = Const::ZSC_REC_SUCC; // 0, succeed.
+    try {
+        _daqdb->Put(std::move(key), std::move(val));
+        result = Const::ZSC_REC_SUCC;
+    } catch (DaqDB::OperationFailedException &e) {
+        result = Const::ZSC_REC_NONEXISTKEY;
     }
 
     return result;
@@ -169,37 +173,27 @@ string HTWorker::lookup_shared(const ZPack &zpack) {
     string result;
 
     result = Const::ZSC_REC_SUCC;
-    // @TODO jradtke value should be taken from db here
-    result.append("Value from remote node");
-    return result;
 
-    /*
     if (zpack.key().empty())
-        return Const::ZSC_REC_EMPTYKEY; //-1
+        return Const::ZSC_REC_EMPTYKEY;
+    string keyStr = zpack.key();
 
-    string key = zpack.key();
-    string *ret = PMAP->get(key);
-
-    if (ret == NULL) {
-
-        printf("thread[%lu] DB Error: lookup found nothing\n", pthread_self());
-        fflush(stdout);
-
+    DaqDB::Key key = _daqdb->AllocKey();
+    std::memset(key.data(), 0, key.size());
+    std::memcpy(key.data(), keyStr.c_str(), keyStr.size());
+    try {
+        auto val = _daqdb->Get(key);
+        result = Const::ZSC_REC_SUCC;
+        result.append(val.data());
+    } catch (DaqDB::OperationFailedException &e) {
         result = Const::ZSC_REC_NONEXISTKEY;
         result.append("Empty");
-    } else {
-
-        result = Const::ZSC_REC_SUCC;
-        result.append(*ret);
     }
 
     return result;
-    */
 }
 
-string HTWorker::ping(const ZPack &zpack) {
-    return Const::ZSC_REC_SUCC;
-}
+string HTWorker::ping(const ZPack &zpack) { return Const::ZSC_REC_SUCC; }
 
 string HTWorker::lookup(const ZPack &zpack) {
 

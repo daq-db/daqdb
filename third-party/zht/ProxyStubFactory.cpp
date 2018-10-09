@@ -136,7 +136,8 @@ ProtoStub *ProxyStubFactory::createStub() {
 
 ProtoStub *
 ProxyStubFactory::createStub(int hash_mask,
-                             std::map<std::pair<int, int>, int> &rangeToHost) {
+                             std::map<std::pair<int, int>, int> &rangeToHost,
+                             DaqDB::KVStoreBase *kvs) {
 
     ConfHandler::MAP *zpmap = &ConfHandler::ZHTParameters;
 
@@ -146,8 +147,8 @@ ProxyStubFactory::createStub(int hash_mask,
 
 #ifdef PF_INET
 
-    // if (zpmap->find(ce_tcp.toString()) != zpmap->end())
-    return new TCPStub(hash_mask, rangeToHost);
+    if (zpmap->find(ce_tcp.toString()) != zpmap->end())
+        return new TCPStub(hash_mask, rangeToHost, kvs);
 
     if (zpmap->find(ce_udp.toString()) != zpmap->end())
         return new UDPStub();

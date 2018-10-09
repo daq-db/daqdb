@@ -43,7 +43,7 @@ using boost::format;
 map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
     "get", " <key> [-o <long_term|remote> <0|1>]")("aget",
                                             " <key> [-o <long_term> <0|1>]")(
-    "put", " <key> <value> [-o <lock|ready|long_term> <0|1>]")(
+    "put", " <key> <value> [-o <lock|ready|long_term|remote> <0|1>]")(
     "aput", " <key> <value> [-o <lock|ready|long_term> <0|1>]")("status", "")(
     "remove", " <key>")("quit", "")(
     "update", " <key> [value] [-o <lock|ready|long_term> <0|1>]")(

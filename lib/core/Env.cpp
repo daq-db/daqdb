@@ -27,17 +27,15 @@ const std::string DEFAULT_ZHT_CONF_FILE = "zht.conf";
 const std::string DEFAULT_ZHT_NEIGHBOR_FILE = "neighbors.conf";
 const std::string DEFAULT_SPDK_CONF_FILE = "spdk.conf";
 
-Env::Env(const Options &options)
-    : _options(options), _keySize(0), _zhtConfFile(DEFAULT_ZHT_CONF_FILE),
+Env::Env(const Options &options, KVStoreBase *parent)
+    : _options(options), _parent(parent), _keySize(0),
+      _zhtConfFile(DEFAULT_ZHT_CONF_FILE),
       _zhtNeighborsFile(DEFAULT_ZHT_NEIGHBOR_FILE),
       _spdkConfFile(DEFAULT_SPDK_CONF_FILE) {
     for (size_t i = 0; i < options.Key.nfields(); i++)
         _keySize += options.Key.field(i).Size;
     if (_keySize)
         _keySize = DEFAULT_KEY_SIZE;
-
-    createZhtConfFiles();
-    createSpdkConfFiles();
 }
 
 Env::~Env() {}

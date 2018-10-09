@@ -53,6 +53,9 @@
 #include "zpack.pb.h"
 #include <queue>
 #include <string>
+
+#include <daqdb/KVStoreBase.h>
+
 using namespace std;
 using namespace iit::cs550::finalproj;
 
@@ -80,6 +83,7 @@ class HTWorker {
   public:
     HTWorker();
     HTWorker(const ProtoAddr &addr, const ProtoStub *const stub);
+    HTWorker(DaqDB::KVStoreBase *kvs);
     virtual ~HTWorker();
 
   public:
@@ -89,6 +93,7 @@ class HTWorker {
     string ping(const ZPack &zpack);
     string insert(const ZPack &zpack);
     string lookup(const ZPack &zpack);
+
     string append(const ZPack &zpack);
     string remove(const ZPack &zpack);
     string compare_swap(const ZPack &zpack);
@@ -118,6 +123,7 @@ class HTWorker {
     bool _instant_swap;
 
   private:
+    DaqDB::KVStoreBase *_daqdb;
     static NoVoHT *PMAP;
     static QUEUE *PQUEUE;
     static bool FIRST_ASYNC;
