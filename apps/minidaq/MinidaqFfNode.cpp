@@ -66,6 +66,7 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
     int baseId = _PickSubdetector();
     bool accept = _Accept();
     MinidaqKey *keyTmp;
+    int nRetries;
 
     if (accept) {
         keyTmp = new MinidaqKey;
@@ -79,7 +80,31 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
         key.subdetectorId = baseId + i;
-        DaqDB::Value value = _kvs->Get(fogKey);
+        DaqDB::Value value;
+        nRetries = 0;
+        while (nRetries < _maxRetries) {
+            nRetries++;
+            if (_delay_us) {
+                std::this_thread::sleep_for(std::chrono::microseconds(_delay_us));
+            }
+            try {
+                value = _kvs->Get(fogKey);
+            } catch (OperationFailedException &e) {
+                if (e.status()() == KeyNotFound) {
+                    /* Wait until it is availabile. */
+                    continue;
+                } else {
+                    if (accept)
+                        delete keyTmp;
+                    throw;
+                }
+            } catch (...) {
+                if (accept)
+                    delete keyTmp;
+                throw;
+            }
+            break;
+        }
 #ifdef WITH_INTEGRITY_CHECK
         _CheckBuffer(key, value.data(), value.size());
 #endif /* WITH_INTEGRITY_CHECK */
@@ -122,4 +147,6 @@ void MinidaqFfNode::SetBaseSubdetectorId(int id) { _baseId = id; }
 void MinidaqFfNode::SetSubdetectors(int n) { _nSubdetectors = n; }
 
 void MinidaqFfNode::SetAcceptLevel(double p) { _acceptLevel = p; }
+
+void MinidaqFfNode::SetDelay(int d) { _delay_us = d; }
 }
