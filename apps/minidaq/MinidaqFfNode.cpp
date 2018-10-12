@@ -66,6 +66,7 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
     int baseId = _PickSubdetector();
     bool accept = _Accept();
     MinidaqKey *keyTmp;
+    int nRetries;
 
     if (accept) {
         keyTmp = new MinidaqKey;
@@ -80,7 +81,9 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
         /** @todo change to GetRange once implemented */
         key.subdetectorId = baseId + i;
         DaqDB::Value value;
-        while (1) {
+        nRetries = 0;
+        while (nRetries < _maxRetries) {
+            nRetries++;
             if (_delay_us) {
                 std::this_thread::sleep_for(std::chrono::microseconds(_delay_us));
             }

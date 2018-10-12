@@ -42,6 +42,7 @@ class MinidaqFfNode : public MinidaqNode {
     int _baseId = 0;
     int _nSubdetectors = 0;
     int _delay_us = 0;
+    int _maxRetries = 100;
 
   private:
     double _acceptLevel = 1.0; // desired acceptance level for filtering nodes
