@@ -46,6 +46,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_BASE_CORE_ID 10
 #define MINIDAQ_DEFAULT_N_CORES 10
 #define MINIDAQ_DEFAULT_LOG false
+#define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 100
 
 #define US_IN_MS 1000
 
@@ -143,6 +144,7 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
 int main(int argc, const char *argv[]) {
     bool isParallel = MINIDAQ_DEFAULT_PARALLEL;
     double acceptLevel = 0;
+    int collectorDelay = 0;
     int startSubId = 0;
     int nAroTh = 0;
     int nRoTh = 0;
@@ -224,7 +226,10 @@ int main(int argc, const char *argv[]) {
         "Otherwise, collector nodes will wait until readout threads complete.")(
         "acceptance", po::value<double>(&acceptLevel)
                           ->default_value(MINIDAQ_DEFAULT_ACCEPT_LEVEL),
-        "Event acceptance level.");
+        "Event acceptance level.")(
+        "delay", po::value<int>(&collectorDelay)
+                     ->default_value(MINIDAQ_DEFAULT_COLLECTOR_DELAY_US),
+        "If set, collector threads will wait delay us between requests for event.");
 
     po::options_description argumentsDescription;
     argumentsDescription.add(genericOpts).add(readoutOpts).add(filteringOpts);
@@ -314,6 +319,7 @@ int main(int argc, const char *argv[]) {
             nodeFf->SetSubdetectors(nSub);
             nodeFf->SetThreads(nFfTh);
             nodeFf->SetAcceptLevel(acceptLevel);
+            nodeFf->SetDelay(collectorDelay);
             nodes.push_back(std::move(nodeFf));
             std::cout << "### Done." << endl;
         }
