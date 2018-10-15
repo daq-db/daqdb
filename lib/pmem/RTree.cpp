@@ -62,10 +62,9 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
 
     // Define custom allocation class
     struct pobj_alloc_class_desc alloc_daqdb;
-    alloc_daqdb.header_type = POBJ_HEADER_NONE;
+    alloc_daqdb.header_type = POBJ_HEADER_COMPACT;
     alloc_daqdb.unit_size = allocUnitSize;
-    alloc_daqdb.units_per_block =
-        size / (allocUnitSize * MAXIMUM_MEMORY_BLOCKS);
+    alloc_daqdb.units_per_block = ALLOC_CLASS_UNITS_PER_BLOCK;
     alloc_daqdb.alignment = ALLOC_CLASS_ALIGNMENT;
     int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
                              &alloc_daqdb);
@@ -154,13 +153,8 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->actionValue = new pobj_action[1];
     pmemoid poid =
-#ifdef USE_XRESERVE
         pmemobj_xreserve(tree->_pm_pool.get_handle(), &(val->actionValue[0]),
                          size, VALUE, POBJ_CLASS_ID(tree->alloc_class));
-#else
-        pmemobj_reserve(tree->_pm_pool.get_handle(), &(val->actionValue[0]),
-                        size, VALUE);
-#endif /* USE_XRESERVE */
     if (OID_IS_NULL(poid)) {
         delete val->actionValue;
         val->actionValue = nullptr;
