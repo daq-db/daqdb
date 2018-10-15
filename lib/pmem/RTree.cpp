@@ -154,8 +154,13 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->actionValue = new pobj_action[1];
     pmemoid poid =
+#ifdef USE_XRESERVE
         pmemobj_xreserve(tree->_pm_pool.get_handle(), &(val->actionValue[0]),
                          size, VALUE, POBJ_CLASS_ID(tree->alloc_class));
+#else
+        pmemobj_reserve(tree->_pm_pool.get_handle(), &(val->actionValue[0]),
+                        size, VALUE);
+#endif /* USE_XRESERVE */
     if (OID_IS_NULL(poid)) {
         delete val->actionValue;
         val->actionValue = nullptr;
