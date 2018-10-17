@@ -47,6 +47,8 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_CORES 10
 #define MINIDAQ_DEFAULT_LOG false
 #define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 100
+#define MINIDAQ_DEFAULT_ITERATIONS (1ULL << 24ULL - 1ULL)
+#define MINIDAQ_DEFAULT_STOPONERROR false
 
 #define US_IN_MS 1000
 
@@ -66,6 +68,8 @@ int nCores;
 int bCoreId;
 size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
+size_t maxIters;
+bool stopOnError = MINIDAQ_DEFAULT_STOPONERROR;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -89,11 +93,6 @@ static DaqDB::KVStoreBase *openKVS() {
     return DaqDB::KVStoreBase::Open(options);
 }
 
-static uint64_t calcIterations() {
-    /** @todo pmem size limitation? */
-    return FOGKV_MAX_PRIMARY_ID;
-}
-
 static void
 runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
     int nCoresUsed = 0;
@@ -107,7 +106,8 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
         n->SetDelay(delay);
         n->SetTidFile(tid_file);
         n->SetBaseCoreId(bCoreId + nCoresUsed);
-        n->SetMaxIterations(calcIterations());
+        n->SetMaxIterations(maxIters);
+        n->SetStopOnError(stopOnError);
         nCoresUsed += n->GetThreads();
         n->SetCores(n->GetThreads());
         if (nCoresUsed > nCores) {
@@ -165,6 +165,10 @@ int main(int argc, const char *argv[]) {
         "time-ramp",
         po::value<int>(&tRamp_ms)->default_value(MINIDAQ_DEFAULT_T_RAMP_MS),
         "Desired ramp up time in milliseconds.")(
+        "max-iters",
+        po::value<size_t>(&maxIters)->default_value(MINIDAQ_DEFAULT_ITERATIONS),
+        "In non-zero, defines the maximum number of iterations per thread.")(
+        "stopOnError", "If set, test will not continue after first error")(
         "pmem-path", po::value<std::string>(&pmem_path)
                          ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
         "Persistent memory pool file.")(
@@ -229,7 +233,8 @@ int main(int argc, const char *argv[]) {
         "Event acceptance level.")(
         "delay", po::value<int>(&collectorDelay)
                      ->default_value(MINIDAQ_DEFAULT_COLLECTOR_DELAY_US),
-        "If set, collector threads will wait delay us between requests for event.");
+        "If set, collector threads will wait delay us between requests for "
+        "event.");
 
     po::options_description argumentsDescription;
     argumentsDescription.add(genericOpts).add(readoutOpts).add(filteringOpts);
@@ -255,6 +260,9 @@ int main(int argc, const char *argv[]) {
     }
     if (parsedArguments.count("serial")) {
         isParallel = false;
+    }
+    if (parsedArguments.count("stopOnError")) {
+        stopOnError = true;
     }
 
     if (nEbTh) {
