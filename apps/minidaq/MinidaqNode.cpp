@@ -103,7 +103,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
 
     // Ramp up
     timerTest.Restart_ms(_tRamp_ms);
-    while (!timerTest.IsExpired()) {
+    while (!timerTest.IsExpired() && !_stopped) {
         if (i++ >= _maxIterations) {
             _stopped = true;
             break;

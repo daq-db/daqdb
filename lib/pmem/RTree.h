@@ -41,12 +41,10 @@ using namespace pmem::obj;
 #define LEVEL_SIZE 4
 // Number of key bits
 #define KEY_SIZE 24 /** @TODO jschmieg: target value is 24 bits */
-// The maximum number of memory blocks to use.
-// The size of a single block will be:
-//      TOTAL_PMEM_SIZE / (MIN_VALUE_SIZE * MAXIMUM_MEMORY_BLOCKS)
-#define MAXIMUM_MEMORY_BLOCKS 16
 // Allocation class alignment
 #define ALLOC_CLASS_ALIGNMENT 0
+// Units per allocation block.
+#define ALLOC_CLASS_UNITS_PER_BLOCK 1000
 
 enum OBJECT_TYPES { VALUE, IOV };
 
