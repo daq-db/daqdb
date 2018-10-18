@@ -25,9 +25,6 @@
 
 namespace DaqDB {
 
-#define FOGKV_KEY_SIZE 24ull
-#define FOGKV_MAX_PRIMARY_ID ((1ull << FOGKV_KEY_SIZE) - 1ull)
-
 struct MinidaqKey {
     MinidaqKey() : eventId(0), subdetectorId(0), runId(0){};
     MinidaqKey(uint64_t e, uint16_t s, uint16_t r)
@@ -56,6 +53,7 @@ class MinidaqNode {
     void SetCores(int n);
     void SetBaseCoreId(int id);
     void SetMaxIterations(uint64_t n);
+    void SetStopOnError(bool stop);
     int GetThreads();
 
   protected:
@@ -91,7 +89,8 @@ class MinidaqNode {
     std::string _tidFile;         // file to store worker thread IDs
     int _nCores = 1;     // number of cores available for minidaq workers
     int _baseCoreId = 0; // base core id for minidaq workers
-    uint64_t _maxIterations = 0; // maximum number of iterations
+    uint64_t _maxIterations = 0; // maximum number of iterations per thread
+    bool _stopOnError = false;   // break test on first error
 
     std::vector<std::future<MinidaqStats>> _futureVec;
     std::vector<MinidaqStats> _statsVec;
