@@ -20,7 +20,7 @@
 #include <time.h>
 #include <vector>
 
-namespace FogKV {
+namespace DaqDB {
 
 enum MinidaqMetricType {
     MINIDAQ_METRIC_RPS,
@@ -52,10 +52,10 @@ struct MinidaqSample {
 class MinidaqStats {
   public:
     MinidaqStats();
-    MinidaqStats(const std::vector<MinidaqStats> &rVector);
+    explicit MinidaqStats(const std::vector<MinidaqStats> &rVector);
     ~MinidaqStats();
     MinidaqStats(const MinidaqStats &other);
-    MinidaqStats operator=(MinidaqStats &&other);
+    MinidaqStats& operator=(MinidaqStats &&other);
 
     void RecordSample(const MinidaqSample &s);
     void Combine(const MinidaqStats &stats);

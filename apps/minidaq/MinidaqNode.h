@@ -20,13 +20,10 @@
 #include <string>
 #include <vector>
 
-#include "FogKV/KVStoreBase.h"
 #include "MinidaqStats.h"
+#include "daqdb/KVStoreBase.h"
 
-namespace FogKV {
-
-#define FOGKV_KEY_SIZE 24ull
-#define FOGKV_MAX_PRIMARY_ID ((1ull << FOGKV_KEY_SIZE) - 1ull)
+namespace DaqDB {
 
 struct MinidaqKey {
     MinidaqKey() : eventId(0), subdetectorId(0), runId(0){};
@@ -56,6 +53,7 @@ class MinidaqNode {
     void SetCores(int n);
     void SetBaseCoreId(int id);
     void SetMaxIterations(uint64_t n);
+    void SetStopOnError(bool stop);
     int GetThreads();
 
   protected:
@@ -63,11 +61,20 @@ class MinidaqNode {
                        std::atomic<std::uint64_t> &cntErr) = 0;
     virtual void _Setup(int executorId, MinidaqKey &key) = 0;
     virtual void _NextKey(MinidaqKey &key) = 0;
+#ifdef WITH_INTEGRITY_CHECK
+    char _GetBufferByte(MinidaqKey &key, size_t i);
+    void _FillBuffer(MinidaqKey &key, char *buf, size_t s);
+    void _CheckBuffer(MinidaqKey &key, char *buf, size_t s);
+#endif /* WITH_INTEGRITY_CHECK */
     virtual std::string _GetType() = 0;
 
     KVStoreBase *_kvs;
     int _runId = 599;
     int _nTh = 1; // number of worker threads
+#ifdef WITH_INTEGRITY_CHECK
+    std::atomic<std::uint64_t> _nIntegrityChecks;
+    std::atomic<std::uint64_t> _nIntegrityErrors;
+#endif /* WITH_INTEGRITY_CHECK */
 
   private:
     MinidaqStats _Execute(int executorId);
@@ -82,7 +89,8 @@ class MinidaqNode {
     std::string _tidFile;         // file to store worker thread IDs
     int _nCores = 1;     // number of cores available for minidaq workers
     int _baseCoreId = 0; // base core id for minidaq workers
-    uint64_t _maxIterations = 0; // maximum number of iterations
+    uint64_t _maxIterations = 0; // maximum number of iterations per thread
+    bool _stopOnError = false;   // break test on first error
 
     std::vector<std::future<MinidaqStats>> _futureVec;
     std::vector<MinidaqStats> _statsVec;

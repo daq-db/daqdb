@@ -13,12 +13,12 @@
  * stated in the License.
  */
 
-#include <dht/DhtNode.h>
+#include "DhtNode.h"
 
-namespace FogKV
+namespace DaqDB
 {
 
-DhtNode::DhtNode(asio::io_service& io_service, unsigned short port, unsigned short dragonPort)
+DhtNode::DhtNode(asio::io_service& io_service, unsigned short port)
 {
 }
 
@@ -26,4 +26,4 @@ DhtNode::~DhtNode()
 {
 }
 
-} /* namespace Dht */
+}

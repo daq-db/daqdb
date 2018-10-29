@@ -17,10 +17,10 @@
 #include <iostream>
 #include <memory>
 
-#include "FogKV/KVStoreBase.h"
 #include "MinidaqAroNode.h"
 #include "MinidaqFfNode.h"
 #include "MinidaqRoNode.h"
+#include "daqdb/KVStoreBase.h"
 
 using namespace std;
 
@@ -46,6 +46,9 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_BASE_CORE_ID 10
 #define MINIDAQ_DEFAULT_N_CORES 10
 #define MINIDAQ_DEFAULT_LOG false
+#define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 100
+#define MINIDAQ_DEFAULT_ITERATIONS (1ULL << 24ULL - 1ULL)
+#define MINIDAQ_DEFAULT_STOPONERROR false
 
 #define US_IN_MS 1000
 
@@ -63,7 +66,10 @@ int tRamp_ms;
 int delay;
 int nCores;
 int bCoreId;
+size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
+size_t maxIters;
+bool stopOnError = MINIDAQ_DEFAULT_STOPONERROR;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -71,29 +77,24 @@ static void logStd(std::string m) {
 }
 
 /** @todo move to MinidaqFogServer for distributed version */
-static FogKV::KVStoreBase *openKVS() {
-    FogKV::Options options;
-    options.PMEM.Path = pmem_path;
-    options.PMEM.Size = pmem_size;
-    options.Key.field(0, sizeof(FogKV::MinidaqKey::eventId), true);
-    options.Key.field(1, sizeof(FogKV::MinidaqKey::subdetectorId));
-    options.Key.field(2, sizeof(FogKV::MinidaqKey::runId));
+static DaqDB::KVStoreBase *openKVS() {
+    DaqDB::Options options;
+    options.PMEM.poolPath = pmem_path;
+    options.PMEM.totalSize = pmem_size;
+    options.PMEM.allocUnitSize = fSize;
+    options.Key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
+    options.Key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
+    options.Key.field(2, sizeof(DaqDB::MinidaqKey::runId));
     options.Runtime.numOfPoolers = nPoolers;
-    options.Runtime.spdkConfigFile = spdk_conf;
     if (enableLog) {
         options.Runtime.logFunc = logStd;
     }
 
-    return FogKV::KVStoreBase::Open(options);
-}
-
-static uint64_t calcIterations() {
-    /** @todo pmem size limitation? */
-    return FOGKV_MAX_PRIMARY_ID;
+    return DaqDB::KVStoreBase::Open(options);
 }
 
 static void
-runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
+runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
     int nCoresUsed = 0;
 
     // Configure
@@ -105,7 +106,8 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
         n->SetDelay(delay);
         n->SetTidFile(tid_file);
         n->SetBaseCoreId(bCoreId + nCoresUsed);
-        n->SetMaxIterations(calcIterations());
+        n->SetMaxIterations(maxIters);
+        n->SetStopOnError(stopOnError);
         nCoresUsed += n->GetThreads();
         n->SetCores(n->GetThreads());
         if (nCoresUsed > nCores) {
@@ -141,16 +143,15 @@ runBenchmark(std::vector<std::unique_ptr<FogKV::MinidaqNode>> &nodes) {
 
 int main(int argc, const char *argv[]) {
     bool isParallel = MINIDAQ_DEFAULT_PARALLEL;
-    FogKV::KVStoreBase *kvs;
-    double acceptLevel;
-    int startSubId;
-    size_t fSize;
-    int nAroTh;
-    int nRoTh;
-    int nFfTh;
-    int nEbTh;
-    int subId;
-    int nSub;
+    double acceptLevel = 0;
+    int collectorDelay = 0;
+    int startSubId = 0;
+    int nAroTh = 0;
+    int nRoTh = 0;
+    int nFfTh = 0;
+    int nEbTh = 0;
+    int subId = 0;
+    int nSub = 0;
 
     po::options_description genericOpts("Generic options");
     genericOpts.add_options()("help,h", "Print help messages")(
@@ -164,9 +165,12 @@ int main(int argc, const char *argv[]) {
         "time-ramp",
         po::value<int>(&tRamp_ms)->default_value(MINIDAQ_DEFAULT_T_RAMP_MS),
         "Desired ramp up time in milliseconds.")(
-        "pmem-path",
-        po::value<std::string>(&pmem_path)
-            ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
+        "max-iters",
+        po::value<size_t>(&maxIters)->default_value(MINIDAQ_DEFAULT_ITERATIONS),
+        "In non-zero, defines the maximum number of iterations per thread.")(
+        "stopOnError", "If set, test will not continue after first error")(
+        "pmem-path", po::value<std::string>(&pmem_path)
+                         ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
         "Persistent memory pool file.")(
         "pmem-size",
         po::value<size_t>(&pmem_size)->default_value(MINIDAQ_DEFAULT_PMEM_SIZE),
@@ -191,9 +195,8 @@ int main(int argc, const char *argv[]) {
         "tid-file", po::value<std::string>(&tid_file),
         "If set a file with thread IDs of benchmark worker threads will be "
         "generated.")("log,l", "Enable logging")(
-        "spdk-conf-file,c",
-        po::value<std::string>(&spdk_conf)
-            ->default_value(MINIDAQ_DEFAULT_SPDK_CONF),
+        "spdk-conf-file,c", po::value<std::string>(&spdk_conf)
+                                ->default_value(MINIDAQ_DEFAULT_SPDK_CONF),
         "SPDK configuration file");
 
     po::options_description readoutOpts("Readout-specific options");
@@ -227,7 +230,11 @@ int main(int argc, const char *argv[]) {
         "Otherwise, collector nodes will wait until readout threads complete.")(
         "acceptance", po::value<double>(&acceptLevel)
                           ->default_value(MINIDAQ_DEFAULT_ACCEPT_LEVEL),
-        "Event acceptance level.");
+        "Event acceptance level.")(
+        "delay", po::value<int>(&collectorDelay)
+                     ->default_value(MINIDAQ_DEFAULT_COLLECTOR_DELAY_US),
+        "If set, collector threads will wait delay us between requests for "
+        "event.");
 
     po::options_description argumentsDescription;
     argumentsDescription.add(genericOpts).add(readoutOpts).add(filteringOpts);
@@ -254,6 +261,9 @@ int main(int argc, const char *argv[]) {
     if (parsedArguments.count("serial")) {
         isParallel = false;
     }
+    if (parsedArguments.count("stopOnError")) {
+        stopOnError = true;
+    }
 
     if (nEbTh) {
         cerr << "Event builders not supported" << endl;
@@ -268,9 +278,9 @@ int main(int argc, const char *argv[]) {
 
     try {
         std::cout << "### Opening FogKV..." << endl;
-        kvs = openKVS();
+        auto kvs = openKVS();
         std::cout << "### Done." << endl;
-        std::vector<std::unique_ptr<FogKV::MinidaqNode>>
+        std::vector<std::unique_ptr<DaqDB::MinidaqNode>>
             nodes; // Configure nodes
         if (nRoTh) {
             std::cout << "### Configuring readout nodes..." << endl;
@@ -278,8 +288,8 @@ int main(int argc, const char *argv[]) {
                 std::cout << "Cannot mix readout modes." << endl;
                 return 0;
             }
-            unique_ptr<FogKV::MinidaqRoNode> nodeRo(
-                new FogKV::MinidaqRoNode(kvs));
+            unique_ptr<DaqDB::MinidaqRoNode> nodeRo(
+                new DaqDB::MinidaqRoNode(kvs));
             nodeRo->SetSubdetectorId(subId);
             nodeRo->SetThreads(nRoTh);
             nodeRo->SetFragmentSize(fSize);
@@ -294,8 +304,8 @@ int main(int argc, const char *argv[]) {
                 std::cout << "Cannot mix readout modes." << endl;
                 return 0;
             }
-            unique_ptr<FogKV::MinidaqAroNode> nodeAro(
-                new FogKV::MinidaqAroNode(kvs));
+            unique_ptr<DaqDB::MinidaqAroNode> nodeAro(
+                new DaqDB::MinidaqAroNode(kvs));
             nodeAro->SetSubdetectorId(subId);
             nodeAro->SetThreads(nAroTh);
             nodeAro->SetFragmentSize(fSize);
@@ -311,12 +321,13 @@ int main(int argc, const char *argv[]) {
 
         if (nFfTh) {
             std::cout << "### Configuring fast-filtering nodes..." << endl;
-            unique_ptr<FogKV::MinidaqFfNode> nodeFf(
-                new FogKV::MinidaqFfNode(kvs));
+            unique_ptr<DaqDB::MinidaqFfNode> nodeFf(
+                new DaqDB::MinidaqFfNode(kvs));
             nodeFf->SetBaseSubdetectorId(startSubId);
             nodeFf->SetSubdetectors(nSub);
             nodeFf->SetThreads(nFfTh);
             nodeFf->SetAcceptLevel(acceptLevel);
+            nodeFf->SetDelay(collectorDelay);
             nodes.push_back(std::move(nodeFf));
             std::cout << "### Done." << endl;
         }

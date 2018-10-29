@@ -1,27 +1,32 @@
-[submodule "3rd/cChord"]
-	path = third-party/cChord
-	url = https://github.com/FogKV/cChord.git
-[submodule "src/3rd/linenoise"]
-	path = examples/cli_node/linenoise
-	url = https://github.com/antirez/linenoise.git
-[submodule "src/3rd/cpu-stat"]
-	path = path-finding/poc_0_cpu_usage/third-party/cpu-stat
-	url = https://github.com/vivaladav/cpu-stat
-[submodule "src/3rd/csvpp"]
-	path = path-finding/poc_0_cpu_usage/third-party/csvpp
-	url = https://github.com/Plaristote/csvpp.git
 [submodule "third-party/spdk"]
 	path = third-party/spdk
 	url = https://github.com/spdk/spdk.git
+	ignore = dirty
 [submodule "third-party/pmdk"]
 	path = third-party/pmdk
 	url = https://github.com/pmem/pmdk
-[submodule "third-party/libfabric"]
-	path = third-party/libfabric
-	url = https://github.com/ofiwg/libfabric.git
+	ignore = dirty
 [submodule "third-party/HdrHistogram_c"]
 	path = third-party/HdrHistogram_c
 	url = https://github.com/HdrHistogram/HdrHistogram_c.git
+	ignore = dirty
 [submodule "third-party/libconfig"]
 	path = third-party/libconfig
 	url = https://github.com/hyperrealm/libconfig.git
+	ignore = dirty
+[submodule "third-party/protobuf"]
+	path = third-party/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git
+	ignore = dirty
+[submodule "src/3rd/linenoise"]
+	path = examples/clinode/linenoise
+	url = https://github.com/antirez/linenoise.git
+	ignore = dirty
+[submodule "third-party/libpmemobj-cpp"]
+	path = third-party/libpmemobj-cpp
+	url = https://github.com/pmem/libpmemobj-cpp.git
+	ignore = dirty
+[submodule "third-party/eRPC"]
+	path = third-party/eRPC
+	url = https://github.com/anujkaliaiitd/eRPC.git
+	ignore = dirty

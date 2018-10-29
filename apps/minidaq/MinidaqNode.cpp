@@ -26,10 +26,16 @@
 #include "MinidaqNode.h"
 #include "MinidaqTimerHR.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 MinidaqNode::MinidaqNode(KVStoreBase *kvs)
-    : _kvs(kvs), _stopped(false), _statsReady(false) {}
+    : _kvs(kvs), _stopped(false), _statsReady(false)
+#ifdef WITH_INTEGRITY_CHECK
+      ,
+      _nIntegrityChecks(0), _nIntegrityErrors(0)
+#endif /* WITH_INTEGRITY_CHECK */
+{
+}
 
 MinidaqNode::~MinidaqNode() {}
 
@@ -50,6 +56,8 @@ void MinidaqNode::SetCores(int n) { _nCores = n; }
 void MinidaqNode::SetBaseCoreId(int id) { _baseCoreId = id; }
 
 void MinidaqNode::SetMaxIterations(uint64_t n) { _maxIterations = n; }
+
+void MinidaqNode::SetStopOnError(bool stop) { _stopOnError = stop; }
 
 int MinidaqNode::GetThreads() { return _nTh; }
 
@@ -83,7 +91,6 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     MinidaqTimerHR timerTest;
     MinidaqStats stats;
     MinidaqSample s;
-    uint64_t avg_r;
     uint64_t i = 0;
 
     // Pre-test
@@ -98,8 +105,9 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
 
     // Ramp up
     timerTest.Restart_ms(_tRamp_ms);
-    while (!timerTest.IsExpired()) {
-        if (i++ >= _maxIterations) {
+    while (!timerTest.IsExpired() && !_stopped) {
+        i++;
+        if (_maxIterations && i > _maxIterations) {
             _stopped = true;
             break;
         }
@@ -115,25 +123,30 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     timerTest.Restart_ms(_tTest_ms);
     c = 0;
     c_err = 0;
-    while (!timerTest.IsExpired() && !_stopped) {
+    while (!timerTest.IsExpired()) {
         // Timer precision per iteration
-        avg_r = (s.nRequests + 10) / 10;
+        auto avg_r = (s.nRequests + 10) / 10;
         s.Reset();
         timerSample.Restart_us(_tIter_us);
         do {
-            if (i++ >= _maxIterations) {
+            i++;
+            if (_maxIterations && i > _maxIterations) {
                 _stopped = true;
-                continue;
+                break;
             }
             s.nRequests++;
             try {
                 _Task(minidaqKey, c, c_err);
-                _NextKey(minidaqKey);
             } catch (...) {
                 s.nErrRequests++;
+                if (_stopOnError)
+                    _stopped = true;
             }
+            _NextKey(minidaqKey);
         } while (!_stopped &&
                  ((s.nRequests % avg_r) || !timerSample.IsExpired()));
+        if (_stopped)
+            break;
         s.interval_ns = timerSample.GetElapsed_ns();
         s.nCompletions = c.fetch_and(0ULL);
         s.nErrCompletions = c_err.fetch_and(0ULL);
@@ -150,12 +163,6 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     } while (c || c_err);
 
     std::stringstream msg;
-    if (i >= _maxIterations) {
-        msg << "WARNING: Benchmark stopped - max supported task iteration "
-               "count of "
-            << std::to_string(_maxIterations) << " has been reached."
-            << std::endl;
-    }
     msg << "Total number of task iterations: " << std::to_string(i - 1)
         << std::endl;
     std::cout << msg.str();
@@ -180,8 +187,6 @@ void MinidaqNode::Run() {
 }
 
 void MinidaqNode::Wait() {
-    int i;
-
     for (const auto &f : _futureVec) {
         f.wait();
     }
@@ -212,6 +217,13 @@ void MinidaqNode::Show() {
 
     std::cout << "all-" << _GetType() << std::endl;
     _statsAll.DumpSummary();
+
+#ifdef WITH_INTEGRITY_CHECK
+    std::cout << "Integrity checks: " << std::to_string(_nIntegrityChecks)
+              << std::endl;
+    std::cout << "Integrity errors: " << std::to_string(_nIntegrityErrors)
+              << std::endl;
+#endif /* WITH_INTEGRITY_CHECK */
 }
 
 void MinidaqNode::Save(std::string &fp) {
@@ -238,4 +250,43 @@ void MinidaqNode::SaveSummary(std::string &fs, std::string &tname) {
 
     _statsAll.DumpSummary(fs, tname);
 }
+
+#ifdef WITH_INTEGRITY_CHECK
+char MinidaqNode::_GetBufferByte(MinidaqKey &key, size_t i) {
+    return ((key.eventId + i) % 256);
+}
+
+void MinidaqNode::_FillBuffer(MinidaqKey &key, char *buf, size_t s) {
+    for (int i = 0; i < s; i++) {
+        buf[i] = _GetBufferByte(key, i);
+    }
+}
+
+void MinidaqNode::_CheckBuffer(MinidaqKey &key, char *buf, size_t s) {
+    std::stringstream msg;
+    unsigned char b_exp;
+    unsigned char b_act;
+    bool err = false;
+
+    _nIntegrityChecks++;
+    for (int i = 0; i < s; i++) {
+        b_exp = _GetBufferByte(key, i);
+        b_act = buf[i];
+        if (b_exp != b_act) {
+            if (!err) {
+                err = true;
+                msg << "Integrity check failed (" << _GetType()
+                    << ") EventId=" << key.eventId
+                    << " SubdetectorId=" << key.subdetectorId << std::endl;
+                _nIntegrityErrors++;
+            }
+            msg << "  buf[" << i << "] = "
+                << "0x" << std::hex << static_cast<int>(b_act) << " Expected: "
+                << "0x" << static_cast<int>(b_exp) << std::dec << std::endl;
+        }
+    }
+    if (err)
+        std::cout << msg.str();
+}
+#endif /* WITH_INTEGRITY_CHECK */
 }

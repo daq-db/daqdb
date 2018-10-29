@@ -17,11 +17,11 @@
 
 #include "MinidaqRoNode.h"
 
-namespace FogKV {
+namespace DaqDB {
 
 class MinidaqAroNode : public MinidaqRoNode {
   public:
-    MinidaqAroNode(KVStoreBase *kvs);
+    explicit MinidaqAroNode(KVStoreBase *kvs);
     ~MinidaqAroNode();
 
   protected:

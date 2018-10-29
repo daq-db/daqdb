@@ -13,7 +13,7 @@
  * stated in the License.
  */
 
-#include "FogKV/KVStoreBase.h"
+#include "daqdb/KVStoreBase.h"
 
 #include <assert.h>
 #include <cstring>
@@ -35,17 +35,17 @@ struct Key {
 int KVStoreBaseExample() {
     // Open KV store
     //! [open]
-    FogKV::Options options;
+    DaqDB::Options options;
 
     // Configure key structure
     options.Key.field(0, sizeof(Key::event_id), true); // primary key
     options.Key.field(1, sizeof(Key::subdetector_id));
     options.Key.field(2, sizeof(Key::run_id));
 
-    FogKV::KVStoreBase *kvs;
+    DaqDB::KVStoreBase *kvs;
     try {
-        kvs = FogKV::KVStoreBase::Open(options);
-    } catch (FogKV::OperationFailedException &e) {
+        kvs = DaqDB::KVStoreBase::Open(options);
+    } catch (DaqDB::OperationFailedException &e) {
         // error
         // e.status()
     }
@@ -56,7 +56,7 @@ int KVStoreBaseExample() {
 
     //! [put]
     try {
-        FogKV::Key key = kvs->AllocKey();
+        DaqDB::Key key = kvs->AllocKey();
 
         // Fill the key
         Key *keyp = reinterpret_cast<Key *>(key.data());
@@ -64,7 +64,7 @@ int KVStoreBaseExample() {
         keyp->run_id = 2;
         keyp->event_id = 3;
 
-        FogKV::Value value = kvs->Alloc(key, 1024);
+        DaqDB::Value value = kvs->Alloc(key, 1024);
 
         // Fil the value buffer
         std::memset(value.data(), 0, value.size());
@@ -78,7 +78,7 @@ int KVStoreBaseExample() {
 
     //! [put_async]
     try {
-        FogKV::Key key = kvs->AllocKey();
+        DaqDB::Key key = kvs->AllocKey();
 
         // Fill the key
         Key *keyp = reinterpret_cast<Key *>(key.data());
@@ -86,7 +86,7 @@ int KVStoreBaseExample() {
         keyp->run_id = 2;
         keyp->event_id = 3;
 
-        FogKV::Value value = kvs->Alloc(key, 1024);
+        DaqDB::Value value = kvs->Alloc(key, 1024);
 
         // Fill the value buffer
         std::memset(value.data(), 0, value.size());
@@ -94,7 +94,7 @@ int KVStoreBaseExample() {
         // Asynchronous Put operation, transfer ownership of key and value
         // buffers to library
         kvs->PutAsync(std::move(key), std::move(value),
-                      [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                      [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                           const char *key, size_t keySize, const char *value,
                           size_t valueSize) {
                           if (!status.ok()) {
@@ -111,7 +111,7 @@ int KVStoreBaseExample() {
     //! [get]
     try {
 
-        FogKV::Key key = kvs->AllocKey();
+        DaqDB::Key key = kvs->AllocKey();
 
         // Fill the key
         Key *keyp = reinterpret_cast<Key *>(key.data());
@@ -123,12 +123,11 @@ int KVStoreBaseExample() {
         // of the value. The caller must free both key and value buffers by
         // itself, or
         // transfer the ownership in another call.
-        FogKV::Value value;
+        DaqDB::Value value;
         try {
             value = kvs->Get(key);
         } catch (...) {
             // error
-            kvs->Free(std::move(key));
         }
 
         // success, process the data and free the buffers
@@ -141,7 +140,7 @@ int KVStoreBaseExample() {
 
     //! [get_async]
     try {
-        FogKV::Key key = kvs->AllocKey();
+        DaqDB::Key key = kvs->AllocKey();
 
         // Fill the key
         Key *keyp = reinterpret_cast<Key *>(key.data());
@@ -151,7 +150,7 @@ int KVStoreBaseExample() {
 
         try {
             kvs->GetAsync(key,
-                          [&](FogKV::KVStoreBase *kvs, FogKV::Status status,
+                          [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                               const char *key, size_t keySize,
                               const char *value, size_t valueSize) {
 
@@ -164,7 +163,7 @@ int KVStoreBaseExample() {
 
                               // free the value buffer
                           });
-        } catch (FogKV::OperationFailedException exc) {
+        } catch (DaqDB::OperationFailedException &exc) {
             // error, status in:
             // exc.status();
             kvs->Free(std::move(key));
@@ -177,12 +176,12 @@ int KVStoreBaseExample() {
     //! [get_any]
     try {
 
-        FogKV::GetOptions getOptions;
-        getOptions.Attr = FogKV::READY;
-        getOptions.NewAttr = FogKV::LOCKED | FogKV::READY;
+        DaqDB::GetOptions getOptions;
+        getOptions.Attr = DaqDB::READY;
+        getOptions.NewAttr = DaqDB::LOCKED | DaqDB::READY;
 
         // get and lock any primary key which is in unlocked state
-        FogKV::Key keyBuff = kvs->GetAny(getOptions);
+        DaqDB::Key keyBuff = kvs->GetAny(getOptions);
         Key *key = reinterpret_cast<Key *>(keyBuff.data());
 
         Key keyBeg(key->event_id, std::numeric_limits<uint16_t>::min(),
@@ -191,13 +190,13 @@ int KVStoreBaseExample() {
         Key keyEnd(key->event_id, std::numeric_limits<uint16_t>::max(),
                    std::numeric_limits<uint16_t>::max());
 
-        std::vector<FogKV::KVPair> range = kvs->GetRange(
-            FogKV::Key(reinterpret_cast<char *>(&keyBeg), sizeof(keyBeg)),
-            FogKV::Key(reinterpret_cast<char *>(&keyEnd), sizeof(keyEnd)));
+        std::vector<DaqDB::KVPair> range = kvs->GetRange(
+            DaqDB::Key(reinterpret_cast<char *>(&keyBeg), sizeof(keyBeg)),
+            DaqDB::Key(reinterpret_cast<char *>(&keyEnd), sizeof(keyEnd)));
 
         for (auto kv : range) {
             // or unlock and mark the primary key as ready
-            kvs->Update(kv.key(), FogKV::READY);
+            kvs->Update(kv.key(), DaqDB::READY);
         }
 
     } catch (...) {

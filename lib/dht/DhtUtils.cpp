@@ -21,7 +21,7 @@
 #include <asio/ip/tcp.hpp>
 #include <asio/signal_set.hpp>
 
-namespace FogKV
+namespace DaqDB
 {
 namespace utils
 {
@@ -54,5 +54,5 @@ getFreePort(asio::io_service &io_service, const unsigned short backbonePort, boo
 	return resultPort;
 }
 
-} /* namespace utils */
-} // namespace Dht
+}
+}
