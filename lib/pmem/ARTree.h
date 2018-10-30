@@ -42,11 +42,16 @@
 using namespace pmem::obj::experimental;
 using namespace pmem::obj;
 namespace DaqDB {
+#define KEY_SIZE 24
+#define TYPE4 4
+#define TYPE256 256
 
 // Describes Node type on each level of tree
-const int LEVEL_TYPE[] = {4, 4, 4, 4, 4, 4};
-const int PREALLOC_LEVELS = 3;
-#define KEY_SIZE 24
+const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256, TYPE256, TYPE256};
+const int PREALLOC_LEVELS = 2;
+
+#define ACTION_NUMBER (256+256*256+256*256*256+1)
+
 enum OBJECT_TYPES { VALUE, IOV };
 
 struct locationStruct {
@@ -90,10 +95,11 @@ class Node256 : public Node {
   public:
     explicit Node256(int _depth, int _type) : Node(_depth, _type) {}
     persistent_ptr<Node> children[256]; // array of pointers to Nodes
+    pmem::obj::mutex nodeMutex;
 };
 
 struct ARTreeRoot {
-    persistent_ptr<Node4> rootNode;
+    persistent_ptr<Node256> rootNode;
     pmem::obj::mutex mutex;
     p<int> level_bits;
 };
@@ -101,13 +107,14 @@ struct ARTreeRoot {
 class TreeImpl {
   public:
     TreeImpl(const string &path, const size_t size, const size_t allocUnitSize);
-    void allocateFullLevels(persistent_ptr<Node> node, int depth, int *count,
+    void allocateFullLevels(persistent_ptr<Node> node, int *count,
                             int levelsToAllocate);
-    ValueWrapper *findValueInNode(persistent_ptr<Node> current,
-                                        const char *key, bool allocate);
+    ValueWrapper *findValueInNode(persistent_ptr<Node> current, const char *key,
+                                  bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
-
+    struct pobj_action actionsArray[ACTION_NUMBER];
+    int actionCounter;
   private:
 };
 

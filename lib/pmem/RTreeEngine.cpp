@@ -14,13 +14,13 @@
  */
 
 //#include "RTreeEngine.h"
-#include "RTree.h"
-//#include "ARTree.h"
+//#include "RTree.h"
+#include "ARTree.h"
 namespace DaqDB {
 RTreeEngine *RTreeEngine::Open(const string &path, // path to persistent pool
                                size_t size, size_t allocUnitSize) {
-    return new DaqDB::RTree(path, size, allocUnitSize);
-    //return new DaqDB::ARTree(path, size, allocUnitSize);
+    //return new DaqDB::RTree(path, size, allocUnitSize);
+    return new DaqDB::ARTree(path, size, allocUnitSize);
 }
 
 void RTreeEngine::Close(RTreeEngine *kv) {} // close storage engine
