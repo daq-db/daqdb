@@ -44,36 +44,40 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
             int levelsToAllocate = PREALLOC_LEVELS;
             treeRoot = _pm_pool.get_root().get();
             actionCounter = 0;
-            treeRoot->rootNode =
-                pmemobj_reserve(_pm_pool.get_handle(), &(actionsArray[actionCounter++]),
-                                 sizeof(Node256), VALUE);
+            treeRoot->rootNode = pmemobj_reserve(
+                _pm_pool.get_handle(), &(actionsArray[actionCounter++]),
+                sizeof(Node256), VALUE);
             /*if (OID_IS_NULL(poid)) {
                 DAQ_DEBUG("reserve failed");
             }*/
-            //treeRoot->rootNode= static_cast<persistent_ptr<Node256>>(pmemobj_direct(poid));
+            // treeRoot->rootNode=
+            // static_cast<persistent_ptr<Node256>>(pmemobj_direct(poid));
 
-            //treeRoot->rootNode = poid;//static_cast<persistent_ptr<Node256>>(pmemobj_direct(poid));
+            // treeRoot->rootNode =
+            // poid;//static_cast<persistent_ptr<Node256>>(pmemobj_direct(poid));
 
-            //make_persistent_atomic<Node256>(_pm_pool, treeRoot->rootNode, depth,
-              //                            LEVEL_TYPE[depth]);
+            // make_persistent_atomic<Node256>(_pm_pool, treeRoot->rootNode,
+            // depth,
+            //                            LEVEL_TYPE[depth]);
 
-            //treeRoot->rootNode->counter = 0;
+            // treeRoot->rootNode->counter = 0;
             treeRoot->rootNode->depth = 0;
             treeRoot->rootNode->type = TYPE256;
             DAQ_DEBUG("root creation");
             allocateFullLevels(treeRoot->rootNode, &countNodes,
                                levelsToAllocate);
-            DAQ_DEBUG("Publishing, actionCounter=" +std::to_string(actionCounter));
-            int status = pmemobj_publish(_pm_pool.get_handle(), actionsArray, actionCounter);
-            if( status == 0 ) {
+            DAQ_DEBUG("Publishing, actionCounter=" +
+                      std::to_string(actionCounter));
+            int status = pmemobj_publish(_pm_pool.get_handle(), actionsArray,
+                                         actionCounter);
+            if (status == 0) {
                 DAQ_DEBUG("Published");
-            }
-            else {
+            } else {
                 DAQ_DEBUG("Error on publish = " + std::to_string(status));
             }
             actionCounter = 0;
             // debug only
-            //countSlots =
+            // countSlots =
             //    countSlots * LEVEL_TYPE[depth + levelsToAllocate -1];
             DAQ_DEBUG("root created, count=" + std::to_string(countNodes));
         } catch (std::exception &e) {
@@ -89,23 +93,56 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
 
 StatusCode ARTree::Get(const char *key, int32_t keybytes, void **value,
                        size_t *size, uint8_t *location) {
-
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    if(!val)
+        return StatusCode::KeyNotFound;
+    if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
+        *value = val->locationPtr.value.get();
+        *location = val->location;
+    } else if (val->location == DISK) {
+        *value = val->locationPtr.IOVptr.get();
+        *location = val->location;
+    } else if (val->location == EMPTY ||
+               val->locationVolatile.get().value == EMPTY) {
+        return StatusCode::KeyNotFound;
+    }
+    *size = val->size;
     return StatusCode::Ok;
 }
 
 StatusCode ARTree::Get(const char *key, void **value, size_t *size,
                        uint8_t *location) {
 
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    if(!val)
+        return StatusCode::KeyNotFound;
+    if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
+        *value = val->locationPtr.value.get();
+        *location = val->location;
+    } else if (val->location == DISK) {
+        *value = val->locationPtr.IOVptr.get();
+        *location = val->location;
+    } else if (val->location == EMPTY ||
+               val->locationVolatile.get().value == EMPTY) {
+        return StatusCode::KeyNotFound;
+    }
+    *size = val->size;
     return StatusCode::Ok;
 }
 
 StatusCode ARTree::Put(const char *key, // copy value from std::string
                        char *value) {
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val->location = PMEM;
+    val->locationVolatile.get().value = PMEM;
     return StatusCode::Ok;
 }
 
 StatusCode ARTree::Put(const char *key, int32_t keyBytes, const char *value,
                        int32_t valuebytes) {
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val->location = PMEM;
+    val->locationVolatile.get().value = PMEM;
     return StatusCode::Ok;
 }
 
@@ -119,79 +156,101 @@ StatusCode ARTree::Remove(const char *key) { return StatusCode::Ok; }
  * @param levelsToAllocate how many levels below should be allocated
  *
  */
-void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
-                                  int *count, int levelsToAllocate) {
-    int depth = node->depth+1;
+void TreeImpl::allocateFullLevels(persistent_ptr<Node> node, int *count,
+                                  int levelsToAllocate) {
+    int depth = node->depth + 1;
     levelsToAllocate--;
-    //DAQ_DEBUG("allocateFullLevels, depth=" + std::to_string(depth) + " levelsToAllocate=" + std::to_string(levelsToAllocate) + " count=" +std::to_string(*count));
+    // DAQ_DEBUG("allocateFullLevels, depth=" + std::to_string(depth) + "
+    // levelsToAllocate=" + std::to_string(levelsToAllocate) + " count="
+    // +std::to_string(*count));
     persistent_ptr<Node4> node4;
     persistent_ptr<Node256> node256;
-    //if (levelsToAllocate > 0) {
-        if (node->type == TYPE4) {
-            for (int i = 0; i < node->type; i++) {
-                node4 = node;
-                if(LEVEL_TYPE[depth]==TYPE4) {
-                    //DAQ_DEBUG("Reserve 4, actionCounter=" +std::to_string(actionCounter)+ " size Node4=" + std::to_string(sizeof(Node4)));
-                    node4->children[i] =
-                        pmemobj_reserve(_pm_pool.get_handle(), &(actionsArray[actionCounter++]),
-                                         sizeof(Node4), VALUE);
-                    //if (OID_IS_NULL(poid)) {
-                    //    DAQ_DEBUG("reserve failed");
-                    //}
-                    //node256->children[i]= static_cast<Node4 *>(pmemobj_direct(poid));
-                    node4->children[i]->depth = depth;
-                    node4->children[i]->type = TYPE4;
-                }
-                else if (LEVEL_TYPE[depth]==TYPE256) {
-                    //DAQ_DEBUG("Reserve 256, actionCounter=" +std::to_string(actionCounter) + " size Node256=" + std::to_string(sizeof(Node256)));
-                    node4->children[i] =
-                        pmemobj_reserve(_pm_pool.get_handle(), &(actionsArray[actionCounter++]),
-                                         sizeof(Node256), VALUE);
-                    //if (OID_IS_NULL(poid)) {
-                    //    DAQ_DEBUG("reserve failed");
-                    //}
-                    //node256->children[i]= static_cast<Node256 *>(pmemobj_direct(poid));
+    // if (levelsToAllocate > 0) {
+    if (node->type == TYPE4) {
+        for (int i = 0; i < node->type; i++) {
+            node4 = node;
+            if (LEVEL_TYPE[depth] == TYPE4) {
+                // DAQ_DEBUG("Reserve 4, actionCounter="
+                // +std::to_string(actionCounter)+ " size Node4=" +
+                // std::to_string(sizeof(Node4)));
+                node4->children[i] = pmemobj_reserve(
+                    _pm_pool.get_handle(), &(actionsArray[actionCounter++]),
+                    sizeof(Node4), VALUE);
+                // if (OID_IS_NULL(poid)) {
+                //    DAQ_DEBUG("reserve failed");
+                //}
+                // node256->children[i]= static_cast<Node4
+                // *>(pmemobj_direct(poid));
+                node4->children[i]->depth = depth;
+                node4->children[i]->type = TYPE4;
+            } else if (LEVEL_TYPE[depth] == TYPE256) {
+                // DAQ_DEBUG("Reserve 256, actionCounter="
+                // +std::to_string(actionCounter) + " size Node256=" +
+                // std::to_string(sizeof(Node256)));
+                node4->children[i] = pmemobj_reserve(
+                    _pm_pool.get_handle(), &(actionsArray[actionCounter++]),
+                    sizeof(Node256), VALUE);
+                // if (OID_IS_NULL(poid)) {
+                //    DAQ_DEBUG("reserve failed");
+                //}
+                // node256->children[i]= static_cast<Node256
+                // *>(pmemobj_direct(poid));
 
-                    node4->children[i]->depth = depth;
-                    node4->children[i]->type = TYPE256;
-                    /*make_persistent_atomic<Node256>(_pm_pool, node256->children[i],
-                                                 depth, LEVEL_TYPE[depth]);*/
-                }
+                node4->children[i]->depth = depth;
+                node4->children[i]->type = TYPE256;
+                /*make_persistent_atomic<Node256>(_pm_pool,
+                   node256->children[i], depth, LEVEL_TYPE[depth]);*/
             }
-        } else
-    if (node->type == TYPE256) {
+        }
+    } else if (node->type == TYPE256) {
         for (int i = 0; i < node->type; i++) {
             node256 = node;
-            if(LEVEL_TYPE[depth]==TYPE4) {
-                //DAQ_DEBUG("Reserve 4, actionCounter=" +std::to_string(actionCounter)+ " size Node4=" + std::to_string(sizeof(Node4)));
-                node256->children[i] =
-                    pmemobj_reserve(_pm_pool.get_handle(), &(actionsArray[actionCounter++]),
-                                     sizeof(Node4), VALUE);
-                //if (OID_IS_NULL(poid)) {
+            if (LEVEL_TYPE[depth] == TYPE4) {
+                 /*DAQ_DEBUG("Reserve 4, actionCounter="
+                 +std::to_string(actionCounter)+ " size Node4=" +
+                 std::to_string(sizeof(Node4)));*/
+                node256->children[i] = pmemobj_reserve(
+                    _pm_pool.get_handle(), &(actionsArray[actionCounter++]),
+                    sizeof(Node4), VALUE);
+                // if (OID_IS_NULL(poid)) {
                 //    DAQ_DEBUG("reserve failed");
                 //}
-                //node256->children[i]= static_cast<Node4 *>(pmemobj_direct(poid));
+                // node256->children[i]= static_cast<Node4
+                // *>(pmemobj_direct(poid));
                 node256->children[i]->depth = depth;
                 node256->children[i]->type = TYPE4;
-            }
-            else if (LEVEL_TYPE[depth]==TYPE256) {
-                //DAQ_DEBUG("Reserve 256, actionCounter=" +std::to_string(actionCounter) + " size Node256=" + std::to_string(sizeof(Node256)));
-                node256->children[i] =
-                    pmemobj_reserve(_pm_pool.get_handle(), &(actionsArray[actionCounter++]),
-                                     sizeof(Node256), VALUE);
-                //if (OID_IS_NULL(poid)) {
+            } else if (LEVEL_TYPE[depth] == TYPE256) {
+                // DAQ_DEBUG("Reserve 256, actionCounter="
+                // +std::to_string(actionCounter) + " size Node256=" +
+                // std::to_string(sizeof(Node256)));
+                node256->children[i] = pmemobj_reserve(
+                    _pm_pool.get_handle(), &(actionsArray[actionCounter++]),
+                    sizeof(Node256), VALUE);
+                // if (OID_IS_NULL(poid)) {
                 //    DAQ_DEBUG("reserve failed");
                 //}
-                //node256->children[i]= static_cast<Node256 *>(pmemobj_direct(poid));
+                // node256->children[i]= static_cast<Node256
+                // *>(pmemobj_direct(poid));
 
                 node256->children[i]->depth = depth;
                 node256->children[i]->type = TYPE256;
-                /*make_persistent_atomic<Node256>(_pm_pool, node256->children[i],
-                                             depth, LEVEL_TYPE[depth]);*/
+                /*make_persistent_atomic<Node256>(_pm_pool,
+                   node256->children[i], depth, LEVEL_TYPE[depth]);*/
+            } else if(LEVEL_TYPE[depth] == TYPE4_LEAF) {
+                      /*DAQ_DEBUG("Reserve 4 leaf, actionCounter="
+                       +std::to_string(actionCounter) + " size Node4leaf=" +
+                       std::to_string(sizeof(Node4Leaf)));*/
+                      node256->children[i] = pmemobj_reserve(
+                          _pm_pool.get_handle(), &(actionsArray[actionCounter++]),
+                          sizeof(Node4Leaf), VALUE);
+                      node256->children[i]->depth = depth;
+                      node256->children[i]->type = TYPE4_LEAF;
             }
-            //make_persistent_atomic<Node256>(_pm_pool, node256->children[i],
+
+            // make_persistent_atomic<Node256>(_pm_pool, node256->children[i],
             //                             depth, LEVEL_TYPE[depth]);
-            //DAQ_DEBUG("allocateFullLevelsNode256, count=" +std::to_string(*count));
+            // DAQ_DEBUG("allocateFullLevelsNode256, count="
+            // +std::to_string(*count));
             (*count)++;
             if (levelsToAllocate > 0) {
                 allocateFullLevels(node256->children[i], count,
@@ -206,9 +265,6 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
     }*/
 }
 
-
-
-
 /*
  * Find value in Tree for a given key, allocate subtree if needed.
  *
@@ -221,19 +277,49 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
 ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                                         const char *key, bool allocate) {
     int keyCalc;
-    int debugCount=0;
+    int debugCount = 0;
     persistent_ptr<Node4> node4;
     persistent_ptr<Node256> node256;
+    persistent_ptr<Node4Leaf> node4Leaf;
+    ValueWrapper *val;
+
     while (1) {
         keyCalc = key[current->depth];
         std::bitset<8> x(keyCalc);
-        DAQ_DEBUG("findValueInNode: current->depth= "+ std::to_string(current->depth) + " keyCalc=" + x.to_string());
+        DAQ_DEBUG("findValueInNode: current->depth= " +
+                  std::to_string(current->depth) + " keyCalc=" + x.to_string());
         if (current->depth == ((sizeof(LEVEL_TYPE) / sizeof(int) - 1))) {
-            DAQ_DEBUG("end");
-            break;
+            node4Leaf = current;
+            if(allocate) {
+                node4Leaf->keys[0] = keyCalc;
+                node4Leaf->children[0] = pmemobj_reserve(
+                    _pm_pool.get_handle(), &(actionsArray[actionCounter++]),
+                    sizeof(ValueWrapper), VALUE);
+                int status = pmemobj_publish(_pm_pool.get_handle(),
+                                             actionsArray, actionCounter);
+                //node4Leaf->children[0]->location == PMEM;
+                actionCounter = 0;
+                val = reinterpret_cast<ValueWrapper *>((node4Leaf->children[0]).raw_ptr());
+                return val;
+            }
+            else {
+                DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" + std::to_string(keyCalc) + "node4Leaf->keys[0]=" + std::to_string(node4Leaf->keys[0]));
+                if (node4Leaf->keys[0] == keyCalc) {
+                    val = reinterpret_cast<ValueWrapper *>((node4Leaf->children[0]).raw_ptr());
+                    DAQ_DEBUG("findValueInNode: Found");
+                    return val;
+                    //current = node4->children[i];
+                }
+                else {
+                    return nullptr;
+                }
+            }
+            /*DAQ_DEBUG("end");
+            break;*/
         }
         if (current->type == TYPE4) {
-            DAQ_DEBUG("findValueInNode: Type4 on depth=" + std::to_string(current->depth));
+            DAQ_DEBUG("findValueInNode: Type4 on depth=" +
+                      std::to_string(current->depth));
             /*node4 = current;
             int i = 0;
             for (i = 0; i < 4; i++) {
@@ -259,37 +345,42 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                 break;
             }
         */
-        } else {    //TYPE256
+        } else if(current->type == TYPE256) { // TYPE256
             node256 = current;
-            if(node256->children[keyCalc])
-            {
+            if (node256->children[keyCalc]) {
                 current = node256->children[keyCalc];
-            }
-            else if(allocate) {
+            } else if (allocate) {
                 std::lock_guard<pmem::obj::mutex> lock(node256->nodeMutex);
-                //other threads don't have to create subtree
-                if(node256->children[keyCalc])
-                {
-                    DAQ_DEBUG("findValueInNode: other thread meets allocated subtree");
+                // other threads don't have to create subtree
+                if (node256->children[keyCalc]) {
+                    DAQ_DEBUG("findValueInNode: other thread meets allocated "
+                              "subtree");
                     current = node256->children[keyCalc];
-                }
-                else{   //not found, allocate subtree
-                    DAQ_DEBUG("findValueInNode: allocate subtree on depth=" + std::to_string(node256->depth+1));
-                    allocateFullLevels(node256, &debugCount, 2);
-                    int status = pmemobj_publish(_pm_pool.get_handle(), actionsArray, actionCounter);
+                } else { // not found, allocate subtree
+                    DAQ_DEBUG("findValueInNode: allocate subtree on depth=" +
+                              std::to_string(node256->depth + 1) + " type=" + std::to_string(LEVEL_TYPE[node256->depth+1]));
+                    allocateFullLevels(node256, &debugCount, 1);
+                    int status = pmemobj_publish(_pm_pool.get_handle(),
+                                                 actionsArray, actionCounter);
                     actionCounter = 0;
-                    if( status == 0 ) {
-                        DAQ_DEBUG("Published, debugCount=" + std::to_string(debugCount));
+                    if (status == 0) {
+                        DAQ_DEBUG("Published, debugCount=" +
+                                  std::to_string(debugCount));
                     }
                     debugCount = 0;
                     current = node256->children[keyCalc];
                 }
-            }
-            else {
-                //not found, do not allocate subtree
+            } else {
+                // not found, do not allocate subtree
                 return nullptr;
             }
         }
+        /*else if (current->type == TYPE4_LEAF) {
+            node4Leaf = current;
+            if (node4Leaf->keys[0] == keyCalc) {
+                current = node4Leaf->children[0];
+            }
+        }*/
         //current = current->children[keyCalc];
     }
 
@@ -304,6 +395,19 @@ StatusCode ARTree::AllocValueForKey(const char *key, size_t size,
         DAQ_DEBUG("root exists");
         ValueWrapper *val =
             tree->findValueInNode(tree->treeRoot->rootNode, key, true);
+        val->actionValue = new pobj_action[1];
+        pmemoid poid =
+            pmemobj_reserve(tree->_pm_pool.get_handle(), &(val->actionValue[0]),
+                             size, VALUE);
+        if (OID_IS_NULL(poid)) {
+            delete val->actionValue;
+            val->actionValue = nullptr;
+            return StatusCode::AllocationError;
+        }
+        val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
+        val->size = size;
+        *value = reinterpret_cast<char *>(
+            pmemobj_direct(*(val->locationPtr.value.raw_ptr())));
     } else {
         DAQ_DEBUG("root does not exist");
     }

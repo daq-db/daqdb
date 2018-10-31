@@ -45,12 +45,14 @@ namespace DaqDB {
 #define KEY_SIZE 24
 #define TYPE4 4
 #define TYPE256 256
+#define TYPE4_LEAF 5
+//enum LEVEL_TYPES {TYPE4=1 ,TYPE256, TYPE4_LEAF};
 
 // Describes Node type on each level of tree
-const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256, TYPE256, TYPE256};
+const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256, TYPE4_LEAF};
 const int PREALLOC_LEVELS = 2;
 
-#define ACTION_NUMBER (256+256*256+256*256*256+1)
+#define ACTION_NUMBER (256 + 256 * 256 + 256 * 256 * 256 + 1)
 
 enum OBJECT_TYPES { VALUE, IOV };
 
@@ -89,7 +91,18 @@ class Node4 : public Node {
     explicit Node4(int _depth, int _type) : Node(_depth, _type) {}
     unsigned char keys[4]; // array of 4 keys (1 byte each)
     persistent_ptr<Node> children[4]; // array of pointers to Nodes
+    //persistent_ptr<ValueWrapper> children[4]; // array of pointers to Values
 };
+
+class Node4Leaf : public Node {
+  public:
+    explicit Node4Leaf(int _depth, int _type) : Node(_depth, _type) {}
+    unsigned char keys[4]; // array of 4 keys (1 byte each)
+    //persistent_ptr<Node> children[4]; // array of pointers to Nodes
+    persistent_ptr<ValueWrapper> children[4]; // array of pointers to Values
+};
+
+
 
 class Node256 : public Node {
   public:
@@ -115,6 +128,7 @@ class TreeImpl {
     pool<ARTreeRoot> _pm_pool;
     struct pobj_action actionsArray[ACTION_NUMBER];
     int actionCounter;
+
   private:
 };
 
