@@ -20,11 +20,15 @@
 #include <linenoise.h>
 #include <memory>
 
+#include "rpc.h"
+#include "config.h"
+
 namespace {
 const unsigned int consoleHintColor = 35; // dark red
 };
 
 namespace DaqDB {
+	void erpcReqHandler(erpc::ReqHandle *req_handle, void *);
 
 /*!
  * Dragon shell interpreter.
