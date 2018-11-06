@@ -13,6 +13,7 @@
  * stated in the License.
  */
 
+#include <asio/io_service.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 

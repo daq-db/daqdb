@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <asio/io_service.hpp>
+
 #include <daqdb/KVStoreBase.h>
 #include <daqdb/Key.h>
 #include <daqdb/Options.h>

@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include <asio/io_service.hpp>
 #include <functional>
 #include <vector>
 
