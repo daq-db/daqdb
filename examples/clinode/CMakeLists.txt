@@ -16,6 +16,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 
 set(3RDPARTY ${ROOT_DAQDB_DIR}/third-party)
 
+include_directories(${3RDPARTY}/erpc/build)
+
 include_directories(linenoise)
 add_library(linenoise SHARED linenoise/linenoise.c linenoise/linenoise.h)
 

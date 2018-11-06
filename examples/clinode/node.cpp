@@ -101,6 +101,16 @@ int main(int argc, const char *argv[]) {
 
     if (interactiveMode) {
         DaqDB::nodeCli nodeCli(spKVStore);
+
+//---------------------------------------------------------------------------
+        std::string server_uri = kServerHostname + ":" + kUDPPort;
+        erpc::Nexus nexus(server_uri, 0, 0);
+        nexus.register_req_func(kReqType, erpcReqHandler);
+
+        rpc = new erpc::Rpc<erpc::CTransport>(&nexus, nullptr, 0, nullptr);
+        rpc->run_event_loop(100000);
+//---------------------------------------------------------------------------
+
         while (nodeCli()) {
             if (!isRunning)
                 break;

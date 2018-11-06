@@ -637,4 +637,13 @@ void nodeCli::_cmdNeighbors() {
          << endl;
 }
 
+void req_handler(erpc::ReqHandle *req_handle, void *) {
+	auto &resp = req_handle->pre_resp_msgbuf;
+	rpc->resize_msg_buffer(&resp, kMsgSize);
+	sprintf(reinterpret_cast<char *>(resp.buf), "Connection successful");
+
+	req_handle->prealloc_used = true;
+	rpc->enqueue_response(req_handle);
+}
+
 } // namespace DaqDB
