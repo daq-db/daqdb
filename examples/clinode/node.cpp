@@ -15,8 +15,6 @@
 
 #include <iostream>
 
-#include <asio/ip/tcp.hpp>
-#include <asio/signal_set.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
