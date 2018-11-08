@@ -129,7 +129,7 @@ StatusCode ARTree::Get(const char *key, void **value, size_t *size,
 
 StatusCode ARTree::Put(const char *key, // copy value from std::string
                        char *value) {
-    DAQ_DEBUG("Put1 " );
+    DAQ_DEBUG("Put1 ");
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     val->location = PMEM;
@@ -147,7 +147,28 @@ StatusCode ARTree::Put(const char *key, int32_t keyBytes, const char *value,
     return StatusCode::Ok;
 }
 
-StatusCode ARTree::Remove(const char *key) { return StatusCode::Ok; }
+StatusCode ARTree::Remove(const char *key) {
+    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    if (val->location == EMPTY) {
+        return StatusCode::KeyNotFound;
+    }
+    try {
+        if (val->location == PMEM &&
+            val->locationVolatile.get().value != EMPTY) {
+            pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+        } else if (val->location == DISK) {
+            // @TODO jradtke need to confirm if no extra action required here
+        }
+        val->location = EMPTY;
+    } catch (std::exception &e) {
+        std::cout << "Error " << e.what();
+        return StatusCode::UnknownError;
+    }
+    if (val->location == PMEM) {
+        delete val->actionValue;
+    }
+    return StatusCode::Ok;
+}
 
 /*
  * Allocates tree levels
@@ -336,10 +357,10 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
     while (1) {
         keyCalc = key[current->depth];
         std::bitset<8> x(keyCalc);
-         DAQ_DEBUG("findValueInNode: current->depth= " +
-                 std::to_string(current->depth) + " keyCalc=" +
-                 x.to_string());
-        //std::cout << "findValueInNode" << "depth=" << current->depth << "x=" << x << std::endl;
+        DAQ_DEBUG("findValueInNode: current->depth= " +
+                  std::to_string(current->depth) + " keyCalc=" + x.to_string());
+        // std::cout << "findValueInNode" << "depth=" << current->depth << "x="
+        // << x << std::endl;
         /*if (current->depth == ((sizeof(LEVEL_TYPE) / sizeof(int) - 1))) {
             //last level can only be Node4Leaf
             node4Leaf = current;
@@ -510,7 +531,8 @@ StatusCode ARTree::AllocValueForKey(const char *key, size_t size,
 StatusCode ARTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
                                      size_t size) {
 
-    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    ValueWrapper *val =
+        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     val->actionUpdate = new pobj_action[3];
     pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
                                    &(val->actionUpdate[0]), size, IOV);
@@ -532,7 +554,8 @@ StatusCode ARTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
                                       size_t size) {
 
     pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
-    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    ValueWrapper *val =
+        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
                       val->locationPtr.IOVptr.get(),
                       reinterpret_cast<uint64_t>(*ptr));
