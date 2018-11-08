@@ -43,21 +43,17 @@ using namespace pmem::obj::experimental;
 using namespace pmem::obj;
 namespace DaqDB {
 #define KEY_SIZE 24
-//#define TYPE4 4
-//#define TYPE256 12
-//#define TYPE4_LEAF 5
 enum LEVEL_TYPES { TYPE4, TYPE256, TYPE4_LEAF, TYPE_LEAF_COMPRESSED };
 const int NODE_SIZE[] = {4, 256, 4, 1};
 
 // Describes Node type on each level of tree
-const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256, TYPE256, TYPE256, TYPE256, TYPE256, TYPE4_LEAF};
+const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256, TYPE256,
+                          TYPE256, TYPE256, TYPE256, TYPE4_LEAF};
 const int PREALLOC_LEVELS = 1;
 
 //#define ACTION_NUMBER (256 + 256 * 256 + 256 * 256 * 256 + 1)
 //#define ACTION_NUMBER (1 + 256 + 256 * 256 )
-#define ACTION_NUMBER (1 + 256 )
-
-
+#define ACTION_NUMBER (1 + 256)
 
 enum OBJECT_TYPES { VALUE, IOV };
 
@@ -85,11 +81,12 @@ struct ValueWrapper {
 
 class Node {
   public:
-    explicit Node(int _depth, int _type) : depth(_depth), type(_type), actionCounter(0) {}
+    explicit Node(int _depth, int _type)
+        : depth(_depth), type(_type), actionCounter(0) {}
     int depth;
-    int type;    
+    int type;
     char counter;
-    struct pobj_action * actionsArray;
+    struct pobj_action *actionsArray;
     int actionCounter;
 };
 
@@ -121,19 +118,11 @@ class NodeLeafCompressed : public Node {
     persistent_ptr<ValueWrapper> child; // pointer to Value
 };
 
-
-
 class Node256 : public Node {
   public:
-    explicit Node256(int _depth, int _type) : Node(_depth, _type) {
-        //std::cout << "Node256 construct start" << std::endl;
-        //actionsArray = (struct pobj_action*)malloc(ACTION_NUMBER * sizeof(struct pobj_action));
-        //std::cout << "Node256 construct end" << std::endl;
-    }
+    explicit Node256(int _depth, int _type) : Node(_depth, _type) {}
     persistent_ptr<Node> children[256]; // array of pointers to Nodes
     pmem::obj::mutex nodeMutex;
-    //struct pobj_action * actionsArray;//[ACTION_NUMBER];
-    //int actionCounter;
 };
 
 struct ARTreeRoot {
