@@ -47,7 +47,7 @@ enum LEVEL_TYPES { TYPE4, TYPE256, TYPE4_LEAF, TYPE_LEAF_COMPRESSED };
 const int NODE_SIZE[] = {4, 256, 4, 1};
 
 // Describes Node type on each level of tree
-const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256, TYPE256,
+const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256,   TYPE256,
                           TYPE256, TYPE256, TYPE256, TYPE4_LEAF};
 const int PREALLOC_LEVELS = 1;
 
