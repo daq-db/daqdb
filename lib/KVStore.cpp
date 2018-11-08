@@ -433,6 +433,7 @@ void KVStore::init() {
     if (getOptions().Runtime.logFunc)
         gLog.setLogFunc(getOptions().Runtime.logFunc);
 
+    env.createSpdkConfFiles();
     _offloadReactor = new DaqDB::OffloadReactor(
         POOLER_CPU_CORE_BASE + poolerCount + 1, env.getSpdkConfFile(), [&]() {
             // @TODO jradtke move to separate function/wrapper
@@ -442,6 +443,8 @@ void KVStore::init() {
     while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
         sleep(1);
     }
+
+    env.removeSpdkConfFiles();
     if (_offloadReactor->isEnabled()) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {

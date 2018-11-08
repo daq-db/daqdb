@@ -58,9 +58,7 @@ ZhtNode::~ZhtNode() {
 
 void ZhtNode::_initZhtConf() {
     _env->createZhtConfFiles();
-    _env->createSpdkConfFiles();
     ConfHandler::initConf(_confFile, _neighborsFile);
-    _env->removeSpdkConfFiles();
     _env->removeZhtConfFiles();
 }
 
