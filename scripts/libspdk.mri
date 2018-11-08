@@ -1,10 +1,15 @@
 create libspdk.a
 addlib build/lib/libspdk_app_rpc.a
 addlib build/lib/libspdk_bdev.a
+addlib build/lib/libspdk_bdev_error.a
+addlib build/lib/libspdk_bdev_gpt.a
+addlib build/lib/libspdk_bdev_lvol.a
 addlib build/lib/libspdk_bdev_malloc.a
 addlib build/lib/libspdk_bdev_null.a
 addlib build/lib/libspdk_bdev_nvme.a
+addlib build/lib/libspdk_bdev_passthru.a
 addlib build/lib/libspdk_bdev_rpc.a
+addlib build/lib/libspdk_bdev_split.a
 addlib build/lib/libspdk_bdev_virtio.a
 addlib build/lib/libspdk_blob.a
 addlib build/lib/libspdk_blob_bdev.a
@@ -38,11 +43,6 @@ addlib build/lib/libspdk_sock.a
 addlib build/lib/libspdk_thread.a
 addlib build/lib/libspdk_trace.a
 addlib build/lib/libspdk_util.a
-addlib build/lib/libspdk_vbdev_error.a
-addlib build/lib/libspdk_vbdev_gpt.a
-addlib build/lib/libspdk_vbdev_lvol.a
-addlib build/lib/libspdk_vbdev_passthru.a
-addlib build/lib/libspdk_vbdev_split.a
 addlib build/lib/libspdk_vhost.a
 addlib build/lib/libspdk_virtio.a
 save
@@ -51,8 +51,10 @@ addlib dpdk/build/lib/librte_bus_pci.a
 addlib dpdk/build/lib/librte_bus_vdev.a
 addlib dpdk/build/lib/librte_eal.a
 addlib dpdk/build/lib/librte_ethdev.a
+addlib dpdk/build/lib/librte_kvargs.a
 addlib dpdk/build/lib/librte_mbuf.a
 addlib dpdk/build/lib/librte_mempool.a
+addlib dpdk/build/lib/librte_mempool_bucket.a
 addlib dpdk/build/lib/librte_mempool_ring.a
 addlib dpdk/build/lib/librte_net.a
 addlib dpdk/build/lib/librte_pci.a
