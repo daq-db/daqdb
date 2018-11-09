@@ -34,6 +34,8 @@
 #include <vector>
 #include <libconfig.h++>
 #include <daqdb/KVStoreBase.h>
+#include <config/Configuration.h>
+
 using namespace libconfig;
 using namespace std;
 using namespace DaqDB;

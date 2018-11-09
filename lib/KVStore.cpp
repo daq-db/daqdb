@@ -30,9 +30,11 @@ using namespace std::chrono_literals;
 
 namespace DaqDB {
 
+#ifndef THIN_LIB
 KVStoreBase *KVStoreBase::Open(const Options &options) {
     return KVStore::Open(options);
 }
+#endif
 
 KVStoreBase *KVStore::Open(const Options &options) {
     KVStore *kvs = new KVStore(options);
@@ -129,7 +131,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
         std::memcpy(value.data(), pVal, size);
         return value;
     } else if (location == DISK) {
-        if (!_offloadReactor->isEnabled())
+        if (!isOffloadEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         Value *resultValue = nullptr;
@@ -168,7 +170,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
 void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
                        const GetOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
-        if (!_offloadReactor->isEnabled())
+        if (!isOffloadEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         try {
@@ -216,7 +218,7 @@ void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
 void KVStore::Update(const Key &key, Value &&val,
                      const UpdateOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
-        if (!_offloadReactor->isEnabled())
+        if (!isOffloadEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         std::mutex mtx;
@@ -257,7 +259,7 @@ void KVStore::Update(const Key &key, const UpdateOptions &options) {
 void KVStore::UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
                           const UpdateOptions &options) {
     if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
-        if (!_offloadReactor->isEnabled())
+        if (!isOffloadEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         try {
@@ -309,7 +311,7 @@ void KVStore::Remove(const Key &key) {
     }
 
     if (location == DISK) {
-        if (!_offloadReactor->isEnabled())
+        if (!isOffloadEnabled())
             throw OperationFailedException(Status(OffloadDisabledError));
 
         std::mutex mtx;
@@ -445,7 +447,7 @@ void KVStore::init() {
     }
 
     env.removeSpdkConfFiles();
-    if (_offloadReactor->isEnabled()) {
+    if (isOffloadEnabled()) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {
         DAQ_DEBUG("SPDK offload functionality is disabled");
@@ -460,7 +462,7 @@ void KVStore::init() {
     if (_rtree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
-    if (_offloadReactor->isEnabled()) {
+    if (isOffloadEnabled()) {
         _offloadPooler =
             new DaqDB::OffloadPooler(_rtree, _offloadReactor->bdevCtx,
                                      getOptions().Offload.allocUnitSize);
@@ -471,7 +473,7 @@ void KVStore::init() {
     for (auto index = 0; index < poolerCount; index++) {
         auto rqstPooler =
             new DaqDB::PmemPooler(_rtree, POOLER_CPU_CORE_BASE + index);
-        if (_offloadReactor->isEnabled())
+        if (isOffloadEnabled())
             rqstPooler->offloadPooler = _offloadPooler;
         _rqstPoolers.push_back(rqstPooler);
     }

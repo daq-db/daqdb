@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2018 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -15,21 +15,13 @@
 
 #pragma once
 
-#include <mutex>
-
-#include <OffloadReactor.h>
-#include <OffloadPooler.h>
-#include <RTreeEngine.h>
-#include <daqdb/KVStoreBase.h>
-#include "ZhtNode.h"
+#include "../core/Env.h"
 #include "DhtNode.h"
-
-#include "core/Env.h"
-#include "pmem/PmemPooler.h"
+#include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
 
-class KVStore : public KVStoreBase {
+class KVStoreThin : public KVStoreBase {
   public:
     static KVStoreBase *Open(const Options &options);
 
@@ -77,29 +69,11 @@ class KVStore : public KVStoreBase {
     void LogMsg(std::string msg);
 
   protected:
-    explicit KVStore(const Options &options);
-    virtual ~KVStore();
-
-    void init();
-    void registerProperties();
-
-    inline bool isOffloadEnabled() {
-        if (_offloadReactor)
-            return _offloadReactor->isEnabled();
-        else
-            return false;
-    }
+    explicit KVStoreThin(const Options &options);
+    virtual ~KVStoreThin();
 
     DaqDB::Env env;
-
     std::unique_ptr<DaqDB::DhtNode> _dht;
-    std::shared_ptr<DaqDB::RTreeEngine> _rtree;
-    std::mutex _lock;
-
-    std::vector<PmemPooler *> _rqstPoolers;
-
-    OffloadReactor *_offloadReactor;
-    OffloadPooler *_offloadPooler;
 };
 
-}
+} // namespace DaqDB

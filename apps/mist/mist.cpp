@@ -66,6 +66,6 @@ int main(int argc, char **argv) {
 
     io_service.run();
     // cleanup code
-    cout << "Exiting gracefuly" << endl;
+    cout << "Exiting gracefully" << endl;
     return 0;
 }

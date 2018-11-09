@@ -9,7 +9,6 @@ ExternalProject_Add(project_erpc
 	CMAKE_ARGS -DPERF=ON -DTRANSPORT=raw -DLTO=OFF -DCMAKE_PREFIX_PATH=${DPDK_PATH}
 	BUILD_COMMAND make
 	INSTALL_COMMAND ""
-	DEPENDS project_spdk
 )
 add_library(liberpc STATIC IMPORTED GLOBAL)
 set_target_properties(liberpc PROPERTIES IMPORTED_LOCATION
