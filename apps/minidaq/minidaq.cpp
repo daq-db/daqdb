@@ -49,6 +49,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 100
 #define MINIDAQ_DEFAULT_ITERATIONS (1ULL << 24ULL - 1ULL)
 #define MINIDAQ_DEFAULT_STOPONERROR false
+#define MINIDAQ_DEFAULT_LIVE false
 
 #define US_IN_MS 1000
 
@@ -70,6 +71,7 @@ size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
 size_t maxIters;
 bool stopOnError = MINIDAQ_DEFAULT_STOPONERROR;
+bool live = MINIDAQ_DEFAULT_LIVE;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -108,6 +110,7 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
         n->SetBaseCoreId(bCoreId + nCoresUsed);
         n->SetMaxIterations(maxIters);
         n->SetStopOnError(stopOnError);
+        n->SetLive(live);
         nCoresUsed += n->GetThreads();
         n->SetCores(n->GetThreads());
         if (nCoresUsed > nCores) {
@@ -169,6 +172,7 @@ int main(int argc, const char *argv[]) {
         po::value<size_t>(&maxIters)->default_value(MINIDAQ_DEFAULT_ITERATIONS),
         "In non-zero, defines the maximum number of iterations per thread.")(
         "stopOnError", "If set, test will not continue after first error")(
+        "live", "If set, live results will be displayed")(
         "pmem-path", po::value<std::string>(&pmem_path)
                          ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
         "Persistent memory pool file.")(
@@ -263,6 +267,9 @@ int main(int argc, const char *argv[]) {
     }
     if (parsedArguments.count("stopOnError")) {
         stopOnError = true;
+    }
+    if (parsedArguments.count("live")) {
+        live = true;
     }
 
     if (nEbTh) {

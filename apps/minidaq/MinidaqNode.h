@@ -54,6 +54,7 @@ class MinidaqNode {
     void SetBaseCoreId(int id);
     void SetMaxIterations(uint64_t n);
     void SetStopOnError(bool stop);
+    void SetLive(bool live);
     int GetThreads();
 
   protected:
@@ -91,6 +92,7 @@ class MinidaqNode {
     int _baseCoreId = 0; // base core id for minidaq workers
     uint64_t _maxIterations = 0; // maximum number of iterations per thread
     bool _stopOnError = false;   // break test on first error
+    bool _live = false;          // show live results
 
     std::vector<std::future<MinidaqStats>> _futureVec;
     std::vector<MinidaqStats> _statsVec;
