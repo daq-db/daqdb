@@ -23,7 +23,6 @@ endif(DEBUG)
 
 option(THIN_LIB "Build thin version of the library" OFF)
 if(THIN_LIB)
-	add_definitions(-DTHIN_LIB)
 	MESSAGE(STATUS "Build thin version of the library")
 else(THIN_LIB)
 	MESSAGE(STATUS "Build full version of the library")
@@ -44,21 +43,29 @@ if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
 ###############################################################################
-# Main library and dependencies
+# DaqDB libs and dependencies
 ###############################################################################
 
 include_directories(include include/daqdb include/config)
 set(3RDPARTY ${PROJECT_SOURCE_DIR}/third-party)
 add_subdirectory(${3RDPARTY})
 
+include_directories(BEFORE ${PROTOBUF_INCLUDES_EXPORT}) # Must be before LCG
+include_directories(${ZHT_INCLUDES_EXPORT})
+include_directories(${LIBCONFIG_INCLUDES_EXPORT})
+
+file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
+	lib/core/*.cpp lib/dht/*.cpp lib/KVStoreBase.cpp)
+include_directories(lib/common lib/dht lib/core lib/thin)
+add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
+target_compile_definitions(daqdb_thin PRIVATE THIN_LIB=1)
+target_link_libraries(daqdb_thin ${Boost_LIBRARIES} zht libprotobuf libconfig)
+
 if(NOT THIN_LIB)
 	include_directories(${3RDPARTY}/pmdk/src/include)
 	include_directories(${3RDPARTY}/libpmemobj-cpp/include)
 	include_directories(${3RDPARTY}/spdk/include)
 	include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
-	include_directories(BEFORE ${PROTOBUF_INCLUDES_EXPORT}) # Must be before LCG
-	include_directories(${ZHT_INCLUDES_EXPORT})
-	include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 	
 	set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 	file(GLOB_RECURSE DAQDB_SOURCES lib/*.cpp)
@@ -66,22 +73,6 @@ if(NOT THIN_LIB)
 	add_library(daqdb SHARED ${DAQDB_SOURCES})
 	target_link_libraries(daqdb ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
 						  zht libprotobuf libconfig )
-endif()
-
-###############################################################################
-# Thin library
-###############################################################################
-
-if(THIN_LIB)
-	include_directories(BEFORE ${PROTOBUF_INCLUDES_EXPORT}) # Must be before LCG
-	include_directories(${ZHT_INCLUDES_EXPORT})
-	include_directories(${LIBCONFIG_INCLUDES_EXPORT})
-
-	file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
-		lib/core/*.cpp lib/dht/*.cpp)
-	include_directories(lib/common lib/dht lib/core lib/thin)
-	add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
-	target_link_libraries(daqdb_thin ${Boost_LIBRARIES} zht libprotobuf libconfig)
 endif()
 
 ###############################################################################
@@ -108,10 +99,9 @@ endif()
 ###############################################################################
 
 set(APPS ${PROJECT_SOURCE_DIR}/apps)
+add_subdirectory(${APPS}/mist)
 
-if(THIN_LIB)
-	add_subdirectory(${APPS}/mist)
-else(THIN_LIB)
+if(NOT THIN_LIB)
 	add_subdirectory(${APPS}/minidaq)
 endif()
 

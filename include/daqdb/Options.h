@@ -34,6 +34,11 @@ enum PrimaryKeyAttribute : std::int8_t {
     REMOTE = (1 << 3)
 };
 
+enum OperationalMode : std::int8_t {
+    STORAGE = 0,
+    SATELLITE
+};
+
 inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
                                      PrimaryKeyAttribute b) {
     return static_cast<PrimaryKeyAttribute>(static_cast<int>(a) |
@@ -162,6 +167,8 @@ struct Options {
   public:
     Options() {}
     explicit Options(const std::string &path);
+
+    OperationalMode mode;
 
     KeyDescriptor Key;
     OffloadOptions Offload;

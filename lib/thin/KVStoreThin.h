@@ -17,6 +17,7 @@
 
 #include "../core/Env.h"
 #include "DhtNode.h"
+#include "ZhtNode.h"
 #include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
@@ -71,6 +72,8 @@ class KVStoreThin : public KVStoreBase {
   protected:
     explicit KVStoreThin(const Options &options);
     virtual ~KVStoreThin();
+
+    void init();
 
     DaqDB::Env env;
     std::unique_ptr<DaqDB::DhtNode> _dht;

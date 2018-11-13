@@ -14,25 +14,31 @@
  */
 
 #include "KVStoreThin.h"
-
+#include <DhtUtils.h>
 #include <Logger.h>
 
 namespace DaqDB {
 
-#ifdef THIN_LIB
-KVStoreBase *KVStoreBase::Open(const Options &options) {
-    return KVStoreThin::Open(options);
-}
-#endif
-
 KVStoreBase *KVStoreThin::Open(const Options &options) {
     KVStoreThin *kvs = new KVStoreThin(options);
+    kvs->init();
     return kvs;
 }
 
 KVStoreThin::KVStoreThin(const Options &options) : env(options, this) {}
 
 KVStoreThin::~KVStoreThin() {}
+
+void KVStoreThin::init() {
+    if (getOptions().Runtime.logFunc)
+        gLog.setLogFunc(getOptions().Runtime.logFunc);
+
+    auto dhtPort =
+        getOptions().Dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
+    _dht.reset(new DaqDB::ZhtNode(env.ioService(), &env, dhtPort));
+
+    DAQ_DEBUG("KVStoreThin initialization completed");
+}
 
 const Options &KVStoreThin::getOptions() { return env.getOptions(); }
 

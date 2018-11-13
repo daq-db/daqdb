@@ -30,35 +30,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
 #include <asio/io_service.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/signal_set.hpp>
 #include <boost/bind.hpp>
+#include <boost/program_options.hpp>
 #include <daqdb/KVStoreBase.h>
 #include <iomanip>
 #include <iostream>
 
+#include "config.h"
+
+using namespace std;
+namespace po = boost::program_options;
+
 int main(int argc, char **argv) {
-    // TODO utilize boost::program_options for help on each parameter
-    if (argc != 2) {
-        cout << "Please specify configuration file, e.g. ./mist myConfig.cfg"
-             << endl;
+    string configFile;
+    DaqDB::Options options;
+
+    po::options_description argumentsDescription{"Options"};
+    argumentsDescription.add_options()("help,h", "Print help messages")(
+        "config-file,c",
+        po::value<string>(&configFile)->default_value("mist.cfg"),
+        "Configuration file");
+
+    po::variables_map parsedArguments;
+    try {
+        po::store(po::parse_command_line(argc, argv, argumentsDescription),
+                  parsedArguments);
+
+        if (parsedArguments.count("help")) {
+            std::cout << argumentsDescription << endl;
+            return 0;
+        }
+        po::notify(parsedArguments);
+    } catch (po::error &parserError) {
+        cerr << "Invalid arguments: " << parserError.what() << endl << endl;
+        cerr << argumentsDescription << endl;
         return -1;
     }
 
-    Configuration fogServerConfiguration(argv[1]);
-
-    Options options;
-    fogServerConfiguration.readConfiguration(options);
+    initKvsOptions(options, configFile);
 
     asio::io_service io_service;
     asio::signal_set signals(io_service, SIGINT, SIGTERM);
     signals.async_wait(boost::bind(&asio::io_service::stop, &io_service));
 
     try {
-        KVStoreBase::Open(options);
-    } catch (OperationFailedException &e) {
+        DaqDB::KVStoreBase::Open(options);
+    } catch (DaqDB::OperationFailedException &e) {
         cerr << "Failed to create KVStore: " << e.what() << endl;
         return -1;
     }

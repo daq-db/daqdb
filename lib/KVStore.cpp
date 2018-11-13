@@ -30,12 +30,6 @@ using namespace std::chrono_literals;
 
 namespace DaqDB {
 
-#ifndef THIN_LIB
-KVStoreBase *KVStoreBase::Open(const Options &options) {
-    return KVStore::Open(options);
-}
-#endif
-
 KVStoreBase *KVStore::Open(const Options &options) {
     KVStore *kvs = new KVStore(options);
 
@@ -56,6 +50,61 @@ KVStore::~KVStore() {
     for (auto index = 0; index < _rqstPoolers.size(); index++) {
         delete _rqstPoolers.at(index);
     }
+}
+
+void KVStore::init() {
+
+    auto poolerCount = getOptions().Runtime.numOfPoolers;
+
+    if (getOptions().Runtime.logFunc)
+        gLog.setLogFunc(getOptions().Runtime.logFunc);
+
+    env.createSpdkConfFiles();
+    _offloadReactor = new DaqDB::OffloadReactor(
+        POOLER_CPU_CORE_BASE + poolerCount + 1, env.getSpdkConfFile(), [&]() {
+            // @TODO jradtke move to separate function/wrapper
+            getOptions().Runtime.shutdownFunc();
+        });
+
+    while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
+        sleep(1);
+    }
+
+    env.removeSpdkConfFiles();
+    if (isOffloadEnabled()) {
+        DAQ_DEBUG("SPDK offload functionality is enabled");
+    } else {
+        DAQ_DEBUG("SPDK offload functionality is disabled");
+    }
+
+    auto dhtPort =
+        getOptions().Dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
+
+    _rtree.reset(DaqDB::RTreeEngine::Open(getOptions().PMEM.poolPath,
+                                          getOptions().PMEM.totalSize,
+                                          getOptions().PMEM.allocUnitSize));
+    if (_rtree == nullptr)
+        throw OperationFailedException(errno, ::pmemobj_errormsg());
+
+    if (isOffloadEnabled()) {
+        _offloadPooler =
+            new DaqDB::OffloadPooler(_rtree, _offloadReactor->bdevCtx,
+                                     getOptions().Offload.allocUnitSize);
+        _offloadPooler->InitFreeList();
+        _offloadReactor->RegisterPooler(_offloadPooler);
+    }
+
+    for (auto index = 0; index < poolerCount; index++) {
+        auto rqstPooler =
+            new DaqDB::PmemPooler(_rtree, POOLER_CPU_CORE_BASE + index);
+        if (isOffloadEnabled())
+            rqstPooler->offloadPooler = _offloadPooler;
+        _rqstPoolers.push_back(rqstPooler);
+    }
+
+    _dht.reset(new DaqDB::ZhtNode(env.ioService(), &env, dhtPort));
+
+    DAQ_DEBUG("KVStoreBaseImpl initialization completed");
 }
 
 const Options &KVStore::getOptions() { return env.getOptions(); }
@@ -426,61 +475,6 @@ std::string KVStore::getProperty(const std::string &name) {
         return std::to_string(getOptions().PMEM.allocUnitSize);
 
     return "";
-}
-
-void KVStore::init() {
-
-    auto poolerCount = getOptions().Runtime.numOfPoolers;
-
-    if (getOptions().Runtime.logFunc)
-        gLog.setLogFunc(getOptions().Runtime.logFunc);
-
-    env.createSpdkConfFiles();
-    _offloadReactor = new DaqDB::OffloadReactor(
-        POOLER_CPU_CORE_BASE + poolerCount + 1, env.getSpdkConfFile(), [&]() {
-            // @TODO jradtke move to separate function/wrapper
-            getOptions().Runtime.shutdownFunc();
-        });
-
-    while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
-        sleep(1);
-    }
-
-    env.removeSpdkConfFiles();
-    if (isOffloadEnabled()) {
-        DAQ_DEBUG("SPDK offload functionality is enabled");
-    } else {
-        DAQ_DEBUG("SPDK offload functionality is disabled");
-    }
-
-    auto dhtPort =
-        getOptions().Dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
-
-    _rtree.reset(DaqDB::RTreeEngine::Open(getOptions().PMEM.poolPath,
-                                          getOptions().PMEM.totalSize,
-                                          getOptions().PMEM.allocUnitSize));
-    if (_rtree == nullptr)
-        throw OperationFailedException(errno, ::pmemobj_errormsg());
-
-    if (isOffloadEnabled()) {
-        _offloadPooler =
-            new DaqDB::OffloadPooler(_rtree, _offloadReactor->bdevCtx,
-                                     getOptions().Offload.allocUnitSize);
-        _offloadPooler->InitFreeList();
-        _offloadReactor->RegisterPooler(_offloadPooler);
-    }
-
-    for (auto index = 0; index < poolerCount; index++) {
-        auto rqstPooler =
-            new DaqDB::PmemPooler(_rtree, POOLER_CPU_CORE_BASE + index);
-        if (isOffloadEnabled())
-            rqstPooler->offloadPooler = _offloadPooler;
-        _rqstPoolers.push_back(rqstPooler);
-    }
-
-    _dht.reset(new DaqDB::ZhtNode(env.ioService(), &env, dhtPort));
-
-    DAQ_DEBUG("KVStoreBaseImpl initialization completed");
 }
 
 } // namespace DaqDB
