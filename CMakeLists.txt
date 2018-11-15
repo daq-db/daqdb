@@ -82,6 +82,7 @@ endif()
 if(NOT THIN_LIB)
 	add_subdirectory(tests/unit EXCLUDE_FROM_ALL)
 	add_subdirectory(tests/functional EXCLUDE_FROM_ALL)
+	add_subdirectory(tests/functional_thin EXCLUDE_FROM_ALL)
 endif()
 
 ###############################################################################
@@ -125,8 +126,12 @@ add_custom_target(tests_func
 	COMMAND ${CMAKE_BUILD_TOOL}
 	WORKING_DIRECTORY tests/functional
 )
+add_custom_target(tests_func_thin
+	COMMAND ${CMAKE_BUILD_TOOL}
+	WORKING_DIRECTORY tests/functional_thin
+)
 add_custom_target(tests)
-add_dependencies(tests tests_unit tests_func)
+add_dependencies(tests tests_unit tests_func tests_func_thin)
 
 # Initiate githooks for clang-format
 ADD_CUSTOM_TARGET(do_always ALL COMMAND git config core.hooksPath "${PROJECT_SOURCE_DIR}/scripts/githooks")

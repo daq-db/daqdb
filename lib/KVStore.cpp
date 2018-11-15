@@ -69,6 +69,11 @@ void KVStore::init() {
     while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
         sleep(1);
     }
+    if (_offloadReactor->state == ReactorState::REACTOR_READY) {
+        DAQ_DEBUG("SPDK reactor started successfully");
+    } else {
+        DAQ_DEBUG("Can not start SPDK reactor");
+    }
 
     env.removeSpdkConfFiles();
     if (isOffloadEnabled()) {
@@ -103,6 +108,14 @@ void KVStore::init() {
     }
 
     _dht.reset(new DaqDB::ZhtNode(env.ioService(), &env, dhtPort));
+    while (_dht->state == DhtServerState::DHT_INIT) {
+        sleep(1);
+    }
+    if (_dht->state == DhtServerState::DHT_READY) {
+        DAQ_DEBUG("DHT server started successfully");
+    } else {
+        DAQ_DEBUG("Can not start DHT server");
+    }
 
     DAQ_DEBUG("KVStoreBaseImpl initialization completed");
 }

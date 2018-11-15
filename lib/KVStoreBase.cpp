@@ -13,13 +13,27 @@
  * stated in the License.
  */
 
-#include "DhtNode.h"
+#include <daqdb/KVStoreBase.h>
+#include "KVStoreThin.h"
+
+#ifndef THIN_LIB
+#include "KVStore.h"
+#endif
 
 namespace DaqDB {
 
-DhtNode::DhtNode(asio::io_service &io_service, unsigned short port)
-    : state(DhtServerState::DHT_INIT) {}
+KVStoreBase *KVStoreBase::Open(const Options &options) {
+    if(options.mode == OperationalMode::STORAGE) {
 
-DhtNode::~DhtNode() {}
+#ifndef THIN_LIB
+    return KVStore::Open(options);
+#else
+    throw OperationFailedException();
+#endif
+
+    } else {
+        return KVStoreThin::Open(options);
+    }
+}
 
 } // namespace DaqDB

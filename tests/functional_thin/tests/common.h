@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2018 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -13,13 +13,19 @@
  * stated in the License.
  */
 
-#include "DhtNode.h"
+#pragma once
 
-namespace DaqDB {
+#include <daqdb/KVStoreBase.h>
+#include <daqdb/Key.h>
+#include <daqdb/Options.h>
+#include <daqdb/Status.h>
+#include <daqdb/Value.h>
 
-DhtNode::DhtNode(asio::io_service &io_service, unsigned short port)
-    : state(DhtServerState::DHT_INIT) {}
+DaqDB::Value allocValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
+                        const std::string &value);
 
-DhtNode::~DhtNode() {}
+DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key);
 
-} // namespace DaqDB
+DaqDB::Value remote_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key);
+
+void remote_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val);
