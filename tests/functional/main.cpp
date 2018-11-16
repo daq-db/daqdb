@@ -27,7 +27,7 @@
 
 #include "config.h"
 #include "debug.h"
-#include <uc.h>
+#include "uc/uc.h"
 
 #define RUN_USE_CASE(name)                                                     \
     if (name) {                                                                \
@@ -49,9 +49,7 @@ const string neighborConf = "neighbor-ft.conf";
 
 typedef char DEFAULT_KeyType[16];
 
-int main(int argc, const char *argv[]) {
-    string configFile;
-
+static void init_logger() {
     logging::add_console_log(std::clog,
                              keywords::format = "%TimeStamp%: %Message%");
     logging::add_common_attributes();
@@ -60,6 +58,12 @@ int main(int argc, const char *argv[]) {
                                      logging::trivial::error);
     logging::core::get()->set_filter(logging::trivial::severity >=
                                      logging::trivial::debug);
+}
+
+int main(int argc, const char *argv[]) {
+    string configFile;
+
+    init_logger();
 
     po::options_description argumentsDescription{"Options"};
     argumentsDescription.add_options()("help,h", "Print help messages")(
@@ -83,10 +87,10 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
+    BOOST_LOG_SEV(lg::get(), bt::info)
+            << "Functional tests for DAQDB library" << flush;
+
     DaqDB::Options options;
-    options.Runtime.logFunc = [](std::string msg) {
-        BOOST_LOG_SEV(lg::get(), bt::debug) << msg << flush;
-    };
     initKvsOptions(options, configFile);
 
     /* ZHT configuration files must be prepared before KVStore is created */

@@ -13,19 +13,20 @@
  * stated in the License.
  */
 
-#include <iostream>
 #include <boost/filesystem.hpp>
+
 #include "config.h"
 
-const unsigned int DEFAULT_PORT = 12000;
+const unsigned int DEFAULT_PORT = 10002;
 const size_t DEFAULT_MSG_MAX_SIZE = 1000000;
 const size_t DEFAULT_SCCB_POOL_INTERVAL = 100;
 const unsigned int DEFAULT_INSTANT_SWAP = 0;
+
 typedef char DEFAULT_KeyType[16];
 
 void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     options.Runtime.logFunc = [](std::string msg) {
-        std::cout << msg << std::endl;
+        BOOST_LOG_SEV(lg::get(), bt::debug) << msg << std::flush;
     };
 
     /* Set default values */
@@ -34,13 +35,12 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     options.Dht.msgMaxsize = DEFAULT_MSG_MAX_SIZE;
     options.Dht.sccbPoolInterval = DEFAULT_SCCB_POOL_INTERVAL;
     options.Dht.instantSwap = DEFAULT_INSTANT_SWAP;
-
     options.Key.field(0, sizeof(DEFAULT_KeyType));
 
     if (boost::filesystem::exists(configFile)) {
         std::stringstream errorMsg;
         if (!DaqDB::readConfiguration(configFile, options, errorMsg)) {
-            std::cout << errorMsg.str() << std::flush;
+            BOOST_LOG_SEV(lg::get(), bt::error) << errorMsg.str();
         }
     }
 }

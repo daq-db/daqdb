@@ -22,6 +22,13 @@
 
 namespace DaqDB {
 
+enum class DhtServerState : std::uint8_t {
+    DHT_INIT = 0,
+    DHT_READY,
+    DHT_ERROR,
+    DHT_STOPPED
+};
+
 /*!
  * Class that defines interface for DHT
  */
@@ -44,6 +51,8 @@ class DhtNode : public PureNode {
 
     virtual Value Get(const Key &key) = 0;
     virtual void Put(const Key &key, const Value &val) = 0;
+
+    std::atomic<DhtServerState>  state;
 };
 
 } // namespace DaqDB

@@ -5,6 +5,14 @@
 //*****************************************************************************
 
 /**
+ * mode - operational mode of this DaqDB instance. Valid parameters:
+ *        storage - this instance will accept and store internally data
+ *        satellite - this instance will accept and forward all data to
+ *                    one of the storage nodes
+ */
+mode = "storage";
+
+/**
  * pmem_path      - location of file created on top of persistent memory
  *                  enabled filesystem
  * pmem_size      - total size of the persistent memory pool to use
