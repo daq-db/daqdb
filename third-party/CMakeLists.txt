@@ -18,7 +18,6 @@ endif()
 
 include(libconfig.cmake)
 include(protobuf.cmake)
-include(erpc.cmake)
 
 ###############################################################################
 # Dependencies - Libraries
@@ -56,4 +55,3 @@ if(NOT THIN_LIB)
 endif()
 add_dependencies(clean-dep libconfig_clean)
 add_dependencies(clean-dep protobuf_clean)
-add_dependencies(clean-dep liberpc_clean)
