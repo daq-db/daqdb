@@ -132,6 +132,9 @@ void OffloadReactor::_ThreadMain(void) {
     if (boost::filesystem::exists(_spdkCfg))
         _spdkAppOpts->config_file = _spdkCfg.c_str();
 
+    //@TODO: to be replaced with config
+    _spdkAppOpts.get()->mem_size = 512;
+
     rc = spdk_app_start(_spdkAppOpts.get(), reactor_start_clb, this, NULL);
 
     DAQ_DEBUG("SPDK reactor exit with rc=" + std::to_string(rc));

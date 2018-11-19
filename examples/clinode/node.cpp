@@ -40,11 +40,14 @@ namespace po = boost::program_options;
 //---------------------------------------------------------------------------
 void erpcReqHandler(erpc::ReqHandle *req_handle, void *) {
 	erpc::Rpc<erpc::CTransport> *rpc;
-	size_t kMsgSize = 16;
+	size_t kMsgSize = 64;
 
 	auto &resp = req_handle->pre_resp_msgbuf;
 	rpc->resize_msg_buffer(&resp, kMsgSize);
-	sprintf(reinterpret_cast<char *>(resp.buf), "Connection successful");
+	sprintf(reinterpret_cast<char *>(resp.buf), "A shrubbery!1!!");
+
+	printf("Incoming request: %s\nReply: A shrubbery!1!!\n",
+	       reinterpret_cast<char *>(req_handle->get_req_msgbuf()->buf));
 
 	req_handle->prealloc_used = true;
 	rpc->enqueue_response(req_handle);
