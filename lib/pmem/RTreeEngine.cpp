@@ -13,13 +13,11 @@
  * stated in the License.
  */
 
-//#include "RTreeEngine.h"
-//#include "RTree.h"
+#include "RTreeEngine.h"
 #include "ARTree.h"
 namespace DaqDB {
 RTreeEngine *RTreeEngine::Open(const string &path, // path to persistent pool
                                size_t size, size_t allocUnitSize) {
-    // return new DaqDB::RTree(path, size, allocUnitSize);
     return new DaqDB::ARTree(path, size, allocUnitSize);
 }
 

@@ -42,23 +42,23 @@
 using namespace pmem::obj::experimental;
 using namespace pmem::obj;
 namespace DaqDB {
-#define KEY_SIZE 24
-enum LEVEL_TYPES { TYPE4, TYPE256, TYPE4_LEAF, TYPE_LEAF_COMPRESSED };
-const int NODE_SIZE[] = {4, 256, 4, 1};
+
+//LEVEL_TYPES and NODE SIZE are depenedent
+enum LEVEL_TYPES { TYPE256, TYPE_LEAF_COMPRESSED };
+const int NODE_SIZE[] = { 256, 1};
 
 // Describes Node type on each level of tree
 const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256,   TYPE256,
-                          TYPE256, TYPE256, TYPE256, TYPE4_LEAF};
+                          TYPE256, TYPE256, TYPE256, TYPE_LEAF_COMPRESSED};
+// how many levels will be created on ARTree initialization
 const int PREALLOC_LEVELS = 1;
-
-//#define ACTION_NUMBER (256 + 256 * 256 + 256 * 256 * 256 + 1)
-//#define ACTION_NUMBER (1 + 256 + 256 * 256 )
+//size of table for actions for each Node
 #define ACTION_NUMBER (1 + 256)
 
 enum OBJECT_TYPES { VALUE, IOV };
 
-struct locationStruct {
-    locationStruct() : value(EMPTY) {}
+struct locationWrapper {
+    locationWrapper() : value(EMPTY) {}
     int value;
 };
 
@@ -71,40 +71,24 @@ struct ValueWrapper {
         persistent_ptr<uint64_t> IOVptr;
         locationPtr() : value(nullptr){};
     } locationPtr;
-
     p<size_t> size;
-    v<locationStruct> locationVolatile;
+    v<locationWrapper> locationVolatile;
     struct pobj_action *actionValue;
     struct pobj_action *actionUpdate;
-    string getString();
 };
 
 class Node {
   public:
     explicit Node(int _depth, int _type)
         : depth(_depth), type(_type), actionCounter(0) {}
+    //depth of current Node in tree
     int depth;
+    //Type of Node: Node256 or compressed
     int type;
-    char counter;
+    //stores all actions done on subtree with Reserve-publish
     struct pobj_action *actionsArray;
+    //counts all actions done on subtree with Reserve-publish
     int actionCounter;
-};
-
-class Node4 : public Node {
-  public:
-    explicit Node4(int _depth, int _type) : Node(_depth, _type) {}
-    unsigned char keys[4]; // array of 4 keys (1 byte each)
-    persistent_ptr<Node> children[4]; // array of pointers to Nodes
-};
-/*
- * Node on last level in tree
- * Stores reference to ValueWrapper
- * */
-class Node4Leaf : public Node {
-  public:
-    explicit Node4Leaf(int _depth, int _type) : Node(_depth, _type) {}
-    unsigned char keys[4]; // array of 4 keys (1 byte each)
-    persistent_ptr<ValueWrapper> children[4]; // array of pointers to Values
 };
 
 /*
@@ -134,16 +118,14 @@ struct ARTreeRoot {
 class TreeImpl {
   public:
     TreeImpl(const string &path, const size_t size, const size_t allocUnitSize);
-    void allocateFullLevels(persistent_ptr<Node> node, int *count,
-                            int levelsToAllocate);
+    void allocateFullLevels(persistent_ptr<Node> node, int levelsToAllocate);
     ValueWrapper *findValueInNode(persistent_ptr<Node> current, const char *key,
                                   bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
+  private:
     struct pobj_action _actionsArray[ACTION_NUMBER];
     int _actionCounter;
-
-  private:
 };
 
 class ARTree : public DaqDB::RTreeEngine {
