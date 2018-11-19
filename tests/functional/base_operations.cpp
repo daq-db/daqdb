@@ -16,26 +16,24 @@
 #include "base_operations.h"
 #include "debug.h"
 
-DaqDB::Value allocValue(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                        const DaqDB::Key &key, const std::string &value) {
-    DaqDB::Value result = spKvs->Alloc(key, value.size() + 1);
+DaqDB::Value allocValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
+                        const std::string &value) {
+    DaqDB::Value result = kvs->Alloc(key, value.size() + 1);
     std::memcpy(result.data(), value.c_str(), value.size());
     result.data()[result.size() - 1] = '\0';
     return result;
 }
 
-DaqDB::Key strToKey(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                    const std::string &key) {
-    DaqDB::Key keyBuff = spKvs->AllocKey();
+DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key) {
+    DaqDB::Key keyBuff = kvs->AllocKey();
     std::memset(keyBuff.data(), 0, keyBuff.size());
     std::memcpy(keyBuff.data(), key.c_str(), key.size());
     return keyBuff;
 }
 
-DaqDB::Value daqdb_get(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                       const DaqDB::Key &key) {
+DaqDB::Value daqdb_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key) {
     try {
-        return spKvs->Get(key);
+        return kvs->Get(key);
     } catch (DaqDB::OperationFailedException &e) {
         if (e.status()() == DaqDB::KeyNotFound) {
             BOOST_LOG_SEV(lg::get(), bt::info)
@@ -49,10 +47,9 @@ DaqDB::Value daqdb_get(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
     return DaqDB::Value();
 }
 
-void daqdb_put(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key,
-               DaqDB::Value &val) {
+void daqdb_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val) {
     try {
-        spKvs->Put(std::move(key), std::move(val));
+        kvs->Put(std::move(key), std::move(val));
     } catch (DaqDB::OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot put element: " << e.status().to_string()
@@ -61,11 +58,10 @@ void daqdb_put(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key,
 }
 
 void daqdb_update(
-    std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key,
-    DaqDB::Value &val,
+    DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val,
     const DaqDB::UpdateOptions &options = DaqDB::UpdateOptions()) {
     try {
-        spKvs->Update(std::move(key), std::move(val), std::move(options));
+        kvs->Update(std::move(key), std::move(val), std::move(options));
     } catch (DaqDB::OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()
@@ -73,10 +69,10 @@ void daqdb_update(
     }
 }
 
-void daqdb_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key) {
+void daqdb_offload(DaqDB::KVStoreBase *kvs, DaqDB::Key &key) {
     try {
         DaqDB::UpdateOptions options(DaqDB::PrimaryKeyAttribute::LONG_TERM);
-        spKvs->Update(std::move(key), std::move(options));
+        kvs->Update(std::move(key), std::move(options));
     } catch (DaqDB::OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()
@@ -84,12 +80,11 @@ void daqdb_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key) 
     }
 }
 
-void daqdb_async_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                          DaqDB::Key &key,
-                          DaqDB::KVStoreBase::KVStoreBaseCallback cb) {
+void daqdb_async_offload(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+                         DaqDB::KVStoreBase::KVStoreBaseCallback cb) {
     try {
         DaqDB::UpdateOptions options(DaqDB::PrimaryKeyAttribute::LONG_TERM);
-        spKvs->UpdateAsync(std::move(key), std::move(options), cb);
+        kvs->UpdateAsync(std::move(key), std::move(options), cb);
     } catch (DaqDB::OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()
@@ -97,10 +92,10 @@ void daqdb_async_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
     }
 }
 
-void daqdb_remove(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key) {
+void daqdb_remove(DaqDB::KVStoreBase *kvs, DaqDB::Key &key) {
 
     try {
-        spKvs->Remove(key);
+        kvs->Remove(key);
     } catch (DaqDB::OperationFailedException &e) {
         if (e.status()() == DaqDB::KeyNotFound) {
             BOOST_LOG_SEV(lg::get(), bt::info)
@@ -112,12 +107,11 @@ void daqdb_remove(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key) {
     }
 }
 
-void daqdb_async_get(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                     const DaqDB::Key &key,
+void daqdb_async_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb) {
     try {
         DaqDB::GetOptions options(DaqDB::PrimaryKeyAttribute::EMPTY);
-        return spKvs->GetAsync(key, cb, std::move(options));
+        return kvs->GetAsync(key, cb, std::move(options));
     } catch (DaqDB::OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot get element: " << e.status().to_string()
@@ -125,12 +119,12 @@ void daqdb_async_get(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
     }
 }
 
-void daqdb_async_put(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                     DaqDB::Key &key, DaqDB::Value &val,
+void daqdb_async_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+                     DaqDB::Value &val,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb) {
     try {
         DaqDB::PutOptions options(DaqDB::PrimaryKeyAttribute::EMPTY);
-        spKvs->PutAsync(std::move(key), std::move(val), cb, std::move(options));
+        kvs->PutAsync(std::move(key), std::move(val), cb, std::move(options));
     } catch (DaqDB::OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot put element: " << e.status().to_string()
@@ -138,11 +132,11 @@ void daqdb_async_put(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
     }
 }
 
-void daqdb_async_update(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                        DaqDB::Key &key, DaqDB::Value &val,
+void daqdb_async_update(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+                        DaqDB::Value &val,
                         DaqDB::KVStoreBase::KVStoreBaseCallback cb) {
     try {
-        spKvs->UpdateAsync(std::move(key), std::move(val), cb);
+        kvs->UpdateAsync(std::move(key), std::move(val), cb);
     } catch (DaqDB::OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()

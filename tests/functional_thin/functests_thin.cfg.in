@@ -57,7 +57,7 @@ neighbors :
         // daqdb peer required to perform functional tests for "thin" mode
         ip = "localhost";
         port = 10003;
-        keys = { start = "65", end = "255"}
+        keys = { start = "0", end = "255"}
     },
 );
 

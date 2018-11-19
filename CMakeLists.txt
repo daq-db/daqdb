@@ -119,15 +119,15 @@ add_custom_target(clean-all
 )
 
 add_custom_target(tests_unit
-	COMMAND ${CMAKE_BUILD_TOOL}
+	COMMAND ${CMAKE_MAKE_PROGRAM}
 	WORKING_DIRECTORY tests/unit
 )
 add_custom_target(tests_func
-	COMMAND ${CMAKE_BUILD_TOOL}
+	COMMAND ${CMAKE_MAKE_PROGRAM}
 	WORKING_DIRECTORY tests/functional
 )
 add_custom_target(tests_func_thin
-	COMMAND ${CMAKE_BUILD_TOOL}
+	COMMAND ${CMAKE_MAKE_PROGRAM}
 	WORKING_DIRECTORY tests/functional_thin
 )
 add_custom_target(tests)

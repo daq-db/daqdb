@@ -17,21 +17,13 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#define USE_CASE_LOG(name)                                                     \
-    BOOST_LOG_SEV(lg::get(), bt::info) << std::endl                            \
-                                       << std::string(80, '-') << std::endl    \
-                                       << name << std::endl                    \
-                                       << std::string(80, '-') << std::flush;
-
-bool use_case_sync_base(std::shared_ptr<DaqDB::KVStoreBase> &spKvs);
-bool use_case_async_base(std::shared_ptr<DaqDB::KVStoreBase> &spKvs);
-bool use_case_sync_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs);
-bool use_case_async_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs);
+bool use_case_sync_base(DaqDB::KVStoreBase *kvs);
+bool use_case_async_base(DaqDB::KVStoreBase *kvs);
+bool use_case_sync_offload(DaqDB::KVStoreBase *kvs);
+bool use_case_async_offload(DaqDB::KVStoreBase *kvs);
 
 void prepare_zht_tests(const std::string &confFile,
                        const std::string &neighborsFile);
 void cleanup_zht_tests(const std::string &confFile,
                        const std::string &neighborsFile);
-bool use_case_zht_connect(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                          const std::string &confFile,
-                          const std::string &neighborsFile);
+bool use_case_zht_connect(DaqDB::KVStoreBase *kvs);
