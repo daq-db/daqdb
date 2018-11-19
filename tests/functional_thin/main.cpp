@@ -89,9 +89,9 @@ int main(int argc, const char *argv[]) {
     }
 
     map<string, function<bool(DaqDB::KVStoreBase *)>> tests =
-        boost::assign::map_list_of("test_remote_peer_connect",
-                                   testRemotePeerConnect)(
-            "test_put_gate_sequence", testPutGetSequence);
+        boost::assign::map_list_of("testRemotePeerConnect",
+                                   testRemotePeerConnect)("testPutGetSequence",
+                                                          testPutGetSequence);
 
     unsigned short failsCount = 0;
     for (auto test : tests) {
