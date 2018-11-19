@@ -18,6 +18,7 @@
 #include <asio/ip/tcp.hpp>
 #include <asio/signal_set.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/assign/list_of.hpp>
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
@@ -27,14 +28,7 @@
 
 #include "config.h"
 #include "debug.h"
-#include "uc/uc.h"
-
-#define RUN_USE_CASE(name)                                                     \
-    if (name) {                                                                \
-        BOOST_LOG_SEV(lg::get(), bt::info) << "Test completed successfully";   \
-    } else {                                                                   \
-        BOOST_LOG_SEV(lg::get(), bt::info) << "Test failed";                   \
-    }
+#include "tests/tests.h"
 
 using namespace std;
 
@@ -44,20 +38,28 @@ namespace po = boost::program_options;
 
 typedef char KeyType[16];
 
-const string zhtConf = "zht-ft.conf";
-const string neighborConf = "neighbor-ft.conf";
-
 typedef char DEFAULT_KeyType[16];
 
 static void init_logger() {
     logging::add_console_log(std::clog,
-                             keywords::format = "%TimeStamp%: %Message%");
+                             keywords::format = "%Message%");
     logging::add_common_attributes();
     logging::core::get()->add_thread_attribute("Scope", attrs::named_scope());
     logging::core::get()->set_filter(logging::trivial::severity >=
-                                     logging::trivial::error);
-    logging::core::get()->set_filter(logging::trivial::severity >=
                                      logging::trivial::debug);
+}
+
+static bool executeTest(string test, function<bool(DaqDB::KVStoreBase *)> fn,
+                        DaqDB::KVStoreBase *kvs) {
+    LOG_INFO << string(80, '-') << endl << test << endl << string(80, '-');
+
+    if (fn(kvs)) {
+        LOG_INFO << "Test completed successfully" << endl;
+        return true;
+    } else {
+        LOG_INFO << "Test failed" << endl;
+        return false;
+    }
 }
 
 int main(int argc, const char *argv[]) {
@@ -87,8 +89,7 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    BOOST_LOG_SEV(lg::get(), bt::info)
-            << "Functional tests for DAQDB library" << flush;
+    LOG_INFO << "Functional tests for DAQDB library" << flush;
 
     DaqDB::Options options;
     initKvsOptions(options, configFile);
@@ -96,29 +97,33 @@ int main(int argc, const char *argv[]) {
     /* ZHT configuration files must be prepared before KVStore is created */
     prepare_zht_tests(zhtConf, neighborConf);
 
-    shared_ptr<DaqDB::KVStoreBase> spKVStore;
+    unique_ptr<DaqDB::KVStoreBase> spKVStore;
     try {
-        spKVStore =
-            shared_ptr<DaqDB::KVStoreBase>(DaqDB::KVStoreBase::Open(options));
+        spKVStore.reset(DaqDB::KVStoreBase::Open(options));
     } catch (DaqDB::OperationFailedException &e) {
-        cerr << "Failed to create KVStore: " << e.what() << endl;
+        LOG_INFO << "Failed to create KVStore: " << e.what() << endl;
         return -1;
     }
 
-    BOOST_LOG_SEV(lg::get(), bt::info)
-        << format("DHT node (id=%1%) is running on %2%:%3%") %
-               spKVStore->getProperty("daqdb.dht.id") %
-               spKVStore->getProperty("daqdb.listener.ip") %
-               spKVStore->getProperty("daqdb.listener.port")
-        << flush;
+    map<string, function<bool(DaqDB::KVStoreBase *)>> tests =
+        boost::assign::map_list_of("use_case_sync_base", use_case_sync_base)(
+            "use_case_async_base", use_case_async_base)("use_case_sync_offload",
+                                                        use_case_sync_offload)(
+            "use_case_async_offload", use_case_async_offload)(
+            "use_case_zht_connect", use_case_zht_connect);
 
-    RUN_USE_CASE(use_case_sync_base(spKVStore));
-    RUN_USE_CASE(use_case_async_base(spKVStore));
-    RUN_USE_CASE(use_case_sync_offload(spKVStore));
-    RUN_USE_CASE(use_case_async_offload(spKVStore));
-    RUN_USE_CASE(use_case_zht_connect(spKVStore, zhtConf, neighborConf));
+    unsigned short failsCount = 0;
+    for (auto test : tests) {
+        if (!executeTest(test.first, test.second, spKVStore.get())) {
+            failsCount++;
+        }
+    }
 
-    BOOST_LOG_SEV(lg::get(), bt::info) << "Closing DHT node." << flush;
+    if (failsCount > 0) {
+        LOG_INFO << format("Test(s) failed [%1%]") % failsCount << endl;
+    } else {
+        LOG_INFO << "All tests passed!" << endl;
+    }
 
     cleanup_zht_tests(zhtConf, neighborConf);
 

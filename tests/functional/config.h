@@ -22,4 +22,7 @@
 #include "debug.h"
 #include <config/Configuration.h>
 
+const std::string zhtConf = "zht-ft.conf";
+const std::string neighborConf = "neighbor-ft.conf";
+
 void initKvsOptions(DaqDB::Options &options, const std::string &configFile);

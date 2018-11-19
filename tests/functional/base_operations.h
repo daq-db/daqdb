@@ -23,35 +23,30 @@
 #include <daqdb/Status.h>
 #include <daqdb/Value.h>
 
-DaqDB::Value allocValue(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                        const DaqDB::Key &key, const std::string &value);
-DaqDB::Key strToKey(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                    const std::string &key);
+DaqDB::Value allocValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
+                        const std::string &value);
+DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key);
 
-DaqDB::Value daqdb_get(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                       const DaqDB::Key &key);
-void daqdb_put(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key,
-               DaqDB::Value &val);
+DaqDB::Value daqdb_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key);
+void daqdb_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val);
 
-void daqdb_update(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key,
-                  DaqDB::Value &val, const DaqDB::UpdateOptions &options);
+void daqdb_update(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val,
+                  const DaqDB::UpdateOptions &options);
 
-void daqdb_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key);
+void daqdb_offload(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);
 
-void daqdb_async_offload(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                          DaqDB::Key &key,
-                          DaqDB::KVStoreBase::KVStoreBaseCallback cb);
+void daqdb_async_offload(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+                         DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
-void daqdb_remove(std::shared_ptr<DaqDB::KVStoreBase> &spKvs, DaqDB::Key &key);
+void daqdb_remove(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);
 
-void daqdb_async_get(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                     const DaqDB::Key &key,
+void daqdb_async_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
-void daqdb_async_put(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                     DaqDB::Key &key, DaqDB::Value &val,
+void daqdb_async_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+                     DaqDB::Value &val,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
-void daqdb_async_update(std::shared_ptr<DaqDB::KVStoreBase> &spKvs,
-                        DaqDB::Key &key, DaqDB::Value &val,
+void daqdb_async_update(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+                        DaqDB::Value &val,
                         DaqDB::KVStoreBase::KVStoreBaseCallback cb);
