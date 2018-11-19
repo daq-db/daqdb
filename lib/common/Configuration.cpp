@@ -95,6 +95,23 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
     } catch (SettingNotFoundException &e) {
         // no action needed
     }
+//--get eRPC configuration---------------------------------------------------
+	std::string eRPCserver;
+	if (cfg.lookupValue("ServerHostname", eRPCserver))
+		options.eRPC.ServerHostname = eRPCserver;
+	std::string eRPCclient;
+	if (cfg.lookupValue("ClientHostname", eRPCclient))
+		options.eRPC.ClientHostname = eRPCclient;
+	int eRPCport;
+	if (cfg.lookupValue("UDPPort", eRPCport))
+		options.eRPC.UDPPort = eRPCport;
+	int eRPCreq;
+	if (cfg.lookupValue("ReqType", eRPCreq))
+		options.eRPC.ReqType = eRPCreq;
+	int eRPCsize;
+	if (cfg.lookupValue("MsgSize", eRPCsize))
+		options.eRPC.MsgSize = eRPCsize;
+//--END----------------------------------------------------------------------
     return true;
 }
 

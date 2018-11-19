@@ -40,7 +40,9 @@ using boost::format;
 #define KEY_ATTRS_OPT_NAME_POS_OFFSET 1
 #define KEY_ATTRS_OPT_VAL_POS_OFFSET 2
 
+//--Temporary---------------------------------------------------------------
 constexpr size_t kMsgSize = 16;
+//--END----------------------------------------------------------------------
 
 map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
     "get", " <key> [-o <long_term|remote> <0|1>]")("aget",
@@ -639,6 +641,7 @@ void nodeCli::_cmdNeighbors() {
          << endl;
 }
 
+//---------------------------------------------------------------------------
 void erpcReqHandler(erpc::ReqHandle *req_handle, void *) {
 	erpc::Rpc<erpc::CTransport> *rpc;
 	
@@ -649,5 +652,6 @@ void erpcReqHandler(erpc::ReqHandle *req_handle, void *) {
 	req_handle->prealloc_used = true;
 	rpc->enqueue_response(req_handle);
 }
+//--END----------------------------------------------------------------------
 
 } // namespace DaqDB

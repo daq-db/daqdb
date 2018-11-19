@@ -26,7 +26,7 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#include "rpc.h"
+//#include "rpc.h"
 #include "debug.h"
 #include "config.h"
 #include "nodeCli.h"
@@ -37,10 +37,11 @@ using namespace boost::algorithm;
 
 namespace po = boost::program_options;
 
-std::string kServerHostname = "192.168.208.54";
-std::string kUDPPort = "31850";
-constexpr uint8_t kReqType = 2;
-constexpr size_t kMsgSize = 16;
+//--TEMPORARY----------------------------------------------------------------
+std::string ServerHostname = "192.168.208.54";
+constexpr uint16_t UDPPort = 31850;
+constexpr uint8_t ReqType = 2;
+//--END----------------------------------------------------------------------
 
 int main(int argc, const char *argv[]) {
     bool interactiveMode = false;
@@ -110,13 +111,13 @@ int main(int argc, const char *argv[]) {
         DaqDB::nodeCli nodeCli(spKVStore);
 
 //---------------------------------------------------------------------------
-        std::string server_uri = kServerHostname + ":" + kUDPPort;
+        std::string server_uri = ServerHostname + ":" + std::to_string(UDPPort);
         erpc::Nexus nexus(server_uri, 0, 0);
-        nexus.register_req_func(kReqType, DaqDB::erpcReqHandler);
+        nexus.register_req_func(ReqType, DaqDB::erpcReqHandler);
 
         rpc = new erpc::Rpc<erpc::CTransport>(&nexus, nullptr, 0, nullptr);
         rpc->run_event_loop(100000);
-//---------------------------------------------------------------------------
+//--END----------------------------------------------------------------------
 
         while (nodeCli()) {
             if (!isRunning)

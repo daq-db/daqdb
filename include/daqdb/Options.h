@@ -158,6 +158,17 @@ struct PMEMOptions {
     size_t allocUnitSize = 0;
 };
 
+//---------------------------------------------------------------------------
+struct eRPCOptions {
+	std::string ServerHostname = "";
+	std::string ClientHostname = "";
+
+	uint16_t UDPPort = 31850;
+	uint8_t ReqType = 2;
+	size_t MsgSize = 16;
+};
+//--END----------------------------------------------------------------------
+
 struct Options {
   public:
     Options() {}
@@ -169,5 +180,9 @@ struct Options {
     DhtOptions Dht;
 
     PMEMOptions PMEM;
+
+//---------------------------------------------------------------------------
+    eRPCOptions eRPC;
+//--END----------------------------------------------------------------------
 };
 }
