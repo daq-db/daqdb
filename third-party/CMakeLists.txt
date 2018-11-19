@@ -14,11 +14,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${DAQDB_BIN_DIR})
 if(NOT THIN_LIB)
 	include(pmdk.cmake)
 	include(spdk.cmake)
+	include(erpc.cmake)
 endif()
 
 include(libconfig.cmake)
 include(protobuf.cmake)
-include(erpc.cmake)
 
 ###############################################################################
 # Dependencies - Libraries
