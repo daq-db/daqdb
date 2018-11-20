@@ -159,13 +159,13 @@ struct PMEMOptions {
 };
 
 //---------------------------------------------------------------------------
-struct eRPCOptions {
-	std::string ServerHostname = "";
-	std::string ClientHostname = "";
+struct ErpcOptions {
+	std::string serverHostname = "";
+	std::string clientHostname = "";
 
-	uint16_t UDPPort = 31850;
-	uint8_t ReqType = 2;
-	size_t MsgSize = 16;
+	uint16_t udpPort = 31850;
+	uint8_t reqType = 2;
+	size_t msgSize = 16;
 };
 //--END----------------------------------------------------------------------
 
@@ -182,7 +182,7 @@ struct Options {
     PMEMOptions PMEM;
 
 //---------------------------------------------------------------------------
-    eRPCOptions eRPC;
+    ErpcOptions eRPC;
 //--END----------------------------------------------------------------------
 };
 }

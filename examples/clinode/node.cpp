@@ -37,16 +37,25 @@ using namespace boost::algorithm;
 
 namespace po = boost::program_options;
 
-//--TEMPORARY----------------------------------------------------------------
-std::string ServerHostname = "192.168.208.54";
-constexpr uint16_t UDPPort = 31850;
-constexpr uint8_t ReqType = 2;
+//---------------------------------------------------------------------------
+void erpcReqHandler(erpc::ReqHandle *req_handle, void *) {
+	erpc::Rpc<erpc::CTransport> *rpc;
+	size_t kMsgSize = 16;
+
+	auto &resp = req_handle->pre_resp_msgbuf;
+	rpc->resize_msg_buffer(&resp, kMsgSize);
+	sprintf(reinterpret_cast<char *>(resp.buf), "Connection successful");
+
+	req_handle->prealloc_used = true;
+	rpc->enqueue_response(req_handle);
+}
 //--END----------------------------------------------------------------------
 
 int main(int argc, const char *argv[]) {
     bool interactiveMode = false;
     string configFile;
-	erpc::Rpc<erpc::CTransport> *rpc;
+
+    erpc::Rpc<erpc::CTransport> *rpc;
 
     std::atomic<int> isRunning;
     logging::add_console_log(std::clog,
@@ -107,16 +116,23 @@ int main(int argc, const char *argv[]) {
                spKVStore->getProperty("daqdb.dht.port")
         << flush;
 
+//---------------------------------------------------------------------------
+    std::string serverHostname = options.eRPC.serverHostname;
+    uint16_t udpPort = options.eRPC.udpPort;
+    uint8_t reqType = options.eRPC.reqType;
+    size_t msgSize = options.eRPC.msgSize;
+//--END----------------------------------------------------------------------
+
     if (interactiveMode) {
         DaqDB::nodeCli nodeCli(spKVStore);
 
 //---------------------------------------------------------------------------
-        std::string server_uri = ServerHostname + ":" + std::to_string(UDPPort);
+        std::string server_uri = serverHostname + ":" + std::to_string(udpPort);
         erpc::Nexus nexus(server_uri, 0, 0);
-        nexus.register_req_func(ReqType, DaqDB::erpcReqHandler);
+        nexus.register_req_func(reqType, erpcReqHandler);
 
         rpc = new erpc::Rpc<erpc::CTransport>(&nexus, nullptr, 0, nullptr);
-        rpc->run_event_loop(100000);
+        rpc->run_event_loop(1000);
 //--END----------------------------------------------------------------------
 
         while (nodeCli()) {

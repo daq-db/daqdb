@@ -96,21 +96,21 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         // no action needed
     }
 //--get eRPC configuration---------------------------------------------------
-	std::string eRPCserver;
-	if (cfg.lookupValue("ServerHostname", eRPCserver))
-		options.eRPC.ServerHostname = eRPCserver;
-	std::string eRPCclient;
-	if (cfg.lookupValue("ClientHostname", eRPCclient))
-		options.eRPC.ClientHostname = eRPCclient;
-	int eRPCport;
-	if (cfg.lookupValue("UDPPort", eRPCport))
-		options.eRPC.UDPPort = eRPCport;
-	int eRPCreq;
-	if (cfg.lookupValue("ReqType", eRPCreq))
-		options.eRPC.ReqType = eRPCreq;
-	int eRPCsize;
-	if (cfg.lookupValue("MsgSize", eRPCsize))
-		options.eRPC.MsgSize = eRPCsize;
+	std::string erpcServer;
+	if (cfg.lookupValue("server_hostname", erpcServer))
+		options.eRPC.serverHostname = erpcServer;
+	std::string erpcClient;
+	if (cfg.lookupValue("client_hostname", erpcClient))
+		options.eRPC.clientHostname = erpcClient;
+	int erpcPort;
+	if (cfg.lookupValue("erpc_port", erpcPort))
+		options.eRPC.udpPort = erpcPort;
+	int erpcReq;
+	if (cfg.lookupValue("req_type", erpcReq))
+		options.eRPC.reqType = erpcReq;
+	int erpcMsgSize;
+	if (cfg.lookupValue("msg_size", erpcMsgSize))
+		options.eRPC.msgSize = erpcMsgSize;
 //--END----------------------------------------------------------------------
     return true;
 }

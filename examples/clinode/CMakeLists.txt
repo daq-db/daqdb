@@ -16,10 +16,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 
 set(3RDPARTY ${ROOT_DAQDB_DIR}/third-party)
 
-include_directories(${3RDPARTY}/eRPC/src)
 add_definitions(-DRAW)
 
-include_directories(linenoise)
+include_directories(${3RDPARTY}/eRPC/src linenoise)
 add_library(linenoise SHARED linenoise/linenoise.c linenoise/linenoise.h)
 
 file(GLOB CLINODE_SOURCES ${EXAMPLES}/clinode/*.cpp ${EXAMPLES}/clinode/*.h)
@@ -29,5 +28,4 @@ configure_file(clinode.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/clinode.cfg COPY
 
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 target_link_libraries(clinode ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-	pmem daqdb linenoise pmemobj dl numa ${Dpdk_LIBRARIES}
-	${3RDPARTY}/eRPC/build/liberpc.a -libverbs)
+	pmem daqdb linenoise pmemobj dl numa ${Dpdk_LIBRARIES} liberpc ibverbs)

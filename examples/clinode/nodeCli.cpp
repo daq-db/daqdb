@@ -40,10 +40,6 @@ using boost::format;
 #define KEY_ATTRS_OPT_NAME_POS_OFFSET 1
 #define KEY_ATTRS_OPT_VAL_POS_OFFSET 2
 
-//--Temporary---------------------------------------------------------------
-constexpr size_t kMsgSize = 16;
-//--END----------------------------------------------------------------------
-
 map<string, string> consoleCmd = boost::assign::map_list_of("help", "")(
     "get", " <key> [-o <long_term|remote> <0|1>]")("aget",
                                             " <key> [-o <long_term> <0|1>]")(
@@ -640,18 +636,5 @@ void nodeCli::_cmdNeighbors() {
                 _spKVStore->getProperty("daqdb.dht.neighbours")
          << endl;
 }
-
-//---------------------------------------------------------------------------
-void erpcReqHandler(erpc::ReqHandle *req_handle, void *) {
-	erpc::Rpc<erpc::CTransport> *rpc;
-	
-	auto &resp = req_handle->pre_resp_msgbuf;
-	rpc->resize_msg_buffer(&resp, kMsgSize);
-	sprintf(reinterpret_cast<char *>(resp.buf), "Connection successful");
-
-	req_handle->prealloc_used = true;
-	rpc->enqueue_response(req_handle);
-}
-//--END----------------------------------------------------------------------
 
 } // namespace DaqDB
