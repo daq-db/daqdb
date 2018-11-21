@@ -35,7 +35,7 @@ DaqDB::Value daqdb_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key) {
     try {
         return kvs->Get(key);
     } catch (DaqDB::OperationFailedException &e) {
-        if (e.status()() == DaqDB::KeyNotFound) {
+        if (e.status()() == DaqDB::KEY_NOT_FOUND) {
             BOOST_LOG_SEV(lg::get(), bt::info)
                 << format("[%1%] not found") % key.data();
         } else {
@@ -97,7 +97,7 @@ void daqdb_remove(DaqDB::KVStoreBase *kvs, DaqDB::Key &key) {
     try {
         kvs->Remove(key);
     } catch (DaqDB::OperationFailedException &e) {
-        if (e.status()() == DaqDB::KeyNotFound) {
+        if (e.status()() == DaqDB::KEY_NOT_FOUND) {
             BOOST_LOG_SEV(lg::get(), bt::info)
                 << format("[%1%] not found\n") % key.data();
         } else {

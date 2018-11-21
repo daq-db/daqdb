@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
             *val = valRef;
             *valSize = sizeRef;
             *loc = location;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
     When(Method(poolerMock, Read)).Return(0);
     When(Method(poolerMock, Write)).Return(0);
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
             *val = &lbaRef;
             *valSize = valSizeRef;
             *loc = location;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
     When(Method(poolerMock, Read)).Return(0);
     When(Method(poolerMock, Write)).Return(0);
@@ -138,12 +138,12 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
             *val = valRef;
             *valSize = valSizeRef;
             *loc = location;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
     When(Method(rtreeMock, AllocateIOVForKey))
         .AlwaysDo([&](const char *key, uint64_t **ptr, size_t size) {
             *ptr = &lbaRef;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
 
     When(Method(poolerMock, GetFreeLba)).Return(1);
@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
             *valSize = valSizeRef;
             *loc = location;
 
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
     When(Method(poolerMock, Read)).Return(0);
     When(Method(poolerMock, Write)).Return(0);

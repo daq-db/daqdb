@@ -48,11 +48,11 @@ static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
             ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
                                              sizeof(uint64_t));
         if (ioCtx->clb)
-            ioCtx->clb(nullptr, StatusCode::Ok, ioCtx->key, ioCtx->keySize,
+            ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
     } else {
         if (ioCtx->clb)
-            ioCtx->clb(nullptr, StatusCode::UnknownError, ioCtx->key,
+            ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
                        ioCtx->keySize, nullptr, 0);
     }
 
@@ -69,11 +69,11 @@ static void read_complete(struct spdk_bdev_io *bdev_io, bool success,
 
     if (success) {
         if (ioCtx->clb)
-            ioCtx->clb(nullptr, StatusCode::Ok, ioCtx->key, ioCtx->keySize,
+            ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
     } else {
         if (ioCtx->clb)
-            ioCtx->clb(nullptr, StatusCode::UnknownError, ioCtx->key,
+            ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
                        ioCtx->keySize, nullptr, 0);
     }
 
@@ -133,13 +133,13 @@ void OffloadPooler::_ProcessGet(const OffloadRqst *rqst) {
     ValCtx valCtx;
 
     auto rc = _GetValCtx(rqst, valCtx);
-    if (rc != StatusCode::Ok) {
+    if (rc != StatusCode::OK) {
         _RqstClb(rqst, rc);
         return;
     }
 
     if (_ValInPmem(valCtx)) {
-        _RqstClb(rqst, StatusCode::KeyNotFound);
+        _RqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         return;
     }
 
@@ -152,7 +152,7 @@ void OffloadPooler::_ProcessGet(const OffloadRqst *rqst) {
                   rqst->key, rqst->keySize, static_cast<uint64_t *>(valCtx.val),
                   false,     rtree,         rqst->clb};
     if (Read(ioCtx) != 0)
-        _RqstClb(rqst, StatusCode::UnknownError);
+        _RqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 }
 
 void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
@@ -160,7 +160,7 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
     ValCtx valCtx;
 
     auto rc = _GetValCtx(rqst, valCtx);
-    if (rc != StatusCode::Ok) {
+    if (rc != StatusCode::OK) {
         _RqstClb(rqst, rc);
         return;
     }
@@ -186,7 +186,7 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
                           rqst->key, rqst->keySize, nullptr,
                           true,      rtree,         rqst->clb};
         rc = rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
-        if (rc != StatusCode::Ok) {
+        if (rc != StatusCode::OK) {
             delete ioCtx;
             _RqstClb(rqst, rc);
             return;
@@ -195,7 +195,7 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
 
     } else if (_ValOffloaded(valCtx)) {
         if (valCtx.size == 0) {
-            _RqstClb(rqst, StatusCode::Ok);
+            _RqstClb(rqst, StatusCode::OK);
             return;
         }
         auto valSizeAlign = _GetAlignedSize(rqst->valueSize);
@@ -210,12 +210,12 @@ void OffloadPooler::_ProcessUpdate(const OffloadRqst *rqst) {
         *ioCtx->lba = *(static_cast<uint64_t *>(valCtx.val));
 
     } else {
-        _RqstClb(rqst, StatusCode::KeyNotFound);
+        _RqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         return;
     }
 
     if (Write(ioCtx) != 0)
-        _RqstClb(rqst, StatusCode::UnknownError);
+        _RqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 }
 
 void OffloadPooler::_ProcessRemove(const OffloadRqst *rqst) {
@@ -223,13 +223,13 @@ void OffloadPooler::_ProcessRemove(const OffloadRqst *rqst) {
     ValCtx valCtx;
 
     auto rc = _GetValCtx(rqst, valCtx);
-    if (rc != StatusCode::Ok) {
+    if (rc != StatusCode::OK) {
         _RqstClb(rqst, rc);
         return;
     }
 
     if (_ValInPmem(valCtx)) {
-        _RqstClb(rqst, StatusCode::KeyNotFound);
+        _RqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         return;
     }
 
@@ -237,7 +237,7 @@ void OffloadPooler::_ProcessRemove(const OffloadRqst *rqst) {
 
     freeLbaList->Push(_poolFreeList, lba);
     rtree->Remove(rqst->key);
-    _RqstClb(rqst, StatusCode::Ok);
+    _RqstClb(rqst, StatusCode::OK);
 }
 
 void OffloadPooler::Process() {

@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     When(OverloadedMethod(
              rtreeMock, Put,
              DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
-        .Return(DaqDB::StatusCode::Ok);
+        .Return(DaqDB::StatusCode::OK);
 
     DaqDB::PmemPooler &pooler = poolerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
              rtreeMock, Put,
              DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .Return(DaqDB::StatusCode::Ok);
+        .Return(DaqDB::StatusCode::OK);
 
     DaqDB::PmemPooler &pooler = poolerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
              rtreeMock, Put,
              DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .AlwaysReturn(DaqDB::StatusCode::Ok);
+        .AlwaysReturn(DaqDB::StatusCode::OK);
 
     DaqDB::PmemPooler &pooler = poolerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
                       size_t *valSize, uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
 
     DaqDB::PmemPooler &pooler = poolerMock.get();
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
                       size_t *valSize, uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
 
     DaqDB::PmemPooler &pooler = poolerMock.get();
@@ -201,8 +201,8 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
              rtreeMock, Put,
              DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .Return(DaqDB::StatusCode::Ok)
-        .Return(DaqDB::StatusCode::UnknownError);
+        .Return(DaqDB::StatusCode::OK)
+        .Return(DaqDB::StatusCode::UNKNOWN_ERROR);
 
     DaqDB::PmemPooler &pooler = poolerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
@@ -258,13 +258,13 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
                 uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         })
         .Do([&](const char *key, int32_t keySize, void **val, size_t *valSize,
                 uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::KeyNotFound;
+            return DaqDB::StatusCode::KEY_NOT_FOUND;
         });
 
     DaqDB::PmemPooler &pooler = poolerMock.get();

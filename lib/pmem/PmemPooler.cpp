@@ -70,16 +70,16 @@ void PmemPooler::_ThreadMain() {
 void PmemPooler::_ProcessTransfer(const PmemRqst *rqst) {
     if (!offloadPooler) {
         DAQ_DEBUG("Request transfer failed. Offload pooler not set");
-        _RqstClb(rqst, StatusCode::OffloadDisabledError);
+        _RqstClb(rqst, StatusCode::OFFLOAD_DISABLED_ERROR);
     }
     try {
         if (!offloadPooler->Enqueue(new OffloadRqst(OffloadOperation::GET,
                                                     rqst->key, rqst->keySize,
                                                     nullptr, 0, rqst->clb))) {
-            _RqstClb(rqst, StatusCode::UnknownError);
+            _RqstClb(rqst, StatusCode::UNKNOWN_ERROR);
         }
     } catch (OperationFailedException &e) {
-        _RqstClb(rqst, StatusCode::UnknownError);
+        _RqstClb(rqst, StatusCode::UNKNOWN_ERROR);
     }
 }
 
@@ -88,7 +88,7 @@ void PmemPooler::_ProcessGet(const PmemRqst *rqst) {
     StatusCode rc = rtree->Get(rqst->key, rqst->keySize, &valCtx.val,
                                &valCtx.size, &valCtx.location);
 
-    if (rc != StatusCode::Ok || !valCtx.val) {
+    if (rc != StatusCode::OK || !valCtx.val) {
         _RqstClb(rqst, rc);
         return;
     }

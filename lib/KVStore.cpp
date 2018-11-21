@@ -54,16 +54,16 @@ KVStore::~KVStore() {
 
 void KVStore::init() {
 
-    auto poolerCount = getOptions().Runtime.numOfPoolers;
+    auto poolerCount = getOptions().runtime.numOfPoolers;
 
-    if (getOptions().Runtime.logFunc)
-        gLog.setLogFunc(getOptions().Runtime.logFunc);
+    if (getOptions().runtime.logFunc)
+        gLog.setLogFunc(getOptions().runtime.logFunc);
 
     env.createSpdkConfFiles();
     _offloadReactor = new DaqDB::OffloadReactor(
         POOLER_CPU_CORE_BASE + poolerCount + 1, env.getSpdkConfFile(), [&]() {
             // @TODO jradtke move to separate function/wrapper
-            getOptions().Runtime.shutdownFunc();
+            getOptions().runtime.shutdownFunc();
         });
 
     while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
@@ -83,18 +83,18 @@ void KVStore::init() {
     }
 
     auto dhtPort =
-        getOptions().Dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
+        getOptions().dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
 
-    _rtree.reset(DaqDB::RTreeEngine::Open(getOptions().PMEM.poolPath,
-                                          getOptions().PMEM.totalSize,
-                                          getOptions().PMEM.allocUnitSize));
+    _rtree.reset(DaqDB::RTreeEngine::Open(getOptions().pmem.poolPath,
+                                          getOptions().pmem.totalSize,
+                                          getOptions().pmem.allocUnitSize));
     if (_rtree == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     if (isOffloadEnabled()) {
         _offloadPooler =
             new DaqDB::OffloadPooler(_rtree, _offloadReactor->bdevCtx,
-                                     getOptions().Offload.allocUnitSize);
+                                     getOptions().offload.allocUnitSize);
         _offloadPooler->InitFreeList();
         _offloadReactor->RegisterPooler(_offloadPooler);
     }
@@ -124,29 +124,29 @@ const Options &KVStore::getOptions() { return env.getOptions(); }
 size_t KVStore::KeySize() { return env.keySize(); }
 
 void KVStore::LogMsg(std::string msg) {
-    if (getOptions().Runtime.logFunc) {
-        getOptions().Runtime.logFunc(msg);
+    if (getOptions().runtime.logFunc) {
+        getOptions().runtime.logFunc(msg);
     }
 }
 
 void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
-    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+    if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
         throw FUNC_NOT_IMPLEMENTED;
     }
     // @TODO jradtke REMOTE attribute will be remove
-    if (options.Attr & PrimaryKeyAttribute::REMOTE) {
+    if (options.attr & PrimaryKeyAttribute::REMOTE) {
         return _dht->Put(key, val);
     }
 
     StatusCode rc = _rtree->Put(key.data(), val.data());
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
-    if (rc != StatusCode::Ok)
+    if (rc != StatusCode::OK)
         throw OperationFailedException(EINVAL);
 }
 
 void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                        const PutOptions &options) {
-    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+    if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
         throw FUNC_NOT_IMPLEMENTED;
     }
     thread_local int poolerId = 0;
@@ -175,15 +175,15 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
     char *pVal;
     uint8_t location;
 
-    if (options.Attr & PrimaryKeyAttribute::REMOTE) {
+    if (options.attr & PrimaryKeyAttribute::REMOTE) {
         return _dht->Get(key);
     }
 
     StatusCode rc = _rtree->Get(key.data(), reinterpret_cast<void **>(&pVal),
                                 &size, &location);
-    if (rc != StatusCode::Ok || !pVal) {
-        if (rc == StatusCode::KeyNotFound) {
-            throw OperationFailedException(Status(KeyNotFound));
+    if (rc != StatusCode::OK || !pVal) {
+        if (rc == StatusCode::KEY_NOT_FOUND) {
+            throw OperationFailedException(Status(KEY_NOT_FOUND));
         } else {
             throw OperationFailedException(EINVAL);
         }
@@ -194,7 +194,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
         return value;
     } else if (location == DISK) {
         if (!isOffloadEnabled())
-            throw OperationFailedException(Status(OffloadDisabledError));
+            throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
         Value *resultValue = nullptr;
         std::mutex mtx;
@@ -221,7 +221,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
             cv.wait_for(lk, 1s, [&ready] { return ready; });
         }
         if (resultValue == nullptr)
-            throw OperationFailedException(Status(TimeOutError));
+            throw OperationFailedException(Status(TIME_OUT));
 
         return *resultValue;
     } else {
@@ -231,9 +231,9 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
 
 void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
                        const GetOptions &options) {
-    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+    if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
         if (!isOffloadEnabled())
-            throw OperationFailedException(Status(OffloadDisabledError));
+            throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
         try {
             if (!_offloadPooler->Enqueue(new OffloadRqst(OffloadOperation::GET,
@@ -279,9 +279,9 @@ void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
 
 void KVStore::Update(const Key &key, Value &&val,
                      const UpdateOptions &options) {
-    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+    if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
         if (!isOffloadEnabled())
-            throw OperationFailedException(Status(OffloadDisabledError));
+            throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
         std::mutex mtx;
         std::condition_variable cv;
@@ -304,7 +304,7 @@ void KVStore::Update(const Key &key, Value &&val,
             std::unique_lock<std::mutex> lk(mtx);
             cv.wait_for(lk, 1s, [&ready] { return ready; });
             if (!ready)
-                throw OperationFailedException(Status(TimeOutError));
+                throw OperationFailedException(Status(TIME_OUT));
         }
 
     } else {
@@ -320,9 +320,9 @@ void KVStore::Update(const Key &key, const UpdateOptions &options) {
 
 void KVStore::UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
                           const UpdateOptions &options) {
-    if (options.Attr & PrimaryKeyAttribute::LONG_TERM) {
+    if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
         if (!isOffloadEnabled())
-            throw OperationFailedException(Status(OffloadDisabledError));
+            throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
         try {
             if (!_offloadPooler->Enqueue(new OffloadRqst(
@@ -366,15 +366,15 @@ void KVStore::Remove(const Key &key) {
 
     StatusCode rc = _rtree->Get(key.data(), reinterpret_cast<void **>(&pVal),
                                 &size, &location);
-    if (rc != StatusCode::Ok || !pVal) {
-        if (rc == StatusCode::KeyNotFound)
-            throw OperationFailedException(Status(KeyNotFound));
+    if (rc != StatusCode::OK || !pVal) {
+        if (rc == StatusCode::KEY_NOT_FOUND)
+            throw OperationFailedException(Status(KEY_NOT_FOUND));
         throw OperationFailedException(EINVAL);
     }
 
     if (location == DISK) {
         if (!isOffloadEnabled())
-            throw OperationFailedException(Status(OffloadDisabledError));
+            throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
         std::mutex mtx;
         std::condition_variable cv;
@@ -396,14 +396,14 @@ void KVStore::Remove(const Key &key) {
             std::unique_lock<std::mutex> lk(mtx);
             cv.wait_for(lk, 1s, [&ready] { return ready; });
             if (!ready)
-                throw OperationFailedException(Status(TimeOutError));
+                throw OperationFailedException(Status(TIME_OUT));
         }
 
     } else {
         StatusCode rc = _rtree->Remove(key.data());
-        if (rc != StatusCode::Ok) {
-            if (rc == StatusCode::KeyNotFound)
-                throw OperationFailedException(KeyNotFound);
+        if (rc != StatusCode::OK) {
+            if (rc == StatusCode::KEY_NOT_FOUND)
+                throw OperationFailedException(KEY_NOT_FOUND);
 
             throw OperationFailedException(EINVAL);
         }
@@ -417,8 +417,8 @@ void KVStore::RemoveRange(const Key &beg, const Key &end) {
 Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
     char *val = nullptr;
     StatusCode rc = _rtree->AllocValueForKey(key.data(), size, &val);
-    if (rc != StatusCode::Ok) {
-        throw OperationFailedException(AllocationError);
+    if (rc != StatusCode::OK) {
+        throw OperationFailedException(ALLOCATION_ERROR);
     }
     assert(val);
     return Value(val, size);
@@ -454,9 +454,9 @@ bool KVStore::IsOffloaded(Key &key) {
     ValCtx valCtx;
     StatusCode rc = _rtree->Get(key.data(), key.size(), &valCtx.val,
                                 &valCtx.size, &valCtx.location);
-    if (rc != StatusCode::Ok) {
-        if (rc == StatusCode::KeyNotFound)
-            throw OperationFailedException(KeyNotFound);
+    if (rc != StatusCode::OK) {
+        if (rc == StatusCode::KEY_NOT_FOUND)
+            throw OperationFailedException(KEY_NOT_FOUND);
 
         throw OperationFailedException(EINVAL);
     }
@@ -481,11 +481,11 @@ std::string KVStore::getProperty(const std::string &name) {
     if (name == "daqdb.dht.port")
         return std::to_string(_dht->getPort());
     if (name == "daqdb.pmem.path")
-        return getOptions().PMEM.poolPath;
+        return getOptions().pmem.poolPath;
     if (name == "daqdb.pmem.size")
-        return std::to_string(getOptions().PMEM.totalSize);
+        return std::to_string(getOptions().pmem.totalSize);
     if (name == "daqdb.pmem.alloc_unit_size")
-        return std::to_string(getOptions().PMEM.allocUnitSize);
+        return std::to_string(getOptions().pmem.allocUnitSize);
 
     return "";
 }

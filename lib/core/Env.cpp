@@ -33,8 +33,8 @@ Env::Env(const Options &options, KVStoreBase *parent)
       _zhtConfFile(DEFAULT_ZHT_CONF_FILE),
       _zhtNeighborsFile(DEFAULT_ZHT_NEIGHBOR_FILE),
       _spdkConfFile(DEFAULT_SPDK_CONF_FILE) {
-    for (size_t i = 0; i < options.Key.nfields(); i++)
-        _keySize += options.Key.field(i).Size;
+    for (size_t i = 0; i < options.key.nfields(); i++)
+        _keySize += options.key.field(i).size;
     if (_keySize)
         _keySize = DEFAULT_KEY_SIZE;
 }
@@ -49,17 +49,17 @@ void Env::createZhtConfFiles() {
     if (!boost::filesystem::exists(_zhtConfFile)) {
         std::ofstream confOut(_zhtConfFile, std::ios::out);
         confOut << "PROTOCOL TCP" << std::endl;
-        confOut << "PORT " << _options.Dht.port << std::endl;
-        confOut << "MSG_MAXSIZE " << _options.Dht.msgMaxsize << std::endl;
-        confOut << "SCCB_POLL_INTERVAL " << _options.Dht.sccbPoolInterval
+        confOut << "PORT " << _options.dht.port << std::endl;
+        confOut << "MSG_MAXSIZE " << _options.dht.msgMaxsize << std::endl;
+        confOut << "SCCB_POLL_INTERVAL " << _options.dht.sccbPoolInterval
                 << std::endl;
-        confOut << "INSTANT_SWAP " << _options.Dht.instantSwap << std::endl;
+        confOut << "INSTANT_SWAP " << _options.dht.instantSwap << std::endl;
         confOut.close();
         DAQ_DEBUG("ZHT configuration file created");
     }
     if (!boost::filesystem::exists(_zhtNeighborsFile)) {
         std::ofstream neighbourOut(_zhtNeighborsFile, std::ios::out);
-        for (auto neighbor : _options.Dht.neighbors) {
+        for (auto neighbor : _options.dht.neighbors) {
             neighbourOut << neighbor->ip << " " << neighbor->port << std::endl;
         }
         neighbourOut.close();
@@ -78,14 +78,14 @@ void Env::removeZhtConfFiles() {
 
 void Env::createSpdkConfFiles() {
     if (!boost::filesystem::exists(_spdkConfFile)) {
-        if (!_options.Offload.nvmeAddr.empty() &&
-            !_options.Offload.nvmeName.empty()) {
+        if (!_options.offload.nvmeAddr.empty() &&
+            !_options.offload.nvmeName.empty()) {
             std::ofstream spdkConf(_spdkConfFile, std::ios::out);
 
             spdkConf << "[Nvme]" << std::endl
                      << "  TransportID \"trtype:PCIe traddr:"
-                     << _options.Offload.nvmeAddr << "\" "
-                     << _options.Offload.nvmeName << std::endl;
+                     << _options.offload.nvmeAddr << "\" "
+                     << _options.offload.nvmeName << std::endl;
             spdkConf.close();
             DAQ_DEBUG("ZHT neighbor file created");
         }
