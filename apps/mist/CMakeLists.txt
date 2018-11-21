@@ -16,7 +16,8 @@ find_package(Threads REQUIRED)
 
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 
-configure_file(mist.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mist.cfg COPYONLY)
+configure_file(mist.cfg.in
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mist.cfg.sample COPYONLY)
 
 file(GLOB MIST_SOURCES ${APPS}/mist/*.cpp ${APPS}/mist/*.hpp)
 add_executable(mist ${MIST_SOURCES})
