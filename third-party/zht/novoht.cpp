@@ -40,7 +40,6 @@
 #include <string.h>
 #include <string>
 #include <unistd.h>
-#define DEBUG TRUE
 
 NoVoHT::NoVoHT() { initialize("", 1000, -1, 0); }
 
