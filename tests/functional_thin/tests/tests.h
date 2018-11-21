@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2018 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -13,13 +13,18 @@
  * stated in the License.
  */
 
-#include "DhtNode.h"
+#pragma once
 
-namespace DaqDB {
+#include "debug.h"
+#include <daqdb/KVStoreBase.h>
 
-DhtNode::DhtNode(asio::io_service &io_service, unsigned short port)
-    : state(DhtServerState::DHT_INIT) {}
+/**
+ * Test verifies connection to remote DAQDB node (defined in configuration file)
+ */
+bool testRemotePeerConnect(DaqDB::KVStoreBase *kvs);
 
-DhtNode::~DhtNode() {}
-
-} // namespace DaqDB
+/**
+ * Test verifies single PUT and GET operation performed on remote DAQDB peer
+ * node.
+ */
+bool testPutGetSequence(DaqDB::KVStoreBase *kvs);

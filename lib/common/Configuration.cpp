@@ -58,6 +58,15 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.Key.field(n, keysStructure[n], (n == 0) ? true : false);
     }
 
+    std::string db_mode;
+    cfg.lookupValue("mode", db_mode);
+    if (db_mode.compare("satellite") == 0) {
+        options.mode = OperationalMode::SATELLITE;
+    } else {
+        // STORAGE as default mode
+        options.mode = OperationalMode::STORAGE;
+    }
+
     cfg.lookupValue("protocol", options.Dht.protocol);
     int port;
     if (cfg.lookupValue("port", port))
@@ -88,8 +97,13 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
             dhtNeighbor->ip = neighbor["ip"].c_str();
             dhtNeighbor->port = (unsigned int)(neighbor["port"]);
             dhtNeighbor->keyRange.mask = range_mask;
-            dhtNeighbor->keyRange.start = neighbor["keys"]["start"].c_str();
-            dhtNeighbor->keyRange.end = neighbor["keys"]["end"].c_str();
+            try {
+                dhtNeighbor->keyRange.start = neighbor["keys"]["start"].c_str();
+                dhtNeighbor->keyRange.end = neighbor["keys"]["end"].c_str();
+            } catch (SettingNotFoundException &e) {
+                dhtNeighbor->keyRange.start = "";
+                dhtNeighbor->keyRange.end = "";
+            }
             options.Dht.neighbors.push_back(dhtNeighbor);
         }
     } catch (SettingNotFoundException &e) {

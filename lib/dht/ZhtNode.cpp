@@ -58,40 +58,64 @@ ZhtNode::~ZhtNode() {
 
 void ZhtNode::_initZhtConf() {
     _env->createZhtConfFiles();
-    _env->createSpdkConfFiles();
     ConfHandler::initConf(_confFile, _neighborsFile);
-    _env->removeSpdkConfFiles();
     _env->removeZhtConfFiles();
 }
 
 void ZhtNode::_ThreadMain() {
-    auto zhtPort = to_string(getPort());
-    _initNeighbors();
 
-    int hash_mask = 0;
-    std::map<std::pair<int, int>, int> rangeToHost;
-    std::pair<int, int> local_key;
-    for (auto neighbor : _neighbors) {
-        std::pair<int, int> key;
-        key.first = neighbor.second->start;
-        key.second = neighbor.second->end;
-        // @TODO this value should be calculated differently
-        hash_mask = neighbor.second->mask;
-        rangeToHost[key] = neighbor.first->getDhtId();
+    try {
+        auto zhtPort = to_string(getPort());
+        _initNeighbors();
+
+        int hash_mask = 0;
+        std::map<std::pair<int, int>, int> rangeToHost;
+        std::pair<int, int> local_key;
+        for (auto neighbor : _neighbors) {
+            std::pair<int, int> key;
+            key.first = neighbor.second->start;
+            key.second = neighbor.second->end;
+            // @TODO this value should be calculated differently
+            hash_mask = neighbor.second->mask;
+            rangeToHost[key] = neighbor.first->getDhtId();
+        }
+
+        EpollServer zhtServer(
+            zhtPort.c_str(),
+            new IPServer(hash_mask, rangeToHost, _env->getKvs()));
+        _client.c.init(_confFile, _neighborsFile, hash_mask, rangeToHost);
+        _client.setInitialized();
+
+        this->state = DhtServerState::DHT_READY;
+        zhtServer.serve();
+        this->state = DhtServerState::DHT_STOPPED;
+
+    } catch (...) {
+        this->state = DhtServerState::DHT_ERROR;
     }
+}
 
-    EpollServer zhtServer(zhtPort.c_str(),
-                          new IPServer(hash_mask, rangeToHost, _env->getKvs()));
-    _client.c.init(_confFile, _neighborsFile, hash_mask, rangeToHost);
-    _client.setInitialized();
-
-    zhtServer.serve();
+static bool isCurrentNode(std::string ip, std::string port,
+                          unsigned short currentPort) {
+    try {
+        if ((ip.compare("localhost") == 0) &&
+            (std::stoi(port) == currentPort)) {
+            return true;
+        }
+    } catch (std::invalid_argument &ia) {
+        // no action needed
+    }
+    return false;
 }
 
 void ZhtNode::_initNeighbors() {
     for (unsigned int index = 0; index < ConfHandler::NeighborVector.size();
          ++index) {
         auto entry = ConfHandler::NeighborVector.at(index);
+        if (isCurrentNode(entry.name(), entry.value(),
+                          _env->getOptions().Dht.port))
+            continue;
+
         auto dhtNode =
             new PureNode(entry.name(), index, std::stoi(entry.value()));
         auto dhtNodeInfo = new DhtNodeInfo();
@@ -151,7 +175,6 @@ std::string ZhtNode::printNeighbors() {
 
     if (_neighbors.size()) {
         for (auto neighbor : _neighbors) {
-
             if (_client.c.ping(neighbor.first->getDhtId()) ==
                 zht_const::toInt(zht_const::ZSC_REC_SUCC)) {
                 neighbor.second->state = NodeState::Ready;

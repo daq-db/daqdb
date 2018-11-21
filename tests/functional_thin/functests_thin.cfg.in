@@ -10,17 +10,7 @@
  *        satellite - this instance will accept and forward all data to
  *                    one of the storage nodes
  */
-mode = "storage";
-
-/**
- * pmem_path      - location of file created on top of persistent memory
- *                  enabled filesystem
- * pmem_size      - total size of the persistent memory pool to use
- * alloc_unit_size - unit allocation size for the values stored in DaqDB
- */
-pmem_path = "/mnt/pmem/pool.pm";
-pmem_size = 8589934592L;
-alloc_unit_size = 8;
+mode = "satellite";
 
 /**
  * logging_level - valid parameters:
@@ -47,58 +37,28 @@ keys_structure = [ 1, 31, 8, 24];
 primaryKey = "1*3";
 
 //*****************************************************************************
-//******************************* DHT SECTION *********************************
+//******************************* DHT SECTION ********************************
 //*****************************************************************************
 
 protocol = "TCP";
-port = 11000;
+port = 10002;
 msg_maxsize = 1000000L;
 sccb_pool_interval = 100;
 instant_swap = 0;
 
-/**
- * key_mask
- * neighbors
- */
 dht_key_mask = "1";
 neighbors :
 (
     {
         ip = "localhost";
-        port = 11000;
-        keys = { start = "0", end = "64"}
+        port = 10002;
     },
     {
-        ip = "10.102.108.53";
-        port = 11000;
+        // daqdb peer required to perform functional tests for "thin" mode
+        ip = "localhost";
+        port = 10003;
         keys = { start = "65", end = "255"}
     },
 );
-
-//*****************************************************************************
-//******************************* eRPC SECTION ********************************
-//*****************************************************************************
-
-server_hostname = "192.168.208.54";
-client_hostname = "192.168.208.56";
-
-erpc_port = 31850;
-req_type = 2;
-msg_size = 16;
-
-//*****************************************************************************
-//***************************** OFFLOAD SECTION *******************************
-//*****************************************************************************
-
-/**
- * offload_unit_alloc_size
- * offload_nvme_addr
- *		e.g. "0000:1a:00.0"
- * offload_nvme_name
- *		e.g. "Nvme0"
- */
-offload_unit_alloc_size = 16384;
-offload_nvme_addr = "";
-offload_nvme_name = "";
 
 //************************************ EOF ************************************

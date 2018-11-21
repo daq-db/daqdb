@@ -59,6 +59,8 @@ void MinidaqNode::SetMaxIterations(uint64_t n) { _maxIterations = n; }
 
 void MinidaqNode::SetStopOnError(bool stop) { _stopOnError = stop; }
 
+void MinidaqNode::SetLive(bool live) { _live = live; }
+
 int MinidaqNode::GetThreads() { return _nTh; }
 
 void MinidaqNode::_Affinity(int executorId) {
@@ -150,6 +152,8 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         s.interval_ns = timerSample.GetElapsed_ns();
         s.nCompletions = c.fetch_and(0ULL);
         s.nErrCompletions = c_err.fetch_and(0ULL);
+        if (_live)
+            stats.ShowSample(_GetType() + "_" + std::to_string(executorId), s);
         stats.RecordSample(s);
     }
 
