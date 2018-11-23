@@ -87,7 +87,7 @@ static DaqDB::KVStoreBase *openKVS() {
     options.key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
     options.key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
     options.key.field(2, sizeof(DaqDB::MinidaqKey::runId));
-    options.runtime.numOfPoolers = nPoolers;
+    options.runtime.numOfPollers = nPoolers;
     if (enableLog) {
         options.runtime.logFunc = logStd;
     }

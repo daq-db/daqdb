@@ -26,13 +26,11 @@ const size_t DEFAULT_KEY_SIZE = 16;
 
 const std::string DEFAULT_ZHT_CONF_FILE = "zht.conf";
 const std::string DEFAULT_ZHT_NEIGHBOR_FILE = "neighbors.conf";
-const std::string DEFAULT_SPDK_CONF_FILE = "spdk.conf";
 
 Env::Env(const Options &options, KVStoreBase *parent)
     : _options(options), _parent(parent), _keySize(0),
       _zhtConfFile(DEFAULT_ZHT_CONF_FILE),
-      _zhtNeighborsFile(DEFAULT_ZHT_NEIGHBOR_FILE),
-      _spdkConfFile(DEFAULT_SPDK_CONF_FILE) {
+      _zhtNeighborsFile(DEFAULT_ZHT_NEIGHBOR_FILE) {
     for (size_t i = 0; i < options.key.nfields(); i++)
         _keySize += options.key.field(i).size;
     if (_keySize)
@@ -73,28 +71,6 @@ void Env::removeZhtConfFiles() {
     }
     if (boost::filesystem::exists(_zhtNeighborsFile)) {
         boost::filesystem::remove(_zhtNeighborsFile);
-    }
-}
-
-void Env::createSpdkConfFiles() {
-    if (!boost::filesystem::exists(_spdkConfFile)) {
-        if (!_options.offload.nvmeAddr.empty() &&
-            !_options.offload.nvmeName.empty()) {
-            std::ofstream spdkConf(_spdkConfFile, std::ios::out);
-
-            spdkConf << "[Nvme]" << std::endl
-                     << "  TransportID \"trtype:PCIe traddr:"
-                     << _options.offload.nvmeAddr << "\" "
-                     << _options.offload.nvmeName << std::endl;
-            spdkConf.close();
-            DAQ_DEBUG("ZHT neighbor file created");
-        }
-    }
-}
-
-void Env::removeSpdkConfFiles() {
-    if (boost::filesystem::exists(_spdkConfFile)) {
-        boost::filesystem::remove(_spdkConfFile);
     }
 }
 

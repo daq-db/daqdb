@@ -15,15 +15,15 @@
 
 #include <iostream>
 
-#include <Logger.h>
 #include "OffloadFreeList.h"
+#include <Logger.h>
 
 namespace DaqDB {
 
 /*
  * Inserts a new element at the end of the queue.
  */
-void OffloadFreeList::Push(pool_base &pop, int64_t value) {
+void OffloadFreeList::push(pool_base &pop, int64_t value) {
     transaction::exec_tx(pop, [&] {
         auto n = make_persistent<FreeLba>();
 
@@ -39,7 +39,7 @@ void OffloadFreeList::Push(pool_base &pop, int64_t value) {
     });
 }
 
-int64_t OffloadFreeList::Get(pool_base &pop) {
+int64_t OffloadFreeList::get(pool_base &pop) {
     int64_t ret = -1;
     transaction::exec_tx(pop, [&] {
         if (_head == nullptr || maxLba == 0)
@@ -71,7 +71,7 @@ int64_t OffloadFreeList::Get(pool_base &pop) {
     return ret;
 }
 
-void OffloadFreeList::Clear(pool_base &pop) {
+void OffloadFreeList::clear(pool_base &pop) {
     transaction::exec_tx(pop, [&] {
         while (_head != nullptr) {
             auto n = _head->next;
@@ -88,9 +88,9 @@ void OffloadFreeList::Clear(pool_base &pop) {
 /*
  * Prints the entire contents of the queue.
  */
-void OffloadFreeList::Show(void) const {
+void OffloadFreeList::show(void) const {
     for (auto n = _head; n != nullptr; n = n->next)
         std::cout << n->lba << std::endl;
 }
 
-}
+} // namespace DaqDB

@@ -15,16 +15,16 @@
 
 #include "KVStore.h"
 
-#include <sstream>
 #include <chrono>
 #include <condition_variable>
+#include <sstream>
 
 #include <DhtUtils.h>
 #include <Logger.h>
 #include <daqdb/Types.h>
 
 /** @TODO jradtke: should be taken from configuration file */
-#define POOLER_CPU_CORE_BASE 1
+#define POLLER_CPU_CORE_BASE 1
 
 using namespace std::chrono_literals;
 
@@ -39,7 +39,7 @@ KVStoreBase *KVStore::Open(const Options &options) {
 }
 
 KVStore::KVStore(const Options &options)
-    : env(options, this), _offloadPooler(nullptr), _offloadReactor(nullptr) {}
+    : env(options, this), spOffloadPoller(nullptr) {}
 
 KVStore::~KVStore() {
     _dht.reset();
@@ -47,35 +47,20 @@ KVStore::~KVStore() {
     DaqDB::RTreeEngine::Close(_rtree.get());
     _rtree.reset();
 
-    for (auto index = 0; index < _rqstPoolers.size(); index++) {
-        delete _rqstPoolers.at(index);
+    for (auto index = 0; index < rqstPollers.size(); index++) {
+        delete rqstPollers.at(index);
     }
 }
 
 void KVStore::init() {
-
-    auto poolerCount = getOptions().runtime.numOfPoolers;
+    auto pollerCount = getOptions().runtime.numOfPollers;
+    auto coreUsed = 0;
 
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
-    env.createSpdkConfFiles();
-    _offloadReactor = new DaqDB::OffloadReactor(
-        POOLER_CPU_CORE_BASE + poolerCount + 1, env.getSpdkConfFile(), [&]() {
-            // @TODO jradtke move to separate function/wrapper
-            getOptions().runtime.shutdownFunc();
-        });
+    spSpdkCore.reset(new SpdkCore(getOptions().offload));
 
-    while (_offloadReactor->state == ReactorState::REACTOR_INIT) {
-        sleep(1);
-    }
-    if (_offloadReactor->state == ReactorState::REACTOR_READY) {
-        DAQ_DEBUG("SPDK reactor started successfully");
-    } else {
-        DAQ_DEBUG("Can not start SPDK reactor");
-    }
-
-    env.removeSpdkConfFiles();
     if (isOffloadEnabled()) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {
@@ -92,19 +77,18 @@ void KVStore::init() {
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     if (isOffloadEnabled()) {
-        _offloadPooler =
-            new DaqDB::OffloadPooler(_rtree, _offloadReactor->bdevCtx,
-                                     getOptions().offload.allocUnitSize);
-        _offloadPooler->InitFreeList();
-        _offloadReactor->RegisterPooler(_offloadPooler);
+        spOffloadPoller.reset(new DaqDB::OffloadPoller(
+            _rtree.get(), spSpdkCore.get(), POLLER_CPU_CORE_BASE + coreUsed));
+        coreUsed++;
+        spOffloadPoller->initFreeList();
     }
 
-    for (auto index = 0; index < poolerCount; index++) {
-        auto rqstPooler =
-            new DaqDB::PmemPooler(_rtree, POOLER_CPU_CORE_BASE + index);
+    for (auto index = coreUsed; index < pollerCount + coreUsed; index++) {
+        auto rqstPoller =
+            new DaqDB::PmemPoller(_rtree, POLLER_CPU_CORE_BASE + index);
         if (isOffloadEnabled())
-            rqstPooler->offloadPooler = _offloadPooler;
-        _rqstPoolers.push_back(rqstPooler);
+            rqstPoller->offloadPoller = spOffloadPoller.get();
+        rqstPollers.push_back(rqstPoller);
     }
 
     _dht.reset(new DaqDB::ZhtNode(env.ioService(), &env, dhtPort));
@@ -149,10 +133,10 @@ void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
     if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
         throw FUNC_NOT_IMPLEMENTED;
     }
-    thread_local int poolerId = 0;
+    thread_local int pollerId = 0;
 
-    poolerId = (options.roundRobin()) ? ((poolerId + 1) % _rqstPoolers.size())
-                                      : options.poolerId();
+    pollerId = (options.roundRobin()) ? ((pollerId + 1) % rqstPollers.size())
+                                      : options.pollerId();
 
     if (!key.data()) {
         throw OperationFailedException(EINVAL);
@@ -160,7 +144,7 @@ void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
     try {
         PmemRqst *msg = new PmemRqst(RqstOperation::PUT, key.data(), key.size(),
                                      value.data(), value.size(), cb);
-        if (!_rqstPoolers.at(poolerId)->Enqueue(msg)) {
+        if (!rqstPollers.at(pollerId)->enqueue(msg)) {
             throw QueueFullException();
         }
     } catch (OperationFailedException &e) {
@@ -200,7 +184,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
-        if (!_offloadPooler->Enqueue(new OffloadRqst(
+        if (!spOffloadPoller->enqueue(new OffloadRqst(
                 OffloadOperation::GET, key.data(), key.size(), nullptr, 0,
                 [&mtx, &cv, &ready, &resultValue](
                     KVStoreBase *kvs, Status status, const char *key,
@@ -236,9 +220,9 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
             throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
         try {
-            if (!_offloadPooler->Enqueue(new OffloadRqst(OffloadOperation::GET,
-                                                         key.data(), key.size(),
-                                                         nullptr, 0, cb))) {
+            if (!spOffloadPoller->enqueue(
+                    new OffloadRqst(OffloadOperation::GET, key.data(),
+                                    key.size(), nullptr, 0, cb))) {
                 throw QueueFullException();
             }
         } catch (OperationFailedException &e) {
@@ -247,17 +231,17 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
                val.size());
         }
     } else {
-        thread_local int poolerId = 0;
+        thread_local int pollerId = 0;
 
-        poolerId = (options.roundRobin())
-                       ? ((poolerId + 1) % _rqstPoolers.size())
-                       : options.poolerId();
+        pollerId = (options.roundRobin())
+                       ? ((pollerId + 1) % rqstPollers.size())
+                       : options.pollerId();
 
         if (!key.data()) {
             throw OperationFailedException(EINVAL);
         }
         try {
-            if (!_rqstPoolers.at(poolerId)->Enqueue(
+            if (!rqstPollers.at(pollerId)->enqueue(
                     new PmemRqst(RqstOperation::GET, key.data(), key.size(),
                                  nullptr, 0, cb))) {
                 throw QueueFullException();
@@ -287,7 +271,7 @@ void KVStore::Update(const Key &key, Value &&val,
         std::condition_variable cv;
         bool ready = false;
 
-        if (!_offloadPooler->Enqueue(new OffloadRqst(
+        if (!spOffloadPoller->enqueue(new OffloadRqst(
                 OffloadOperation::UPDATE, key.data(), key.size(), val.data(),
                 val.size(),
                 [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
@@ -325,7 +309,7 @@ void KVStore::UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
             throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
         try {
-            if (!_offloadPooler->Enqueue(new OffloadRqst(
+            if (!spOffloadPoller->enqueue(new OffloadRqst(
                     OffloadOperation::UPDATE, key.data(), key.size(),
                     value.data(), value.size(), cb))) {
                 throw QueueFullException();
@@ -379,7 +363,7 @@ void KVStore::Remove(const Key &key) {
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
-        if (!_offloadPooler->Enqueue(new OffloadRqst(
+        if (!spOffloadPoller->enqueue(new OffloadRqst(
                 OffloadOperation::REMOVE, key.data(), key.size(), nullptr, 0,
                 [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
                                     const char *key, size_t keySize,
@@ -473,7 +457,6 @@ std::string KVStore::getProperty(const std::string &name) {
     if (name == "daqdb.dht.status") {
         std::stringstream result;
         result << _dht->printStatus() << endl;
-        result << _offloadReactor->printStatus() << endl;
         return result.str();
     }
     if (name == "daqdb.dht.ip")

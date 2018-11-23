@@ -17,15 +17,15 @@
 
 #include <mutex>
 
-#include <OffloadReactor.h>
-#include <OffloadPooler.h>
+#include "DhtNode.h"
+#include "ZhtNode.h"
 #include <RTreeEngine.h>
 #include <daqdb/KVStoreBase.h>
-#include "ZhtNode.h"
-#include "DhtNode.h"
 
 #include "core/Env.h"
-#include "pmem/PmemPooler.h"
+#include "offload/OffloadPoller.h"
+#include "pmem/PmemPoller.h"
+#include <SpdkCore.h>
 
 namespace DaqDB {
 
@@ -76,6 +76,10 @@ class KVStore : public KVStoreBase {
 
     void LogMsg(std::string msg);
 
+    std::unique_ptr<SpdkCore> spSpdkCore;
+    std::unique_ptr<OffloadPoller> spOffloadPoller;
+    std::vector<PmemPoller *> rqstPollers;
+
   protected:
     explicit KVStore(const Options &options);
     virtual ~KVStore();
@@ -83,23 +87,13 @@ class KVStore : public KVStoreBase {
     void init();
     void registerProperties();
 
-    inline bool isOffloadEnabled() {
-        if (_offloadReactor)
-            return _offloadReactor->isEnabled();
-        else
-            return false;
-    }
+    inline bool isOffloadEnabled() { return spSpdkCore->isOffloadEnabled(); }
 
     DaqDB::Env env;
 
     std::unique_ptr<DaqDB::DhtNode> _dht;
     std::shared_ptr<DaqDB::RTreeEngine> _rtree;
     std::mutex _lock;
-
-    std::vector<PmemPooler *> _rqstPoolers;
-
-    OffloadReactor *_offloadReactor;
-    OffloadPooler *_offloadPooler;
 };
 
-}
+} // namespace DaqDB

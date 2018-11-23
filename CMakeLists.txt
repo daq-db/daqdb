@@ -69,7 +69,7 @@ if(NOT THIN_LIB)
 	
 	set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 	file(GLOB_RECURSE DAQDB_SOURCES lib/*.cpp)
-	include_directories(lib/common lib/dht lib/offload lib/pmem lib/core lib/thin)
+	include_directories(lib/common lib/dht lib/offload lib/pmem lib/core lib/thin lib/spdk)
 	add_library(daqdb SHARED ${DAQDB_SOURCES})
 	target_link_libraries(daqdb ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
 						  zht libprotobuf libconfig )

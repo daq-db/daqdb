@@ -31,12 +31,9 @@ class Env {
     const Options &getOptions();
     inline std::string getZhtConfFile() { return _zhtConfFile; };
     inline std::string getZhtNeighborsFile() { return _zhtNeighborsFile; };
-    inline std::string getSpdkConfFile() { return _spdkConfFile; };
 
     void createZhtConfFiles();
     void removeZhtConfFiles();
-    void createSpdkConfFiles();
-    void removeSpdkConfFiles();
 
     KVStoreBase *getKvs() { return _parent; }
 
@@ -47,7 +44,6 @@ class Env {
 
     std::string _zhtConfFile;
     std::string _zhtNeighborsFile;
-    std::string _spdkConfFile;
 
     KVStoreBase* _parent;
 };

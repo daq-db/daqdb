@@ -23,10 +23,10 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
-#include <Rqst.h>
-#include <Pooler.h>
-#include "OffloadPooler.h"
+#include "../offload/OffloadPoller.h"
 #include "RTreeEngine.h"
+#include <Poller.h>
+#include <Rqst.h>
 
 #define DEQUEUE_RING_LIMIT 1024
 
@@ -35,41 +35,41 @@ namespace DaqDB {
 enum class RqstOperation : std::int8_t { NONE = 0, GET, PUT, UPDATE };
 using PmemRqst = Rqst<RqstOperation>;
 
-class PmemPooler : public Pooler<PmemRqst> {
+class PmemPoller : public Poller<PmemRqst> {
   public:
-    PmemPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
+    PmemPoller(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                const size_t cpuCore = 0);
-    virtual ~PmemPooler();
+    virtual ~PmemPoller();
 
-    void Process() final;
-    void StartThread();
+    void process() final;
+    void startThread();
 
-    OffloadPooler *offloadPooler = nullptr;
+    OffloadPoller *offloadPoller = nullptr;
 
     std::atomic<int> isRunning;
     std::shared_ptr<DaqDB::RTreeEngine> rtree;
 
   private:
-    void _ThreadMain(void);
+    void _threadMain(void);
 
-    void _ProcessGet(const PmemRqst *rqst);
-    void _ProcessPut(const PmemRqst *rqst);
-    void _ProcessTransfer(const PmemRqst *rqst);
+    void _processGet(const PmemRqst *rqst);
+    void _processPut(const PmemRqst *rqst);
+    void _processTransfer(const PmemRqst *rqst);
 
-    inline void _RqstClb(const PmemRqst *rqst, StatusCode status) {
+    inline void _rqstClb(const PmemRqst *rqst, StatusCode status) {
         if (rqst->clb)
             rqst->clb(nullptr, status, rqst->key, rqst->keySize, nullptr, 0);
     }
-    inline void _RqstClb(const PmemRqst *rqst, StatusCode status, Value &val) {
+    inline void _rqstClb(const PmemRqst *rqst, StatusCode status, Value &val) {
         if (rqst->clb)
             rqst->clb(nullptr, status, rqst->key, rqst->keySize, val.data(),
                       val.size());
     }
 
-    inline bool _ValOffloaded(ValCtx &valCtx) {
+    inline bool _valOffloaded(ValCtx &valCtx) {
         return valCtx.location == LOCATIONS::DISK;
     }
-    inline bool _ValInPmem(ValCtx &valCtx) {
+    inline bool _valInPmem(ValCtx &valCtx) {
         return valCtx.location == LOCATIONS::PMEM;
     }
 
@@ -77,4 +77,4 @@ class PmemPooler : public Pooler<PmemRqst> {
     size_t _cpuCore = 0;
 };
 
-}
+} // namespace DaqDB

@@ -58,16 +58,16 @@ struct PutOptions {
     PutOptions() {}
     explicit PutOptions(PrimaryKeyAttribute attr) : attr(attr) {}
 
-    void poolerId(unsigned short id) { _poolerId = id; }
+    void pollerId(unsigned short id) { _pollerId = id; }
 
     void roundRobin(bool rr) { _roundRobin = rr; }
 
-    unsigned short poolerId() const { return _poolerId; }
+    unsigned short pollerId() const { return _pollerId; }
 
     bool roundRobin() const { return _roundRobin; }
 
     PrimaryKeyAttribute attr = PrimaryKeyAttribute::EMPTY;
-    unsigned short _poolerId = 0;
+    unsigned short _pollerId = 0;
     bool _roundRobin = true;
 };
 
@@ -78,18 +78,18 @@ struct GetOptions {
 
     explicit GetOptions(PrimaryKeyAttribute attr) : attr(attr), newAttr(attr) {}
 
-    void poolerId(unsigned short id) { _poolerId = id; }
+    void pollerId(unsigned short id) { _pollerId = id; }
 
     void roundRobin(bool rr) { _roundRobin = rr; }
 
-    unsigned short poolerId() const { return _poolerId; }
+    unsigned short pollerId() const { return _pollerId; }
 
     bool roundRobin() const { return _roundRobin; }
 
     PrimaryKeyAttribute attr = PrimaryKeyAttribute::EMPTY;
     PrimaryKeyAttribute newAttr = PrimaryKeyAttribute::EMPTY;
 
-    unsigned short _poolerId = 0;
+    unsigned short _pollerId = 0;
     bool _roundRobin = true;
 };
 
@@ -130,7 +130,7 @@ struct OffloadOptions {
 struct RuntimeOptions {
     std::function<void(std::string)> logFunc = nullptr;
     std::function<void()> shutdownFunc = nullptr;
-    unsigned short numOfPoolers = 1;
+    unsigned short numOfPollers = 1;
 };
 
 struct DhtKeyRange {
