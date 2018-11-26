@@ -38,9 +38,9 @@ int KVStoreBaseExample() {
     DaqDB::Options options;
 
     // Configure key structure
-    options.Key.field(0, sizeof(Key::event_id), true); // primary key
-    options.Key.field(1, sizeof(Key::subdetector_id));
-    options.Key.field(2, sizeof(Key::run_id));
+    options.key.field(0, sizeof(Key::event_id), true); // primary key
+    options.key.field(1, sizeof(Key::subdetector_id));
+    options.key.field(2, sizeof(Key::run_id));
 
     DaqDB::KVStoreBase *kvs;
     try {
@@ -177,8 +177,8 @@ int KVStoreBaseExample() {
     try {
 
         DaqDB::GetOptions getOptions;
-        getOptions.Attr = DaqDB::READY;
-        getOptions.NewAttr = DaqDB::LOCKED | DaqDB::READY;
+        getOptions.attr = DaqDB::READY;
+        getOptions.newAttr = DaqDB::LOCKED | DaqDB::READY;
 
         // get and lock any primary key which is in unlocked state
         DaqDB::Key keyBuff = kvs->GetAny(getOptions);

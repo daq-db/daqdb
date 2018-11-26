@@ -8,7 +8,7 @@ ExternalProject_Add(project_pmdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/pmdk
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/pmdk
 	CONFIGURE_COMMAND ""
-	BUILD_COMMAND make NDCTL_ENABLE=n install prefix=${PROJECT_SOURCE_DIR}/pmdk
+	BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} NDCTL_ENABLE=n install prefix=${PROJECT_SOURCE_DIR}/pmdk
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PROJECT_SOURCE_DIR}/pmdk/lib/libpmem.so
 			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so.1 &&
@@ -26,6 +26,6 @@ set_target_properties(pmemobj PROPERTIES IMPORTED_LOCATION
 	${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmemobj.so.1)
 
 add_custom_target(libpmdk_clean
-	COMMAND make NDCTL_ENABLE=n clean
+	COMMAND ${CMAKE_MAKE_PROGRAM} NDCTL_ENABLE=n clean
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/pmdk
 )

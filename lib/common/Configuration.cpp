@@ -39,13 +39,13 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         return false;
     }
 
-    cfg.lookupValue("pmem_path", options.PMEM.poolPath);
+    cfg.lookupValue("pmem_path", options.pmem.poolPath);
     long long pmemSize;
     if (cfg.lookupValue("pmem_size", pmemSize))
-        options.PMEM.totalSize = pmemSize;
+        options.pmem.totalSize = pmemSize;
     int allocUnitSize;
     if (cfg.lookupValue("alloc_unit_size", allocUnitSize))
-        options.PMEM.allocUnitSize = allocUnitSize;
+        options.pmem.allocUnitSize = allocUnitSize;
 
     // Configure key structure
     std::string primaryKey;
@@ -55,7 +55,7 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
     for (int n = 0; n < keys_settings.getLength(); ++n) {
         keysStructure.push_back(keys_settings[n]);
         // TODO extend functionality of primary key definition
-        options.Key.field(n, keysStructure[n], (n == 0) ? true : false);
+        options.key.field(n, keysStructure[n], (n == 0) ? true : false);
     }
 
     std::string db_mode;
@@ -67,25 +67,25 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.mode = OperationalMode::STORAGE;
     }
 
-    cfg.lookupValue("protocol", options.Dht.protocol);
+    cfg.lookupValue("protocol", options.dht.protocol);
     int port;
     if (cfg.lookupValue("port", port))
-        options.Dht.port = port;
+        options.dht.port = port;
     long long msgMaxSize;
     if (cfg.lookupValue("msg_maxsize", msgMaxSize))
-        options.Dht.msgMaxsize = msgMaxSize;
+        options.dht.msgMaxsize = msgMaxSize;
     int sccbPoolInterval;
     if (cfg.lookupValue("sccb_pool_interval", sccbPoolInterval))
-        options.Dht.sccbPoolInterval = sccbPoolInterval;
+        options.dht.sccbPoolInterval = sccbPoolInterval;
     int instantSwap;
     if (cfg.lookupValue("instant_swap", instantSwap))
-        options.Dht.instantSwap = instantSwap;
+        options.dht.instantSwap = instantSwap;
 
     int offloadAllocUnitSize;
     if (cfg.lookupValue("offload_unit_alloc_size", offloadAllocUnitSize))
-        options.Offload.allocUnitSize = offloadAllocUnitSize;
-    cfg.lookupValue("offload_nvme_addr", options.Offload.nvmeAddr);
-    cfg.lookupValue("offload_nvme_name", options.Offload.nvmeName);
+        options.offload.allocUnitSize = offloadAllocUnitSize;
+    cfg.lookupValue("offload_nvme_addr", options.offload.nvmeAddr);
+    cfg.lookupValue("offload_nvme_name", options.offload.nvmeName);
     std::string range_mask;
     cfg.lookupValue("dht_key_mask", range_mask);
 
@@ -104,7 +104,7 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
                 dhtNeighbor->keyRange.start = "";
                 dhtNeighbor->keyRange.end = "";
             }
-            options.Dht.neighbors.push_back(dhtNeighbor);
+            options.dht.neighbors.push_back(dhtNeighbor);
         }
     } catch (SettingNotFoundException &e) {
         // no action needed

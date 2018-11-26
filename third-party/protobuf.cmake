@@ -17,7 +17,7 @@ ExternalProject_Add(project_protobuf
 		cp -r ${PROTOBUF_DIR}/m4 ${PROTOBUF_DIR}/third_party/googletest/googletest &&
 		autoreconf -v -I m4 -f -i -Wall,no-obsolete &&
 		./configure
-	BUILD_COMMAND make
+	BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PROTOBUF_LIB}
 			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libprotobuf.so.17
@@ -28,7 +28,7 @@ set_target_properties(libprotobuf PROPERTIES IMPORTED_LOCATION
 	${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libprotobuf.so.17)
 
 add_custom_target(protobuf_clean
-	COMMAND make clean
+	COMMAND ${CMAKE_MAKE_PROGRAM} clean
 	COMMAND rm -rf ${PROJECT_SOURCE_DIR}/project_protobuf-prefix
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/protobuf
 )

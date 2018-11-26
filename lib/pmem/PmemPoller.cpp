@@ -13,7 +13,7 @@
  * stated in the License.
  */
 
-#include "PmemPooler.h"
+#include "PmemPoller.h"
 
 #include <iostream>
 #include <pthread.h>
@@ -21,26 +21,26 @@
 
 #include "spdk/env.h"
 
-#include "OffloadPooler.h"
+#include "../offload/OffloadPoller.h"
 #include <Logger.h>
 
 namespace DaqDB {
 
-PmemPooler::PmemPooler(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
+PmemPoller::PmemPoller(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
                        const size_t cpuCore)
     : isRunning(0), _thread(nullptr), rtree(rtree), _cpuCore(cpuCore) {
-    StartThread();
+    startThread();
 }
 
-PmemPooler::~PmemPooler() {
+PmemPoller::~PmemPoller() {
     isRunning = 0;
     if (_thread != nullptr)
         _thread->join();
 }
 
-void PmemPooler::StartThread() {
+void PmemPoller::startThread() {
     isRunning = 1;
-    _thread = new std::thread(&PmemPooler::_ThreadMain, this);
+    _thread = new std::thread(&PmemPoller::_threadMain, this);
 
     if (_cpuCore) {
         cpu_set_t cpuset;
@@ -51,7 +51,7 @@ void PmemPooler::StartThread() {
         const int set_result = pthread_setaffinity_np(
             _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
         if (set_result == 0) {
-            DAQ_DEBUG("Started RqstPooler on CPU core [" +
+            DAQ_DEBUG("Started RqstPoller on CPU core [" +
                       std::to_string(_cpuCore) + "]");
         } else {
             DAQ_DEBUG("Cannot set affinity on CPU core [" +
@@ -60,65 +60,65 @@ void PmemPooler::StartThread() {
     }
 }
 
-void PmemPooler::_ThreadMain() {
+void PmemPoller::_threadMain() {
     while (isRunning) {
-        Dequeue();
-        Process();
+        dequeue();
+        process();
     }
 }
 
-void PmemPooler::_ProcessTransfer(const PmemRqst *rqst) {
-    if (!offloadPooler) {
-        DAQ_DEBUG("Request transfer failed. Offload pooler not set");
-        _RqstClb(rqst, StatusCode::OffloadDisabledError);
+void PmemPoller::_processTransfer(const PmemRqst *rqst) {
+    if (!offloadPoller) {
+        DAQ_DEBUG("Request transfer failed. Offload poller not set");
+        _rqstClb(rqst, StatusCode::OFFLOAD_DISABLED_ERROR);
     }
     try {
-        if (!offloadPooler->Enqueue(new OffloadRqst(OffloadOperation::GET,
+        if (!offloadPoller->enqueue(new OffloadRqst(OffloadOperation::GET,
                                                     rqst->key, rqst->keySize,
                                                     nullptr, 0, rqst->clb))) {
-            _RqstClb(rqst, StatusCode::UnknownError);
+            _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
         }
     } catch (OperationFailedException &e) {
-        _RqstClb(rqst, StatusCode::UnknownError);
+        _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
     }
 }
 
-void PmemPooler::_ProcessGet(const PmemRqst *rqst) {
+void PmemPoller::_processGet(const PmemRqst *rqst) {
     ValCtx valCtx;
     StatusCode rc = rtree->Get(rqst->key, rqst->keySize, &valCtx.val,
                                &valCtx.size, &valCtx.location);
 
-    if (rc != StatusCode::Ok || !valCtx.val) {
-        _RqstClb(rqst, rc);
+    if (rc != StatusCode::OK || !valCtx.val) {
+        _rqstClb(rqst, rc);
         return;
     }
 
-    if (_ValOffloaded(valCtx)) {
-        _ProcessTransfer(rqst);
+    if (_valOffloaded(valCtx)) {
+        _processTransfer(rqst);
         return;
     }
 
     Value value(new char[valCtx.size], valCtx.size);
     std::memcpy(value.data(), valCtx.val, valCtx.size);
-    _RqstClb(rqst, rc, value);
+    _rqstClb(rqst, rc, value);
 }
-void PmemPooler::_ProcessPut(const PmemRqst *rqst) {
+void PmemPoller::_processPut(const PmemRqst *rqst) {
     StatusCode rc =
         rtree->Put(rqst->key, rqst->keySize, rqst->value, rqst->valueSize);
-    _RqstClb(rqst, rc);
+    _rqstClb(rqst, rc);
 }
 
-void PmemPooler::Process() {
+void PmemPoller::process() {
     if (requestCount > 0) {
         for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
             PmemRqst *rqst = requests[RqstIdx];
 
             switch (rqst->op) {
             case RqstOperation::PUT:
-                _ProcessPut(rqst);
+                _processPut(rqst);
                 break;
             case RqstOperation::GET: {
-                _ProcessGet(rqst);
+                _processGet(rqst);
                 break;
             }
             default:

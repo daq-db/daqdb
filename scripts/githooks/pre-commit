@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 
+import os
 import subprocess
-output = subprocess.check_output(["git", "clang-format", "--diff"])
+
+script_path = os.path.dirname(os.path.abspath(__file__))
+git_clang_format = os.path.join(script_path, 'git-clang-format')
+print git_clang_format
+
+output = subprocess.check_output([git_clang_format, "--diff"])
 
 if output not in ['no modified files to format\n', 'clang-format did not modify any files\n']:
-    print "Run git clang-format, then commit.\n"
+    print "Correct issues reported by scripts/githooks/git-clang-format --diff, then commit.\n"
     exit(1)
 else:
+    print "No clang-format issues detected.\n"
     exit(0)

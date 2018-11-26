@@ -69,7 +69,7 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
     int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
                              &alloc_daqdb);
     if (rc)
-        throw OperationFailedException(Status(AllocationError));
+        throw OperationFailedException(Status(ALLOCATION_ERROR));
     alloc_class = alloc_daqdb.class_id;
     DAQ_DEBUG("RTree New allocation class (" + std::to_string(alloc_class) +
               ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
@@ -88,10 +88,10 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
         *location = val->location;
     } else if (val->location == EMPTY ||
                val->locationVolatile.get().value == EMPTY) {
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     }
     *size = val->size;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 StatusCode RTree::Get(const char *key, void **value, size_t *size,
@@ -105,17 +105,17 @@ StatusCode RTree::Get(const char *key, void **value, size_t *size,
         *location = val->location;
     } else if (val->location == EMPTY ||
                val->locationVolatile.get().value == EMPTY) {
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     }
     *size = val->size;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 StatusCode RTree::Put(const char *key, // copy value from std::string
                       char *value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
@@ -123,13 +123,13 @@ StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 StatusCode RTree::Remove(const char *key) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == EMPTY) {
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     }
     try {
         if (val->location == PMEM &&
@@ -141,12 +141,12 @@ StatusCode RTree::Remove(const char *key) {
         val->location = EMPTY;
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
-        return StatusCode::UnknownError;
+        return StatusCode::UNKNOWN_ERROR;
     }
     if (val->location == PMEM) {
         delete val->actionValue;
     }
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
@@ -158,13 +158,13 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     if (OID_IS_NULL(poid)) {
         delete val->actionValue;
         val->actionValue = nullptr;
-        return StatusCode::AllocationError;
+        return StatusCode::ALLOCATION_ERROR;
     }
     val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
     val->size = size;
     *value = reinterpret_cast<char *>(
         pmemobj_direct(*(val->locationPtr.value.raw_ptr())));
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 /*
@@ -181,10 +181,10 @@ StatusCode RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
     if (OID_IS_NULL(poid)) {
         delete val->actionUpdate;
         val->actionUpdate = nullptr;
-        return StatusCode::AllocationError;
+        return StatusCode::ALLOCATION_ERROR;
     }
     *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 /*
@@ -207,7 +207,7 @@ StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
     pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
     delete val->actionValue;
     delete val->actionUpdate;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {

@@ -35,7 +35,7 @@ DaqDB::Value remote_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key) {
     try {
         return kvs->Get(key);
     } catch (DaqDB::OperationFailedException &e) {
-        if (e.status()() == DaqDB::KeyNotFound) {
+        if (e.status()() == DaqDB::KEY_NOT_FOUND) {
             LOG_INFO << format("[%1%] not found") % key.data();
         } else {
             LOG_INFO << "Error: cannot get element: " << e.status().to_string()

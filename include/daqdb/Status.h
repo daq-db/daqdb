@@ -22,35 +22,34 @@
 namespace DaqDB {
 
 enum StatusCode : long {
-    Ok = 0,
+    OK = 0,
 
-    _max_errno = std::numeric_limits<int>::max(),
-    KeyNotFound,
-    AllocationError,
-    OffloadDisabledError,
-    TimeOutError,
-
-    NotImplemented,
-    UnknownError,
+    _MAX_ERRNO = std::numeric_limits<int>::max(),
+    KEY_NOT_FOUND,
+    ALLOCATION_ERROR,
+    OFFLOAD_DISABLED_ERROR,
+    TIME_OUT,
+    NOT_IMPLEMENTED,
+    UNKNOWN_ERROR,
 };
 
 struct Status {
 
-    Status() : _code(Ok) {}
+    Status() : _code(OK) {}
 
     Status(long errnum) : _code(static_cast<StatusCode>(errnum)) {}
     explicit Status(StatusCode c) : _code(c) {}
 
-    bool ok() const { return _code == Ok; }
+    bool ok() const { return _code == OK; }
 
     StatusCode operator()() { return _code; }
 
     std::string to_string() {
-        if (_code < _max_errno)
+        if (_code < _MAX_ERRNO)
             return ::strerror((int)_code);
 
         switch (_code) {
-        case NotImplemented:
+        case NOT_IMPLEMENTED:
             return "Not Implemented";
         default:
             return "code = " + std::to_string(_code);

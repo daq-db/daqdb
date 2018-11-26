@@ -8,7 +8,7 @@ ExternalProject_Add(project_libconfig
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/libconfig
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/libconfig
 	CMAKE_ARGS -DBUILD_EXAMPLES=OFF -DBUILD_TESTS=OFF
-	BUILD_COMMAND make
+	BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PROJECT_SOURCE_DIR}/libconfig/out/liblibconfig++.so
 			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so
@@ -19,7 +19,7 @@ set_target_properties(libconfig PROPERTIES IMPORTED_LOCATION
 	${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so)
 
 add_custom_target(libconfig_clean
-	COMMAND make clean
+	COMMAND ${CMAKE_MAKE_PROGRAM} clean
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libconfig
 )
 	
