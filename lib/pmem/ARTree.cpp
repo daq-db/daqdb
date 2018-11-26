@@ -86,7 +86,7 @@ StatusCode ARTree::Get(const char *key, int32_t keybytes, void **value,
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     if (!val)
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
         *location = val->location;
@@ -95,10 +95,10 @@ StatusCode ARTree::Get(const char *key, int32_t keybytes, void **value,
         *location = val->location;
     } else if (val->location == EMPTY ||
                val->locationVolatile.get().value == EMPTY) {
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     }
     *size = val->size;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 StatusCode ARTree::Get(const char *key, void **value, size_t *size,
@@ -106,7 +106,7 @@ StatusCode ARTree::Get(const char *key, void **value, size_t *size,
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     if (!val)
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
         *location = val->location;
@@ -115,10 +115,10 @@ StatusCode ARTree::Get(const char *key, void **value, size_t *size,
         *location = val->location;
     } else if (val->location == EMPTY ||
                val->locationVolatile.get().value == EMPTY) {
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     }
     *size = val->size;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 StatusCode ARTree::Put(const char *key, // copy value from std::string
@@ -127,7 +127,7 @@ StatusCode ARTree::Put(const char *key, // copy value from std::string
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 StatusCode ARTree::Put(const char *key, int32_t keyBytes, const char *value,
@@ -136,17 +136,17 @@ StatusCode ARTree::Put(const char *key, int32_t keyBytes, const char *value,
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 StatusCode ARTree::Remove(const char *key) {
 
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     if (!val) {
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     }
     if (val->location == EMPTY) {
-        return StatusCode::KeyNotFound;
+        return StatusCode::KEY_NOT_FOUND;
     }
     try {
         if (val->location == PMEM &&
@@ -158,12 +158,12 @@ StatusCode ARTree::Remove(const char *key) {
         val->location = EMPTY;
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
-        return StatusCode::UnknownError;
+        return StatusCode::UNKNOWN_ERROR;
     }
     if (val->location == PMEM) {
         delete val->actionValue;
     }
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 /*
@@ -320,7 +320,7 @@ StatusCode ARTree::AllocValueForKey(const char *key, size_t size,
         if (OID_IS_NULL(poid)) {
             delete val->actionValue;
             val->actionValue = nullptr;
-            return StatusCode::AllocationError;
+            return StatusCode::ALLOCATION_ERROR;
         }
         val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
         val->size = size;
@@ -329,7 +329,7 @@ StatusCode ARTree::AllocValueForKey(const char *key, size_t size,
     } else {
         DAQ_DEBUG("root does not exist");
     }
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 /*
@@ -347,10 +347,10 @@ StatusCode ARTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
     if (OID_IS_NULL(poid)) {
         delete val->actionUpdate;
         val->actionUpdate = nullptr;
-        return StatusCode::AllocationError;
+        return StatusCode::ALLOCATION_ERROR;
     }
     *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 /*
@@ -373,7 +373,7 @@ StatusCode ARTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
     pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
     delete val->actionValue;
     delete val->actionUpdate;
-    return StatusCode::Ok;
+    return StatusCode::OK;
 }
 
 } // namespace DaqDB
