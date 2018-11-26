@@ -30,11 +30,11 @@ KVStoreThin::KVStoreThin(const Options &options) : env(options, this) {}
 KVStoreThin::~KVStoreThin() {}
 
 void KVStoreThin::init() {
-    if (getOptions().Runtime.logFunc)
-        gLog.setLogFunc(getOptions().Runtime.logFunc);
+    if (getOptions().runtime.logFunc)
+        gLog.setLogFunc(getOptions().runtime.logFunc);
 
     auto dhtPort =
-        getOptions().Dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
+        getOptions().dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
     _dht.reset(new DaqDB::ZhtNode(env.ioService(), &env, dhtPort));
     while (_dht->state == DhtServerState::DHT_INIT) {
         sleep(1);
@@ -53,8 +53,8 @@ const Options &KVStoreThin::getOptions() { return env.getOptions(); }
 size_t KVStoreThin::KeySize() { return env.keySize(); }
 
 void KVStoreThin::LogMsg(std::string msg) {
-    if (getOptions().Runtime.logFunc) {
-        getOptions().Runtime.logFunc(msg);
+    if (getOptions().runtime.logFunc) {
+        getOptions().runtime.logFunc(msg);
     }
 }
 
@@ -125,7 +125,7 @@ void KVStoreThin::RemoveRange(const Key &beg, const Key &end) {
 Value KVStoreThin::Alloc(const Key &key, size_t size,
                          const AllocOptions &options) {
     if (size == 0)
-        throw OperationFailedException(AllocationError);
+        throw OperationFailedException(ALLOCATION_ERROR);
 
     return Value(new char[size], size);
 }

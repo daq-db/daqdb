@@ -16,7 +16,7 @@
 #pragma once
 
 #ifdef DEBUG
-#define DAQ_DEBUG(msg) gLog.Log(msg)
+#define DAQ_DEBUG(msg) gLog.log(msg)
 #else
 #define DAQ_DEBUG(msg)
 #endif
@@ -31,7 +31,7 @@ class Logger {
     virtual ~Logger();
 
     void setLogFunc(const std::function<void(std::string)> &fn);
-    void Log(std::string);
+    void log(std::string);
 
   private:
     std::function<void(std::string)> _logFunc = nullptr;

@@ -19,33 +19,32 @@
 #include "spdk/io_channel.h"
 #include "spdk/queue.h"
 
-#define DEQUEUE_RING_LIMIT  1024
+#define DEQUEUE_RING_LIMIT 1024
 
 namespace DaqDB {
 
-template <class T>
-class Pooler {
+template <class T> class Poller {
   public:
-    Pooler() : requests(new T *[DEQUEUE_RING_LIMIT]) {
+    Poller() : requests(new T *[DEQUEUE_RING_LIMIT]) {
         rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
-                                        SPDK_ENV_SOCKET_ID_ANY);
+                                    SPDK_ENV_SOCKET_ID_ANY);
     }
-    virtual ~Pooler() {
+    virtual ~Poller() {
         spdk_ring_free(rqstRing);
         delete[] requests;
     }
 
-    virtual bool Enqueue(T *rqst) {
+    virtual bool enqueue(T *rqst) {
         size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1);
         return (count == 1);
     }
-    virtual void Dequeue() {
-        requestCount =
-            spdk_ring_dequeue(rqstRing, (void **)&requests[0], DEQUEUE_RING_LIMIT);
+    virtual void dequeue() {
+        requestCount = spdk_ring_dequeue(rqstRing, (void **)&requests[0],
+                                         DEQUEUE_RING_LIMIT);
         assert(requestCount <= DEQUEUE_RING_LIMIT);
     }
 
-    virtual void Process() = 0;
+    virtual void process() = 0;
 
     struct spdk_ring *rqstRing;
     unsigned short requestCount = 0;

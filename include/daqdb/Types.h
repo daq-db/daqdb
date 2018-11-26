@@ -43,7 +43,7 @@ class OperationFailedException : public std::runtime_error {
         set_what();
     }
     explicit OperationFailedException(const std::string &msg = "")
-        : runtime_error(msg), _status(UnknownError) {
+        : runtime_error(msg), _status(UNKNOWN_ERROR) {
         set_what();
     }
     OperationFailedException(int errnum, const std::string &msg = "")

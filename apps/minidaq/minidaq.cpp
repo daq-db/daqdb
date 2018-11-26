@@ -81,15 +81,15 @@ static void logStd(std::string m) {
 /** @todo move to MinidaqFogServer for distributed version */
 static DaqDB::KVStoreBase *openKVS() {
     DaqDB::Options options;
-    options.PMEM.poolPath = pmem_path;
-    options.PMEM.totalSize = pmem_size;
-    options.PMEM.allocUnitSize = fSize;
-    options.Key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
-    options.Key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
-    options.Key.field(2, sizeof(DaqDB::MinidaqKey::runId));
-    options.Runtime.numOfPoolers = nPoolers;
+    options.pmem.poolPath = pmem_path;
+    options.pmem.totalSize = pmem_size;
+    options.pmem.allocUnitSize = fSize;
+    options.key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
+    options.key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
+    options.key.field(2, sizeof(DaqDB::MinidaqKey::runId));
+    options.runtime.numOfPollers = nPoolers;
     if (enableLog) {
-        options.Runtime.logFunc = logStd;
+        options.runtime.logFunc = logStd;
     }
 
     return DaqDB::KVStoreBase::Open(options);

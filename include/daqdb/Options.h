@@ -49,54 +49,54 @@ struct AllocOptions {};
 
 struct UpdateOptions {
     UpdateOptions() {}
-    UpdateOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
+    UpdateOptions(PrimaryKeyAttribute attr) : attr(attr) {}
 
-    PrimaryKeyAttribute Attr;
+    PrimaryKeyAttribute attr;
 };
 
 struct PutOptions {
     PutOptions() {}
-    explicit PutOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
+    explicit PutOptions(PrimaryKeyAttribute attr) : attr(attr) {}
 
-    void poolerId(unsigned short id) { _poolerId = id; }
+    void pollerId(unsigned short id) { _pollerId = id; }
 
     void roundRobin(bool rr) { _roundRobin = rr; }
 
-    unsigned short poolerId() const { return _poolerId; }
+    unsigned short pollerId() const { return _pollerId; }
 
     bool roundRobin() const { return _roundRobin; }
 
-    PrimaryKeyAttribute Attr = PrimaryKeyAttribute::EMPTY;
-    unsigned short _poolerId = 0;
+    PrimaryKeyAttribute attr = PrimaryKeyAttribute::EMPTY;
+    unsigned short _pollerId = 0;
     bool _roundRobin = true;
 };
 
 struct GetOptions {
     GetOptions() {}
     GetOptions(PrimaryKeyAttribute attr, PrimaryKeyAttribute newAttr)
-        : Attr(attr), NewAttr(newAttr) {}
+        : attr(attr), newAttr(newAttr) {}
 
-    explicit GetOptions(PrimaryKeyAttribute attr) : Attr(attr), NewAttr(attr) {}
+    explicit GetOptions(PrimaryKeyAttribute attr) : attr(attr), newAttr(attr) {}
 
-    void poolerId(unsigned short id) { _poolerId = id; }
+    void pollerId(unsigned short id) { _pollerId = id; }
 
     void roundRobin(bool rr) { _roundRobin = rr; }
 
-    unsigned short poolerId() const { return _poolerId; }
+    unsigned short pollerId() const { return _pollerId; }
 
     bool roundRobin() const { return _roundRobin; }
 
-    PrimaryKeyAttribute Attr = PrimaryKeyAttribute::EMPTY;
-    PrimaryKeyAttribute NewAttr = PrimaryKeyAttribute::EMPTY;
+    PrimaryKeyAttribute attr = PrimaryKeyAttribute::EMPTY;
+    PrimaryKeyAttribute newAttr = PrimaryKeyAttribute::EMPTY;
 
-    unsigned short _poolerId = 0;
+    unsigned short _pollerId = 0;
     bool _roundRobin = true;
 };
 
 struct KeyFieldDescriptor {
-    KeyFieldDescriptor() : Size(0), IsPrimary(false) {}
-    size_t Size;
-    bool IsPrimary;
+    KeyFieldDescriptor() : size(0), isPrimary(false) {}
+    size_t size;
+    bool isPrimary;
 };
 
 struct KeyDescriptor {
@@ -106,7 +106,7 @@ struct KeyDescriptor {
         if (nfields() <= idx)
             _fields.resize(idx + 1);
 
-        _fields[idx].Size = size;
+        _fields[idx].size = size;
     }
 
     KeyFieldDescriptor field(size_t idx) const {
@@ -130,7 +130,7 @@ struct OffloadOptions {
 struct RuntimeOptions {
     std::function<void(std::string)> logFunc = nullptr;
     std::function<void()> shutdownFunc = nullptr;
-    unsigned short numOfPoolers = 1;
+    unsigned short numOfPollers = 1;
 };
 
 struct DhtKeyRange {
@@ -147,13 +147,11 @@ struct DhtNeighbor {
 
 struct DhtOptions {
     unsigned short port = 0;
-    NodeId Id = 0;
-
+    NodeId id = 0;
     std::string protocol = "";
     size_t msgMaxsize = 0;
     unsigned int sccbPoolInterval = 0;
     unsigned int instantSwap = 0;
-
     std::vector<DhtNeighbor*> neighbors;
 };
 
@@ -168,13 +166,11 @@ struct Options {
     Options() {}
     explicit Options(const std::string &path);
 
-    OperationalMode mode;
-
-    KeyDescriptor Key;
-    OffloadOptions Offload;
-    RuntimeOptions Runtime;
-    DhtOptions Dht;
-
-    PMEMOptions PMEM;
+    DhtOptions dht;
+    KeyDescriptor key;
+    OperationalMode mode = OperationalMode::STORAGE;
+    OffloadOptions offload;
+    PMEMOptions pmem;
+    RuntimeOptions runtime;
 };
 }

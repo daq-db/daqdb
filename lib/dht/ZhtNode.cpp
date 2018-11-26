@@ -113,14 +113,14 @@ void ZhtNode::_initNeighbors() {
          ++index) {
         auto entry = ConfHandler::NeighborVector.at(index);
         if (isCurrentNode(entry.name(), entry.value(),
-                          _env->getOptions().Dht.port))
+                          _env->getOptions().dht.port))
             continue;
 
         auto dhtNode =
             new PureNode(entry.name(), index, std::stoi(entry.value()));
         auto dhtNodeInfo = new DhtNodeInfo();
         dhtNodeInfo->state = NodeState::Unknown;
-        for (auto option : _env->getOptions().Dht.neighbors) {
+        for (auto option : _env->getOptions().dht.neighbors) {
             if (option->ip == dhtNode->getIp() &&
                 option->port == dhtNode->getPort()) {
                 try {
@@ -147,14 +147,14 @@ Value ZhtNode::Get(const Key &key) {
         result.data()[result.size()] = '\0';
         return result;
     } else {
-        throw OperationFailedException(Status(KeyNotFound));
+        throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
 }
 
 void ZhtNode::Put(const Key &key, const Value &val) {
     auto rc = _client.c.insert(key.data(), val.data());
     if (rc != 0) {
-        throw OperationFailedException(Status(UnknownError));
+        throw OperationFailedException(Status(UNKNOWN_ERROR));
     }
 }
 

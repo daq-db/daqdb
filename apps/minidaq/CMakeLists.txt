@@ -23,7 +23,8 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(Threads REQUIRED)
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 
-configure_file(minidaq.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/minidaq.cfg COPYONLY)
+configure_file(minidaq.cfg.in
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/minidaq.cfg.sample COPYONLY)
 
 file(GLOB MINIDAQ_SOURCES *.cpp *.h)
 add_executable(minidaq ${MINIDAQ_SOURCES})

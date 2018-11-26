@@ -90,7 +90,7 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
             try {
                 value = _kvs->Get(fogKey);
             } catch (OperationFailedException &e) {
-                if (e.status()() == KeyNotFound) {
+                if (e.status()() == KEY_NOT_FOUND) {
                     /* Wait until it is availabile. */
                     continue;
                 } else {

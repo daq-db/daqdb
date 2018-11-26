@@ -193,7 +193,7 @@ void nodeCli::_cmdGet(const std::string &strLine) {
             string valuestr(value.data());
             cout << format("[%1%] = %2%\n") % key % valuestr;
         } catch (DaqDB::OperationFailedException &e) {
-            if (e.status()() == DaqDB::KeyNotFound) {
+            if (e.status()() == DaqDB::KEY_NOT_FOUND) {
                 cout << format("[%1%] not found\n") % key;
             } else {
                 cout << "Error: cannot get element: " << e.status().to_string()
@@ -249,7 +249,7 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
                 },
                 std::move(options));
         } catch (DaqDB::OperationFailedException &e) {
-            if (e.status()() == StatusCode::OffloadDisabledError) {
+            if (e.status()() == StatusCode::OFFLOAD_DISABLED_ERROR) {
                 cout << format("Error: Disk offload is disabled") << endl;
             } else {
                 cout << "Error: cannot get element: " << e.status().to_string()
@@ -348,7 +348,7 @@ void nodeCli::_cmdPut(const std::string &strLine) {
             _spKVStore->Put(std::move(keyBuff), std::move(valBuff),
                             std::move(options));
             cout << format("Put: [%1%] = %2% (Opts:%3%)\n") % key %
-                        arguments[PUT_CMD_VAL_OFFSET] % options.Attr;
+                        arguments[PUT_CMD_VAL_OFFSET] % options.attr;
         } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot put element: " << e.status().to_string()
                  << endl;
@@ -476,7 +476,7 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
                             _statusMsgs.push_back(boost::str(
                                 boost::format(
                                     "UPDATE[%1%]=%2% (Opts:%3%) : completed") %
-                                key % value % options.Attr));
+                                key % value % options.attr));
                         }
                         if (keyBuff.size() > 0)
                             _spKVStore->Free(std::move(keyBuff));
@@ -497,14 +497,14 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
                             _statusMsgs.push_back(boost::str(
                                 boost::format("UPDATE[%1%] (Opts:%2%) "
                                               ": completed") %
-                                key % options.Attr));
+                                key % options.attr));
                         }
                         if (keyBuff.size() > 0)
                             _spKVStore->Free(std::move(keyBuff));
                     });
             }
         } catch (DaqDB::OperationFailedException &e) {
-            if (e.status()() == StatusCode::OffloadDisabledError) {
+            if (e.status()() == StatusCode::OFFLOAD_DISABLED_ERROR) {
                 cout << format("Error: Disk offload is disabled\n") << endl;
             } else {
                 cout << "Error: cannot update element: "
@@ -561,7 +561,7 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
                         _statusMsgs.push_back(boost::str(
                             boost::format(
                                 "PUT[%1%]=%2% (Opts:%3%) : completed") %
-                            key % value % options.Attr));
+                            key % value % options.attr));
                     }
                     if (keyBuff.size() > 0)
                         _spKVStore->Free(std::move(keyBuff));
@@ -601,7 +601,7 @@ void nodeCli::_cmdRemove(const std::string &strLine) {
             _spKVStore->Remove(keyBuff);
             cout << format("Remove: [%1%]\n") % key;
         } catch (DaqDB::OperationFailedException &e) {
-            if (e.status()() == DaqDB::KeyNotFound) {
+            if (e.status()() == DaqDB::KEY_NOT_FOUND) {
                 cout << format("[%1%] not found\n") % key;
             } else {
                 cout << "Error: cannot remove element" << endl;

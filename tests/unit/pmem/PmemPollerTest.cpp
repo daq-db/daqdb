@@ -15,7 +15,7 @@
 
 #include <cstdint>
 
-#include "../../../lib/pmem/PmemPooler.cpp"
+#include "../../../lib/pmem/PmemPoller.cpp"
 #include "../../lib/pmem/RTree.h"
 
 #define BOOST_TEST_MAIN
@@ -35,19 +35,19 @@ static const size_t expectedValSize = 6;
 #define BOOST_TEST_DETECT_MEMORY_LEAK 1
 
 BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
-    Mock<DaqDB::PmemPooler> poolerMock;
+    Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
     When(OverloadedMethod(
              rtreeMock, Put,
              DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
-        .Return(DaqDB::StatusCode::Ok);
+        .Return(DaqDB::StatusCode::OK);
 
-    DaqDB::PmemPooler &pooler = poolerMock.get();
+    DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    pooler.rtree.reset(&rtree);
+    poller.rtree.reset(&rtree);
 
-    pooler.Process();
+    poller.process();
     VerifyNoOtherInvocations(OverloadedMethod(
         rtreeMock, Put,
         DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)));
@@ -55,70 +55,70 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
 
 BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
 
-    Mock<DaqDB::PmemPooler> poolerMock;
+    Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
     When(OverloadedMethod(
              rtreeMock, Put,
              DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .Return(DaqDB::StatusCode::Ok);
+        .Return(DaqDB::StatusCode::OK);
 
-    DaqDB::PmemPooler &pooler = poolerMock.get();
+    DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    pooler.rtree.reset(&rtree);
+    poller.rtree.reset(&rtree);
 
-    pooler.requests = new DaqDB::PmemRqst *[1];
-    pooler.requests[0] = new DaqDB::PmemRqst(
+    poller.requests = new DaqDB::PmemRqst *[1];
+    poller.requests[0] = new DaqDB::PmemRqst(
         DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
         expectedValSize, nullptr);
-    pooler.requestCount = 1;
+    poller.requestCount = 1;
 
-    pooler.Process();
+    poller.process();
 
     Verify(OverloadedMethod(
                rtreeMock, Put,
                DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
         .Exactly(1);
 
-    delete[] pooler.requests;
+    delete[] poller.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
 
-    Mock<DaqDB::PmemPooler> poolerMock;
+    Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
     When(OverloadedMethod(
              rtreeMock, Put,
              DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .AlwaysReturn(DaqDB::StatusCode::Ok);
+        .AlwaysReturn(DaqDB::StatusCode::OK);
 
-    DaqDB::PmemPooler &pooler = poolerMock.get();
+    DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    pooler.rtree.reset(&rtree);
+    poller.rtree.reset(&rtree);
 
-    pooler.requests = new DaqDB::PmemRqst *[DEQUEUE_RING_LIMIT];
+    poller.requests = new DaqDB::PmemRqst *[DEQUEUE_RING_LIMIT];
     for (int index = 0; index < DEQUEUE_RING_LIMIT; index++) {
-        pooler.requests[index] = new DaqDB::PmemRqst(
+        poller.requests[index] = new DaqDB::PmemRqst(
             DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize,
             expectedVal, expectedValSize, nullptr);
     }
-    pooler.requestCount = DEQUEUE_RING_LIMIT;
+    poller.requestCount = DEQUEUE_RING_LIMIT;
 
-    pooler.Process();
+    poller.process();
 
     Verify(OverloadedMethod(
                rtreeMock, Put,
                DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
         .Exactly(DEQUEUE_RING_LIMIT);
-    delete[] pooler.requests;
+    delete[] poller.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
 
-    Mock<DaqDB::PmemPooler> poolerMock;
+    Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
     char valRef[] = "abc";
     size_t sizeRef = 3;
@@ -131,31 +131,31 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
                       size_t *valSize, uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
 
-    DaqDB::PmemPooler &pooler = poolerMock.get();
+    DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    pooler.rtree.reset(&rtree);
+    poller.rtree.reset(&rtree);
 
-    pooler.requests = new DaqDB::PmemRqst *[1];
-    pooler.requests[0] =
+    poller.requests = new DaqDB::PmemRqst *[1];
+    poller.requests[0] =
         new DaqDB::PmemRqst(DaqDB::RqstOperation::GET, expectedKey,
                             expectedKeySize, nullptr, 0, nullptr);
-    pooler.requestCount = 1;
+    poller.requestCount = 1;
 
-    pooler.Process();
+    poller.process();
 
     Verify(OverloadedMethod(rtreeMock, Get,
                             DaqDB::StatusCode(const char *, int32_t, void **,
                                               size_t *, uint8_t *)))
         .Exactly(1);
-    delete[] pooler.requests;
+    delete[] poller.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
 
-    Mock<DaqDB::PmemPooler> poolerMock;
+    Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
     char valRef[] = "abc";
     size_t sizeRef = 3;
@@ -168,48 +168,48 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
                       size_t *valSize, uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         });
 
-    DaqDB::PmemPooler &pooler = poolerMock.get();
+    DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    pooler.rtree.reset(&rtree);
+    poller.rtree.reset(&rtree);
 
-    pooler.requests = new DaqDB::PmemRqst *[DEQUEUE_RING_LIMIT];
+    poller.requests = new DaqDB::PmemRqst *[DEQUEUE_RING_LIMIT];
     for (int index = 0; index < DEQUEUE_RING_LIMIT; index++) {
-        pooler.requests[index] =
+        poller.requests[index] =
             new DaqDB::PmemRqst(DaqDB::RqstOperation::GET, expectedKey,
                                 expectedKeySize, nullptr, 0, nullptr);
     }
-    pooler.requestCount = DEQUEUE_RING_LIMIT;
+    poller.requestCount = DEQUEUE_RING_LIMIT;
 
-    pooler.Process();
+    poller.process();
 
     Verify(OverloadedMethod(rtreeMock, Get,
                             DaqDB::StatusCode(const char *, int32_t, void **,
                                               size_t *, uint8_t *)))
         .Exactly(DEQUEUE_RING_LIMIT);
-    delete[] pooler.requests;
+    delete[] poller.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
 
-    Mock<DaqDB::PmemPooler> poolerMock;
+    Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
     When(OverloadedMethod(
              rtreeMock, Put,
              DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .Return(DaqDB::StatusCode::Ok)
-        .Return(DaqDB::StatusCode::UnknownError);
+        .Return(DaqDB::StatusCode::OK)
+        .Return(DaqDB::StatusCode::UNKNOWN_ERROR);
 
-    DaqDB::PmemPooler &pooler = poolerMock.get();
+    DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    pooler.rtree.reset(&rtree);
+    poller.rtree.reset(&rtree);
 
-    pooler.requests = new DaqDB::PmemRqst *[2];
-    pooler.requests[0] = new DaqDB::PmemRqst(
+    poller.requests = new DaqDB::PmemRqst *[2];
+    poller.requests[0] = new DaqDB::PmemRqst(
         DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
         expectedValSize,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
             BOOST_CHECK_EQUAL(valueSize, 0);
         });
 
-    pooler.requests[1] = new DaqDB::PmemRqst(
+    poller.requests[1] = new DaqDB::PmemRqst(
         DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
         expectedKeySize,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
@@ -232,20 +232,20 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
             BOOST_CHECK_EQUAL(value, nullptr);
             BOOST_CHECK_EQUAL(valueSize, 0);
         });
-    pooler.requestCount = 2;
+    poller.requestCount = 2;
 
-    pooler.Process();
+    poller.process();
 
     Verify(OverloadedMethod(
                rtreeMock, Put,
                DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
         .Exactly(2);
-    delete[] pooler.requests;
+    delete[] poller.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
 
-    Mock<DaqDB::PmemPooler> poolerMock;
+    Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
     char valRef[] = "abc";
     size_t sizeRef = 3;
@@ -258,21 +258,21 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
                 uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::Ok;
+            return DaqDB::StatusCode::OK;
         })
         .Do([&](const char *key, int32_t keySize, void **val, size_t *valSize,
                 uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::KeyNotFound;
+            return DaqDB::StatusCode::KEY_NOT_FOUND;
         });
 
-    DaqDB::PmemPooler &pooler = poolerMock.get();
+    DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    pooler.rtree.reset(&rtree);
+    poller.rtree.reset(&rtree);
 
-    pooler.requests = new DaqDB::PmemRqst *[2];
-    pooler.requests[0] = new DaqDB::PmemRqst(
+    poller.requests = new DaqDB::PmemRqst *[2];
+    poller.requests[0] = new DaqDB::PmemRqst(
         DaqDB::RqstOperation::GET, expectedKey, expectedKeySize, nullptr, 0,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
             const size_t keySize, const char *value, const size_t valueSize) {
@@ -281,7 +281,7 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
             BOOST_CHECK_EQUAL(keySize, expectedKeySize);
         });
 
-    pooler.requests[1] = new DaqDB::PmemRqst(
+    poller.requests[1] = new DaqDB::PmemRqst(
         DaqDB::RqstOperation::GET, expectedKey, expectedKeySize, nullptr, 0,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
             const size_t keySize, const char *value, const size_t valueSize) {
@@ -289,13 +289,13 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
             BOOST_CHECK_EQUAL(key, expectedKey);
             BOOST_CHECK_EQUAL(keySize, expectedKeySize);
         });
-    pooler.requestCount = 2;
+    poller.requestCount = 2;
 
-    pooler.Process();
+    poller.process();
 
     Verify(OverloadedMethod(rtreeMock, Get,
                             DaqDB::StatusCode(const char *, int32_t, void **,
                                               size_t *, uint8_t *)))
         .Exactly(2);
-    delete[] pooler.requests;
+    delete[] poller.requests;
 }

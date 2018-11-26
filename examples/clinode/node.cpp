@@ -81,7 +81,7 @@ int main(int argc, const char *argv[]) {
 
     DaqDB::Options options;
     isRunning = 1;
-    options.Runtime.shutdownFunc = [&isRunning]() { isRunning = 0; };
+    options.runtime.shutdownFunc = [&isRunning]() { isRunning = 0; };
     initKvsOptions(options, configFile);
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;

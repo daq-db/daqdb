@@ -25,17 +25,17 @@ const unsigned int DEFAULT_INSTANT_SWAP = 0;
 typedef char DEFAULT_KeyType[16];
 
 void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
-    options.Runtime.logFunc = [](std::string msg) {
+    options.runtime.logFunc = [](std::string msg) {
         BOOST_LOG_SEV(lg::get(), bt::debug) << msg << std::flush;
     };
 
     /* Set default values */
-    options.Dht.Id = 0;
-    options.Dht.port = DEFAULT_PORT;
-    options.Dht.msgMaxsize = DEFAULT_MSG_MAX_SIZE;
-    options.Dht.sccbPoolInterval = DEFAULT_SCCB_POOL_INTERVAL;
-    options.Dht.instantSwap = DEFAULT_INSTANT_SWAP;
-    options.Key.field(0, sizeof(DEFAULT_KeyType));
+    options.dht.id = 0;
+    options.dht.port = DEFAULT_PORT;
+    options.dht.msgMaxsize = DEFAULT_MSG_MAX_SIZE;
+    options.dht.sccbPoolInterval = DEFAULT_SCCB_POOL_INTERVAL;
+    options.dht.instantSwap = DEFAULT_INSTANT_SWAP;
+    options.key.field(0, sizeof(DEFAULT_KeyType));
 
     if (boost::filesystem::exists(configFile)) {
         std::stringstream errorMsg;

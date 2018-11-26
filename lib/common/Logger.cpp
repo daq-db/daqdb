@@ -27,7 +27,7 @@ void Logger::setLogFunc(const std::function<void(std::string)> &fn) {
     _logFunc = fn;
 }
 
-void Logger::Log(std::string msg) {
+void Logger::log(std::string msg) {
     if (_logFunc) {
         _logFunc(msg);
     }

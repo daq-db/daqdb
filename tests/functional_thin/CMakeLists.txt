@@ -15,8 +15,10 @@ set(3RDPARTY ${ROOT_DAQDB_DIR}/third-party)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 
-configure_file(functests_thin.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functests_thin.cfg COPYONLY)
-configure_file(functests_thin_clinode.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functests_thin_clinode.cfg COPYONLY)
+configure_file(functests_thin.cfg.in
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functests_thin.cfg.sample COPYONLY)
+configure_file(functests_thin_clinode.cfg.in
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functests_thin_clinode.cfg.sample COPYONLY)
 
 include_directories(${PROJECT_SOURCE_DIR} tests)
 file(GLOB_RECURSE FUNCTESTS_THIN_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
