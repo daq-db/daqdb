@@ -29,4 +29,4 @@ configure_file(minidaq.cfg.in
 file(GLOB MINIDAQ_SOURCES *.cpp *.h)
 add_executable(minidaq ${MINIDAQ_SOURCES})
 target_link_libraries(minidaq ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-					  pmem daqdb pmemobj dl numa z hdr_histogram ${Dpdk_LIBRARIES})
+                                          ${Dpdk_LIBRARIES} pmem daqdb pmemobj dl numa z hdr_histogram)
