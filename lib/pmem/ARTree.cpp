@@ -47,6 +47,7 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
             treeRoot->rootNode = pmemobj_reserve(
                 _pm_pool.get_handle(), &(_actionsArray[_actionCounter++]),
                 sizeof(Node256), VALUE);
+            treeRoot->initialized = false;
             int status = pmemobj_publish(_pm_pool.get_handle(), _actionsArray,
                                          _actionCounter);
             _actionCounter = 0;
@@ -125,6 +126,10 @@ StatusCode ARTree::Put(const char *key, // copy value from std::string
                        char *value) {
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    if(!tree->treeRoot->initialized)
+    {
+        tree->treeRoot->initialized = true;
+    }
     val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
     return StatusCode::OK;
@@ -206,6 +211,8 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                     sizeof(NodeLeafCompressed), VALUE);
                 node256->children[i]->depth = depth;
                 node256->children[i]->type = TYPE_LEAF_COMPRESSED;
+                node256->children[i]->actionsArray = (struct pobj_action *)malloc(sizeof(struct pobj_action));
+                node256->children[i]->actionCounter = 0;
             }
 
             if (levelsToAllocate > 0) {
@@ -245,11 +252,11 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
             if (allocate) {
                 nodeLeafCompressed->key = keyCalc;
                 nodeLeafCompressed->child = pmemobj_reserve(
-                    _pm_pool.get_handle(), &(_actionsArray[_actionCounter++]),
+                    _pm_pool.get_handle(), &(nodeLeafCompressed->actionsArray[nodeLeafCompressed->actionCounter++]),
                     sizeof(ValueWrapper), VALUE);
                 int status = pmemobj_publish(_pm_pool.get_handle(),
-                                             _actionsArray, _actionCounter);
-                _actionCounter = 0;
+                                             nodeLeafCompressed->actionsArray, nodeLeafCompressed->actionCounter);
+                nodeLeafCompressed->actionCounter = 0;
                 val = reinterpret_cast<ValueWrapper *>(
                     (nodeLeafCompressed->child).raw_ptr());
                 return val;
@@ -311,6 +318,9 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
 StatusCode ARTree::AllocValueForKey(const char *key, size_t size,
                                     char **value) {
     int depth = 0;
+    if(!tree->treeRoot->initialized){
+        std::lock_guard<pmem::obj::mutex> lock(tree->treeRoot->rootNode->nodeMutex);
+    }
     if (tree->treeRoot->rootNode) {
         ValueWrapper *val =
             tree->findValueInNode(tree->treeRoot->rootNode, key, true);

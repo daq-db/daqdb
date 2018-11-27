@@ -49,7 +49,7 @@ const int NODE_SIZE[] = { 256, 1};
 
 // Describes Node type on each level of tree
 const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256, TYPE256,   TYPE256,
-                          TYPE256, TYPE256, TYPE256, TYPE_LEAF_COMPRESSED};
+                          TYPE256, TYPE256, TYPE256, TYPE256, TYPE_LEAF_COMPRESSED};
 // how many levels will be created on ARTree initialization
 const int PREALLOC_LEVELS = 1;
 //size of table for actions for each Node
@@ -113,6 +113,7 @@ struct ARTreeRoot {
     persistent_ptr<Node256> rootNode;
     pmem::obj::mutex mutex;
     p<int> level_bits;
+    bool initialized = false;
 };
 
 class TreeImpl {
