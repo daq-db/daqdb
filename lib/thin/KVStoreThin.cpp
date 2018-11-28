@@ -19,13 +19,20 @@
 
 namespace DaqDB {
 
-KVStoreBase *KVStoreThin::Open(const Options &options) {
+const size_t DEFAULT_KEY_SIZE = 16;
+
+KVStoreBase *KVStoreThin::Open(const DaqDB::Options &options) {
     KVStoreThin *kvs = new KVStoreThin(options);
     kvs->init();
     return kvs;
 }
 
-KVStoreThin::KVStoreThin(const Options &options) : env(options, this) {}
+KVStoreThin::KVStoreThin(const DaqDB::Options &options) : _options(options) {
+    for (size_t i = 0; i < options.key.nfields(); i++)
+        _keySize += options.key.field(i).size;
+    if (_keySize)
+        _keySize = DEFAULT_KEY_SIZE;
+}
 
 KVStoreThin::~KVStoreThin() {}
 
@@ -33,13 +40,11 @@ void KVStoreThin::init() {
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
-    auto dhtPort =
-        getOptions().dht.port ?: DaqDB::utils::getFreePort(env.ioService(), 0);
-    _dht.reset(new DaqDB::ZhtNode(env.ioService(), &env, dhtPort));
-    while (_dht->state == DhtServerState::DHT_INIT) {
-        sleep(1);
-    }
-    if (_dht->state == DhtServerState::DHT_READY) {
+    _spDht.reset(new DhtCore(getOptions().dht));
+    _spDhtServer.reset(new DhtServer(getIoService(), getDhtCore(),
+                                     static_cast<KVStoreBase *>(this),
+                                     getDhtCore()->getLocalNode()->getPort()));
+    if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
     } else {
         DAQ_DEBUG("Can not start DHT server");
@@ -48,9 +53,9 @@ void KVStoreThin::init() {
     DAQ_DEBUG("KVStoreThin initialization completed");
 }
 
-const Options &KVStoreThin::getOptions() { return env.getOptions(); }
+size_t KVStoreThin::KeySize() { return _keySize; }
 
-size_t KVStoreThin::KeySize() { return env.keySize(); }
+const Options &KVStoreThin::getOptions() { return _options; }
 
 void KVStoreThin::LogMsg(std::string msg) {
     if (getOptions().runtime.logFunc) {
@@ -59,11 +64,11 @@ void KVStoreThin::LogMsg(std::string msg) {
 }
 
 Value KVStoreThin::Get(const Key &key, const GetOptions &options) {
-    return _dht->Get(key);
+    return dht()->get(key);
 }
 
 void KVStoreThin::Put(Key &&key, Value &&val, const PutOptions &options) {
-    return _dht->Put(key, val);
+    return dht()->put(key, val);
 }
 
 void KVStoreThin::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
@@ -133,7 +138,7 @@ Value KVStoreThin::Alloc(const Key &key, size_t size,
 void KVStoreThin::Free(Value &&value) { delete[] value.data(); }
 
 Key KVStoreThin::AllocKey(const AllocOptions &options) {
-    return Key(new char[env.keySize()], env.keySize());
+    return Key(new char[KeySize()], KeySize());
 }
 
 void KVStoreThin::Realloc(Value &value, size_t size,
@@ -154,16 +159,17 @@ void KVStoreThin::ChangeOptions(Key &key, const AllocOptions &options) {
 bool KVStoreThin::IsOffloaded(Key &key) { throw FUNC_NOT_IMPLEMENTED; }
 
 std::string KVStoreThin::getProperty(const std::string &name) {
+
     if (name == "daqdb.dht.id")
-        return std::to_string(_dht->getDhtId());
+        return std::to_string(dht()->getId());
     if (name == "daqdb.dht.neighbours")
-        return _dht->printNeighbors();
+        return dht()->printNeighbors();
     if (name == "daqdb.dht.status")
-        return _dht->printStatus();
+        return dht()->printStatus();
     if (name == "daqdb.dht.ip")
-        return _dht->getIp();
+        return dht()->getIp();
     if (name == "daqdb.dht.port")
-        return std::to_string(_dht->getPort());
+        return std::to_string(dht()->getPort());
 
     return "";
 }

@@ -70,7 +70,7 @@ class ZHTClient {
     int init(const string &zhtConf, const string &neighborConf);
     int init(const char *zhtConf, const char *neighborConf);
     int init(const string &zhtConf, const string &neighborConf, int hash_mask,
-             map<std::pair<int, int>, int> &rangeToHost);
+             map<std::pair<int, int>, int> *rangeToHost);
     int lookup(const string &key, string &result);
     int lookup(const char *key, char *result);
     int remove(const string &key);

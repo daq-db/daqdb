@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <cstddef>
+
 namespace DaqDB {
 
 class Key {
@@ -30,4 +32,4 @@ class Key {
     size_t _size;
 };
 
-}
+} // namespace DaqDB

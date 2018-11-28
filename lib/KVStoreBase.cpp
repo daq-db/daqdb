@@ -13,22 +13,22 @@
  * stated in the License.
  */
 
+#include <KVStoreThin.h>
 #include <daqdb/KVStoreBase.h>
-#include "KVStoreThin.h"
 
 #ifndef THIN_LIB
-#include "KVStore.h"
+#include <KVStore.h>
 #endif
 
 namespace DaqDB {
 
 KVStoreBase *KVStoreBase::Open(const Options &options) {
-    if(options.mode == OperationalMode::STORAGE) {
 
+    if (options.mode == OperationalMode::STORAGE) {
 #ifndef THIN_LIB
-    return KVStore::Open(options);
+        return KVStore::Open(options);
 #else
-    throw OperationFailedException();
+        throw OperationFailedException();
 #endif
 
     } else {

@@ -87,7 +87,7 @@ int ZHTClient::init(const string &zhtConf, const string &neighborConf) {
 }
 
 int ZHTClient::init(const string &zhtConf, const string &neighborConf,
-                    int hash_mask, map<std::pair<int, int>, int> &rangeToHost) {
+                    int hash_mask, map<std::pair<int, int>, int> *rangeToHost) {
 
     ConfHandler::initConf(zhtConf, neighborConf);
 

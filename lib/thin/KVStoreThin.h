@@ -15,16 +15,14 @@
 
 #pragma once
 
-#include "../core/Env.h"
-#include "DhtNode.h"
-#include "ZhtNode.h"
+#include <DhtServer.h>
 #include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
 
 class KVStoreThin : public KVStoreBase {
   public:
-    static KVStoreBase *Open(const Options &options);
+    static KVStoreBase *Open(const DaqDB::Options &options);
 
     virtual size_t KeySize();
     virtual const Options &getOptions();
@@ -69,14 +67,24 @@ class KVStoreThin : public KVStoreBase {
 
     void LogMsg(std::string msg);
 
-  protected:
-    explicit KVStoreThin(const Options &options);
+    inline DaqDB::DhtCore *getDhtCore() { return _spDht.get(); };
+
+    inline DhtServer *dht() { return _spDhtServer.get(); };
+
+    inline asio::io_service &getIoService() { return _ioService; };
+
+  private:
+    explicit KVStoreThin(const DaqDB::Options &options);
     virtual ~KVStoreThin();
 
     void init();
 
-    DaqDB::Env env;
-    std::unique_ptr<DaqDB::DhtNode> _dht;
+    asio::io_service _ioService;
+    size_t _keySize;
+    Options _options;
+
+    std::unique_ptr<DhtServer> _spDhtServer;
+    std::unique_ptr<DhtCore> _spDht;
 };
 
 } // namespace DaqDB

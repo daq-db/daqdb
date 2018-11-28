@@ -71,15 +71,6 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
     int port;
     if (cfg.lookupValue("port", port))
         options.dht.port = port;
-    long long msgMaxSize;
-    if (cfg.lookupValue("msg_maxsize", msgMaxSize))
-        options.dht.msgMaxsize = msgMaxSize;
-    int sccbPoolInterval;
-    if (cfg.lookupValue("sccb_pool_interval", sccbPoolInterval))
-        options.dht.sccbPoolInterval = sccbPoolInterval;
-    int instantSwap;
-    if (cfg.lookupValue("instant_swap", instantSwap))
-        options.dht.instantSwap = instantSwap;
 
     int offloadAllocUnitSize;
     if (cfg.lookupValue("offload_unit_alloc_size", offloadAllocUnitSize))

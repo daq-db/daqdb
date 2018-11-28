@@ -41,8 +41,7 @@ typedef char KeyType[16];
 typedef char DEFAULT_KeyType[16];
 
 static void init_logger() {
-    logging::add_console_log(std::clog,
-                             keywords::format = "%Message%");
+    logging::add_console_log(std::clog, keywords::format = "%Message%");
     logging::add_common_attributes();
     logging::core::get()->add_thread_attribute("Scope", attrs::named_scope());
     logging::core::get()->set_filter(logging::trivial::severity >=
@@ -94,9 +93,6 @@ int main(int argc, const char *argv[]) {
     DaqDB::Options options;
     initKvsOptions(options, configFile);
 
-    /* ZHT configuration files must be prepared before KVStore is created */
-    prepare_zht_tests(zhtConf, neighborConf);
-
     unique_ptr<DaqDB::KVStoreBase> spKVStore;
     try {
         spKVStore.reset(DaqDB::KVStoreBase::Open(options));
@@ -105,6 +101,7 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
+    prepare_zht_tests(zhtConf, neighborConf);
     map<string, function<bool(DaqDB::KVStoreBase *)>> tests =
         boost::assign::map_list_of("use_case_sync_base", use_case_sync_base)(
             "use_case_async_base", use_case_async_base)("use_case_sync_offload",

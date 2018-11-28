@@ -97,16 +97,16 @@ HashUtil::HashUtil() {}
 HashUtil::~HashUtil() {}
 
 // @TODO jradtke temporary implementation of hash function
-uint64_t
-HashUtil::genHash(const string &key, int mask,
-                      std::map<std::pair<int, int>, int> &rangeToHost) {
+uint64_t HashUtil::genHash(const string &key, int mask,
+                           std::map<std::pair<int, int>, int> *rangeToHost) {
     uint64_t hash = 0;
     uint64_t c; // int c;
 
     if (key.at(0) == '_') {
         int hostIndex = key.at(1) - '0';
-        if ((hostIndex >= 0) && hostIndex <= rangeToHost.size()) {
-            for (auto element : rangeToHost) {
+        if (rangeToHost && (hostIndex >= 0) &&
+            hostIndex <= rangeToHost->size()) {
+            for (auto element : *rangeToHost) {
                 if (element.second == hostIndex)
                     return element.first.first;
             }

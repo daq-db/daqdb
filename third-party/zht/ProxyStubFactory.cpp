@@ -87,7 +87,7 @@ ProtoProxy *ProxyStubFactory::createProxy() {
 
 ProtoProxy *
 ProxyStubFactory::createProxy(int hash_mask,
-                              std::map<std::pair<int, int>, int> &rangeToHost) {
+                              std::map<std::pair<int, int>, int> *rangeToHost) {
 
     ConfHandler::MAP *zpmap = &ConfHandler::ZHTParameters;
 
@@ -136,7 +136,7 @@ ProtoStub *ProxyStubFactory::createStub() {
 
 ProtoStub *
 ProxyStubFactory::createStub(int hash_mask,
-                             std::map<std::pair<int, int>, int> &rangeToHost,
+                             std::map<std::pair<int, int>, int> *rangeToHost,
                              DaqDB::KVStoreBase *kvs) {
 
     ConfHandler::MAP *zpmap = &ConfHandler::ZHTParameters;

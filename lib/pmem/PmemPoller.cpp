@@ -26,8 +26,7 @@
 
 namespace DaqDB {
 
-PmemPoller::PmemPoller(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
-                       const size_t cpuCore)
+PmemPoller::PmemPoller(RTreeEngine *rtree, const size_t cpuCore)
     : isRunning(0), _thread(nullptr), rtree(rtree), _cpuCore(cpuCore) {
     startThread();
 }

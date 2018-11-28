@@ -73,7 +73,7 @@ using namespace iit::datasys::zht::dm;
 // TCPProxy::MAP TCPProxy::CONN_CACHE = TCPProxy::MAP();
 TCPProxy::TCPProxy() : CONN_CACHE() {}
 
-TCPProxy::TCPProxy(int hash_mask, map<std::pair<int, int>, int> &rangeToHost)
+TCPProxy::TCPProxy(int hash_mask, map<std::pair<int, int>, int> *rangeToHost)
     : CONN_CACHE(), _hash_mask(hash_mask), _rangeToHost(rangeToHost) {}
 
 TCPProxy::~TCPProxy() {}
@@ -287,7 +287,7 @@ int TCPProxy::loopedrecv(int sock, string &srecv) {
 
 TCPStub::TCPStub() { _daqdb = nullptr; }
 
-TCPStub::TCPStub(int hash_mask, map<std::pair<int, int>, int> &rangeToHost,
+TCPStub::TCPStub(int hash_mask, map<std::pair<int, int>, int> *rangeToHost,
                  DaqDB::KVStoreBase *kvs)
     : _daqdb(kvs) {}
 

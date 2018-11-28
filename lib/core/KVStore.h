@@ -17,21 +17,20 @@
 
 #include <mutex>
 
-#include "DhtNode.h"
-#include "ZhtNode.h"
-#include <RTreeEngine.h>
 #include <daqdb/KVStoreBase.h>
 
-#include "core/Env.h"
-#include "offload/OffloadPoller.h"
-#include "pmem/PmemPoller.h"
+#include <DhtServer.h>
+#include <OffloadPoller.h>
+#include <PmemPoller.h>
+#include <RTreeEngine.h>
 #include <SpdkCore.h>
 
 namespace DaqDB {
 
 class KVStore : public KVStoreBase {
   public:
-    static KVStoreBase *Open(const Options &options);
+    static KVStoreBase *Open(const DaqDB::Options &options);
+    void init(void);
 
     virtual size_t KeySize();
     virtual const Options &getOptions();
@@ -76,23 +75,32 @@ class KVStore : public KVStoreBase {
 
     void LogMsg(std::string msg);
 
-    std::unique_ptr<SpdkCore> spSpdkCore;
-    std::unique_ptr<OffloadPoller> spOffloadPoller;
-    std::vector<PmemPoller *> rqstPollers;
+    inline DhtCore *getDhtCore() { return _spDht.get(); };
+    inline SpdkCore *getSpdkCore() { return _spSpdk.get(); };
 
-  protected:
-    explicit KVStore(const Options &options);
+    inline RTreeEngine *pmem() { return _spRtree.get(); };
+    inline DhtServer *dht() { return _spDhtServer.get(); };
+
+    inline asio::io_service &getIoService() { return _ioService; };
+
+  private:
+    explicit KVStore(const DaqDB::Options &options);
     virtual ~KVStore();
 
-    void init();
-    void registerProperties();
+    inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
 
-    inline bool isOffloadEnabled() { return spSpdkCore->isOffloadEnabled(); }
+    asio::io_service _ioService;
+    size_t _keySize;
+    Options _options;
 
-    DaqDB::Env env;
+    std::unique_ptr<DhtServer> _spDhtServer;
+    std::unique_ptr<RTreeEngine> _spRtree;
+    std::unique_ptr<OffloadPoller> _spOffloadPoller;
+    std::vector<PmemPoller *> _rqstPollers;
 
-    std::unique_ptr<DaqDB::DhtNode> _dht;
-    std::shared_ptr<DaqDB::RTreeEngine> _rtree;
+    std::unique_ptr<DhtCore> _spDht;
+    std::unique_ptr<SpdkCore> _spSpdk;
+
     std::mutex _lock;
 };
 
