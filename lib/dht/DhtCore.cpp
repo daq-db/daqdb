@@ -132,6 +132,9 @@ void DhtCore::_initNeighbors(void) {
             _neighbors.push_back(dhtNode);
         }
     }
+    if (_spLocalNode.get() == nullptr) {
+        _spLocalNode.reset(new DhtNode());
+    }
 }
 
 void DhtCore::_initRangeToHost(void) {
