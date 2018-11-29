@@ -143,17 +143,8 @@ void DhtCore::_initRangeToHost(void) {
     }
 }
 
-uint64_t DhtCore::_genHash(const string &key, int mask) {
-    uint64_t hash = 0;
-    uint64_t c; // int c;
-
-    auto maskCount = mask;
-    auto pc = key.c_str();
-    while ((c = (*pc++)) && (--maskCount >= 0)) {
-        hash += c << maskCount;
-    }
-
-    return hash;
+uint64_t DhtCore::_genHash(const char *key, int mask) {
+    return zh::HashUtil::genHash(key, mask);
 }
 
 bool DhtCore::isLocalKey(Key key) {

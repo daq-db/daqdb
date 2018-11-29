@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include <Util.h>
 #include <ZhtClient.h>
 
 #include <DhtClient.h>
@@ -59,7 +60,8 @@ class DhtCore {
     void _initNeighbors(void);
     void _initRangeToHost(void);
     bool _isLocalServerNode(string ip, string port, unsigned short serverPort);
-    uint64_t _genHash(const string &key, int mask);
+
+    uint64_t _genHash(const char *key, int mask);
 
     std::unique_ptr<DhtNode> _spLocalNode;
     vector<DhtNode *> _neighbors;

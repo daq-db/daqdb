@@ -82,6 +82,7 @@ class HashUtil {
     static uint64_t genHash(const string &base);
     static uint64_t genHash(const string &base, int mask,
                             std::map<std::pair<int, int>, int> *rangeToHost);
+    static uint64_t genHash(const char *pc, int mask);
 
     static string genBase(const string &host, const int &port);
     static string randomString(int lenbase);

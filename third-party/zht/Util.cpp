@@ -112,8 +112,15 @@ uint64_t HashUtil::genHash(const string &key, int mask,
             }
         }
     }
+
+    return genHash(key.c_str(), mask);
+}
+
+uint64_t HashUtil::genHash(const char *pc, int mask) {
+    uint64_t hash = 0;
+    uint64_t c;
+
     auto maskCount = mask;
-    auto pc = key.c_str();
     while ((c = (*pc++)) && (--maskCount >= 0)) {
         hash += c << maskCount;
     }
