@@ -47,9 +47,9 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
+#include <map>
 #include <stdint.h>
 #include <string>
-#include <map>
 
 using namespace std;
 
@@ -81,7 +81,8 @@ class HashUtil {
     static uint64_t genHash(const char *pc);
     static uint64_t genHash(const string &base);
     static uint64_t genHash(const string &base, int mask,
-                            std::map<std::pair<int, int>, int> &rangeToHost);
+                            std::map<std::pair<int, int>, int> *rangeToHost);
+    static uint64_t genHash(const char *pc, int mask);
 
     static string genBase(const string &host, const int &port);
     static string randomString(int lenbase);

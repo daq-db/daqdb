@@ -24,7 +24,7 @@ const unsigned int DEFAULT_INSTANT_SWAP = 0;
 
 const std::string DEFAULT_PMEM_POOL_PATH = "/mnt/pmem/pool.pm";
 const size_t DEFAULT_PMEM_POOL_SIZE = 8ull * 1024 * 1024 * 1024;
-const size_t DEFAULT_PMEM_ALLOC_UNIT_SIZE = 8;
+const size_t DEFAULT_PMEM_ALLOC_UNIT_SIZE = 1024;
 typedef char DEFAULT_KeyType[16];
 
 const size_t DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE = 16384;
@@ -37,9 +37,6 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     /* Set default values */
     options.dht.id = 0;
     options.dht.port = DEFAULT_PORT;
-    options.dht.msgMaxsize = DEFAULT_MSG_MAX_SIZE;
-    options.dht.sccbPoolInterval = DEFAULT_SCCB_POOL_INTERVAL;
-    options.dht.instantSwap = DEFAULT_INSTANT_SWAP;
 
     options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
     options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;

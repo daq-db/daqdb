@@ -19,34 +19,35 @@
 #include <Const.h>
 #include <ZhtClient.h>
 
-#include <debug.h>
-#include <config.h>
 #include "tests.h"
+#include <config.h>
+#include <debug.h>
+
+using namespace std;
+using namespace DaqDB;
 
 using zht_const = iit::datasys::zht::dm::Const;
 
-void prepare_zht_tests(const std::string &confFile,
-                       const std::string &neighborsFile) {
+void prepare_zht_tests(const string &confFile, const string &neighborsFile) {
     if (!boost::filesystem::exists(confFile)) {
-        std::ofstream confOut(confFile, std::ios::out);
-        confOut << "PROTOCOL TCP" << std::endl;
-        confOut << "PORT 10001" << std::endl;
-        confOut << "MSG_MAXSIZE 1000000" << std::endl;
-        confOut << "SCCB_POLL_INTERVAL 100" << std::endl;
-        confOut << "INSTANT_SWAP 0" << std::endl;
+        ofstream confOut(confFile, ios::out);
+        confOut << "PROTOCOL TCP" << endl;
+        confOut << "PORT 10001" << endl;
+        confOut << "MSG_MAXSIZE 1000000" << endl;
+        confOut << "SCCB_POLL_INTERVAL 100" << endl;
+        confOut << "INSTANT_SWAP 0" << endl;
         confOut.close();
         LOG_INFO << "ZHT config file created";
     }
     if (!boost::filesystem::exists(neighborsFile)) {
-        std::ofstream neighbourOut(neighborsFile, std::ios::out);
-        neighbourOut << "localhost 10001" << std::endl;
+        ofstream neighbourOut(neighborsFile, ios::out);
+        neighbourOut << "localhost 10001" << endl;
         neighbourOut.close();
         LOG_INFO << "ZHT neighbour file created";
     }
 }
 
-void cleanup_zht_tests(const std::string &confFile,
-                       const std::string &neighborsFile) {
+void cleanup_zht_tests(const string &confFile, const string &neighborsFile) {
     if (boost::filesystem::exists(confFile)) {
         boost::filesystem::remove(confFile);
         LOG_INFO << "ZHT config file removed";
@@ -57,7 +58,7 @@ void cleanup_zht_tests(const std::string &confFile,
     }
 }
 
-bool use_case_zht_connect(DaqDB::KVStoreBase *kvs) {
+bool use_case_zht_connect(KVStoreBase *kvs) {
     bool result = true;
     ZHTClient zc;
 

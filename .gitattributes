@@ -4,11 +4,14 @@
 
 # These files are text and should be normalized (Convert crlf => lf)
 
-*.txt text
-*.md text
-*.gitattributes text
-.gitignore text
-*.cpp text
-*.h text
-*.sh text
-*.in text
+*.txt text eol=lf
+*.md text eol=lf
+*.gitattributes text eol=lf
+.gitignore text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.sh text eol=lf
+*.in text eol=lf
+
+scripts/githooks/pre-commit text eol=lf
+scripts/githooks/git-clang-format text eol=lf

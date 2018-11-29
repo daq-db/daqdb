@@ -20,12 +20,14 @@
 #include <base_operations.h>
 #include <debug.h>
 
-using namespace std::chrono_literals;
+using namespace std;
+using namespace DaqDB;
+using namespace chrono_literals;
 
-bool use_case_sync_base(DaqDB::KVStoreBase *kvs) {
+bool use_case_sync_base(KVStoreBase *kvs) {
     bool result = true;
-    const std::string expectedVal = "abcd";
-    const std::string expectedKey = "100";
+    const string expectedVal = "abcd";
+    const string expectedKey = "100";
 
     auto key = strToKey(kvs, expectedKey);
     auto val = allocValue(kvs, key, expectedVal);
@@ -36,39 +38,36 @@ bool use_case_sync_base(DaqDB::KVStoreBase *kvs) {
     LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
 
     if (expectedVal.compare(currVal.data()) != 0) {
-        LOG_INFO << "Error: wrong value returned" << std::flush;
+        LOG_INFO << "Error: wrong value returned" << flush;
         result = false;
     }
 
-    daqdb_remove(kvs, key);
+    auto removeResult = daqdb_remove(kvs, key);
     LOG_INFO << format("Remove: [%1%]") % key.data();
-    currVal = daqdb_get(kvs, key);
-    LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
-
-    if (currVal.size()) {
-        LOG_INFO << "Error: wrong value returned";
+    if (!removeResult) {
         result = false;
+        LOG_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
     }
 
     return result;
 }
-bool use_case_async_base(DaqDB::KVStoreBase *kvs) {
+bool use_case_async_base(KVStoreBase *kvs) {
     bool result = true;
-    const std::string expectedVal = "wxyz";
-    const std::string expectedKey = "200";
+    const string expectedVal = "wxyz";
+    const string expectedKey = "200";
 
     auto key = strToKey(kvs, expectedKey);
     auto val = allocValue(kvs, key, expectedVal);
 
-    std::mutex mtx;
-    std::condition_variable cv;
+    mutex mtx;
+    condition_variable cv;
     bool ready = false;
 
     daqdb_async_put(
         kvs, key, val,
-        [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
+        [&](KVStoreBase *kvs, Status status, const char *key,
             const size_t keySize, const char *value, const size_t valueSize) {
-            std::unique_lock<std::mutex> lck(mtx);
+            unique_lock<mutex> lck(mtx);
             if (status.ok()) {
                 LOG_INFO << boost::format("PutAsync: [%1%]") % key;
             } else {
@@ -82,7 +81,7 @@ bool use_case_async_base(DaqDB::KVStoreBase *kvs) {
 
     // wait for completion
     {
-        std::unique_lock<std::mutex> lk(mtx);
+        unique_lock<mutex> lk(mtx);
         cv.wait_for(lk, 1s, [&ready] { return ready; });
         ready = false;
     }
@@ -90,21 +89,20 @@ bool use_case_async_base(DaqDB::KVStoreBase *kvs) {
     auto currVal = daqdb_get(kvs, key);
     LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
     if (expectedVal.compare(currVal.data()) != 0) {
-        LOG_INFO << "Error: wrong value returned" << std::flush;
+        LOG_INFO << "Error: wrong value returned" << flush;
         result = false;
     }
 
     daqdb_async_get(
-        kvs, key,
-        [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
-            size_t keySize, const char *value, size_t valueSize) {
-            std::unique_lock<std::mutex> lck(mtx);
+        kvs, key, [&](KVStoreBase *kvs, Status status, const char *key,
+                      size_t keySize, const char *value, size_t valueSize) {
+            unique_lock<mutex> lck(mtx);
 
             if (status.ok()) {
                 LOG_INFO << boost::format("GetAsync: [%1%] = %2%") % key %
                                 value;
                 if (expectedVal.compare(value) != 0) {
-                    LOG_INFO << "Error: wrong value returned" << std::flush;
+                    LOG_INFO << "Error: wrong value returned" << flush;
                     result = false;
                 }
             } else {
@@ -119,45 +117,16 @@ bool use_case_async_base(DaqDB::KVStoreBase *kvs) {
 
     // wait for completion
     {
-        std::unique_lock<std::mutex> lk(mtx);
+        unique_lock<mutex> lk(mtx);
         cv.wait_for(lk, 1s, [&ready] { return ready; });
         ready = false;
     }
 
-    daqdb_remove(kvs, key);
+    auto removeResult = daqdb_remove(kvs, key);
     LOG_INFO << format("Remove: [%1%]") % key.data();
-
-    daqdb_async_get(
-        kvs, key,
-        [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
-            size_t keySize, const char *value, size_t valueSize) {
-            std::unique_lock<std::mutex> lck(mtx);
-
-            if (status.ok()) {
-                LOG_INFO << boost::format("Error GetAsync found removed "
-                                          "element: [%1%] = %2%") %
-                                key % value;
-                result = false;
-            } else {
-                LOG_INFO << boost::format("Cannot get element: %1%") %
-                                status.to_string();
-            }
-
-            ready = true;
-            cv.notify_all();
-        });
-
-    // wait for completion
-    {
-        std::unique_lock<std::mutex> lk(mtx);
-        cv.wait_for(lk, 1s, [&ready] { return ready; });
-        ready = false;
-    }
-    currVal = daqdb_get(kvs, key);
-    LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
-    if (currVal.size()) {
-        LOG_INFO << "Error: wrong value returned";
+    if (!removeResult) {
         result = false;
+        LOG_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
     }
 
     return result;

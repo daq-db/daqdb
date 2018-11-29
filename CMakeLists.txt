@@ -55,8 +55,8 @@ include_directories(${ZHT_INCLUDES_EXPORT})
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 
 file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
-	lib/core/*.cpp lib/dht/*.cpp lib/KVStoreBase.cpp)
-include_directories(lib/common lib/dht lib/core lib/thin)
+	lib/dht/*.cpp lib/KVStoreBase.cpp)
+include_directories(lib/common lib/dht lib/thin)
 add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
 target_compile_definitions(daqdb_thin PRIVATE THIN_LIB=1)
 target_link_libraries(daqdb_thin ${Boost_LIBRARIES} zht libprotobuf libconfig)
@@ -69,7 +69,7 @@ if(NOT THIN_LIB)
 	
 	set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
 	file(GLOB_RECURSE DAQDB_SOURCES lib/*.cpp)
-	include_directories(lib/common lib/dht lib/offload lib/pmem lib/core lib/thin lib/spdk)
+	include_directories(lib/offload lib/pmem lib/core lib/spdk)
 	add_library(daqdb SHARED ${DAQDB_SOURCES})
 	target_link_libraries(daqdb ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
 						  zht libprotobuf libconfig )

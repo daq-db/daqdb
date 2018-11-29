@@ -15,44 +15,61 @@
 
 #pragma once
 
-#include <Value.h>
-#include <Key.h>
-#include "PureNode.h"
-#include <asio/io_service.hpp>
+#include <atomic>
+#include <string>
 
 namespace DaqDB {
 
-enum class DhtServerState : std::uint8_t {
-    DHT_INIT = 0,
-    DHT_READY,
-    DHT_ERROR,
-    DHT_STOPPED
+enum class DhtNodeState : std::uint8_t {
+    NODE_INIT = 0,
+    NODE_READY,
+    NODE_NOT_RESPONDING
 };
 
 /*!
  * Class that defines interface for DHT
  */
-class DhtNode : public PureNode {
+class DhtNode {
   public:
-    DhtNode(asio::io_service &io_service, unsigned short port);
-    virtual ~DhtNode();
+    DhtNode();
 
-    /*!
-     * Prints DHT status.
-     * @return
+    /**
+     *  @return DHT ID for this node
      */
-    virtual std::string printStatus() = 0;
+    inline unsigned int getId() const { return _id; }
 
-    /*!
-     * Prints DHT neighbors.
-     * @return
+    /**
+     * @return IP address for this node
      */
-    virtual std::string printNeighbors() = 0;
+    inline const std::string &getIp() const { return _ip; }
 
-    virtual Value Get(const Key &key) = 0;
-    virtual void Put(const Key &key, const Value &val) = 0;
+    /**
+     * @return Port number for this node
+     */
+    inline unsigned short getPort() const { return _port; }
 
-    std::atomic<DhtServerState>  state;
+    void setIp(const std::string &ip) { _ip = ip; };
+    void setId(unsigned int id) { _id = id; };
+    void setPort(unsigned short port) { _port = port; };
+
+    inline unsigned int getMask() { return _mask; }
+    inline unsigned int getStart() { return _start; }
+    inline unsigned int getEnd() { return _end; }
+    inline void setMask(unsigned int mask) { _mask = mask; };
+    inline void setStart(unsigned int start) { _start = start; };
+    inline void setEnd(unsigned int end) { _end = end; };
+
+    std::atomic<DhtNodeState> state;
+
+  private:
+    std::string _ip = "";
+    unsigned int _id = 0;
+    unsigned short _port = 0;
+
+    // @TODO jradtke replace with other key mapping structures
+    unsigned int _mask = 0;
+    unsigned int _start = 0;
+    unsigned int _end = 0;
 };
 
 } // namespace DaqDB

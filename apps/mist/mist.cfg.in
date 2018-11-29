@@ -1,4 +1,4 @@
-// Configuration example running DaqDB library in storage mode
+// Configuration example running DaqDB library in sattellite mode
 
 //*****************************************************************************
 //******************************* MAIN SECTION ********************************
@@ -42,9 +42,6 @@ primaryKey = "1*3";
 
 protocol = "TCP";
 port = 12000;
-msg_maxsize = 1000000L;
-sccb_pool_interval = 100;
-instant_swap = 0;
 
 /**
  * key_mask

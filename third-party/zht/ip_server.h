@@ -49,8 +49,8 @@
 
 #include "ZProcessor.h"
 #include "proxy_stub.h"
-#include <map>
 #include <daqdb/KVStoreBase.h>
+#include <map>
 
 using namespace iit::datasys::zht::dm;
 
@@ -60,8 +60,8 @@ using namespace iit::datasys::zht::dm;
 class IPServer : public ZProcessor {
   public:
     IPServer();
-    IPServer(int hash_mask,
-            std::map<std::pair<int, int>, int> &rangeToHost, DaqDB::KVStoreBase *kvs);
+    IPServer(int hash_mask, std::map<std::pair<int, int>, int> *rangeToHost,
+             DaqDB::KVStoreBase *kvs);
     virtual ~IPServer();
 
     virtual void process(const int &fd, const char *const buf, sockaddr sender);

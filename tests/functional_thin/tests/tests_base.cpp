@@ -18,23 +18,26 @@
 #include "common.h"
 #include "tests.h"
 
-bool testRemotePeerConnect(DaqDB::KVStoreBase *kvs) {
+using namespace std;
+using namespace DaqDB;
+
+bool testRemotePeerConnect(KVStoreBase *kvs) {
     bool result = true;
     auto neighbours = kvs->getProperty("daqdb.dht.neighbours");
 
     if (!boost::contains(neighbours, "Ready")) {
-        LOG_INFO << "Cannot contact peer DHT server" << std::flush;
+        LOG_INFO << "Cannot contact peer DHT server" << flush;
         result = false;
     }
 
     return result;
 }
 
-bool testPutGetSequence(DaqDB::KVStoreBase *kvs) {
+bool testPutGetSequence(KVStoreBase *kvs) {
     bool result = true;
 
-    const std::string expectedVal = "daqdb";
-    const std::string expectedKey = "1000";
+    const string expectedVal = "daqdb";
+    const string expectedKey = "1000";
 
     auto key = strToKey(kvs, expectedKey);
     auto val = allocValue(kvs, key, expectedVal);
@@ -51,6 +54,13 @@ bool testPutGetSequence(DaqDB::KVStoreBase *kvs) {
     if (!resultVal.data() || expectedVal.compare(resultVal.data()) != 0) {
         result = false;
         LOG_INFO << "Error: wrong value returned";
+    }
+
+    auto removeResult = remote_remove(kvs, key);
+    LOG_INFO << format("Remote Remove: [%1%]") % key.data();
+    if (!removeResult) {
+        result = false;
+        LOG_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
     }
 
     return result;

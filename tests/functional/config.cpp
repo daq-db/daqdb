@@ -37,9 +37,6 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     /* Set default values */
     options.dht.id = 0;
     options.dht.port = DEFAULT_PORT;
-    options.dht.msgMaxsize = DEFAULT_MSG_MAX_SIZE;
-    options.dht.sccbPoolInterval = DEFAULT_SCCB_POOL_INTERVAL;
-    options.dht.instantSwap = DEFAULT_INSTANT_SWAP;
 
     options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
     options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;

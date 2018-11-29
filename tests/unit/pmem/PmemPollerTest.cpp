@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    poller.rtree.reset(&rtree);
+    poller.rtree = &rtree;
 
     poller.process();
     VerifyNoOtherInvocations(OverloadedMethod(
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    poller.rtree.reset(&rtree);
+    poller.rtree = &rtree;
 
     poller.requests = new DaqDB::PmemRqst *[1];
     poller.requests[0] = new DaqDB::PmemRqst(
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    poller.rtree.reset(&rtree);
+    poller.rtree = &rtree;
 
     poller.requests = new DaqDB::PmemRqst *[DEQUEUE_RING_LIMIT];
     for (int index = 0; index < DEQUEUE_RING_LIMIT; index++) {
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    poller.rtree.reset(&rtree);
+    poller.rtree = &rtree;
 
     poller.requests = new DaqDB::PmemRqst *[1];
     poller.requests[0] =
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    poller.rtree.reset(&rtree);
+    poller.rtree = &rtree;
 
     poller.requests = new DaqDB::PmemRqst *[DEQUEUE_RING_LIMIT];
     for (int index = 0; index < DEQUEUE_RING_LIMIT; index++) {
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    poller.rtree.reset(&rtree);
+    poller.rtree = &rtree;
 
     poller.requests = new DaqDB::PmemRqst *[2];
     poller.requests[0] = new DaqDB::PmemRqst(
@@ -269,7 +269,7 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
-    poller.rtree.reset(&rtree);
+    poller.rtree = &rtree;
 
     poller.requests = new DaqDB::PmemRqst *[2];
     poller.requests[0] = new DaqDB::PmemRqst(

@@ -47,9 +47,9 @@
 #ifndef ZHTUTIL_H_
 #define ZHTUTIL_H_
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 using namespace std;
 
 #include <arpa/inet.h>
@@ -73,8 +73,9 @@ class ZHTUtil {
     virtual ~ZHTUtil();
 
     HostEntity getHostEntityByKey(const string &msg);
-    HostEntity getHostEntityByKey(const string &msg, int hash_mask,
-                                  std::map<std::pair<int, int>, int> &rangeToHost);
+    HostEntity
+    getHostEntityByKey(const string &msg, int hash_mask,
+                       std::map<std::pair<int, int>, int> *rangeToHost);
 
   private:
     HostEntity buildHostEntity(const string &host, const uint &port);

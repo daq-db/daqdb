@@ -63,7 +63,7 @@ ZHTUtil::~ZHTUtil() {}
 
 HostEntity
 ZHTUtil::getHostEntityByKey(const string &msg, int hash_mask,
-                            std::map<std::pair<int, int>, int> &rangeToHost) {
+                            std::map<std::pair<int, int>, int> *rangeToHost) {
 
     ZPack zpack;
     zpack.ParseFromString(msg); // to debug
@@ -72,13 +72,16 @@ ZHTUtil::getHostEntityByKey(const string &msg, int hash_mask,
     uint64_t hashcode = HashUtil::genHash(zpack.key(), hash_mask, rangeToHost);
     size_t node_size = ConfHandler::NeighborVector.size();
 
-    int index = 0; // if not found then should be send to first on neighbors list
-    for (auto entry : rangeToHost) {
-        auto start = entry.first.first;
-        auto end = entry.first.second;
-        if ((start <= hashcode) && (end >= hashcode)) {
-            index = entry.second;
-            break;
+    int index =
+        0; // if not found then should be send to first on neighbors list
+    if (rangeToHost) {
+        for (auto entry : *rangeToHost) {
+            auto start = entry.first.first;
+            auto end = entry.first.second;
+            if ((start <= hashcode) && (end >= hashcode)) {
+                index = entry.second;
+                break;
+            }
         }
     }
 

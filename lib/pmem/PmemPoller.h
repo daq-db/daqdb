@@ -37,8 +37,7 @@ using PmemRqst = Rqst<RqstOperation>;
 
 class PmemPoller : public Poller<PmemRqst> {
   public:
-    PmemPoller(std::shared_ptr<DaqDB::RTreeEngine> &rtree,
-               const size_t cpuCore = 0);
+    PmemPoller(RTreeEngine *rtree, const size_t cpuCore = 0);
     virtual ~PmemPoller();
 
     void process() final;
@@ -47,7 +46,7 @@ class PmemPoller : public Poller<PmemRqst> {
     OffloadPoller *offloadPoller = nullptr;
 
     std::atomic<int> isRunning;
-    std::shared_ptr<DaqDB::RTreeEngine> rtree;
+    RTreeEngine *rtree;
 
   private:
     void _threadMain(void);
