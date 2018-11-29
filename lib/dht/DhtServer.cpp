@@ -26,9 +26,10 @@
 
 namespace DaqDB {
 
+using namespace std;
 using boost::format;
 
-std::map<DhtNodeState, std::string> NodeStateStr =
+map<DhtNodeState, string> NodeStateStr =
     boost::assign::map_list_of(DhtNodeState::NODE_READY, "Ready")(
         DhtNodeState::NODE_NOT_RESPONDING,
         "Not Responding")(DhtNodeState::NODE_INIT, "Not initialized");
@@ -43,7 +44,7 @@ DhtServer::DhtServer(asio::io_service &io_service, DhtCore *dhtCore,
 void DhtServer::_serve(void) {
     try {
         _spEpollServer.reset(new EpollServer(
-            std::to_string(getPort()).c_str(),
+            to_string(getPort()).c_str(),
             new IPServer(getHashMask(), _dhtCore->getRangeToHost(), _kvs)));
         state = DhtServerState::DHT_SERVER_READY;
         _spEpollServer->serve();
@@ -54,7 +55,7 @@ void DhtServer::_serve(void) {
 }
 
 void DhtServer::serve(void) {
-    _thread = new std::thread(&DhtServer::_serve, this);
+    _thread = new thread(&DhtServer::_serve, this);
     do {
         sleep(1);
     } while (state == DhtServerState::DHT_SERVER_INIT);
@@ -67,7 +68,7 @@ Value DhtServer::get(const Key &key) {
     if (rc == 0) {
         auto size = lookupResult.size();
         auto result = Value(new char[size], size);
-        std::memcpy(result.data(), lookupResult.c_str(), size);
+        memcpy(result.data(), lookupResult.c_str(), size);
         result.data()[result.size()] = '\0';
         return result;
     } else {
@@ -82,8 +83,15 @@ void DhtServer::put(const Key &key, const Value &val) {
     }
 }
 
+void DhtServer::remove(const Key &key) {
+    auto rc = getClient()->remove(key.data());
+    if (rc != 0) {
+        throw OperationFailedException(Status(UNKNOWN_ERROR));
+    }
+}
+
 string DhtServer::printStatus() {
-    std::stringstream result;
+    stringstream result;
 
     if (_dhtCore->getClient()->isInitialized()) {
         result << "DHT: active";
@@ -94,8 +102,8 @@ string DhtServer::printStatus() {
     return result.str();
 }
 
-std::string DhtServer::printNeighbors() {
-    std::stringstream result;
+string DhtServer::printNeighbors() {
+    stringstream result;
     auto neighbors = _dhtCore->getNeighbors();
     if (neighbors->size()) {
         for (auto neighbor : *neighbors) {

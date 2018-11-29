@@ -46,18 +46,38 @@ class DhtServer {
               unsigned short port);
 
     /**
+     * Synchronously get a value for a given key.
+     * Remote node is calculated based on key hash (see DhtCore._genHash).
      *
-     * @param key
-     * @return
+     * @param key Reference to a key structure
+     *
+     * @throw OperationFailedException if any error occurred
+     *
+     * @return On success returns allocated buffer with value. The caller is
+     * responsible of releasing the buffer.
      */
     Value get(const Key &key);
 
     /**
+     * Synchronously insert a value for a given key.
+     * Remote node is calculated based on key hash (see DhtCore._genHash).
      *
-     * @param key
-     * @param val
+     * @param key Reference to a key structure
+     * @param val Reference to a value structure
+     *
+     * @throw OperationFailedException if any error occurred
      */
     void put(const Key &key, const Value &val);
+
+    /**
+     * Synchronously remove a key-value store entry for a given key.
+     * Remote node is calculated based on key hash (see DhtCore._genHash).
+     *
+     * @throw OperationFailedException if any error occurred
+     *
+     * @param key Reference to a key structure
+     */
+    void remove(const Key &key);
 
     /**
      * Prints DHT status.

@@ -349,6 +349,10 @@ void KVStore::Remove(const Key &key) {
     char *pVal;
     uint8_t location;
 
+    if (!getDhtCore()->isLocalKey(key)) {
+        return dht()->remove(key);
+    }
+
     StatusCode rc = pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal),
                                 &size, &location);
     if (rc != StatusCode::OK || !pVal) {

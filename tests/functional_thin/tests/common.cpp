@@ -16,40 +16,57 @@
 #include "common.h"
 #include "debug.h"
 
-DaqDB::Value allocValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
-                        const std::string &value) {
-    DaqDB::Value result = kvs->Alloc(key, value.size() + 1);
-    std::memcpy(result.data(), value.c_str(), value.size());
+using namespace std;
+using namespace DaqDB;
+
+Value allocValue(KVStoreBase *kvs, const Key &key, const string &value) {
+    Value result = kvs->Alloc(key, value.size() + 1);
+    memcpy(result.data(), value.c_str(), value.size());
     result.data()[result.size() - 1] = '\0';
     return result;
 }
 
-DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key) {
-    DaqDB::Key keyBuff = kvs->AllocKey();
-    std::memset(keyBuff.data(), 0, keyBuff.size());
-    std::memcpy(keyBuff.data(), key.c_str(), key.size());
+Key strToKey(KVStoreBase *kvs, const string &key) {
+    Key keyBuff = kvs->AllocKey();
+    memset(keyBuff.data(), 0, keyBuff.size());
+    memcpy(keyBuff.data(), key.c_str(), key.size());
     return keyBuff;
 }
 
-DaqDB::Value remote_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key) {
+Value remote_get(KVStoreBase *kvs, const Key &key) {
     try {
         return kvs->Get(key);
-    } catch (DaqDB::OperationFailedException &e) {
-        if (e.status()() == DaqDB::KEY_NOT_FOUND) {
+    } catch (OperationFailedException &e) {
+        if (e.status()() == KEY_NOT_FOUND) {
             LOG_INFO << format("[%1%] not found") % key.data();
         } else {
             LOG_INFO << "Error: cannot get element: " << e.status().to_string()
-                     << std::flush;
+                     << flush;
         }
     }
-    return DaqDB::Value();
+    return Value();
 }
 
-void remote_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val) {
+void remote_put(KVStoreBase *kvs, Key &key, Value &val) {
     try {
-        kvs->Put(std::move(key), std::move(val));
-    } catch (DaqDB::OperationFailedException &e) {
+        kvs->Put(move(key), move(val));
+    } catch (OperationFailedException &e) {
         LOG_INFO << "Error: cannot put element: " << e.status().to_string()
-                 << std::flush;
+                 << flush;
     }
+}
+
+bool remote_remove(KVStoreBase *kvs, Key &key) {
+    try {
+        kvs->Remove(move(key));
+    } catch (OperationFailedException &e) {
+        return false;
+    }
+    try {
+        kvs->Get(key);
+    } catch (OperationFailedException &e) {
+        // success scenario: exception should thrown due non-existent key.
+        return (e.status()() == KEY_NOT_FOUND);
+    }
+    return false;
 }

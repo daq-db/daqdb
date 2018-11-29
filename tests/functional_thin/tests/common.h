@@ -29,3 +29,5 @@ DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key);
 DaqDB::Value remote_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key);
 
 void remote_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val);
+
+bool remote_remove(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);

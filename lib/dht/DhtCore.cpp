@@ -27,6 +27,8 @@ using namespace std;
 namespace bf = boost::filesystem;
 namespace zh = iit::datasys::zht::dm;
 
+using namespace std;
+
 namespace DaqDB {
 
 DhtCore::DhtCore(DhtOptions dhtOptions) : options(dhtOptions) {
@@ -93,10 +95,10 @@ void DhtCore::removeNeighborsFile(void) {
 bool DhtCore::_isLocalServerNode(string ip, string port,
                                  unsigned short serverPort) {
     try {
-        if ((ip.compare("localhost") == 0) && (std::stoi(port) == serverPort)) {
+        if ((ip.compare("localhost") == 0) && (stoi(port) == serverPort)) {
             return true;
         }
-    } catch (std::invalid_argument &ia) {
+    } catch (invalid_argument &ia) {
         // no action needed
     }
     return false;
@@ -109,17 +111,17 @@ void DhtCore::_initNeighbors(void) {
         auto dhtNode = new DhtNode();
         dhtNode->setId(index);
         dhtNode->setIp(entry.name());
-        dhtNode->setPort(std::stoi(entry.value()));
+        dhtNode->setPort(stoi(entry.value()));
         dhtNode->state = DhtNodeState::NODE_INIT;
 
         for (auto option : options.neighbors) {
             if (option->ip == dhtNode->getIp() &&
                 option->port == dhtNode->getPort()) {
                 try {
-                    dhtNode->setMask(std::stoi(option->keyRange.mask));
-                    dhtNode->setStart(std::stoi(option->keyRange.start));
-                    dhtNode->setEnd(std::stoi(option->keyRange.end));
-                } catch (std::invalid_argument &ia) {
+                    dhtNode->setMask(stoi(option->keyRange.mask));
+                    dhtNode->setStart(stoi(option->keyRange.start));
+                    dhtNode->setEnd(stoi(option->keyRange.end));
+                } catch (invalid_argument &ia) {
                     // no action needed
                 }
             }
@@ -134,7 +136,7 @@ void DhtCore::_initNeighbors(void) {
 
 void DhtCore::_initRangeToHost(void) {
     for (DhtNode *neighbor : _neighbors) {
-        std::pair<int, int> key;
+        pair<int, int> key;
         key.first = neighbor->getStart();
         key.second = neighbor->getEnd();
         _rangeToHost[key] = neighbor->getId();

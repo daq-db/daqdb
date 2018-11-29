@@ -68,7 +68,7 @@ Value KVStoreThin::Get(const Key &key, const GetOptions &options) {
 }
 
 void KVStoreThin::Put(Key &&key, Value &&val, const PutOptions &options) {
-    return dht()->put(key, val);
+    dht()->put(key, val);
 }
 
 void KVStoreThin::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
@@ -121,7 +121,7 @@ void KVStoreThin::GetRangeAsync(const Key &beg, const Key &end,
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreThin::Remove(const Key &key) { throw FUNC_NOT_IMPLEMENTED; }
+void KVStoreThin::Remove(const Key &key) { dht()->remove(key); }
 
 void KVStoreThin::RemoveRange(const Key &beg, const Key &end) {
     throw FUNC_NOT_IMPLEMENTED;
@@ -143,20 +143,20 @@ Key KVStoreThin::AllocKey(const AllocOptions &options) {
 
 void KVStoreThin::Realloc(Value &value, size_t size,
                           const AllocOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
+    throw FUNC_NOT_SUPPORTED;
 }
 
 void KVStoreThin::ChangeOptions(Value &value, const AllocOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
+    throw FUNC_NOT_SUPPORTED;
 }
 
 void KVStoreThin::Free(Key &&key) { delete[] key.data(); }
 
 void KVStoreThin::ChangeOptions(Key &key, const AllocOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
+    throw FUNC_NOT_SUPPORTED;
 }
 
-bool KVStoreThin::IsOffloaded(Key &key) { throw FUNC_NOT_IMPLEMENTED; }
+bool KVStoreThin::IsOffloaded(Key &key) { throw FUNC_NOT_SUPPORTED; }
 
 std::string KVStoreThin::getProperty(const std::string &name) {
 

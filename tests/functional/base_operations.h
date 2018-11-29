@@ -38,7 +38,7 @@ void daqdb_offload(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);
 void daqdb_async_offload(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
                          DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
-void daqdb_remove(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);
+bool daqdb_remove(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);
 
 void daqdb_async_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb);

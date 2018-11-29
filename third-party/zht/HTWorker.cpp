@@ -386,26 +386,21 @@ string HTWorker::remove_shared(const ZPack &zpack) {
 
     string result;
 
+    result = Const::ZSC_REC_SUCC;
+
     if (zpack.key().empty())
-        return Const::ZSC_REC_EMPTYKEY; //-1
+        return Const::ZSC_REC_EMPTYKEY;
 
-    string key = zpack.key();
-    int ret = PMAP->remove(key);
+    string keyStr = zpack.key();
 
-    if (ret != 0) {
-
-        printf("thread[%lu] DB Error: fail to remove, rcode = %d\n",
-               pthread_self(), ret);
-        fflush(stdout);
-
-        result = Const::ZSC_REC_NONEXISTKEY; //-92
-    } else {
-
-        if (_instant_swap) {
-            PMAP->writeFileFG();
-        }
-
-        result = Const::ZSC_REC_SUCC; // 0, succeed.
+    DaqDB::Key key = _daqdb->AllocKey();
+    std::memset(key.data(), 0, key.size());
+    std::memcpy(key.data(), keyStr.c_str(), keyStr.size());
+    try {
+        _daqdb->Remove(key);
+        result = Const::ZSC_REC_SUCC;
+    } catch (DaqDB::OperationFailedException &e) {
+        result = Const::ZSC_REC_NONEXISTKEY;
     }
 
     return result;
