@@ -58,6 +58,11 @@ const int PREALLOC_LEVELS = 1;
 
 #define KEY_SIZE 12
 
+// Allocation class alignment
+#define ALLOC_CLASS_ALIGNMENT 0
+// Units per allocation block.
+#define ALLOC_CLASS_UNITS_PER_BLOCK 1000
+
 enum OBJECT_TYPES { VALUE, IOV };
 
 struct locationWrapper {
@@ -127,6 +132,7 @@ class TreeImpl {
                                   bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
+    int allocClass;
 
   private:
     struct pobj_action _actionsArray[ACTION_NUMBER];
