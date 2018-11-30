@@ -80,6 +80,22 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
         else
             std::cout << "Error on load" << std::endl;
     }
+
+    // Define custom allocation class
+    struct pobj_alloc_class_desc alloc_daqdb;
+    alloc_daqdb.header_type = POBJ_HEADER_COMPACT;
+    alloc_daqdb.unit_size = allocUnitSize;
+    alloc_daqdb.units_per_block = ALLOC_CLASS_UNITS_PER_BLOCK;
+    alloc_daqdb.alignment = ALLOC_CLASS_ALIGNMENT;
+    int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
+                             &alloc_daqdb);
+    if (rc)
+        throw OperationFailedException(Status(ALLOCATION_ERROR));
+    allocClass = alloc_daqdb.class_id;
+    DAQ_DEBUG("ARTree new allocation class (" + std::to_string(_alloc_class) +
+              ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
+              " units_per_block=" +
+              std::to_string(alloc_daqdb.units_per_block));
 }
 
 StatusCode ARTree::Get(const char *key, int32_t keybytes, void **value,
@@ -240,12 +256,18 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
  */
 ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                                         const char *_key, bool allocate) {
+    thread_local ValueWrapper *cachedVal = nullptr;
+    thread_local char cachedKey[KEY_SIZE];
     size_t keyCalc;
     unsigned char *key = (unsigned char *)_key;
     int debugCount = 0;
     persistent_ptr<Node256> node256;
     persistent_ptr<NodeLeafCompressed> nodeLeafCompressed;
     ValueWrapper *val;
+
+    if (cachedVal && !memcmp(cachedKey, key, KEY_SIZE)) {
+        return cachedVal;
+    }
 
     while (1) {
         keyCalc = key[KEY_SIZE - current->depth - 1];
@@ -268,6 +290,8 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                 nodeLeafCompressed->actionCounter = 0;
                 val = reinterpret_cast<ValueWrapper *>(
                     (nodeLeafCompressed->child).raw_ptr());
+                memcpy(cachedKey, key, KEY_SIZE);
+                cachedVal = val;
                 return val;
             } else {
                 DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" +
@@ -346,8 +370,9 @@ StatusCode ARTree::AllocValueForKey(const char *key, size_t size,
         ValueWrapper *val =
             tree->findValueInNode(tree->treeRoot->rootNode, key, true);
         val->actionValue = new pobj_action[1];
-        pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
-                                       &(val->actionValue[0]), size, VALUE);
+        pmemoid poid = pmemobj_xreserve(tree->_pm_pool.get_handle(),
+                                        &(val->actionValue[0]), size, VALUE,
+				        POBJ_CLASS_ID(tree->allocClass));
         if (OID_IS_NULL(poid)) {
             delete val->actionValue;
             val->actionValue = nullptr;
