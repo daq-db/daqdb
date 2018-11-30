@@ -65,7 +65,7 @@ class MinidaqNode {
 #ifdef WITH_INTEGRITY_CHECK
     char _GetBufferByte(MinidaqKey &key, size_t i);
     void _FillBuffer(MinidaqKey &key, char *buf, size_t s);
-    void _CheckBuffer(MinidaqKey &key, char *buf, size_t s);
+    bool _CheckBuffer(MinidaqKey &key, char *buf, size_t s);
 #endif /* WITH_INTEGRITY_CHECK */
     virtual std::string _GetType() = 0;
 

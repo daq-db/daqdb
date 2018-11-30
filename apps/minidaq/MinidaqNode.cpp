@@ -118,6 +118,8 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
             _Task(minidaqKey, c, c_err);
             _NextKey(minidaqKey);
         } catch (...) {
+            if (_stopOnError)
+                _stopped = true;
         }
     }
 
@@ -266,7 +268,7 @@ void MinidaqNode::_FillBuffer(MinidaqKey &key, char *buf, size_t s) {
     }
 }
 
-void MinidaqNode::_CheckBuffer(MinidaqKey &key, char *buf, size_t s) {
+bool MinidaqNode::_CheckBuffer(MinidaqKey &key, char *buf, size_t s) {
     std::stringstream msg;
     unsigned char b_exp;
     unsigned char b_act;
@@ -289,8 +291,12 @@ void MinidaqNode::_CheckBuffer(MinidaqKey &key, char *buf, size_t s) {
                 << "0x" << static_cast<int>(b_exp) << std::dec << std::endl;
         }
     }
-    if (err)
+    if (err) {
         std::cout << msg.str();
+        return false;
+    }
+
+    return true;
 }
 #endif /* WITH_INTEGRITY_CHECK */
 }

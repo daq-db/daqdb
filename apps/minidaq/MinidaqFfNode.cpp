@@ -90,7 +90,7 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
             try {
                 value = _kvs->Get(fogKey);
             } catch (OperationFailedException &e) {
-                if (e.status()() == KEY_NOT_FOUND) {
+                if ((e.status()() == KEY_NOT_FOUND) && (nRetries < _maxRetries)) {
                     /* Wait until it is availabile. */
                     continue;
                 } else {
@@ -106,7 +106,9 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
             break;
         }
 #ifdef WITH_INTEGRITY_CHECK
-        _CheckBuffer(key, value.data(), value.size());
+        if (!_CheckBuffer(key, value.data(), value.size())) {
+            throw OperationFailedException(Status(UNKNOWN_ERROR));
+	}
 #endif /* WITH_INTEGRITY_CHECK */
         if (accept) {
             while (1) {
@@ -148,5 +150,5 @@ void MinidaqFfNode::SetSubdetectors(int n) { _nSubdetectors = n; }
 
 void MinidaqFfNode::SetAcceptLevel(double p) { _acceptLevel = p; }
 
-void MinidaqFfNode::SetDelay(int d) { _delay_us = d; }
+void MinidaqFfNode::SetRetryDelay(int d) { _delay_us = d; }
 }
