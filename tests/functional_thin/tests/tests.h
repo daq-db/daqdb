@@ -19,12 +19,18 @@
 #include <daqdb/KVStoreBase.h>
 
 /**
- * Test verifies connection to remote DAQDB node (defined in configuration file)
+ * Verifies connection to remote DAQDB node (defined in configuration file)
  */
 bool testRemotePeerConnect(DaqDB::KVStoreBase *kvs);
 
 /**
- * Test verifies single PUT and GET operation performed on remote DAQDB peer
+ * Verifies single PUT and GET operation performed on remote DAQDB peer
  * node.
  */
 bool testPutGetSequence(DaqDB::KVStoreBase *kvs);
+
+/**
+ * Verifies various value sizes for single PUT and GET operation performed on
+ * remote DAQDB peer.
+ */
+bool testValueSizes(DaqDB::KVStoreBase *kvs);

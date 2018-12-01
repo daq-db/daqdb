@@ -24,7 +24,7 @@ using namespace std;
 using namespace DaqDB;
 using namespace chrono_literals;
 
-bool use_case_sync_base(KVStoreBase *kvs) {
+bool testSyncOperations(KVStoreBase *kvs) {
     bool result = true;
     const string expectedVal = "abcd";
     const string expectedKey = "100";
@@ -51,7 +51,8 @@ bool use_case_sync_base(KVStoreBase *kvs) {
 
     return result;
 }
-bool use_case_async_base(KVStoreBase *kvs) {
+
+bool testAsyncOperations(KVStoreBase *kvs) {
     bool result = true;
     const string expectedVal = "wxyz";
     const string expectedKey = "200";

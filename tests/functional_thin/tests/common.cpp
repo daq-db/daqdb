@@ -26,6 +26,15 @@ Value allocValue(KVStoreBase *kvs, const Key &key, const string &value) {
     return result;
 }
 
+Value allocAndFillValue(KVStoreBase *kvs, const Key &key,
+                        const size_t valueSize) {
+    Value result = kvs->Alloc(key, valueSize);
+    for (int i = 0; i < valueSize; i++) {
+        result.data()[i] = i % 256;
+    }
+    return result;
+}
+
 Key strToKey(KVStoreBase *kvs, const string &key) {
     Key keyBuff = kvs->AllocKey();
     memset(keyBuff.data(), 0, keyBuff.size());

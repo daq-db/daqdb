@@ -62,22 +62,24 @@ void DhtServer::serve(void) {
 }
 
 Value DhtServer::get(const Key &key) {
-    string lookupResult;
-    auto rc = getClient()->lookup(key.data(), lookupResult);
+
+    char *result;
+    size_t resultSize;
+
+    auto rc = getClient()->lookup(key.data(), key.size(), &result, &resultSize);
 
     if (rc == 0) {
-        auto size = lookupResult.size();
-        auto result = Value(new char[size], size);
-        memcpy(result.data(), lookupResult.c_str(), size);
-        result.data()[result.size()] = '\0';
-        return result;
+        auto resultVal = Value(new char[resultSize], resultSize);
+        memcpy(resultVal.data(), result, resultSize);
+        return resultVal;
     } else {
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
 }
 
 void DhtServer::put(const Key &key, const Value &val) {
-    auto rc = getClient()->insert(key.data(), val.data());
+    auto rc =
+        getClient()->insert(key.data(), key.size(), val.data(), val.size());
     if (rc != 0) {
         throw OperationFailedException(Status(UNKNOWN_ERROR));
     }

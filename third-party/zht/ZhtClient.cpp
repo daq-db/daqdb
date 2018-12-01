@@ -54,7 +54,10 @@
 #include "StrTokenizer.h"
 #include "zpack.pb.h"
 
+#include "Daqdb.h"
+
 using namespace iit::datasys::zht::dm;
+using namespace DaqDB;
 
 ZHTClient::ZHTClient() : _proxy(0), _msg_maxsize(0) {}
 
@@ -164,6 +167,15 @@ int ZHTClient::ping(unsigned int neighborIndex) {
     return rc;
 }
 
+int ZHTClient::lookup(const char *key, size_t keySize, char **result,
+                      size_t *resultSize) {
+
+    string rc = commonOpInternal(Const::ZSC_OPC_LOOKUP, key, keySize, nullptr,
+                                 0, result, resultSize);
+
+    return Const::toInt(rc);
+}
+
 int ZHTClient::lookup(const char *key, char *result) {
 
     string skey(key);
@@ -212,6 +224,17 @@ int ZHTClient::insert(const char *key, const char *val) {
     int rc = insert(skey, sval);
 
     return rc;
+}
+
+int ZHTClient::insert(const char *key, size_t keySize, const char *val,
+                      size_t valSize) {
+    char *result;
+    size_t resultSize;
+
+    string rc = commonOpInternal(Const::ZSC_OPC_INSERT, key, keySize, val,
+                                 valSize, &result, &resultSize);
+
+    return Const::toInt(rc);
 }
 
 int ZHTClient::append(const string &key, const string &val) {
@@ -320,6 +343,38 @@ int ZHTClient::state_change_callback(const char *key, const char *expeded_val,
     int rc = state_change_callback(skey, sexpeded_val, lease);
 
     return rc;
+}
+
+string ZHTClient::commonOpInternal(const string &opcode, const char *key,
+                                   size_t keySize, const char *val,
+                                   size_t valSize, char **result,
+                                   size_t *resultSize) {
+
+    char *buf = (char *)calloc(_msg_maxsize, sizeof(char));
+    size_t msz = _msg_maxsize;
+
+    size_t msgSize = getDaqdbDhtMsgSize(keySize, valSize);
+    DaqdbDhtMsg *msg = (DaqdbDhtMsg *)calloc(1, msgSize);
+    fillDaqdbMsg(msg, Const::toInt(opcode), key, keySize, val, valSize);
+
+    _proxy->sendrecv(msg, msgSize, buf, msz);
+
+    DaqdbDhtResult *response = (DaqdbDhtResult *)buf;
+
+    string sstatus;
+    if (msz < sizeof(DaqdbDhtResult) || !buf) {
+        sstatus = Const::ZSC_REC_SRVEXP;
+    } else {
+        if (fillRqstResponse(result, resultSize, response)) {
+            sstatus = Const::toString(response->rc);
+        } else {
+            sstatus = Const::ZSC_REC_SRVEXP;
+        }
+    }
+
+    free(buf);
+
+    return sstatus;
 }
 
 string ZHTClient::commonOpInternal(const string &opcode, const string &key,

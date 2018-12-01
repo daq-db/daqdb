@@ -54,7 +54,7 @@
 #include <queue>
 #include <string>
 
-#include <daqdb/KVStoreBase.h>
+#include "Daqdb.h"
 
 using namespace std;
 using namespace iit::cs550::finalproj;
@@ -87,12 +87,15 @@ class HTWorker {
     virtual ~HTWorker();
 
   public:
+    char *run(const char *buf, int *resultSize);
     string run(const char *buf);
 
   private:
     string ping(const ZPack &zpack);
     string insert(const ZPack &zpack);
+    char *insert(const DaqDB::DaqdbDhtMsg *msg, int *resultSize);
     string lookup(const ZPack &zpack);
+    char *lookup(const DaqDB::DaqdbDhtMsg *msg, int *resultSize);
 
     string append(const ZPack &zpack);
     string remove(const ZPack &zpack);

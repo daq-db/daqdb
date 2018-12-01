@@ -17,13 +17,14 @@
 
 #include <daqdb/KVStoreBase.h>
 
-bool use_case_sync_base(DaqDB::KVStoreBase *kvs);
-bool use_case_async_base(DaqDB::KVStoreBase *kvs);
-bool use_case_sync_offload(DaqDB::KVStoreBase *kvs);
-bool use_case_async_offload(DaqDB::KVStoreBase *kvs);
+bool testSyncOperations(DaqDB::KVStoreBase *kvs);
+bool testAsyncOperations(DaqDB::KVStoreBase *kvs);
+bool testSyncOffloadOperations(DaqDB::KVStoreBase *kvs);
+bool testAsyncOffloadOperations(DaqDB::KVStoreBase *kvs);
+bool testZhtConnect(DaqDB::KVStoreBase *kvs);
+bool testValueSizes(DaqDB::KVStoreBase *kvs);
 
-void prepare_zht_tests(const std::string &confFile,
-                       const std::string &neighborsFile);
-void cleanup_zht_tests(const std::string &confFile,
-                       const std::string &neighborsFile);
-bool use_case_zht_connect(DaqDB::KVStoreBase *kvs);
+void prepareZhtTests(const std::string &confFile,
+                     const std::string &neighborsFile);
+void cleanupZhtTests(const std::string &confFile,
+                     const std::string &neighborsFile);

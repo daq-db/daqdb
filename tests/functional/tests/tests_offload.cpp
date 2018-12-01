@@ -24,7 +24,7 @@ using namespace std::chrono_literals;
 using namespace std;
 using namespace DaqDB;
 
-bool use_case_sync_offload(KVStoreBase *kvs) {
+bool testSyncOffloadOperations(KVStoreBase *kvs) {
     bool result = true;
     const string expectedVal = "fghi";
     const string expectedKey = "300";
@@ -73,7 +73,7 @@ bool use_case_sync_offload(KVStoreBase *kvs) {
     return result;
 }
 
-bool use_case_async_offload(KVStoreBase *kvs) {
+bool testAsyncOffloadOperations(KVStoreBase *kvs) {
     bool result = true;
 
     const string expectedVal = "oprstu";

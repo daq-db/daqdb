@@ -393,7 +393,11 @@ void EpollServer::serve() {
 
                 /* An error has occured on this fd, or the socket is not
                  ready for reading (why were we notified then?) */
-                fprintf(stderr, "epoll error\n");
+
+                // @TODO: jradtke above comments from ZHT author suggests that
+                // this problem can be ignored so commenting error message.
+                // fprintf(stderr, "epoll error\n");
+
                 close(edata->fd());
                 delete edata;
                 continue;
@@ -608,8 +612,7 @@ void EpollServer::serve() {
                                                 *edata->sender());
                             _eventQueue.push(eventData);
 #else
-                            string bufstr(buf);
-                            _ZProcessor->process(edata->fd(), bufstr.c_str(),
+                            _ZProcessor->process(edata->fd(), (const char *)buf,
                                                  *edata->sender());
 #endif
 #endif

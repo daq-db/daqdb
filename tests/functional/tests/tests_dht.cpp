@@ -28,7 +28,7 @@ using namespace DaqDB;
 
 using zht_const = iit::datasys::zht::dm::Const;
 
-void prepare_zht_tests(const string &confFile, const string &neighborsFile) {
+void prepareZhtTests(const string &confFile, const string &neighborsFile) {
     if (!boost::filesystem::exists(confFile)) {
         ofstream confOut(confFile, ios::out);
         confOut << "PROTOCOL TCP" << endl;
@@ -47,7 +47,7 @@ void prepare_zht_tests(const string &confFile, const string &neighborsFile) {
     }
 }
 
-void cleanup_zht_tests(const string &confFile, const string &neighborsFile) {
+void cleanupZhtTests(const string &confFile, const string &neighborsFile) {
     if (boost::filesystem::exists(confFile)) {
         boost::filesystem::remove(confFile);
         LOG_INFO << "ZHT config file removed";
@@ -58,7 +58,7 @@ void cleanup_zht_tests(const string &confFile, const string &neighborsFile) {
     }
 }
 
-bool use_case_zht_connect(KVStoreBase *kvs) {
+bool testZhtConnect(KVStoreBase *kvs) {
     bool result = true;
     ZHTClient zc;
 
