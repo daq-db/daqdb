@@ -52,7 +52,8 @@
 #include <daqdb/KVStoreBase.h>
 #include <pthread.h>
 
-#include <map>
+#include "Daqdb.h"
+
 using namespace std;
 
 /*
@@ -65,7 +66,7 @@ class TCPProxy : public IPProtoProxy {
 
   public:
     TCPProxy();
-    TCPProxy(int hash_mask, map<std::pair<int, int>, int> *rangeToHost);
+    TCPProxy(int hash_mask, RangeToHost *rangeToHost);
     virtual ~TCPProxy();
 
     virtual bool sendrecv(const void *sendbuf, const size_t sendcount,
@@ -85,15 +86,14 @@ class TCPProxy : public IPProtoProxy {
     // static MAP CONN_CACHE;
     MAP CONN_CACHE;
     // @TODO create separate class for DAQDB customizations
-    map<std::pair<int, int>, int> *_rangeToHost = nullptr;
+    RangeToHost *_rangeToHost = nullptr;
     int _hash_mask = 0;
 };
 
 class TCPStub : public IPProtoStub {
   public:
     TCPStub();
-    TCPStub(int hash_mask, map<std::pair<int, int>, int> *rangeToHost,
-            DaqDB::KVStoreBase *kvs);
+    TCPStub(int hash_mask, RangeToHost *rangeToHost, DaqDB::KVStoreBase *kvs);
     virtual ~TCPStub();
 
     virtual bool recvsend(ProtoAddr addr, const void *recvbuf);

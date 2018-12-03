@@ -72,11 +72,15 @@ class ZHTClient {
     int init(const string &zhtConf, const string &neighborConf, int hash_mask,
              map<std::pair<int, int>, int> *rangeToHost);
     int lookup(const string &key, string &result);
+    int lookup(const char *key, size_t keySize, char **result,
+               size_t *resultSize);
     int lookup(const char *key, char *result);
     int remove(const string &key);
     int remove(const char *key);
     int insert(const string &key, const string &val);
     int insert(const char *key, const char *val);
+    int insert(const char *key, size_t keySize, const char *val,
+               size_t valSize);
     int append(const string &key, const string &val);
     int append(const char *key, const char *val);
     int compare_swap(const string &key, const string &seen_val,
@@ -98,6 +102,10 @@ class ZHTClient {
     string commonOpInternal(const string &opcode, const string &key,
                             const string &val, const string &val2,
                             string &result, int lease);
+    string commonOpInternal(const string &opcode, const char *key,
+                            size_t keySize, const char *val, size_t valSize,
+                            char **result, size_t *resultSize);
+
     string extract_value(const string &returnStr);
 
   private:

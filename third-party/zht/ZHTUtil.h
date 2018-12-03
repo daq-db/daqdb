@@ -54,6 +54,8 @@ using namespace std;
 
 #include <arpa/inet.h>
 
+#include "Daqdb.h"
+
 struct HostEntity {
     int sock;
     string host;
@@ -73,9 +75,10 @@ class ZHTUtil {
     virtual ~ZHTUtil();
 
     HostEntity getHostEntityByKey(const string &msg);
-    HostEntity
-    getHostEntityByKey(const string &msg, int hash_mask,
-                       std::map<std::pair<int, int>, int> *rangeToHost);
+    HostEntity getHostEntityByKey(const string &msg, int hash_mask,
+                                  RangeToHost *rangeToHost);
+    HostEntity getHostEntityByKey(const char *msg, size_t msgSize,
+                                  int hash_mask, RangeToHost *rangeToHost);
 
   private:
     HostEntity buildHostEntity(const string &host, const uint &port);

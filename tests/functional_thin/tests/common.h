@@ -23,6 +23,8 @@
 
 DaqDB::Value allocValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
                         const std::string &value);
+DaqDB::Value allocAndFillValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
+                               const size_t valueSize);
 
 DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key);
 

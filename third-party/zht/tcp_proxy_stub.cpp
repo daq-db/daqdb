@@ -64,8 +64,11 @@
 #include "ZHTUtil.h"
 #include "bigdata_transfer.h"
 
+#include "Daqdb.h"
+
 using namespace std;
 using namespace iit::datasys::zht::dm;
+using namespace DaqDB;
 
 /*LRUCache<string, int> TCPProxy::CONN_CACHE = LRUCache<string, int>(
  TCPProxy::CACHE_SIZE);*/
@@ -83,8 +86,16 @@ bool TCPProxy::sendrecv(const void *sendbuf, const size_t sendcount,
 
     /*get client sock fd*/
     ZHTUtil zu;
+    HostEntity he;
+
     string msg((char *)sendbuf, sendcount);
-    HostEntity he = zu.getHostEntityByKey(msg, _hash_mask, _rangeToHost);
+
+    if (checkDaqdbSignature((const char *)sendbuf, sendcount)) {
+        he = zu.getHostEntityByKey((const char *)sendbuf, sendcount, _hash_mask,
+                                   _rangeToHost);
+    } else {
+        he = zu.getHostEntityByKey(msg, _hash_mask, _rangeToHost);
+    }
 
     int sock = getSockCached(he.host, he.port);
 
@@ -179,9 +190,8 @@ int TCPProxy::makeClientSocket(const string &host, const uint &port) {
 
     memcpy(&dest.sin_addr, hinfo->h_addr, sizeof(dest.sin_addr));
 
-    int to_sock = socket(
-        PF_INET, SOCK_STREAM,
-        0); // try change here.................................................
+    int to_sock = socket(PF_INET, SOCK_STREAM, 0); // try change
+    // here.................................................
 
     if (to_sock < 0) {
         // @TODO temporary solution, should be passed to LOGGER not to cerr
@@ -214,7 +224,8 @@ int TCPProxy::sendTo(int sock, const void *sendbuf, int sendcount) {
     if (sentSize < sendcount) {
 
         // todo: bug prone
-        /*cerr << "TCPProxy::sendTo(): error on BdSendToServer::bsend(...): "
+        /*cerr << "TCPProxy::sendTo(): error on BdSendToServer::bsend(...):
+         "
          << strerror(errno) << endl;*/
     }
 
@@ -230,7 +241,8 @@ int TCPProxy::sendTo(int sock, const void *sendbuf, int sendcount) {
     // prompt errors
     if (sentSize < sendcount) {
         // @TODO temporary solution, should be passed to LOGGER not to cerr
-        // cerr << "TCPProxy::sendTo(): error on BdSendToServer::bsend(...): "
+        // cerr << "TCPProxy::sendTo(): error on BdSendToServer::bsend(...):
+        // "
         // << strerror(errno) << endl;
     }
 
@@ -265,7 +277,9 @@ int TCPProxy::recvFrom(int sock, void *recvbuf) {
 
     int recvcount = ::recv(sock, buf, sizeof(buf), 0);
 
-    memcpy(recvbuf, buf, strlen(buf));
+    if (recvcount > 0) {
+        memcpy(recvbuf, buf, recvcount);
+    }
 
     // prompt errors
     if (recvcount < 0) {
@@ -303,18 +317,18 @@ bool TCPStub::recvsend(ProtoAddr addr, const void *recvbuf) {
 #else
     HTWorker htw(_daqdb);
 #endif
-
-    string result = htw.run(recvstr.c_str());
+    int sendcount;
+    char *sendbuf = htw.run((char *)recvbuf, &sendcount);
 
 #ifdef SCCB
     return true;
 #else
-    const char *sendbuf = result.data();
-    int sendcount = result.size();
 
     // send response to client over server sock fd
     int sentsize = sendBack(addr, sendbuf, sendcount);
     bool sent_bool = sentsize == sendcount;
+
+    free(sendbuf);
 
     return sent_bool;
 #endif

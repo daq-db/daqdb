@@ -45,7 +45,7 @@ static void init_logger() {
     logging::add_common_attributes();
     logging::core::get()->add_thread_attribute("Scope", attrs::named_scope());
     logging::core::get()->set_filter(logging::trivial::severity >=
-                                     logging::trivial::debug);
+                                     logging::trivial::info);
 }
 
 static bool executeTest(string test, function<bool(DaqDB::KVStoreBase *)> fn,
@@ -68,6 +68,7 @@ int main(int argc, const char *argv[]) {
 
     po::options_description argumentsDescription{"Options"};
     argumentsDescription.add_options()("help,h", "Print help messages")(
+        "log,l", "Enable logging")(
         "config-file,c",
         po::value<string>(&configFile)->default_value("functests.cfg"),
         "Configuration file");
@@ -80,6 +81,10 @@ int main(int argc, const char *argv[]) {
         if (parsedArguments.count("help")) {
             std::cout << argumentsDescription << endl;
             return 0;
+        }
+        if (parsedArguments.count("log")) {
+            logging::core::get()->set_filter(logging::trivial::severity >=
+                                             logging::trivial::debug);
         }
         po::notify(parsedArguments);
     } catch (po::error &parserError) {
@@ -101,13 +106,13 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    prepare_zht_tests(zhtConf, neighborConf);
+    prepareZhtTests(zhtConf, neighborConf);
     map<string, function<bool(DaqDB::KVStoreBase *)>> tests =
-        boost::assign::map_list_of("use_case_sync_base", use_case_sync_base)(
-            "use_case_async_base", use_case_async_base)("use_case_sync_offload",
-                                                        use_case_sync_offload)(
-            "use_case_async_offload", use_case_async_offload)(
-            "use_case_zht_connect", use_case_zht_connect);
+        boost::assign::map_list_of("testSyncOperations", testSyncOperations)(
+            "testASyncOperations", testAsyncOperations)(
+            "testSyncOffloadOperations", testSyncOffloadOperations)(
+            "testAsyncOffloadOperations", testAsyncOffloadOperations)(
+            "testZhtConnect", testZhtConnect)("testValueSizes", testValueSizes);
 
     unsigned short failsCount = 0;
     for (auto test : tests) {
@@ -122,7 +127,7 @@ int main(int argc, const char *argv[]) {
         LOG_INFO << "All tests passed!" << endl;
     }
 
-    cleanup_zht_tests(zhtConf, neighborConf);
+    cleanupZhtTests(zhtConf, neighborConf);
 
     return 0;
 }

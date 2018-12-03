@@ -50,6 +50,7 @@
 #include "Const-impl.h"
 #include "Env.h"
 
+#include <cstring>
 #include <iostream>
 #include <pthread.h>
 #include <stdlib.h>
@@ -57,6 +58,7 @@
 
 using namespace std;
 using namespace iit::datasys::zht::dm;
+using namespace DaqDB;
 
 WorkerThreadArg::WorkerThreadArg() : _stub(NULL) {}
 
@@ -121,9 +123,61 @@ string HTWorker::run(const char *buf) {
     } else if (zpack.opcode() == Const::ZSC_OPC_PING) {
         result = ping(zpack);
     } else {
-
         result = Const::ZSC_REC_UOPC;
     }
+
+    return result;
+}
+
+char *HTWorker::run(const char *buf, int *resultSize) {
+
+    string resultStr = Const::ZSC_REC_UOPC;
+    char *result;
+
+    // @TODO jradtke remove zpack and make all communication thru DaqdbDhtMsg
+    ZPack zpack;
+    string str(buf);
+    zpack.ParseFromString(str);
+
+    if (zpack.opcode() == Const::ZSC_OPC_LOOKUP) {
+
+        resultStr = lookup(zpack);
+    } else if (zpack.opcode() == Const::ZSC_OPC_INSERT) {
+
+        resultStr = insert(zpack);
+    } else if (zpack.opcode() == Const::ZSC_OPC_APPEND) {
+
+        resultStr = append(zpack);
+    } else if (zpack.opcode() == Const::ZSC_OPC_CMPSWP) {
+
+        resultStr = compare_swap(zpack);
+    } else if (zpack.opcode() == Const::ZSC_OPC_REMOVE) {
+
+        resultStr = remove(zpack);
+    } else if (zpack.opcode() == Const::ZSC_OPC_STCHGCB) {
+
+        resultStr = state_change_callback(zpack);
+    } else if (zpack.opcode() == Const::ZSC_OPC_PING) {
+        resultStr = ping(zpack);
+    } else {
+        DaqdbDhtMsg *msg = (DaqdbDhtMsg *)buf;
+        if (checkDaqdbSignature(msg->signature)) {
+            switch (msg->opcode) {
+            case DaqDB::OPC_INSERT:
+                return insert(msg, resultSize);
+            case DaqDB::OPC_GET:
+                return lookup(msg, resultSize);
+            }
+
+        } else {
+            resultStr = Const::ZSC_REC_UOPC;
+        }
+    }
+
+    // @TODO jradtke To remove when all communication thru DaqdbDhtMsg
+    *resultSize = resultStr.size();
+    result = (char *)calloc(1, *resultSize);
+    memcpy(result, resultStr.c_str(), *resultSize);
 
     return result;
 }
@@ -156,6 +210,36 @@ string HTWorker::insert_shared(const ZPack &zpack) {
     return result;
 }
 
+char *HTWorker::insert(const DaqDB::DaqdbDhtMsg *msg, int *resultSize) {
+
+    DaqdbDhtResult *result =
+        (DaqdbDhtResult *)calloc(1, sizeof(DaqdbDhtResult));
+    result->signature = DAQDB_MSG_SIGNATURE;
+
+    if (msg->keySize == 0) {
+        *resultSize = fillDaqdbResult(
+            result, Const::toInt(Const::ZSC_REC_EMPTYKEY), nullptr, 0);
+        return (char *)result;
+    }
+
+    Key key = _daqdb->AllocKey();
+    std::memcpy(key.data(), msg->msg, msg->keySize);
+
+    Value val = _daqdb->Alloc(key, msg->valSize);
+    std::memcpy(val.data(), getValueFromDaqdbDhtMsg(msg), msg->valSize);
+
+    try {
+        _daqdb->Put(std::move(key), std::move(val));
+        *resultSize = fillDaqdbResult(result, Const::toInt(Const::ZSC_REC_SUCC),
+                                      nullptr, 0);
+        return (char *)result;
+    } catch (DaqDB::OperationFailedException &e) {
+        *resultSize = fillDaqdbResult(
+            result, Const::toInt(Const::ZSC_REC_NONEXISTKEY), nullptr, 0);
+        return (char *)result;
+    }
+}
+
 string HTWorker::insert(const ZPack &zpack) {
 
     string result = insert_shared(zpack);
@@ -166,6 +250,36 @@ string HTWorker::insert(const ZPack &zpack) {
 #else
     return result;
 #endif
+}
+
+char *HTWorker::lookup(const DaqDB::DaqdbDhtMsg *msg, int *resultSize) {
+
+    DaqdbDhtResult *result;
+
+    if (msg->keySize == 0) {
+        result = (DaqdbDhtResult *)calloc(1, sizeof(DaqdbDhtResult));
+        *resultSize = fillDaqdbResult(
+            result, Const::toInt(Const::ZSC_REC_EMPTYKEY), nullptr, 0);
+        return (char *)result;
+    }
+
+    Key key = _daqdb->AllocKey();
+    std::memcpy(key.data(), msg->msg, msg->keySize);
+
+    try {
+        auto val = _daqdb->Get(key);
+
+        result =
+            (DaqdbDhtResult *)calloc(1, sizeof(DaqdbDhtResult) + val.size());
+        *resultSize = fillDaqdbResult(result, Const::toInt(Const::ZSC_REC_SUCC),
+                                      val.data(), val.size());
+        return (char *)result;
+    } catch (DaqDB::OperationFailedException &e) {
+        result = (DaqdbDhtResult *)calloc(1, sizeof(DaqdbDhtResult));
+        *resultSize = fillDaqdbResult(
+            result, Const::toInt(Const::ZSC_REC_NONEXISTKEY), nullptr, 0);
+        return (char *)result;
+    }
 }
 
 string HTWorker::lookup_shared(const ZPack &zpack) {

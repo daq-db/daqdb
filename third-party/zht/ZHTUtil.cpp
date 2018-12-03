@@ -55,15 +55,45 @@
 
 #include "zpack.pb.h"
 
+#include "Daqdb.h"
+
 using namespace iit::datasys::zht::dm;
+using namespace DaqDB;
 
 ZHTUtil::ZHTUtil() {}
 
 ZHTUtil::~ZHTUtil() {}
 
-HostEntity
-ZHTUtil::getHostEntityByKey(const string &msg, int hash_mask,
-                            std::map<std::pair<int, int>, int> *rangeToHost) {
+HostEntity ZHTUtil::getHostEntityByKey(const char *msg, size_t msgSize,
+                                       int hash_mask,
+                                       RangeToHost *rangeToHost) {
+
+    DaqdbDhtMsg *daqdbMsg = (DaqdbDhtMsg *)msg;
+    string key(daqdbMsg->msg, daqdbMsg->keySize);
+
+    uint64_t hashcode = HashUtil::genHash(key, hash_mask, rangeToHost);
+    size_t node_size = ConfHandler::NeighborVector.size();
+
+    int index =
+        0; // if not found then should be send to first on neighbors list
+    if (rangeToHost) {
+        for (auto entry : *rangeToHost) {
+            auto start = entry.first.first;
+            auto end = entry.first.second;
+            if ((start <= hashcode) && (end >= hashcode)) {
+                index = entry.second;
+                break;
+            }
+        }
+    }
+
+    ConfEntry ce = ConfHandler::NeighborVector.at(index);
+
+    return buildHostEntity(ce.name(), atoi(ce.value().c_str()));
+}
+
+HostEntity ZHTUtil::getHostEntityByKey(const string &msg, int hash_mask,
+                                       RangeToHost *rangeToHost) {
 
     ZPack zpack;
     zpack.ParseFromString(msg); // to debug
