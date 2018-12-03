@@ -41,7 +41,7 @@ class MinidaqFfNode : public MinidaqNode {
 
     int _baseId = 0;
     int _nSubdetectors = 0;
-    int _delay_us = 100;
+    int _delay_us = 10;
     int _maxRetries = 1000;
 
   private:

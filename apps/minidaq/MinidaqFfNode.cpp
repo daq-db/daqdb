@@ -84,14 +84,14 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
         nRetries = 0;
         while (nRetries < _maxRetries) {
             nRetries++;
-            if (_delay_us) {
-                std::this_thread::sleep_for(std::chrono::microseconds(_delay_us));
-            }
             try {
                 value = _kvs->Get(fogKey);
             } catch (OperationFailedException &e) {
                 if ((e.status()() == KEY_NOT_FOUND) && (nRetries < _maxRetries)) {
                     /* Wait until it is availabile. */
+		    if (_delay_us) {
+			std::this_thread::sleep_for(std::chrono::microseconds(_delay_us));
+		    }
                     continue;
                 } else {
                     if (accept)
@@ -128,6 +128,9 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                         });
                 } catch (QueueFullException &e) {
                     // Keep retrying
+		    if (_delay_us) {
+			std::this_thread::sleep_for(std::chrono::microseconds(_delay_us));
+		    }
                     continue;
                 } catch (...) {
                     delete keyTmp;
