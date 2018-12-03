@@ -86,19 +86,23 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
             nRetries++;
             try {
                 value = _kvs->Get(fogKey);
-            } catch (OperationFailedException &e) {
-                if ((e.status()() == KEY_NOT_FOUND) && (nRetries < _maxRetries)) {
+            }
+            catch (OperationFailedException &e) {
+                if ((e.status()() == KEY_NOT_FOUND) &&
+                    (nRetries < _maxRetries)) {
                     /* Wait until it is availabile. */
-		    if (_delay_us) {
-			std::this_thread::sleep_for(std::chrono::microseconds(_delay_us));
-		    }
+                    if (_delay_us) {
+                        std::this_thread::sleep_for(
+                            std::chrono::microseconds(_delay_us));
+                    }
                     continue;
                 } else {
                     if (accept)
                         delete keyTmp;
                     throw;
                 }
-            } catch (...) {
+            }
+            catch (...) {
                 if (accept)
                     delete keyTmp;
                 throw;
@@ -108,17 +112,17 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
 #ifdef WITH_INTEGRITY_CHECK
         if (!_CheckBuffer(key, value.data(), value.size())) {
             throw OperationFailedException(Status(UNKNOWN_ERROR));
-	}
+        }
 #endif /* WITH_INTEGRITY_CHECK */
         if (accept) {
             while (1) {
                 try {
                     _kvs->UpdateAsync(
                         std::move(fogKey), UpdateOptions(LONG_TERM),
-                        [keyTmp, &cnt,
-                         &cntErr](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
-                                  const char *key, const size_t keySize,
-                                  const char *value, const size_t valueSize) {
+                        [keyTmp, &cnt, &cntErr](
+                            DaqDB::KVStoreBase *kvs, DaqDB::Status status,
+                            const char *key, const size_t keySize,
+                            const char *value, const size_t valueSize) {
                             if (!status.ok()) {
                                 cntErr++;
                             } else {
@@ -126,13 +130,16 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                             }
                             delete keyTmp;
                         });
-                } catch (QueueFullException &e) {
+                }
+                catch (QueueFullException &e) {
                     // Keep retrying
-		    if (_delay_us) {
-			std::this_thread::sleep_for(std::chrono::microseconds(_delay_us));
-		    }
+                    if (_delay_us) {
+                        std::this_thread::sleep_for(
+                            std::chrono::microseconds(_delay_us));
+                    }
                     continue;
-                } catch (...) {
+                }
+                catch (...) {
                     delete keyTmp;
                     delete value.data();
                     throw;
