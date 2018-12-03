@@ -27,7 +27,7 @@ class MinidaqFfNode : public MinidaqNode {
     void SetSubdetectors(int n);
     void SetBaseSubdetectorId(int id);
     void SetAcceptLevel(double p);
-    void SetDelay(int d);
+    void SetRetryDelay(int d);
 
   protected:
     void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
@@ -41,7 +41,7 @@ class MinidaqFfNode : public MinidaqNode {
 
     int _baseId = 0;
     int _nSubdetectors = 0;
-    int _delay_us = 0;
+    int _delay_us = 10;
     int _maxRetries = 1000;
 
   private:
