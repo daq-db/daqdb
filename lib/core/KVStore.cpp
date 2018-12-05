@@ -415,7 +415,8 @@ bool KVStore::IsOffloaded(Key &key) {
     bool result = false;
 
     ValCtx valCtx;
-    pmem()->Get(key.data(), key.size(), &valCtx.val, &valCtx.size, &valCtx.location);
+    pmem()->Get(key.data(), key.size(), &valCtx.val, &valCtx.size,
+                &valCtx.location);
     return (valCtx.location == LOCATIONS::DISK);
 }
 

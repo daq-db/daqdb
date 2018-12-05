@@ -32,15 +32,16 @@ ARTree::~ARTree() {
 TreeImpl::TreeImpl(const string &path, const size_t size,
                    const size_t allocUnitSize) {
     if (!boost::filesystem::exists(path)) {
-        _pm_pool = pool<ARTreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
+        _pm_pool =
+            pool<ARTreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
         int depth = 0;
         int countNodes = 0;
         int levelsToAllocate = PREALLOC_LEVELS;
         treeRoot = _pm_pool.get_root().get();
         _actionCounter = 0;
-        treeRoot->rootNode = pmemobj_reserve(
-            _pm_pool.get_handle(), &(_actionsArray[_actionCounter++]),
-            sizeof(Node256), VALUE);
+        treeRoot->rootNode = pmemobj_reserve(_pm_pool.get_handle(),
+                                             &(_actionsArray[_actionCounter++]),
+                                             sizeof(Node256), VALUE);
         if (OID_IS_NULL(*(treeRoot->rootNode).raw_ptr()))
             throw OperationFailedException(Status(ALLOCATION_ERROR));
         treeRoot->initialized = false;
@@ -90,8 +91,8 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
               std::to_string(alloc_daqdb.units_per_block));
 }
 
-void ARTree::Get(const char *key, int32_t keybytes, void **value,
-                 size_t *size, uint8_t *location) {
+void ARTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
+                 uint8_t *location) {
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     if (!val)
@@ -278,8 +279,9 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                           ->actionsArray[nodeLeafCompressed->actionCounter++]),
                     sizeof(ValueWrapper), VALUE);
                 if (OID_IS_NULL(*(nodeLeafCompressed->child).raw_ptr())) {
-                    DAQ_DEBUG("reserve failed nodeLeafCompressed->actionCounter=" +
-                              std::to_string(nodeLeafCompressed->actionCounter));
+                    DAQ_DEBUG(
+                        "reserve failed nodeLeafCompressed->actionCounter=" +
+                        std::to_string(nodeLeafCompressed->actionCounter));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
                 int status = pmemobj_publish(_pm_pool.get_handle(),
@@ -369,7 +371,7 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
         val->actionValue = new pobj_action[1];
         pmemoid poid = pmemobj_xreserve(tree->_pm_pool.get_handle(),
                                         &(val->actionValue[0]), size, VALUE,
-				        POBJ_CLASS_ID(tree->allocClass));
+                                        POBJ_CLASS_ID(tree->allocClass));
         if (OID_IS_NULL(poid)) {
             delete val->actionValue;
             val->actionValue = nullptr;

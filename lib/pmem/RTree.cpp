@@ -31,17 +31,16 @@ RTree::~RTree() {
 }
 Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
     if (!boost::filesystem::exists(path)) {
-        _pm_pool = pool<TreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
+        _pm_pool =
+            pool<TreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
         treeRoot = _pm_pool.get_root().get();
-        make_persistent_atomic<Node>(_pm_pool, treeRoot->rootNode, false,
-                                     0);
+        make_persistent_atomic<Node>(_pm_pool, treeRoot->rootNode, false, 0);
         treeRoot->level_bits = log2(LEVEL_SIZE);
         treeRoot->tree_heigh = KEY_SIZE / treeRoot->level_bits;
         level_bits = treeRoot->level_bits;
         tree_heigh = treeRoot->tree_heigh;
         int count = 0;
-        allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth,
-                      &count);
+        allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth, &count);
     } else {
         DAQ_DEBUG("RTree Opening existing pool");
         _pm_pool = pool<TreeRoot>::open(path, LAYOUT);
@@ -157,8 +156,7 @@ void RTree::AllocValueForKey(const char *key, size_t size, char **value) {
  * Vector is reserved and it's address is returned.
  * Action related to reservation is stored in ValueWrapper in actionUpdate
  */
-void RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
-                              size_t size) {
+void RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV, size_t size) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->actionUpdate = new pobj_action[3];
     pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),

@@ -40,16 +40,16 @@ class RTreeEngine {
 
     virtual string Engine() = 0; // engine identifier
     virtual void Get(const char *key, int32_t keybytes, void **value,
-                           size_t *size, uint8_t *location) = 0;
+                     size_t *size, uint8_t *location) = 0;
     virtual void Get(const char *key, void **value, size_t *size,
-                           uint8_t *location) = 0;
+                     uint8_t *location) = 0;
     virtual void Put(const char *key, // copy value from std::string
-                           char *value) = 0;
+                     char *value) = 0;
     virtual void Put(const char *key, int32_t keybytes, const char *value,
-                           int32_t valuebytes) = 0;
+                     int32_t valuebytes) = 0;
     virtual void Remove(const char *key) = 0; // remove value for key
     virtual void AllocValueForKey(const char *key, size_t size,
-                                        char **value) = 0;
+                                  char **value) = 0;
     virtual void
     AllocateIOVForKey(const char *key, uint64_t **ptr,
                       size_t size) = 0; // allocate IOV vector for given Key

@@ -38,9 +38,8 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
-    When(OverloadedMethod(
-             rtreeMock, Put,
-             void(const char *, int32_t, const char *, int32_t)))
+    When(OverloadedMethod(rtreeMock, Put,
+                          void(const char *, int32_t, const char *, int32_t)))
         .Return();
 
     DaqDB::PmemPoller &poller = pollerMock.get();
@@ -49,8 +48,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
 
     poller.process();
     VerifyNoOtherInvocations(OverloadedMethod(
-        rtreeMock, Put,
-        void(const char *, int32_t, const char *, int32_t)));
+        rtreeMock, Put, void(const char *, int32_t, const char *, int32_t)));
 }
 
 BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
@@ -58,9 +56,8 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
     Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
-    When(OverloadedMethod(
-             rtreeMock, Put,
-             void(const char *, int32_t, const char *, int32_t))
+    When(OverloadedMethod(rtreeMock, Put,
+                          void(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
         .Return();
 
@@ -76,9 +73,8 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
 
     poller.process();
 
-    Verify(OverloadedMethod(
-               rtreeMock, Put,
-               void(const char *, int32_t, const char *, int32_t)))
+    Verify(OverloadedMethod(rtreeMock, Put,
+                            void(const char *, int32_t, const char *, int32_t)))
         .Exactly(1);
 
     delete[] poller.requests;
@@ -89,9 +85,8 @@ BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
     Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
-    When(OverloadedMethod(
-             rtreeMock, Put,
-             void(const char *, int32_t, const char *, int32_t))
+    When(OverloadedMethod(rtreeMock, Put,
+                          void(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
         .AlwaysReturn();
 
@@ -109,9 +104,8 @@ BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
 
     poller.process();
 
-    Verify(OverloadedMethod(
-               rtreeMock, Put,
-               void(const char *, int32_t, const char *, int32_t)))
+    Verify(OverloadedMethod(rtreeMock, Put,
+                            void(const char *, int32_t, const char *, int32_t)))
         .Exactly(DEQUEUE_RING_LIMIT);
     delete[] poller.requests;
 }
@@ -123,9 +117,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
     char valRef[] = "abc";
     size_t sizeRef = 3;
 
-    When(OverloadedMethod(rtreeMock, Get,
-                          void(const char *, int32_t, void **,
-                               size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *) {
@@ -146,9 +139,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
 
     poller.process();
 
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            void(const char *, int32_t, void **,
-                                 size_t *, uint8_t *)))
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
         .Exactly(1);
     delete[] poller.requests;
 }
@@ -160,9 +152,8 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
     char valRef[] = "abc";
     size_t sizeRef = 3;
 
-    When(OverloadedMethod(rtreeMock, Get,
-                          void(const char *, int32_t, void **,
-                               size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *) {
@@ -185,9 +176,8 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
 
     poller.process();
 
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            void(const char *, int32_t, void **,
-                                 size_t *, uint8_t *)))
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
         .Exactly(DEQUEUE_RING_LIMIT);
     delete[] poller.requests;
 }
@@ -197,9 +187,8 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
     Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
-    When(OverloadedMethod(
-             rtreeMock, Put,
-             void(const char *, int32_t, const char *, int32_t))
+    When(OverloadedMethod(rtreeMock, Put,
+                          void(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
         .Return();
 
@@ -224,9 +213,8 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
 
     poller.process();
 
-    Verify(OverloadedMethod(
-               rtreeMock, Put,
-               void(const char *, int32_t, const char *, int32_t)))
+    Verify(OverloadedMethod(rtreeMock, Put,
+                            void(const char *, int32_t, const char *, int32_t)))
         .Exactly(1);
     delete[] poller.requests;
 }
@@ -238,9 +226,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
     char valRef[] = "abc";
     size_t sizeRef = 3;
 
-    When(OverloadedMethod(rtreeMock, Get,
-                          void(const char *, int32_t, void **,
-                               size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .Do([&](const char *key, int32_t keySize, void **val, size_t *valSize,
                 uint8_t *) {
@@ -272,9 +259,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
 
     poller.process();
 
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            void(const char *, int32_t, void **,
-                                 size_t *, uint8_t *)))
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
         .Exactly(1);
     delete[] poller.requests;
 }

@@ -86,8 +86,8 @@ void PmemPoller::_processGet(const PmemRqst *rqst) {
     StatusCode rc = StatusCode::OK;
     ValCtx valCtx;
     try {
-        rtree->Get(rqst->key, rqst->keySize, &valCtx.val,
-                   &valCtx.size, &valCtx.location);
+        rtree->Get(rqst->key, rqst->keySize, &valCtx.val, &valCtx.size,
+                   &valCtx.location);
     } catch (...) {
         /** @todo fix exception handling */
         rc = StatusCode::UNKNOWN_ERROR;
