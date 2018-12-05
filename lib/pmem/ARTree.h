@@ -144,21 +144,21 @@ class ARTree : public DaqDB::RTreeEngine {
     ARTree(const string &path, const size_t size, const size_t allocUnitSize);
     virtual ~ARTree();
     string Engine() final { return "ARTree"; }
-    StatusCode Get(const char *key, int32_t keybytes, void **value,
-                   size_t *size, uint8_t *location) final;
-    StatusCode Get(const char *key, void **value, size_t *size,
-                   uint8_t *location) final;
-    StatusCode Put(const char *key, // copy value from std::string
-                   char *value) final;
-    StatusCode Put(const char *key, int32_t keybytes, const char *value,
-                   int32_t valuebytes) final;
-    StatusCode Remove(const char *key) final; // remove value for key
-    StatusCode AllocValueForKey(const char *key, size_t size,
-                                char **value) final;
-    StatusCode AllocateIOVForKey(const char *key, uint64_t **ptr,
-                                 size_t size) final;
-    StatusCode UpdateValueWrapper(const char *key, uint64_t *ptr,
-                                  size_t size) final;
+    void Get(const char *key, int32_t keybytes, void **value,
+             size_t *size, uint8_t *location) final;
+    void Get(const char *key, void **value, size_t *size,
+             uint8_t *location) final;
+    void Put(const char *key, // copy value from std::string
+             char *value) final;
+    void Put(const char *key, int32_t keybytes, const char *value,
+             int32_t valuebytes) final;
+    void Remove(const char *key) final; // remove value for key
+    void AllocValueForKey(const char *key, size_t size,
+                          char **value) final;
+    void AllocateIOVForKey(const char *key, uint64_t **ptr,
+                           size_t size) final;
+    void UpdateValueWrapper(const char *key, uint64_t *ptr,
+                            size_t size) final;
     void printKey(const char *key);
 
   private:

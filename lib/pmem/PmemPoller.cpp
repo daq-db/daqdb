@@ -83,11 +83,17 @@ void PmemPoller::_processTransfer(const PmemRqst *rqst) {
 }
 
 void PmemPoller::_processGet(const PmemRqst *rqst) {
+    StatusCode rc = StatusCode::OK;
     ValCtx valCtx;
-    StatusCode rc = rtree->Get(rqst->key, rqst->keySize, &valCtx.val,
-                               &valCtx.size, &valCtx.location);
+    try {
+        rtree->Get(rqst->key, rqst->keySize, &valCtx.val,
+                   &valCtx.size, &valCtx.location);
+    } catch (...) {
+        /** @todo fix exception handling */
+        rc = StatusCode::UNKNOWN_ERROR;
+    }
 
-    if (rc != StatusCode::OK || !valCtx.val) {
+    if (!valCtx.val) {
         _rqstClb(rqst, rc);
         return;
     }
@@ -99,11 +105,16 @@ void PmemPoller::_processGet(const PmemRqst *rqst) {
 
     Value value(new char[valCtx.size], valCtx.size);
     std::memcpy(value.data(), valCtx.val, valCtx.size);
-    _rqstClb(rqst, rc, value);
+    _rqstClb(rqst, StatusCode::OK, value);
 }
 void PmemPoller::_processPut(const PmemRqst *rqst) {
-    StatusCode rc =
+    StatusCode rc = StatusCode::OK;
+    try {
         rtree->Put(rqst->key, rqst->keySize, rqst->value, rqst->valueSize);
+    } catch (...) {
+        /** @todo fix exception handling */
+        rc = StatusCode::UNKNOWN_ERROR;
+    }
     _rqstClb(rqst, rc);
 }
 

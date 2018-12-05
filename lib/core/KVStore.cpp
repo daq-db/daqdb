@@ -123,10 +123,8 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
         return dht()->put(key, val);
     }
 
-    StatusCode rc = pmem()->Put(key.data(), val.data());
+    pmem()->Put(key.data(), val.data());
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
-    if (rc != StatusCode::OK)
-        throw OperationFailedException(EINVAL);
 }
 
 void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
@@ -164,15 +162,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
         return dht()->get(key);
     }
 
-    StatusCode rc = pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal),
-                                &size, &location);
-    if (rc != StatusCode::OK || !pVal) {
-        if (rc == StatusCode::KEY_NOT_FOUND) {
-            throw OperationFailedException(Status(KEY_NOT_FOUND));
-        } else {
-            throw OperationFailedException(EINVAL);
-        }
-    }
+    pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal), &size, &location);
     if (location == PMEM) {
         Value value(new char[size], size);
         std::memcpy(value.data(), pVal, size);
@@ -353,13 +343,7 @@ void KVStore::Remove(const Key &key) {
         return dht()->remove(key);
     }
 
-    StatusCode rc = pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal),
-                                &size, &location);
-    if (rc != StatusCode::OK || !pVal) {
-        if (rc == StatusCode::KEY_NOT_FOUND)
-            throw OperationFailedException(Status(KEY_NOT_FOUND));
-        throw OperationFailedException(EINVAL);
-    }
+    pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal), &size, &location);
 
     if (location == DISK) {
         if (!isOffloadEnabled())
@@ -389,13 +373,7 @@ void KVStore::Remove(const Key &key) {
         }
 
     } else {
-        StatusCode rc = pmem()->Remove(key.data());
-        if (rc != StatusCode::OK) {
-            if (rc == StatusCode::KEY_NOT_FOUND)
-                throw OperationFailedException(KEY_NOT_FOUND);
-
-            throw OperationFailedException(EINVAL);
-        }
+        pmem()->Remove(key.data());
     }
 }
 
@@ -405,11 +383,7 @@ void KVStore::RemoveRange(const Key &beg, const Key &end) {
 
 Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
     char *val = nullptr;
-    StatusCode rc = pmem()->AllocValueForKey(key.data(), size, &val);
-    if (rc != StatusCode::OK) {
-        throw OperationFailedException(ALLOCATION_ERROR);
-    }
-    assert(val);
+    pmem()->AllocValueForKey(key.data(), size, &val);
     return Value(val, size);
 }
 
@@ -441,14 +415,7 @@ bool KVStore::IsOffloaded(Key &key) {
     bool result = false;
 
     ValCtx valCtx;
-    StatusCode rc = pmem()->Get(key.data(), key.size(), &valCtx.val,
-                                &valCtx.size, &valCtx.location);
-    if (rc != StatusCode::OK) {
-        if (rc == StatusCode::KEY_NOT_FOUND)
-            throw OperationFailedException(KEY_NOT_FOUND);
-
-        throw OperationFailedException(EINVAL);
-    }
+    pmem()->Get(key.data(), key.size(), &valCtx.val, &valCtx.size, &valCtx.location);
     return (valCtx.location == LOCATIONS::DISK);
 }
 
