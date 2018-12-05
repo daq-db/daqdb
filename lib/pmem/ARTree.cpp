@@ -251,17 +251,12 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
 ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                                         const char *_key, bool allocate) {
     thread_local ValueWrapper *cachedVal = nullptr;
-    thread_local char cachedKey[KEY_SIZE];
     size_t keyCalc;
     unsigned char *key = (unsigned char *)_key;
     int debugCount = 0;
     persistent_ptr<Node256> node256;
     persistent_ptr<NodeLeafCompressed> nodeLeafCompressed;
     ValueWrapper *val;
-
-    if (cachedVal && !memcmp(cachedKey, key, KEY_SIZE)) {
-        return cachedVal;
-    }
 
     while (1) {
         keyCalc = key[KEY_SIZE - current->depth - 1];
@@ -287,11 +282,10 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                 int status = pmemobj_publish(_pm_pool.get_handle(),
                                              nodeLeafCompressed->actionsArray,
                                              nodeLeafCompressed->actionCounter);
+                /** @todo add error check for all pmemobj_publish calls */
                 nodeLeafCompressed->actionCounter = 0;
                 val = reinterpret_cast<ValueWrapper *>(
                     (nodeLeafCompressed->child).raw_ptr());
-                memcpy(cachedKey, key, KEY_SIZE);
-                cachedVal = val;
                 return val;
             } else {
                 DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" +
