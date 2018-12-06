@@ -138,8 +138,8 @@ void ARTree::Put(const char *key, // copy value from std::string
     if (!tree->treeRoot->initialized) {
         tree->treeRoot->initialized = true;
     }
-    val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
+    val->location = PMEM;
     // std::cout<<"PUT OK"<< std::endl;
 }
 
@@ -147,8 +147,8 @@ void ARTree::Put(const char *key, int32_t keyBytes, const char *value,
                  int32_t valuebytes) {
     ValueWrapper *val =
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
-    val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
+    val->location = PMEM;
 }
 
 void ARTree::Remove(const char *key) {
@@ -248,7 +248,6 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
  */
 ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                                         const char *_key, bool allocate) {
-    thread_local ValueWrapper *cachedVal = nullptr;
     size_t keyCalc;
     unsigned char *key = (unsigned char *)_key;
     int debugCount = 0;
