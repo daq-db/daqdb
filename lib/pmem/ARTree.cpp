@@ -85,7 +85,7 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
     if (rc)
         throw OperationFailedException(Status(ALLOCATION_ERROR));
     allocClass = alloc_daqdb.class_id;
-    DAQ_DEBUG("ARTree new allocation class (" + std::to_string(_alloc_class) +
+    DAQ_DEBUG("ARTree new allocation class (" + std::to_string(allocClass) +
               ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
               " units_per_block=" +
               std::to_string(alloc_daqdb.units_per_block));
@@ -103,8 +103,7 @@ void ARTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
     } else if (val->location == DISK) {
         *value = val->locationPtr.IOVptr.get();
         *location = val->location;
-    } else if (val->location == EMPTY ||
-               val->locationVolatile.get().value == EMPTY) {
+    } else {
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
     *size = val->size;
@@ -122,8 +121,7 @@ void ARTree::Get(const char *key, void **value, size_t *size,
     } else if (val->location == DISK) {
         *value = val->locationPtr.IOVptr.get();
         *location = val->location;
-    } else if (val->location == EMPTY ||
-               val->locationVolatile.get().value == EMPTY) {
+    } else {
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
     *size = val->size;
@@ -286,6 +284,11 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                 nodeLeafCompressed->actionCounter = 0;
                 val = reinterpret_cast<ValueWrapper *>(
                     (nodeLeafCompressed->child).raw_ptr());
+                /** @todo initialization below temporarily fixes race conditions
+                 *        when PUT and GET requests are executed in parallel on
+                 *        the same key. This is still not thread-safe.
+                */
+                val->location = EMPTY;
                 return val;
             } else {
                 DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" +
