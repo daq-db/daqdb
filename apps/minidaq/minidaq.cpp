@@ -46,7 +46,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_BASE_CORE_ID 10
 #define MINIDAQ_DEFAULT_N_CORES 10
 #define MINIDAQ_DEFAULT_LOG false
-#define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 100
+#define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 10
 #define MINIDAQ_DEFAULT_ITERATIONS 0
 #define MINIDAQ_DEFAULT_STOPONERROR false
 #define MINIDAQ_DEFAULT_LIVE false
@@ -238,7 +238,7 @@ int main(int argc, const char *argv[]) {
         "delay", po::value<int>(&collectorDelay)
                      ->default_value(MINIDAQ_DEFAULT_COLLECTOR_DELAY_US),
         "If set, collector threads will wait delay us between requests for "
-        "event.");
+        "event, if not yet available.");
 
     po::options_description argumentsDescription;
     argumentsDescription.add(genericOpts).add(readoutOpts).add(filteringOpts);
@@ -334,7 +334,7 @@ int main(int argc, const char *argv[]) {
             nodeFf->SetSubdetectors(nSub);
             nodeFf->SetThreads(nFfTh);
             nodeFf->SetAcceptLevel(acceptLevel);
-            nodeFf->SetDelay(collectorDelay);
+            nodeFf->SetRetryDelay(collectorDelay);
             nodes.push_back(std::move(nodeFf));
             std::cout << "### Done." << endl;
         }
