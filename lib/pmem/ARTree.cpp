@@ -227,6 +227,8 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 nodeLeafCompressed_new->actionsArray =
                     (struct pobj_action *)malloc(sizeof(struct pobj_action));
                 nodeLeafCompressed_new->actionCounter = 0;
+                // Temporarily disable the node
+                nodeLeafCompressed_new->key = -1;
                 node256->children[i] = nodeLeafCompressed_new;
             }
 
@@ -264,7 +266,6 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
             // Node Compressed
             nodeLeafCompressed = current;
             if (allocate) {
-                nodeLeafCompressed->key = keyCalc;
                 nodeLeafCompressed->child = pmemobj_reserve(
                     _pm_pool.get_handle(),
                     &(nodeLeafCompressed
@@ -288,6 +289,8 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                  *        the same key. This is still not thread-safe.
                 */
                 val->location = EMPTY;
+                // Enable the node
+                nodeLeafCompressed->key = keyCalc;
                 return val;
             } else {
                 DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" +
