@@ -186,12 +186,7 @@ sudo LD_LIBRARY_PATH=`pwd`:$LD_LIBRARY_PATH ./minidaq --help
 . scripts/setup_env_lcg.sh
 ```
 can be called to setup environment with LCG and SPDK.
-* Recommended environment variables for PMDK: 
-```
-export PMEM_IS_PMEM_FORCE=1
-export PMEM_NO_FLUSH=1
-export PMEMOBJ_CONF="prefault.at_open=1;prefault.at_create=1"
-```
+
 * For single-node tests synchronous mode of operation for readout threads
 is recommended.
 * Time and persistent memory pool size should adjusted carefully. Depending on
