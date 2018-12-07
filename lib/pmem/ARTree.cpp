@@ -370,7 +370,7 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
     if (tree->treeRoot->rootNode) {
         ValueWrapper *val =
             tree->findValueInNode(tree->treeRoot->rootNode, key, true);
-	/** @todo handle re-alloc */
+        /** @todo handle re-alloc */
         val->location = EMPTY;
         val->actionValue = new pobj_action[1];
         pmemoid poid = pmemobj_xreserve(tree->_pm_pool.get_handle(),
