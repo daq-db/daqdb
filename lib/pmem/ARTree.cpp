@@ -191,6 +191,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
     persistent_ptr<Node256> node256;
     persistent_ptr<Node256> node256_new;
     persistent_ptr<NodeLeafCompressed> nodeLeafCompressed_new;
+    persistent_ptr<Node> children[256];
     levelsToAllocate--;
 
     if (node->type == TYPE256) {
@@ -204,15 +205,12 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 if (OID_IS_NULL(*(node256_new).raw_ptr())) {
                     DAQ_DEBUG("reserve failed node256->actionCounter=" +
                               std::to_string(node256->actionCounter));
-                    while (i) {
-                        pmemobj_cancel(_pm_pool.get_handle(),
-                                       node256->children[--i]->actionsArray,
-                                       node256->children[i]->actionCounter);
-                        free(node256->children[i]->actionsArray);
-                        node256->actionsArray = nullptr;
-                        node256->children[i]->actionCounter = 0;
-                        node256->children[i] = nullptr;
-                    }
+                    while (i)
+                        free(children[i]->actionsArray);
+                    pmemobj_cancel(_pm_pool.get_handle(),
+                                   node256->actionsArray,
+                                   node256->actionCounter);
+                    node256->actionCounter = 0;
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
                 node256->actionCounter++;
@@ -221,7 +219,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 node256_new->actionCounter = 0;
                 node256_new->depth = depth;
                 node256_new->type = TYPE256;
-                node256->children[i] = node256_new;
+                children[i] = node256_new;
             } else if (LEVEL_TYPE[depth] == TYPE_LEAF_COMPRESSED) {
                 nodeLeafCompressed_new = pmemobj_reserve(
                     _pm_pool.get_handle(),
@@ -230,15 +228,12 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 if (OID_IS_NULL(*(nodeLeafCompressed_new).raw_ptr())) {
                     DAQ_DEBUG("reserve failed node256->actionCounter=" +
                               std::to_string(node256->actionCounter));
-                    while (i) {
-                        pmemobj_cancel(_pm_pool.get_handle(),
-                                       node256->children[--i]->actionsArray,
-                                       node256->children[i]->actionCounter);
-                        free(node256->children[i]->actionsArray);
-                        node256->actionsArray = nullptr;
-                        node256->children[i]->actionCounter = 0;
-                        node256->children[i] = nullptr;
-                    }
+                    while (i)
+                        free(children[i]->actionsArray);
+                    pmemobj_cancel(_pm_pool.get_handle(),
+                                   node256->actionsArray,
+                                   node256->actionCounter);
+                    node256->actionCounter = 0;
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
                 node256->actionCounter++;
@@ -249,7 +244,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 nodeLeafCompressed_new->actionCounter = 0;
                 // Temporarily disable the node
                 nodeLeafCompressed_new->key = -1;
-                node256->children[i] = nodeLeafCompressed_new;
+                children[i] = nodeLeafCompressed_new;
             }
 
             if (levelsToAllocate > 0) {
@@ -257,7 +252,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 allocateFullLevels(node256->children[i], levelsToAllocate);
             }
         }
-        node256->children_valid = true;
+        for (int i = 0; i < NODE_SIZE[node->type]; i++) {
+            node256->children[i] = children[i];
+        }
     }
 }
 
@@ -332,12 +329,12 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
         }
         if (current->type == TYPE256) { // TYPE256
             node256 = current;
-            if (node256->children_valid && node256->children[keyCalc]) {
+            if (node256->children[keyCalc]) {
                 current = node256->children[keyCalc];
             } else if (allocate) {
                 std::lock_guard<pmem::obj::mutex> lock(node256->nodeMutex);
                 // other threads don't have to create subtree
-                if (node256->children_valid && node256->children[keyCalc]) {
+                if (node256->children[keyCalc]) {
                     current = node256->children[keyCalc];
                 } else { // not found, allocate subtree
                     DAQ_DEBUG("findValueInNode: allocate subtree on depth=" +

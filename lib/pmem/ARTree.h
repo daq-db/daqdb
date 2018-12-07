@@ -114,7 +114,6 @@ class Node256 : public Node {
   public:
     explicit Node256(int _depth, int _type) : Node(_depth, _type) {}
     persistent_ptr<Node> children[256]; // array of pointers to Nodes
-    bool children_valid = false;
     pmem::obj::mutex nodeMutex;
 };
 
