@@ -205,9 +205,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                     DAQ_DEBUG("reserve failed node256->actionCounter=" +
                               std::to_string(node256->actionCounter));
                     while (i) {
-			pmemobj_cancel(_pm_pool.get_handle(),
-			    node256->children[--i]->actionsArray,
-                            node256->children[i]->actionCounter);
+                        pmemobj_cancel(_pm_pool.get_handle(),
+                                       node256->children[--i]->actionsArray,
+                                       node256->children[i]->actionCounter);
                         free(node256->children[i]->actionsArray);
                         node256->actionsArray = nullptr;
                         node256->children[i]->actionCounter = 0;
@@ -231,9 +231,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                     DAQ_DEBUG("reserve failed node256->actionCounter=" +
                               std::to_string(node256->actionCounter));
                     while (i) {
-			pmemobj_cancel(_pm_pool.get_handle(),
-			    node256->children[--i]->actionsArray,
-                            node256->children[i]->actionCounter);
+                        pmemobj_cancel(_pm_pool.get_handle(),
+                                       node256->children[--i]->actionsArray,
+                                       node256->children[i]->actionCounter);
                         free(node256->children[i]->actionsArray);
                         node256->actionsArray = nullptr;
                         node256->children[i]->actionCounter = 0;
