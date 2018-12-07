@@ -199,13 +199,14 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
             if (LEVEL_TYPE[depth] == TYPE256) {
                 node256_new = pmemobj_reserve(
                     _pm_pool.get_handle(),
-                    &(node256->actionsArray[node256->actionCounter++]),
+                    &(node256->actionsArray[node256->actionCounter]),
                     sizeof(Node256), VALUE);
                 if (OID_IS_NULL(*(node256_new).raw_ptr())) {
                     DAQ_DEBUG("reserve failed node256->actionCounter=" +
                               std::to_string(node256->actionCounter));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
+                node256->actionCounter++;
                 node256_new->actionsArray = (struct pobj_action *)malloc(
                     ACTION_NUMBER * sizeof(struct pobj_action));
                 node256_new->actionCounter = 0;
@@ -215,13 +216,14 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
             } else if (LEVEL_TYPE[depth] == TYPE_LEAF_COMPRESSED) {
                 nodeLeafCompressed_new = pmemobj_reserve(
                     _pm_pool.get_handle(),
-                    &(node256->actionsArray[node256->actionCounter++]),
+                    &(node256->actionsArray[node256->actionCounter]),
                     sizeof(NodeLeafCompressed), VALUE);
                 if (OID_IS_NULL(*(nodeLeafCompressed_new).raw_ptr())) {
                     DAQ_DEBUG("reserve failed node256->actionCounter=" +
                               std::to_string(node256->actionCounter));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
+                node256->actionCounter++;
                 nodeLeafCompressed_new->depth = depth;
                 nodeLeafCompressed_new->type = TYPE_LEAF_COMPRESSED;
                 nodeLeafCompressed_new->actionsArray =
@@ -269,7 +271,7 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                 nodeLeafCompressed->child = pmemobj_reserve(
                     _pm_pool.get_handle(),
                     &(nodeLeafCompressed
-                          ->actionsArray[nodeLeafCompressed->actionCounter++]),
+                          ->actionsArray[nodeLeafCompressed->actionCounter]),
                     sizeof(ValueWrapper), VALUE);
                 if (OID_IS_NULL(*(nodeLeafCompressed->child).raw_ptr())) {
                     DAQ_DEBUG(
@@ -277,6 +279,7 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                         std::to_string(nodeLeafCompressed->actionCounter));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
+                nodeLeafCompressed->actionCounter++;
                 int status = pmemobj_publish(_pm_pool.get_handle(),
                                              nodeLeafCompressed->actionsArray,
                                              nodeLeafCompressed->actionCounter);
@@ -367,6 +370,8 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
     if (tree->treeRoot->rootNode) {
         ValueWrapper *val =
             tree->findValueInNode(tree->treeRoot->rootNode, key, true);
+	/** @todo handle re-alloc */
+        val->location = EMPTY;
         val->actionValue = new pobj_action[1];
         pmemoid poid = pmemobj_xreserve(tree->_pm_pool.get_handle(),
                                         &(val->actionValue[0]), size, VALUE,
