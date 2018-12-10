@@ -92,7 +92,7 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
     if (rc)
         throw OperationFailedException(Status(ALLOCATION_ERROR));
     allocClass = alloc_daqdb.class_id;
-    DAQ_DEBUG("ARTree new allocation class (" + std::to_string(_alloc_class) +
+    DAQ_DEBUG("ARTree new allocation class (" + std::to_string(allocClass) +
               ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
               " units_per_block=" +
               std::to_string(alloc_daqdb.units_per_block));
@@ -372,7 +372,7 @@ StatusCode ARTree::AllocValueForKey(const char *key, size_t size,
         val->actionValue = new pobj_action[1];
         pmemoid poid = pmemobj_xreserve(tree->_pm_pool.get_handle(),
                                         &(val->actionValue[0]), size, VALUE,
-				        POBJ_CLASS_ID(tree->allocClass));
+                                        POBJ_CLASS_ID(tree->allocClass));
         if (OID_IS_NULL(poid)) {
             delete val->actionValue;
             val->actionValue = nullptr;
