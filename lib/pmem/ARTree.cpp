@@ -192,10 +192,12 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
     persistent_ptr<Node256> node256_new;
     persistent_ptr<NodeLeafCompressed> nodeLeafCompressed_new;
     persistent_ptr<Node> children[256];
+    bool alloc_err = false;
     levelsToAllocate--;
+    int i;
 
     if (node->type == TYPE256) {
-        for (int i = 0; i < NODE_SIZE[node->type]; i++) {
+        for (i = 0; i < NODE_SIZE[node->type]; i++) {
             node256 = node;
             if (LEVEL_TYPE[depth] == TYPE256) {
                 node256_new = pmemobj_reserve(
@@ -205,16 +207,16 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 if (OID_IS_NULL(*(node256_new).raw_ptr())) {
                     DAQ_DEBUG("reserve failed node256->actionCounter=" +
                               std::to_string(node256->actionCounter));
-                    while (i)
-                        free(children[i]->actionsArray);
-                    pmemobj_cancel(_pm_pool.get_handle(), node256->actionsArray,
-                                   node256->actionCounter);
-                    node256->actionCounter = 0;
-                    throw OperationFailedException(Status(ALLOCATION_ERROR));
+                    alloc_err = true;
+                    break;
                 }
                 node256->actionCounter++;
                 node256_new->actionsArray = (struct pobj_action *)malloc(
                     ACTION_NUMBER * sizeof(struct pobj_action));
+                if (!node256_new->actionsArray) {
+                    alloc_err = true;
+                    break;
+                }
                 node256_new->actionCounter = 0;
                 node256_new->depth = depth;
                 node256_new->type = TYPE256;
@@ -227,18 +229,18 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 if (OID_IS_NULL(*(nodeLeafCompressed_new).raw_ptr())) {
                     DAQ_DEBUG("reserve failed node256->actionCounter=" +
                               std::to_string(node256->actionCounter));
-                    while (i)
-                        free(children[i]->actionsArray);
-                    pmemobj_cancel(_pm_pool.get_handle(), node256->actionsArray,
-                                   node256->actionCounter);
-                    node256->actionCounter = 0;
-                    throw OperationFailedException(Status(ALLOCATION_ERROR));
+                    alloc_err = true;
+                    break;
                 }
                 node256->actionCounter++;
                 nodeLeafCompressed_new->depth = depth;
                 nodeLeafCompressed_new->type = TYPE_LEAF_COMPRESSED;
                 nodeLeafCompressed_new->actionsArray =
                     (struct pobj_action *)malloc(sizeof(struct pobj_action));
+                if (!nodeLeafCompressed_new->actionsArray) {
+                    alloc_err = true;
+                    break;
+                }
                 nodeLeafCompressed_new->actionCounter = 0;
                 // Temporarily disable the node
                 nodeLeafCompressed_new->key = -1;
@@ -249,6 +251,15 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 /** @todo handle exceptions */
                 allocateFullLevels(node256->children[i], levelsToAllocate);
             }
+        }
+        if (alloc_err) {
+                while (i > 0)
+                        free(children[--i]->actionsArray);
+                if (node256->actionCounter)
+                    pmemobj_cancel(_pm_pool.get_handle(), node256->actionsArray,
+                                   node256->actionCounter);
+                node256->actionCounter = 0;
+                throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
         for (int i = 0; i < NODE_SIZE[node->type]; i++) {
             node256->children[i] = children[i];
