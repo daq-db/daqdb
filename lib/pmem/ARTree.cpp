@@ -253,13 +253,13 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
             }
         }
         if (alloc_err) {
-                while (i > 0)
-                        free(children[--i]->actionsArray);
-                if (node256->actionCounter)
-                    pmemobj_cancel(_pm_pool.get_handle(), node256->actionsArray,
-                                   node256->actionCounter);
-                node256->actionCounter = 0;
-                throw OperationFailedException(Status(ALLOCATION_ERROR));
+            while (i > 0)
+                free(children[--i]->actionsArray);
+            if (node256->actionCounter)
+                pmemobj_cancel(_pm_pool.get_handle(), node256->actionsArray,
+                               node256->actionCounter);
+            node256->actionCounter = 0;
+            throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
         for (int i = 0; i < NODE_SIZE[node->type]; i++) {
             node256->children[i] = children[i];
