@@ -38,10 +38,9 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
-    When(OverloadedMethod(
-             rtreeMock, Put,
-             DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
-        .Return(DaqDB::StatusCode::OK);
+    When(OverloadedMethod(rtreeMock, Put,
+                          void(const char *, int32_t, const char *, int32_t)))
+        .Return();
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
@@ -49,8 +48,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
 
     poller.process();
     VerifyNoOtherInvocations(OverloadedMethod(
-        rtreeMock, Put,
-        DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)));
+        rtreeMock, Put, void(const char *, int32_t, const char *, int32_t)));
 }
 
 BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
@@ -58,11 +56,10 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
     Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
-    When(OverloadedMethod(
-             rtreeMock, Put,
-             DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
+    When(OverloadedMethod(rtreeMock, Put,
+                          void(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .Return(DaqDB::StatusCode::OK);
+        .Return();
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
@@ -76,9 +73,8 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
 
     poller.process();
 
-    Verify(OverloadedMethod(
-               rtreeMock, Put,
-               DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
+    Verify(OverloadedMethod(rtreeMock, Put,
+                            void(const char *, int32_t, const char *, int32_t)))
         .Exactly(1);
 
     delete[] poller.requests;
@@ -89,11 +85,10 @@ BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
     Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
-    When(OverloadedMethod(
-             rtreeMock, Put,
-             DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
+    When(OverloadedMethod(rtreeMock, Put,
+                          void(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .AlwaysReturn(DaqDB::StatusCode::OK);
+        .AlwaysReturn();
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
@@ -109,9 +104,8 @@ BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
 
     poller.process();
 
-    Verify(OverloadedMethod(
-               rtreeMock, Put,
-               DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
+    Verify(OverloadedMethod(rtreeMock, Put,
+                            void(const char *, int32_t, const char *, int32_t)))
         .Exactly(DEQUEUE_RING_LIMIT);
     delete[] poller.requests;
 }
@@ -123,9 +117,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
     char valRef[] = "abc";
     size_t sizeRef = 3;
 
-    When(OverloadedMethod(rtreeMock, Get,
-                          DaqDB::StatusCode(const char *, int32_t, void **,
-                                            size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *) {
@@ -146,9 +139,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetRqst) {
 
     poller.process();
 
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            DaqDB::StatusCode(const char *, int32_t, void **,
-                                              size_t *, uint8_t *)))
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
         .Exactly(1);
     delete[] poller.requests;
 }
@@ -160,9 +152,8 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
     char valRef[] = "abc";
     size_t sizeRef = 3;
 
-    When(OverloadedMethod(rtreeMock, Get,
-                          DaqDB::StatusCode(const char *, int32_t, void **,
-                                            size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *) {
@@ -185,9 +176,8 @@ BOOST_AUTO_TEST_CASE(ProcessMultipleGetRqst) {
 
     poller.process();
 
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            DaqDB::StatusCode(const char *, int32_t, void **,
-                                              size_t *, uint8_t *)))
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
         .Exactly(DEQUEUE_RING_LIMIT);
     delete[] poller.requests;
 }
@@ -197,18 +187,16 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
     Mock<DaqDB::PmemPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
 
-    When(OverloadedMethod(
-             rtreeMock, Put,
-             DaqDB::StatusCode(const char *, int32_t, const char *, int32_t))
+    When(OverloadedMethod(rtreeMock, Put,
+                          void(const char *, int32_t, const char *, int32_t))
              .Using(expectedKey, expectedKeySize, expectedVal, expectedValSize))
-        .Return(DaqDB::StatusCode::OK)
-        .Return(DaqDB::StatusCode::UNKNOWN_ERROR);
+        .Return();
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     poller.rtree = &rtree;
 
-    poller.requests = new DaqDB::PmemRqst *[2];
+    poller.requests = new DaqDB::PmemRqst *[1];
     poller.requests[0] = new DaqDB::PmemRqst(
         DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
         expectedValSize,
@@ -220,26 +208,14 @@ BOOST_AUTO_TEST_CASE(ProcessPutTestCallback) {
             BOOST_CHECK_EQUAL(value, nullptr);
             BOOST_CHECK_EQUAL(valueSize, 0);
         });
-
-    poller.requests[1] = new DaqDB::PmemRqst(
-        DaqDB::RqstOperation::PUT, expectedKey, expectedKeySize, expectedVal,
-        expectedKeySize,
-        [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
-            const size_t keySize, const char *value, const size_t valueSize) {
-            BOOST_REQUIRE(!status.ok());
-            BOOST_CHECK_EQUAL(key, expectedKey);
-            BOOST_CHECK_EQUAL(keySize, expectedKeySize);
-            BOOST_CHECK_EQUAL(value, nullptr);
-            BOOST_CHECK_EQUAL(valueSize, 0);
-        });
-    poller.requestCount = 2;
+    poller.requestCount = 1;
+    /** @todo add exception handling test */
 
     poller.process();
 
-    Verify(OverloadedMethod(
-               rtreeMock, Put,
-               DaqDB::StatusCode(const char *, int32_t, const char *, int32_t)))
-        .Exactly(2);
+    Verify(OverloadedMethod(rtreeMock, Put,
+                            void(const char *, int32_t, const char *, int32_t)))
+        .Exactly(1);
     delete[] poller.requests;
 }
 
@@ -250,28 +226,25 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
     char valRef[] = "abc";
     size_t sizeRef = 3;
 
-    When(OverloadedMethod(rtreeMock, Get,
-                          DaqDB::StatusCode(const char *, int32_t, void **,
-                                            size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .Do([&](const char *key, int32_t keySize, void **val, size_t *valSize,
                 uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::OK;
         })
         .Do([&](const char *key, int32_t keySize, void **val, size_t *valSize,
                 uint8_t *) {
             *val = valRef;
             *valSize = sizeRef;
-            return DaqDB::StatusCode::KEY_NOT_FOUND;
         });
 
     DaqDB::PmemPoller &poller = pollerMock.get();
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     poller.rtree = &rtree;
 
-    poller.requests = new DaqDB::PmemRqst *[2];
+    poller.requests = new DaqDB::PmemRqst *[1];
     poller.requests[0] = new DaqDB::PmemRqst(
         DaqDB::RqstOperation::GET, expectedKey, expectedKeySize, nullptr, 0,
         [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
@@ -281,21 +254,13 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
             BOOST_CHECK_EQUAL(keySize, expectedKeySize);
         });
 
-    poller.requests[1] = new DaqDB::PmemRqst(
-        DaqDB::RqstOperation::GET, expectedKey, expectedKeySize, nullptr, 0,
-        [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status, const char *key,
-            const size_t keySize, const char *value, const size_t valueSize) {
-            BOOST_REQUIRE(!status.ok());
-            BOOST_CHECK_EQUAL(key, expectedKey);
-            BOOST_CHECK_EQUAL(keySize, expectedKeySize);
-        });
-    poller.requestCount = 2;
+    poller.requestCount = 1;
+    /** @todo add exception handling test */
 
     poller.process();
 
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            DaqDB::StatusCode(const char *, int32_t, void **,
-                                              size_t *, uint8_t *)))
-        .Exactly(2);
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
+        .Exactly(1);
     delete[] poller.requests;
 }

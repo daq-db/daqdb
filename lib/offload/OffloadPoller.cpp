@@ -151,8 +151,13 @@ void OffloadPoller::initFreeList() {
 
 StatusCode OffloadPoller::_getValCtx(const OffloadRqst *rqst,
                                      ValCtx &valCtx) const {
-    return rtree->Get(rqst->key, rqst->keySize, &valCtx.val, &valCtx.size,
-                      &valCtx.location);
+    try {
+        rtree->Get(rqst->key, rqst->keySize, &valCtx.val, &valCtx.size,
+                   &valCtx.location);
+    } catch (...) {
+        /** @todo fix exception handling */
+        return StatusCode::UNKNOWN_ERROR;
+    }
 }
 
 void OffloadPoller::_processGet(const OffloadRqst *rqst) {
@@ -215,10 +220,12 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
             buff,      valSize,       getBdev()->getSizeInBlk(valSizeAlign),
             rqst->key, rqst->keySize, nullptr,
             true,      rtree,         rqst->clb};
-        rc = rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
-        if (rc != StatusCode::OK) {
+        try {
+            rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
+        } catch (...) {
+            /** @todo fix exception handling */
             delete ioCtx;
-            _rqstClb(rqst, rc);
+            _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
             return;
         }
         *ioCtx->lba = getFreeLba();

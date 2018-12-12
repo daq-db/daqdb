@@ -31,27 +31,16 @@ RTree::~RTree() {
 }
 Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
     if (!boost::filesystem::exists(path)) {
-        try {
-            _pm_pool =
-                pool<TreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
-        } catch (pmem::pool_error &pe) {
-            std::cout << "Error on create" << pe.what();
-        }
-        try {
-            treeRoot = _pm_pool.get_root().get();
-            make_persistent_atomic<Node>(_pm_pool, treeRoot->rootNode, false,
-                                         0);
-            treeRoot->level_bits = log2(LEVEL_SIZE);
-            treeRoot->tree_heigh = KEY_SIZE / treeRoot->level_bits;
-            level_bits = treeRoot->level_bits;
-            tree_heigh = treeRoot->tree_heigh;
-            int count = 0;
-            allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth,
-                          &count);
-        } catch (std::exception &e) {
-            std::cout << "Error " << e.what();
-        }
-
+        _pm_pool =
+            pool<TreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
+        treeRoot = _pm_pool.get_root().get();
+        make_persistent_atomic<Node>(_pm_pool, treeRoot->rootNode, false, 0);
+        treeRoot->level_bits = log2(LEVEL_SIZE);
+        treeRoot->tree_heigh = KEY_SIZE / treeRoot->level_bits;
+        level_bits = treeRoot->level_bits;
+        tree_heigh = treeRoot->tree_heigh;
+        int count = 0;
+        allocateLevel(treeRoot->rootNode, treeRoot->rootNode->depth, &count);
     } else {
         DAQ_DEBUG("RTree Opening existing pool");
         _pm_pool = pool<TreeRoot>::open(path, LAYOUT);
@@ -77,8 +66,8 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
               std::to_string(alloc_daqdb.units_per_block));
 }
 
-StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
-                      size_t *size, uint8_t *location) {
+void RTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
+                uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
@@ -88,14 +77,13 @@ StatusCode RTree::Get(const char *key, int32_t keybytes, void **value,
         *location = val->location;
     } else if (val->location == EMPTY ||
                val->locationVolatile.get().value == EMPTY) {
-        return StatusCode::KEY_NOT_FOUND;
+        throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
     *size = val->size;
-    return StatusCode::OK;
 }
 
-StatusCode RTree::Get(const char *key, void **value, size_t *size,
-                      uint8_t *location) {
+void RTree::Get(const char *key, void **value, size_t *size,
+                uint8_t *location) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
         *value = val->locationPtr.value.get();
@@ -105,31 +93,29 @@ StatusCode RTree::Get(const char *key, void **value, size_t *size,
         *location = val->location;
     } else if (val->location == EMPTY ||
                val->locationVolatile.get().value == EMPTY) {
-        return StatusCode::KEY_NOT_FOUND;
+        throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
     *size = val->size;
-    return StatusCode::OK;
 }
-StatusCode RTree::Put(const char *key, // copy value from std::string
-                      char *value) {
+
+void RTree::Put(const char *key, // copy value from std::string
+                char *value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
-    return StatusCode::OK;
 }
 
-StatusCode RTree::Put(const char *key, int32_t keybytes, const char *value,
-                      int32_t valuebytes) {
+void RTree::Put(const char *key, int32_t keybytes, const char *value,
+                int32_t valuebytes) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->location = PMEM;
     val->locationVolatile.get().value = PMEM;
-    return StatusCode::OK;
 }
 
-StatusCode RTree::Remove(const char *key) {
+void RTree::Remove(const char *key) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     if (val->location == EMPTY) {
-        return StatusCode::KEY_NOT_FOUND;
+        throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
     try {
         if (val->location == PMEM &&
@@ -141,15 +127,14 @@ StatusCode RTree::Remove(const char *key) {
         val->location = EMPTY;
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
-        return StatusCode::UNKNOWN_ERROR;
+        throw OperationFailedException(Status(UNKNOWN_ERROR));
     }
     if (val->location == PMEM) {
         delete val->actionValue;
     }
-    return StatusCode::OK;
 }
 
-StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
+void RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->actionValue = new pobj_action[1];
     pmemoid poid =
@@ -158,13 +143,12 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     if (OID_IS_NULL(poid)) {
         delete val->actionValue;
         val->actionValue = nullptr;
-        return StatusCode::ALLOCATION_ERROR;
+        throw OperationFailedException(Status(ALLOCATION_ERROR));
     }
     val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
     val->size = size;
     *value = reinterpret_cast<char *>(
         pmemobj_direct(*(val->locationPtr.value.raw_ptr())));
-    return StatusCode::OK;
 }
 
 /*
@@ -172,8 +156,7 @@ StatusCode RTree::AllocValueForKey(const char *key, size_t size, char **value) {
  * Vector is reserved and it's address is returned.
  * Action related to reservation is stored in ValueWrapper in actionUpdate
  */
-StatusCode RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
-                                    size_t size) {
+void RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV, size_t size) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     val->actionUpdate = new pobj_action[3];
     pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
@@ -181,10 +164,9 @@ StatusCode RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
     if (OID_IS_NULL(poid)) {
         delete val->actionUpdate;
         val->actionUpdate = nullptr;
-        return StatusCode::ALLOCATION_ERROR;
+        throw OperationFailedException(Status(ALLOCATION_ERROR));
     }
     *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
-    return StatusCode::OK;
 }
 
 /*
@@ -192,9 +174,7 @@ StatusCode RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
  *	Calls persist on IOVVector.
  *	Removes value buffer allocated in PMEM.
  */
-StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
-                                     size_t size) {
-
+void RTree::UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) {
     pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
@@ -207,7 +187,6 @@ StatusCode RTree::UpdateValueWrapper(const char *key, uint64_t *ptr,
     pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
     delete val->actionValue;
     delete val->actionUpdate;
-    return StatusCode::OK;
 }
 
 void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {

@@ -49,24 +49,22 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     uint8_t location = DISK;
 
     DaqDB::OffloadPoller &poller = pollerMock.get();
-    When(OverloadedMethod(rtreeMock, Get,
-                          DaqDB::StatusCode(const char *, int32_t, void **,
-                                            size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *loc) {
             *val = valRef;
             *valSize = sizeRef;
             *loc = location;
-            return DaqDB::StatusCode::OK;
         });
     When(Method(pollerMock, read)).Return(0);
     When(Method(pollerMock, write)).Return(0);
 
     poller.process();
-    VerifyNoOtherInvocations(OverloadedMethod(
-        rtreeMock, Get, DaqDB::StatusCode(const char *, int32_t, void **,
-                                          size_t *, uint8_t *)));
+    VerifyNoOtherInvocations(
+        OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                              size_t *, uint8_t *)));
     VerifyNoOtherInvocations(Method(pollerMock, read));
     VerifyNoOtherInvocations(Method(pollerMock, write));
 }
@@ -87,16 +85,14 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
     spdkBdev.spBdevCtx->buf_align = 1;
 
     DaqDB::OffloadPoller &poller = pollerMock.get();
-    When(OverloadedMethod(rtreeMock, Get,
-                          DaqDB::StatusCode(const char *, int32_t, void **,
-                                            size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *loc) {
             *val = &lbaRef;
             *valSize = valSizeRef;
             *loc = location;
-            return DaqDB::StatusCode::OK;
         });
     When(Method(pollerMock, read)).Return(0);
     When(Method(pollerMock, write)).Return(0);
@@ -115,9 +111,8 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
     poller.process();
 
     VerifyNoOtherInvocations(Method(pollerMock, write));
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            DaqDB::StatusCode(const char *, int32_t, void **,
-                                              size_t *, uint8_t *)))
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
         .Exactly(1);
     Verify(Method(pollerMock, read)).Exactly(1);
 
@@ -140,21 +135,18 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
     spdkBdev.spBdevCtx->buf_align = 1;
 
     DaqDB::OffloadPoller &poller = pollerMock.get();
-    When(OverloadedMethod(rtreeMock, Get,
-                          DaqDB::StatusCode(const char *, int32_t, void **,
-                                            size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *loc) {
             *val = valRef;
             *valSize = valSizeRef;
             *loc = location;
-            return DaqDB::StatusCode::OK;
         });
     When(Method(rtreeMock, AllocateIOVForKey))
         .AlwaysDo([&](const char *key, uint64_t **ptr, size_t size) {
             *ptr = &lbaRef;
-            return DaqDB::StatusCode::OK;
         });
 
     When(Method(pollerMock, getFreeLba)).Return(1);
@@ -175,9 +167,8 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
     poller.process();
     VerifyNoOtherInvocations(Method(pollerMock, read));
 
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            DaqDB::StatusCode(const char *, int32_t, void **,
-                                              size_t *, uint8_t *)))
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
         .Exactly(1);
     Verify(Method(pollerMock, write)).Exactly(1);
     delete[] poller.requests;
@@ -192,17 +183,14 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
     uint8_t location = PMEM;
 
     DaqDB::OffloadPoller &poller = pollerMock.get();
-    When(OverloadedMethod(rtreeMock, Get,
-                          DaqDB::StatusCode(const char *, int32_t, void **,
-                                            size_t *, uint8_t *))
+    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                               size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *loc) {
             *val = valRef;
             *valSize = valSizeRef;
             *loc = location;
-
-            return DaqDB::StatusCode::OK;
         });
     When(Method(pollerMock, read)).Return(0);
     When(Method(pollerMock, write)).Return(0);
@@ -219,9 +207,8 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
     poller.process();
     VerifyNoOtherInvocations(Method(pollerMock, read));
     VerifyNoOtherInvocations(Method(pollerMock, write));
-    Verify(OverloadedMethod(rtreeMock, Get,
-                            DaqDB::StatusCode(const char *, int32_t, void **,
-                                              size_t *, uint8_t *)))
+    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
+                                                 size_t *, uint8_t *)))
         .Exactly(1);
     delete[] poller.requests;
 }
