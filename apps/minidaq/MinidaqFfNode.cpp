@@ -20,6 +20,7 @@ namespace DaqDB {
 
 /** @todo conisder moving to a new MinidaqSelector class */
 thread_local std::mt19937 _generator;
+thread_local int _eventId;
 
 MinidaqFfNode::MinidaqFfNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
@@ -27,17 +28,19 @@ MinidaqFfNode::~MinidaqFfNode() {}
 
 std::string MinidaqFfNode::_GetType() { return std::string("fast-filtering"); }
 
-void MinidaqFfNode::_Setup(int executorId, MinidaqKey &key) {
-    key.runId = _runId;
-    key.eventId = executorId;
+void MinidaqFfNode::_Setup(int executorId) {
+    _eventId = executorId;
 }
 
-void MinidaqFfNode::_NextKey(MinidaqKey &key) {
-    /** @todo getNext */
-    /** @todo fixed next with distributed version
-     *  (node_id, executor_id, n_global_executors)
-     */
-    key.eventId += _nTh;
+Key MinidaqFfNode::_NextKey() {
+    //key = reinterpret_cast<MinidaqKey *>(_kvs->GetAny(GetOptions(READY)).data());
+    Key key = _kvs->AllocKey();
+    MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
+    mKeyPtr->runId = _runId;
+    mKeyPtr->subdetectorId = _baseId;
+    mKeyPtr->eventId = _eventId;
+    _eventId += _nTh;
+    return key;
 }
 
 bool MinidaqFfNode::_Accept() {
@@ -61,31 +64,22 @@ int MinidaqFfNode::_PickNFragments() {
     return _nSubdetectors;
 }
 
-void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
+    MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
     int baseId = _PickSubdetector();
     bool accept = _Accept();
-    MinidaqKey *keyTmp;
     int nRetries;
-
-    if (accept) {
-        keyTmp = new MinidaqKey;
-        *keyTmp = key;
-    } else {
-        keyTmp = &key;
-    }
-
-    Key fogKey(reinterpret_cast<char *>(keyTmp), sizeof(*keyTmp));
 
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
-        key.subdetectorId = baseId + i;
+        mKeyPtr->subdetectorId = baseId + i;
         DaqDB::Value value;
         nRetries = 0;
         while (nRetries < _maxRetries) {
             nRetries++;
             try {
-                value = _kvs->Get(fogKey);
+                value = _kvs->Get(key);
             }
             catch (OperationFailedException &e) {
                 if ((e.status()() == KEY_NOT_FOUND) &&
@@ -97,14 +91,12 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                     }
                     continue;
                 } else {
-                    if (accept)
-                        delete keyTmp;
+                    _kvs->Free(std::move(key));
                     throw;
                 }
             }
             catch (...) {
-                if (accept)
-                    delete keyTmp;
+                _kvs->Free(std::move(key));
                 throw;
             }
             break;
@@ -118,8 +110,8 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
             while (1) {
                 try {
                     _kvs->UpdateAsync(
-                        std::move(fogKey), UpdateOptions(LONG_TERM),
-                        [keyTmp, &cnt, &cntErr](
+                        key, UpdateOptions(LONG_TERM),
+                        [&cnt, &cntErr](
                             DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                             const char *key, const size_t keySize,
                             const char *value, const size_t valueSize) {
@@ -128,8 +120,11 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                             } else {
                                 cnt++;
                             }
-                            delete keyTmp;
                         });
+                        /** @todo c++ does not allow it in lambda,
+                         *        this is not thread-safe
+                         */
+                        _kvs->Free(std::move(key));
                 }
                 catch (QueueFullException &e) {
                     // Keep retrying
@@ -140,14 +135,15 @@ void MinidaqFfNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
                     continue;
                 }
                 catch (...) {
-                    delete keyTmp;
+                    _kvs->Free(std::move(key));
                     delete value.data();
                     throw;
                 }
                 break;
             }
         } else {
-            _kvs->Remove(fogKey);
+            _kvs->Remove(key);
+            _kvs->Free(std::move(key));
             cnt++;
         }
         delete value.data();

@@ -58,14 +58,14 @@ class MinidaqNode {
     int GetThreads();
 
   protected:
-    virtual void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+    virtual void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                        std::atomic<std::uint64_t> &cntErr) = 0;
-    virtual void _Setup(int executorId, MinidaqKey &key) = 0;
-    virtual void _NextKey(MinidaqKey &key) = 0;
+    virtual void _Setup(int executorId) = 0;
+    virtual Key _NextKey() = 0;
 #ifdef WITH_INTEGRITY_CHECK
-    char _GetBufferByte(MinidaqKey &key, size_t i);
-    void _FillBuffer(MinidaqKey &key, char *buf, size_t s);
-    bool _CheckBuffer(MinidaqKey &key, char *buf, size_t s);
+    char _GetBufferByte(const Key &key, size_t i);
+    void _FillBuffer(const Key &key, char *buf, size_t s);
+    bool _CheckBuffer(const Key &key, const char *buf, size_t s);
 #endif /* WITH_INTEGRITY_CHECK */
     virtual std::string _GetType() = 0;
 

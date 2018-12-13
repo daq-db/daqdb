@@ -30,10 +30,10 @@ class MinidaqFfNode : public MinidaqNode {
     void SetRetryDelay(int d);
 
   protected:
-    void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+    void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
-    void _Setup(int executorId, MinidaqKey &key);
-    void _NextKey(MinidaqKey &key);
+    void _Setup(int executorId);
+    Key _NextKey();
     std::string _GetType();
     bool _Accept();
     int _PickSubdetector();
@@ -41,8 +41,8 @@ class MinidaqFfNode : public MinidaqNode {
 
     int _baseId = 0;
     int _nSubdetectors = 0;
-    int _delay_us = 10;
-    int _maxRetries = 1000;
+    int _delay_us = 100;
+    int _maxRetries = 100;
 
   private:
     double _acceptLevel = 1.0; // desired acceptance level for filtering nodes

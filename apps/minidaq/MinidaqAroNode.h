@@ -25,7 +25,7 @@ class MinidaqAroNode : public MinidaqRoNode {
     ~MinidaqAroNode();
 
   protected:
-    void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+    void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
     std::string _GetType();
 };
