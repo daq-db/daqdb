@@ -19,8 +19,7 @@ namespace DaqDB {
 
 thread_local MinidaqKey MinidaqRoNode::_mKey;
 
-MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {
-}
+MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
 MinidaqRoNode::~MinidaqRoNode() {}
 

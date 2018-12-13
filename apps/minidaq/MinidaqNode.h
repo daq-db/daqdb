@@ -25,7 +25,7 @@
 
 namespace DaqDB {
 
-struct __attribute__ ((packed)) MinidaqKey {
+struct __attribute__((packed)) MinidaqKey {
     MinidaqKey() : eventId(0), subdetectorId(0), runId(0){};
     MinidaqKey(uint64_t e, uint16_t s, uint16_t r)
         : eventId(e), subdetectorId(s), runId(r) {}

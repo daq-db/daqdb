@@ -256,7 +256,8 @@ void MinidaqNode::SaveSummary(std::string &fs, std::string &tname) {
 
 #ifdef WITH_INTEGRITY_CHECK
 char MinidaqNode::_GetBufferByte(const Key &key, size_t i) {
-    const MinidaqKey *mKeyPtr = reinterpret_cast<const MinidaqKey *>(key.data());
+    const MinidaqKey *mKeyPtr =
+        reinterpret_cast<const MinidaqKey *>(key.data());
     return ((mKeyPtr->eventId + i) % 256);
 }
 
@@ -267,7 +268,8 @@ void MinidaqNode::_FillBuffer(const Key &key, char *buf, size_t s) {
 }
 
 bool MinidaqNode::_CheckBuffer(const Key &key, const char *buf, size_t s) {
-    const MinidaqKey *mKeyPtr = reinterpret_cast<const MinidaqKey *>(key.data());
+    const MinidaqKey *mKeyPtr =
+        reinterpret_cast<const MinidaqKey *>(key.data());
     std::stringstream msg;
     unsigned char b_exp;
     unsigned char b_act;

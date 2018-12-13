@@ -28,12 +28,11 @@ MinidaqFfNode::~MinidaqFfNode() {}
 
 std::string MinidaqFfNode::_GetType() { return std::string("fast-filtering"); }
 
-void MinidaqFfNode::_Setup(int executorId) {
-    _eventId = executorId;
-}
+void MinidaqFfNode::_Setup(int executorId) { _eventId = executorId; }
 
 Key MinidaqFfNode::_NextKey() {
-    //key = reinterpret_cast<MinidaqKey *>(_kvs->GetAny(GetOptions(READY)).data());
+    // key = reinterpret_cast<MinidaqKey
+    // *>(_kvs->GetAny(GetOptions(READY)).data());
     Key key = _kvs->AllocKey();
     MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
     mKeyPtr->runId = _runId;
@@ -80,8 +79,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
             nRetries++;
             try {
                 value = _kvs->Get(key);
-            }
-            catch (OperationFailedException &e) {
+            } catch (OperationFailedException &e) {
                 if ((e.status()() == KEY_NOT_FOUND) &&
                     (nRetries < _maxRetries)) {
                     /* Wait until it is availabile. */
@@ -94,8 +92,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                     _kvs->Free(std::move(key));
                     throw;
                 }
-            }
-            catch (...) {
+            } catch (...) {
                 _kvs->Free(std::move(key));
                 throw;
             }
@@ -111,30 +108,28 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                 try {
                     _kvs->UpdateAsync(
                         key, UpdateOptions(LONG_TERM),
-                        [&cnt, &cntErr](
-                            DaqDB::KVStoreBase *kvs, DaqDB::Status status,
-                            const char *key, const size_t keySize,
-                            const char *value, const size_t valueSize) {
+                        [&cnt, &cntErr](DaqDB::KVStoreBase *kvs,
+                                        DaqDB::Status status, const char *key,
+                                        const size_t keySize, const char *value,
+                                        const size_t valueSize) {
                             if (!status.ok()) {
                                 cntErr++;
                             } else {
                                 cnt++;
                             }
                         });
-                        /** @todo c++ does not allow it in lambda,
-                         *        this is not thread-safe
-                         */
-                        _kvs->Free(std::move(key));
-                }
-                catch (QueueFullException &e) {
+                    /** @todo c++ does not allow it in lambda,
+                     *        this is not thread-safe
+                     */
+                    _kvs->Free(std::move(key));
+                } catch (QueueFullException &e) {
                     // Keep retrying
                     if (_delay_us) {
                         std::this_thread::sleep_for(
                             std::chrono::microseconds(_delay_us));
                     }
                     continue;
-                }
-                catch (...) {
+                } catch (...) {
                     _kvs->Free(std::move(key));
                     delete value.data();
                     throw;
