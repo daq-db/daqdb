@@ -18,7 +18,7 @@ mode = "storage";
  */
 pmem_path = "/mnt/pmem/pool.pm";
 pmem_size = 8589934592L;
-alloc_unit_size = 8;
+alloc_unit_size = 16384;
 
 /**
  * logging_level - valid parameters:
