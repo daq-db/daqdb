@@ -17,6 +17,8 @@
 
 #include <mutex>
 
+#include <asio/io_service.hpp>
+
 #include <daqdb/KVStoreBase.h>
 
 #include <DhtServer.h>
@@ -79,7 +81,9 @@ class KVStore : public KVStoreBase {
     inline SpdkCore *getSpdkCore() { return _spSpdk.get(); };
 
     inline RTreeEngine *pmem() { return _spRtree.get(); };
-    inline DhtServer *dht() { return _spDhtServer.get(); };
+
+    inline DhtServer *dhtServer() { return _spDhtServer.get(); };
+    inline DhtClient *dhtClient() { return _spDht->getClient(); };
 
     inline asio::io_service &getIoService() { return _ioService; };
 

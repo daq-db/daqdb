@@ -49,12 +49,6 @@ primaryKey = "1*3";
 //******************************* DHT SECTION ********************************
 //*****************************************************************************
 
-protocol = "TCP";
-port = 10003;
-msg_maxsize = 1000000L;
-sccb_pool_interval = 100;
-instant_swap = 0;
-
 /**
  * key_mask
  * neighbors
@@ -64,7 +58,8 @@ neighbors :
 (
     {
         ip = "localhost";
-        port = 10003;
+        port = 31850;
+        local = 1;
         keys = { start = "0", end = "255"}
     },
 );

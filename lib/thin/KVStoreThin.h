@@ -16,6 +16,7 @@
 #pragma once
 
 #include <DhtServer.h>
+#include <asio/io_service.hpp>
 #include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
@@ -69,7 +70,7 @@ class KVStoreThin : public KVStoreBase {
 
     inline DaqDB::DhtCore *getDhtCore() { return _spDht.get(); };
 
-    inline DhtServer *dht() { return _spDhtServer.get(); };
+    inline DhtClient *dhtClient() { return _spDht->getClient(); };
 
     inline asio::io_service &getIoService() { return _ioService; };
 
