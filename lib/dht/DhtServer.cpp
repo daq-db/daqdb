@@ -15,6 +15,7 @@
 
 #include "DhtServer.h"
 
+#include <iostream>
 #include <sstream>
 
 #include <boost/assign/list_of.hpp>
@@ -27,13 +28,12 @@ namespace DaqDB {
 using namespace std;
 using boost::format;
 
+const size_t DEFAULT_ERPC_RESPONSE_GET_SIZE = 16 * 1024;
+
 map<DhtNodeState, string> NodeStateStr =
     boost::assign::map_list_of(DhtNodeState::NODE_READY, "Ready")(
         DhtNodeState::NODE_NOT_RESPONDING,
         "Not Responding")(DhtNodeState::NODE_INIT, "Not initialized");
-
-const size_t DEFAULT_ERPC_REQ_SIZE = 16;
-const size_t DEFAULT_ERPC_RESPONSE_SIZE = 16;
 
 static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
@@ -43,25 +43,34 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
     Key key = serverCtx->kvs->AllocKey();
-    std::memcpy(key.data(), msg->msg, msg->keySize);
+    memcpy(key.data(), msg->msg, msg->keySize);
 
-    auto &resp = req_handle->pre_resp_msgbuf;
-    req_handle->prealloc_used = true;
     try {
         auto val = serverCtx->kvs->Get(key);
+
+        auto reqMsgbufSize = req->get_data_size();
         auto responseSize = val.size() + sizeof(DaqdbDhtResult);
-        rpc->resize_msg_buffer(&resp, responseSize);
-        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
+
+        req_handle->prealloc_used = false;
+        erpc::MsgBuffer &resp_msgbuf = req_handle->dyn_resp_msgbuf;
+        resp_msgbuf = rpc->alloc_msg_buffer_or_die(reqMsgbufSize);
+
+        DaqdbDhtResult *result =
+            reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf.buf);
+
         result->rc = 0;
         result->msgSize = val.size();
         if (result->msgSize > 0) {
             memcpy(result->msg, val.data(), result->msgSize);
         }
+
     } catch (DaqDB::OperationFailedException &e) {
+        auto &resp = req_handle->pre_resp_msgbuf;
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 1;
         result->msgSize = 0;
+        req_handle->prealloc_used = true;
     }
 
     rpc->enqueue_response(req_handle);
@@ -132,6 +141,12 @@ DhtServer::DhtServer(DhtCore *dhtCore, KVStoreBase *kvs, unsigned short port)
     serve();
 }
 
+DhtServer::~DhtServer() {
+    keepRunning = false;
+    if (_thread != nullptr)
+        _thread->join();
+}
+
 void DhtServer::_serve(void) {
     auto nexus = new erpc::Nexus(_dhtCore->getLocalNode()->getUri(), 0, 0);
 
@@ -160,7 +175,9 @@ void DhtServer::_serve(void) {
     } catch (...) {
         state = DhtServerState::DHT_SERVER_ERROR;
     }
+
     delete rpc;
+    delete nexus;
 }
 
 void DhtServer::serve(void) {

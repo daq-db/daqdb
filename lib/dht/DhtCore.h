@@ -58,6 +58,7 @@ struct DaqdbDhtResult {
 class DhtCore {
   public:
     DhtCore(DhtOptions dhtOptions);
+    ~DhtCore();
 
     void initClient();
 

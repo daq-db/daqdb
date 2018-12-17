@@ -14,6 +14,7 @@
  */
 
 #include <boost/format.hpp>
+#include <iostream>
 
 #include <chrono>
 
@@ -30,6 +31,7 @@ namespace DaqDB {
 
 const size_t DEFAULT_ERPC_REQ_SIZE = 16;
 const size_t DEFAULT_ERPC_RESPONSE_SIZE = 16;
+const size_t DEFAULT_ERPC_RESPONSE_GET_SIZE = 16 * 1024;
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
@@ -52,6 +54,7 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
 
     reqCtx->ready = true;
     reqCtx->cv.notify_all();
+
     rpc->release_response(respHandle);
 }
 
@@ -91,6 +94,13 @@ DhtClient::DhtClient(DhtCore *dhtCore, unsigned short port)
     : _dhtCore(dhtCore), _clientRpc(nullptr), _nexus(nullptr),
       state(DhtClientState::DHT_CLIENT_INIT) {}
 
+DhtClient::~DhtClient() {
+    if (_clientRpc)
+        delete reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
+    if (_nexus)
+        delete reinterpret_cast<erpc::Nexus *>(_nexus);
+}
+
 void DhtClient::_initializeNode(DhtNode *node) {
     auto serverUri = boost::str(boost::format("%1%:%2%") % node->getIp() %
                                 to_string(node->getPort()));
@@ -126,13 +136,13 @@ Value DhtClient::get(const Key &key) {
     DhtReqCtx reqCtx;
 
     auto reqSize = sizeof(DaqdbDhtMsg) + key.size();
-    auto req = rpc->alloc_msg_buffer_or_die(reqSize);
+    // auto req = rpc->alloc_msg_buffer_or_die(rpc->get_max_msg_size());
+    auto req = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_RESPONSE_GET_SIZE);
+    auto resp = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_RESPONSE_SIZE);
+
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(req.buf);
     msg->keySize = key.size();
     memcpy(msg->msg, key.data(), key.size());
-
-    auto resp =
-        rpc->alloc_msg_buffer_or_die(sizeof(DaqdbDhtResult) + 16 * 1024);
 
     auto hostToSend = _dhtCore->getHostForKey(key);
 
@@ -150,7 +160,7 @@ Value DhtClient::get(const Key &key) {
             return reqCtx.ready;
         });
     }
-    if (reqCtx.rc != 0) {
+    if (reqCtx.rc != 0 || (reqCtx.value == nullptr)) {
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
 
@@ -201,7 +211,8 @@ void DhtClient::remove(const Key &key) {
     msg->keySize = key.size();
     memcpy(msg->msg, key.data(), key.size());
 
-    auto resp = rpc->alloc_msg_buffer_or_die(sizeof(DaqdbDhtResult));
+    auto bufferSize = 16 * 1024;
+    auto resp = rpc->alloc_msg_buffer_or_die(bufferSize);
 
     auto hostToSend = _dhtCore->getHostForKey(key);
 

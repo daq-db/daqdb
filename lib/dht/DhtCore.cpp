@@ -39,6 +39,14 @@ DhtCore::DhtCore(DhtOptions dhtOptions) : options(dhtOptions) {
     _initRangeToHost();
 }
 
+DhtCore::~DhtCore() {
+    while (!_neighbors.empty()) {
+        auto neighbor = _neighbors.back();
+        _neighbors.pop_back();
+        delete neighbor;
+    }
+}
+
 void DhtCore::initClient() {
     _spClient.reset(new DhtClient(this, _spLocalNode->getPort()));
     _spClient->initialize();

@@ -69,6 +69,11 @@ bool SpdkCore::spdkEnvInit(void) {
     spdk_env_opts_init(&opts);
 
     opts.name = SPDK_APP_ENV_NAME.c_str();
+    /*
+     * SPDK will use 1G huge pages when mem_size is 1024
+     */
+    opts.mem_size = 1024;
+
     opts.shm_id = 0;
 
     return (spdk_env_init(&opts) == 0);

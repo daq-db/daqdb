@@ -44,6 +44,7 @@ struct DhtServerCtx {
 class DhtServer {
   public:
     DhtServer(DhtCore *dhtCore, KVStoreBase *kvs, unsigned short port);
+    ~DhtServer();
 
     /**
      * Prints DHT status.

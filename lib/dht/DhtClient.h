@@ -47,6 +47,7 @@ class DhtCore;
 class DhtClient {
   public:
     DhtClient(DhtCore *dhtCore, unsigned short port);
+    ~DhtClient();
 
     /**
      *

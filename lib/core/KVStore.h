@@ -32,6 +32,7 @@ namespace DaqDB {
 class KVStore : public KVStoreBase {
   public:
     static KVStoreBase *Open(const DaqDB::Options &options);
+    virtual ~KVStore();
     void init(void);
 
     virtual size_t KeySize();
@@ -89,7 +90,6 @@ class KVStore : public KVStoreBase {
 
   private:
     explicit KVStore(const DaqDB::Options &options);
-    virtual ~KVStore();
 
     inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
 

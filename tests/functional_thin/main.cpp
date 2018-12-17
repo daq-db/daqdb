@@ -98,7 +98,6 @@ int main(int argc, const char *argv[]) {
                                    testRemotePeerConnect)(
             "testPutGetSequence", testPutGetSequence)("testValueSizes",
                                                       testValueSizes);
-
     unsigned short failsCount = 0;
     for (auto test : tests) {
         if (!executeTest(test.first, test.second, spKVStore.get())) {
