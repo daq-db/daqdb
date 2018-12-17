@@ -190,10 +190,11 @@ void DhtServer::serve(void) {
 string DhtServer::printStatus() {
     stringstream result;
 
+    result << "DHT server: " << getIp() << ":" << getPort() << endl;
     if (state == DhtServerState::DHT_SERVER_READY) {
-        result << "DHT server: active";
+        result << "DHT server: active" << endl;
     } else {
-        result << "DHT server: inactive";
+        result << "DHT server: inactive" << endl;
     }
 
     if (_dhtCore->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
@@ -212,17 +213,17 @@ string DhtServer::printNeighbors() {
     auto neighbors = _dhtCore->getNeighbors();
     if (neighbors->size()) {
         for (auto neighbor : *neighbors) {
-            /*
-            if (getClient()->ping(neighbor->getId()) ==
-                zh::Const::toInt(zh::Const::ZSC_REC_SUCC)) {
+
+            auto isConnected = _dhtCore->getClient()->ping(*neighbor);
+            if (isConnected) {
                 neighbor->state = DhtNodeState::NODE_READY;
             } else {
                 neighbor->state = DhtNodeState::NODE_NOT_RESPONDING;
             }
-            */
             result << boost::str(
-                boost::format("[%1%:%2%]: %3%\n") % neighbor->getIp() %
-                to_string(neighbor->getPort()) % NodeStateStr[neighbor->state]);
+                boost::format("[%1%:%2%] - SessionId(%3%) : %4%\n") %
+                neighbor->getIp() % to_string(neighbor->getPort()) %
+                neighbor->getSessionId() % NodeStateStr[neighbor->state]);
         }
     } else {
         result << "No neighbors";

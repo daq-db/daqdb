@@ -438,6 +438,7 @@ std::string KVStore::getProperty(const std::string &name) {
     if (name == "daqdb.dht.status") {
         std::stringstream result;
         result << _spDhtServer->printStatus() << std::endl;
+        return result.str();
     }
     if (name == "daqdb.dht.ip")
         return _spDhtServer->getIp();
