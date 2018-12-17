@@ -96,6 +96,12 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
     }
 }
 
+OffloadPoller::~OffloadPoller() {
+    isRunning = 0;
+    if (_thread != nullptr)
+        _thread->join();
+}
+
 void OffloadPoller::startThread() {
     _thread = new std::thread(&OffloadPoller::_threadMain, this);
     DAQ_DEBUG("OffloadPoller thread started");
@@ -303,7 +309,8 @@ void OffloadPoller::process() {
 }
 
 void OffloadPoller::_threadMain(void) {
-    while (true) {
+    isRunning = 1;
+    while (isRunning) {
         dequeue();
         process();
         spdkCore->spSpdkThread->poll();

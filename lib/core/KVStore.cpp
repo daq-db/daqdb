@@ -53,6 +53,8 @@ KVStore::~KVStore() {
     for (auto index = 0; index < _rqstPollers.size(); index++) {
         delete _rqstPollers.at(index);
     }
+
+    _spOffloadPoller.reset();
 }
 
 void KVStore::init() {

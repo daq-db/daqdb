@@ -18,22 +18,48 @@
 #include "common.h"
 #include "tests.h"
 
+#include <DhtClient.h>
+#include <DhtCore.h>
+
 using namespace std;
 using namespace DaqDB;
 
-bool testRemotePeerConnect(KVStoreBase *kvs) {
+bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
     bool result = true;
-    auto neighbours = kvs->getProperty("daqdb.dht.neighbours");
 
-    if (!boost::contains(neighbours, "Ready")) {
-        LOG_INFO << "Cannot contact peer DHT server" << flush;
-        result = false;
+    DhtOptions clientOptions;
+    for (auto node : options->dht.neighbors) {
+        if (node->local) {
+            DhtNeighbor local;
+            local.ip = node->ip;
+            local.keyRange.mask = "1";
+            local.port = node->port + 1;
+            local.local = true;
+            clientOptions.neighbors.push_back(&local);
+        } else {
+            clientOptions.neighbors.push_back(node);
+        }
+    }
+
+    auto core = new DhtCore(clientOptions);
+    core->initClient();
+    if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
+        LOG_INFO << "DHT client started successfully" << flush;
+    } else {
+        LOG_INFO << "Can not start DHT client" << flush;
+        return false;
+    }
+    auto neighborNode = core->getNeighbors()->front();
+    auto connected = core->getClient()->ping(*neighborNode);
+    if (!connected) {
+        LOG_INFO << "Can not connect to neighbor" << flush;
+        return false;
     }
 
     return result;
 }
 
-bool testPutGetSequence(KVStoreBase *kvs) {
+bool testPutGetSequence(KVStoreBase *kvs, DaqDB::Options *options) {
     bool result = true;
 
     const string expectedVal = "daqdb";

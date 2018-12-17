@@ -26,6 +26,7 @@
 using namespace std;
 
 namespace po = boost::program_options;
+typedef function<bool(DaqDB::KVStoreBase *, DaqDB::Options *)> TestFunction;
 
 static void initLogger() {
     logging::add_console_log(std::clog, keywords::format = "%Message%");
@@ -35,11 +36,11 @@ static void initLogger() {
                                      logging::trivial::info);
 }
 
-static bool executeTest(string test, function<bool(DaqDB::KVStoreBase *)> fn,
-                        DaqDB::KVStoreBase *kvs) {
+static bool executeTest(string test, TestFunction fn, DaqDB::KVStoreBase *kvs,
+                        DaqDB::Options *options) {
     LOG_INFO << string(80, '-') << endl << test << endl << string(80, '-');
 
-    if (fn(kvs)) {
+    if (fn(kvs, options)) {
         LOG_INFO << "Test completed successfully" << endl;
         return true;
     } else {
@@ -93,14 +94,13 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    map<string, function<bool(DaqDB::KVStoreBase *)>> tests =
-        boost::assign::map_list_of("testRemotePeerConnect",
-                                   testRemotePeerConnect)(
-            "testPutGetSequence", testPutGetSequence)("testValueSizes",
-                                                      testValueSizes);
+    map<string, TestFunction> tests = boost::assign::map_list_of(
+        "testRemotePeerConnect", testRemotePeerConnect)(
+        "testPutGetSequence", testPutGetSequence)("testValueSizes",
+                                                  testValueSizes);
     unsigned short failsCount = 0;
     for (auto test : tests) {
-        if (!executeTest(test.first, test.second, spKVStore.get())) {
+        if (!executeTest(test.first, test.second, spKVStore.get(), &options)) {
             failsCount++;
         }
     }

@@ -50,7 +50,7 @@ bool static checkValuePutGet(KVStoreBase *kvs, Key key, size_t valueSize) {
     return result;
 }
 
-bool testValueSizes(KVStoreBase *kvs) {
+bool testValueSizes(KVStoreBase *kvs, DaqDB::Options *options) {
     bool result = true;
 
     const string expectedKey = "200";
