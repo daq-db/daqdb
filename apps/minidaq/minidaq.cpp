@@ -19,6 +19,7 @@
 
 #include "MinidaqAroNode.h"
 #include "MinidaqFfNode.h"
+#include "MinidaqFfNodeSeq.h"
 #include "MinidaqRoNode.h"
 #include "daqdb/KVStoreBase.h"
 
@@ -50,6 +51,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_ITERATIONS 0
 #define MINIDAQ_DEFAULT_STOPONERROR false
 #define MINIDAQ_DEFAULT_LIVE false
+#define MINIDAQ_DEFAULT_MAX_READY_KEYS 4 * 1024 * 1024
 
 #define US_IN_MS 1000
 
@@ -67,6 +69,7 @@ int tRamp_ms;
 int delay;
 int nCores;
 int bCoreId;
+int maxReadyKeys;
 size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
 size_t maxIters;
@@ -88,6 +91,7 @@ static DaqDB::KVStoreBase *openKVS() {
     options.key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
     options.key.field(2, sizeof(DaqDB::MinidaqKey::eventId), true);
     options.runtime.numOfPollers = nPoolers;
+    options.runtime.maxReadyKeys = maxReadyKeys;
     if (enableLog) {
         options.runtime.logFunc = logStd;
     }
@@ -193,6 +197,9 @@ int main(int argc, const char *argv[]) {
         "n-cores",
         po::value<int>(&nCores)->default_value(MINIDAQ_DEFAULT_N_CORES),
         "Number of cores for minidaq worker threads.")(
+        "max-ready-keys", po::value<int>(&maxReadyKeys)
+                              ->default_value(MINIDAQ_DEFAULT_MAX_READY_KEYS),
+        "Size of the queue holding keys ready for collecting.")(
         "start-delay",
         po::value<int>(&delay)->default_value(MINIDAQ_DEFAULT_DELAY),
         "Delays start of the test on each worker thread.")(
@@ -329,7 +336,8 @@ int main(int argc, const char *argv[]) {
         if (nFfTh) {
             std::cout << "### Configuring fast-filtering nodes..." << endl;
             unique_ptr<DaqDB::MinidaqFfNode> nodeFf(
-                new DaqDB::MinidaqFfNode(kvs));
+                maxReadyKeys ? (new DaqDB::MinidaqFfNode(kvs))
+                             : (new DaqDB::MinidaqFfNodeSeq(kvs)));
             nodeFf->SetBaseSubdetectorId(startSubId);
             nodeFf->SetSubdetectors(nSub);
             nodeFf->SetThreads(nFfTh);
