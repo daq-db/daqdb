@@ -18,7 +18,6 @@ endif()
 
 include(erpc.cmake)
 include(libconfig.cmake)
-include(protobuf.cmake)
 
 ###############################################################################
 # Dependencies - Libraries
@@ -34,16 +33,6 @@ if(NOT THIN_LIB)
 	add_library(hdr_histogram SHARED ${HDRHISTOGRAM_SOURCES})
 endif()
 
-# zht
-set(ZHT ${PROJECT_SOURCE_DIR}/zht)
-set(ZHT_INCLUDES ${ZHT})
-set(ZHT_INCLUDES_EXPORT ${ZHT_INCLUDES} PARENT_SCOPE)
-include_directories(${ZHT_INCLUDES})
-file(GLOB_RECURSE ZHT_SOURCES ${ZHT}/*.cpp)
-add_library(zht SHARED ${ZHT_SOURCES})
-target_link_libraries(zht libprotobuf)
-target_compile_definitions(zht PRIVATE PF_INET=1 SML_MSG=1)
-
 ###############################################################################
 # Custom Targets
 ###############################################################################
@@ -56,4 +45,3 @@ if(NOT THIN_LIB)
 endif()
 add_dependencies(clean-dep liberpc_clean)
 add_dependencies(clean-dep libconfig_clean)
-add_dependencies(clean-dep protobuf_clean)
