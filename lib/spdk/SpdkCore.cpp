@@ -153,7 +153,7 @@ bool SpdkCore::attachConfigFile(void) {
 }
 
 void SpdkCore::removeConfFile(void) {
-    if (boost::filesystem::exists(DEFAULT_SPDK_CONF_FILE)) {
+    if (bf::exists(DEFAULT_SPDK_CONF_FILE)) {
         bf::remove(DEFAULT_SPDK_CONF_FILE);
     }
 }

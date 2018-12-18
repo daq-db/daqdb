@@ -15,6 +15,7 @@
 
 #include "KVStore.h"
 
+#include <boost/filesystem.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <sstream>
@@ -27,6 +28,7 @@
 #define POLLER_CPU_CORE_BASE 1
 
 using namespace std::chrono_literals;
+namespace bf = boost::filesystem;
 
 namespace DaqDB {
 
@@ -64,6 +66,10 @@ void KVStore::init() {
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
+    // @TODO jradtke Temporary workaround - ARTree rebuilding not implemented
+    if (bf::exists(getOptions().pmem.poolPath)) {
+        bf::remove(getOptions().pmem.poolPath);
+    }
     _spRtree.reset(DaqDB::RTreeEngine::Open(getOptions().pmem.poolPath,
                                             getOptions().pmem.totalSize,
                                             getOptions().pmem.allocUnitSize));
