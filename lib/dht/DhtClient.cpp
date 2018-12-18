@@ -30,8 +30,11 @@ using boost::format;
 namespace DaqDB {
 
 const size_t DEFAULT_ERPC_REQ_SIZE = 16;
-const size_t DEFAULT_ERPC_RESPONSE_SIZE = 16;
-const size_t DEFAULT_ERPC_RESPONSE_GET_SIZE = 16 * 1024;
+const size_t DEFAULT_ERPC_RESPONSE_PREALOC_SIZE = 16;
+const size_t DEFAULT_ERPC_RESPONSE_BUF_SIZE = 16 * 1024;
+const size_t DEFAULT_ERPC_REQEST_BUF_SIZE = 16 * 1024;
+
+const unsigned int DHT_CLIENT_POLL_INTERVAL = 100;
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
@@ -55,6 +58,7 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     reqCtx->ready = true;
     reqCtx->cv.notify_all();
 
+    // TODO: jradtke Performance optimization possible if resp_msgbuf reused
     rpc->release_response(respHandle);
 }
 
@@ -125,7 +129,7 @@ void DhtClient::initialize() {
             _initializeNode(neighbor);
         }
         state = DhtClientState::DHT_CLIENT_READY;
-        rpc->run_event_loop(100);
+        rpc->run_event_loop(DHT_CLIENT_POLL_INTERVAL);
     } catch (...) {
         state = DhtClientState::DHT_CLIENT_ERROR;
     }
@@ -137,8 +141,9 @@ Value DhtClient::get(const Key &key) {
 
     auto reqSize = sizeof(DaqdbDhtMsg) + key.size();
     // auto req = rpc->alloc_msg_buffer_or_die(rpc->get_max_msg_size());
-    auto req = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_RESPONSE_GET_SIZE);
-    auto resp = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_RESPONSE_SIZE);
+    auto req = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_REQEST_BUF_SIZE);
+    auto resp =
+        rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_RESPONSE_PREALOC_SIZE);
 
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(req.buf);
     msg->keySize = key.size();
@@ -156,7 +161,7 @@ Value DhtClient::get(const Key &key) {
     {
         unique_lock<mutex> lk(reqCtx.mtx);
         reqCtx.cv.wait_for(lk, 1s, [&reqCtx, &rpc] {
-            rpc->run_event_loop(100);
+            rpc->run_event_loop(DHT_CLIENT_POLL_INTERVAL);
             return reqCtx.ready;
         });
     }
@@ -179,6 +184,8 @@ void DhtClient::put(const Key &key, const Value &val) {
     msg->valSize = val.size();
     memcpy(msg->msg + key.size(), val.data(), msg->valSize);
 
+    // TODO: jradtke Performance optimization possible if previous resp_msgbuf
+    // reused
     auto resp = rpc->alloc_msg_buffer_or_die(sizeof(DaqdbDhtResult));
     auto hostToSend = _dhtCore->getHostForKey(key);
 
@@ -192,7 +199,7 @@ void DhtClient::put(const Key &key, const Value &val) {
     {
         unique_lock<mutex> lk(reqCtx.mtx);
         reqCtx.cv.wait_for(lk, 1s, [&reqCtx, &rpc] {
-            rpc->run_event_loop(100);
+            rpc->run_event_loop(DHT_CLIENT_POLL_INTERVAL);
             return reqCtx.ready;
         });
     }
@@ -226,7 +233,7 @@ void DhtClient::remove(const Key &key) {
     {
         unique_lock<mutex> lk(reqCtx.mtx);
         reqCtx.cv.wait_for(lk, 1s, [&reqCtx, &rpc] {
-            rpc->run_event_loop(100);
+            rpc->run_event_loop(DHT_CLIENT_POLL_INTERVAL);
             return reqCtx.ready;
         });
     }

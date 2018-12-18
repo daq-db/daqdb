@@ -29,6 +29,8 @@ using namespace std;
 using boost::format;
 
 const size_t DEFAULT_ERPC_RESPONSE_GET_SIZE = 16 * 1024;
+// poll interval is given in milliseconds
+const unsigned int DHT_SERVER_POLL_INTERVAL = 100;
 
 map<DhtNodeState, string> NodeStateStr =
     boost::assign::map_list_of(DhtNodeState::NODE_READY, "Ready")(
@@ -169,7 +171,7 @@ void DhtServer::_serve(void) {
         state = DhtServerState::DHT_SERVER_READY;
         keepRunning = true;
         while (keepRunning) {
-            rpc->run_event_loop(100);
+            rpc->run_event_loop(DHT_SERVER_POLL_INTERVAL);
         }
         state = DhtServerState::DHT_SERVER_STOPPED;
     } catch (...) {

@@ -17,11 +17,10 @@ mode = "storage";
  *                  enabled filesystem
  * pmem_size      - total size of the persistent memory pool to use
  * alloc_unit_size - unit allocation size for the values stored in DaqDB
- *                   (in 32 byte units)
  */
 pmem_path = "/mnt/pmem/pool.pm";
 pmem_size = 8589934592L;
-alloc_unit_size = 512;
+alloc_unit_size = 16384;
 
 /**
  * logging_level - valid parameters:
@@ -59,13 +58,15 @@ dht_key_mask = "1";
 neighbors :
 (
     {
-        ip = "localhost";
+        // replace with ip of storage node
+        ip = "10.102.108.54";
         port = 31850;
         local = 1;
         keys = { start = "0", end = "64"}
     },
     {
-        ip = "10.102.108.53";
+        // replace with ip of peer storage node 
+        ip = "10.102.108.56";
         port = 31850;
         keys = { start = "65", end = "255"}
     },
