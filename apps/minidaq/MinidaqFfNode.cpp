@@ -31,15 +31,23 @@ std::string MinidaqFfNode::_GetType() { return std::string("fast-filtering"); }
 void MinidaqFfNode::_Setup(int executorId) { _eventId = executorId; }
 
 Key MinidaqFfNode::_NextKey() {
-    // key = reinterpret_cast<MinidaqKey
-    // *>(_kvs->GetAny(GetOptions(READY)).data());
-    Key key = _kvs->AllocKey();
-    MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
-    mKeyPtr->runId = _runId;
-    mKeyPtr->subdetectorId = _baseId;
-    mKeyPtr->eventId = _eventId;
-    _eventId += _nTh;
-    return key;
+    for (int i = 0; i < _maxRetries; i++) {
+        try {
+            return _kvs->GetAny(GetOptions(READY));
+        } catch (OperationFailedException &e) {
+            if (e.status()() == KEY_NOT_FOUND) {
+                /* Wait until new key is availabile. */
+                if (_delay_us) {
+                    std::this_thread::sleep_for(
+                        std::chrono::microseconds(_delay_us));
+                }
+                continue;
+            } else {
+                throw;
+            }
+        }
+    }
+    throw OperationFailedException(Status(KEY_NOT_FOUND));
 }
 
 bool MinidaqFfNode::_Accept() {
@@ -68,35 +76,18 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
     MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
     int baseId = _PickSubdetector();
     bool accept = _Accept();
-    int nRetries;
+
+    mKeyPtr->runId = _runId;
 
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
         mKeyPtr->subdetectorId = baseId + i;
         DaqDB::Value value;
-        nRetries = 0;
-        while (nRetries < _maxRetries) {
-            nRetries++;
-            try {
-                value = _kvs->Get(key);
-            } catch (OperationFailedException &e) {
-                if ((e.status()() == KEY_NOT_FOUND) &&
-                    (nRetries < _maxRetries)) {
-                    /* Wait until it is availabile. */
-                    if (_delay_us) {
-                        std::this_thread::sleep_for(
-                            std::chrono::microseconds(_delay_us));
-                    }
-                    continue;
-                } else {
-                    _kvs->Free(std::move(key));
-                    throw;
-                }
-            } catch (...) {
-                _kvs->Free(std::move(key));
-                throw;
-            }
-            break;
+        try {
+            value = _kvs->Get(key);
+        } catch (...) {
+            _kvs->Free(std::move(key));
+            throw;
         }
 #ifdef WITH_INTEGRITY_CHECK
         if (!_CheckBuffer(key, value.data(), value.size())) {

@@ -28,6 +28,7 @@ enum StatusCode : long {
     KEY_NOT_FOUND,
     ALLOCATION_ERROR,
     OFFLOAD_DISABLED_ERROR,
+    QUEUE_FULL_ERROR,
     TIME_OUT,
     NOT_IMPLEMENTED,
     UNKNOWN_ERROR,
@@ -60,5 +61,4 @@ struct Status {
 };
 
 Status errno2status(int err);
-
 }

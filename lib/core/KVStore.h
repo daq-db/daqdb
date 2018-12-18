@@ -88,6 +88,7 @@ class KVStore : public KVStoreBase {
     virtual ~KVStore();
 
     inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
+    char *_CreatePKeyBuff(char *srcKeyBuff);
 
     asio::io_service _ioService;
     size_t _keySize;
@@ -100,6 +101,10 @@ class KVStore : public KVStoreBase {
 
     std::unique_ptr<DhtCore> _spDht;
     std::unique_ptr<SpdkCore> _spSpdk;
+
+    struct spdk_ring *_readyPKeys;
+    size_t _pKeySize;
+    size_t _pKeyOffset;
 
     std::mutex _lock;
 };
