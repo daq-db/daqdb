@@ -94,20 +94,25 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    map<string, TestFunction> tests = boost::assign::map_list_of(
-        "testRemotePeerConnect", testRemotePeerConnect)(
-        "testPutGetSequence", testPutGetSequence)("testValueSizes",
-                                                  testValueSizes);
-    unsigned short failsCount = 0;
-    for (auto test : tests) {
-        if (!executeTest(test.first, test.second, spKVStore.get(), &options)) {
-            failsCount++;
-        }
-    }
-
-    if (failsCount > 0) {
-        LOG_INFO << format("Test(s) failed [%1%]") % failsCount << endl;
+    if (!executeTest("testRemotePeerConnect", testRemotePeerConnect,
+                     spKVStore.get(), &options)) {
+        LOG_INFO << "Cannot connect to peer node" << endl;
     } else {
-        LOG_INFO << "All tests passed!" << endl;
+        map<string, TestFunction> tests = boost::assign::map_list_of(
+            "testPutGetSequence", testPutGetSequence)("testValueSizes",
+                                                      testValueSizes);
+        unsigned short failsCount = 0;
+        for (auto test : tests) {
+            if (!executeTest(test.first, test.second, spKVStore.get(),
+                             &options)) {
+                failsCount++;
+            }
+        }
+
+        if (failsCount > 0) {
+            LOG_INFO << format("Test(s) failed [%1%]") % failsCount << endl;
+        } else {
+            LOG_INFO << "All tests passed!" << endl;
+        }
     }
 }
