@@ -39,8 +39,7 @@ KVStoreBase *KVStore::Open(const DaqDB::Options &options) {
 }
 
 KVStore::KVStore(const DaqDB::Options &options)
-    : _options(options), _spOffloadPoller(nullptr), _keySize(0), _pKeySize(0),
-      _pKeyOffset(0) {
+    : _options(options), _spOffloadPoller(nullptr), _keySize(0) {
     std::stringstream msg;
     msg << "Starting DAQDB KVStore." << std::endl
         << "Key structure:" << std::endl;
@@ -48,8 +47,6 @@ KVStore::KVStore(const DaqDB::Options &options)
         msg << "  Field[" << std::to_string(i)
             << "]: " << std::to_string(options.key.field(i).size) << " byte(s)";
         if (options.key.field(i).isPrimary) {
-            _pKeySize = options.key.field(i).size;
-            _pKeyOffset = _keySize;
             msg << " (primary)";
         }
         _keySize += options.key.field(i).size;
@@ -57,9 +54,7 @@ KVStore::KVStore(const DaqDB::Options &options)
     }
     if (!_keySize)
         _keySize = DEFAULT_KEY_SIZE;
-    msg << "  Total size: " << std::to_string(_keySize) << std::endl
-        << "  Primary key size: " << std::to_string(_pKeySize) << std::endl
-        << "  Primary key offset: " << std::to_string(_pKeyOffset) << std::endl;
+    msg << "  Total size: " << std::to_string(_keySize) << std::endl;
     std::cout << msg.str();
 }
 
@@ -80,13 +75,6 @@ void KVStore::init() {
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
     _spSpdk.reset(new SpdkCore(getOptions().offload));
-    _readyPKeys = spdk_ring_create(SPDK_RING_TYPE_MP_MC,
-                                   getOptions().runtime.maxReadyKeys,
-                                   SPDK_RING_TYPE_MP_SC);
-    if (!_readyPKeys) {
-        DAQ_DEBUG("Cannnot create SPDK ring for ready keys");
-        throw OperationFailedException(ALLOCATION_ERROR);
-    }
 
     if (isOffloadEnabled()) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
@@ -125,6 +113,8 @@ void KVStore::init() {
         _rqstPollers.push_back(rqstPoller);
     }
 
+    _spPKey.reset(DaqDB::PrimaryKeyEngine::Open(getOptions()));
+
     DAQ_DEBUG("KVStore initialization completed");
 }
 
@@ -138,13 +128,6 @@ void KVStore::LogMsg(std::string msg) {
     }
 }
 
-char *KVStore::_CreatePKeyBuff(char *srcKeyBuff) {
-    char *keyBuff = new char[KeySize()];
-    std::memset(keyBuff, 0, KeySize());
-    std::memcpy(keyBuff + _pKeyOffset, srcKeyBuff + _pKeyOffset, _pKeySize);
-    return keyBuff;
-}
-
 void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
         throw FUNC_NOT_IMPLEMENTED;
@@ -156,14 +139,13 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
 
     /** @todo what if more values inserted for the same primary key? */
     /** @todo check if feature enabled */
-    pmem()->Put(key.data(), val.data());
-    char *pKeyBuff = _CreatePKeyBuff(key.data());
-    int cnt =
-        spdk_ring_enqueue(_readyPKeys, reinterpret_cast<void **>(&pKeyBuff), 1);
-    if (!cnt) {
-        delete[] pKeyBuff;
-        pmem()->Remove(key.data());
-        throw OperationFailedException(QUEUE_FULL_ERROR);
+    char *keyBuff = key.data();
+    pmem()->Put(keyBuff, val.data());
+    try {
+        pKey()->EnqueueNext(move(key));
+    } catch (OperationFailedException &e) {
+        pmem()->Remove(keyBuff);
+        throw;
     }
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
 }
@@ -286,15 +268,7 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
     }
 }
 
-Key KVStore::GetAny(const GetOptions &options) {
-    char *pKeyBuff;
-    int cnt =
-        spdk_ring_dequeue(_readyPKeys, reinterpret_cast<void **>(&pKeyBuff), 1);
-    if (!cnt)
-        throw OperationFailedException(Status(KEY_NOT_FOUND));
-    Key key = AllocKey();
-    return Key(pKeyBuff, KeySize());
-}
+Key KVStore::GetAny(const GetOptions &options) { return pKey()->DequeueNext(); }
 
 void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
                           const GetOptions &options) {

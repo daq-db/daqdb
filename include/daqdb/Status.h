@@ -31,6 +31,7 @@ enum StatusCode : long {
     QUEUE_FULL_ERROR,
     TIME_OUT,
     NOT_IMPLEMENTED,
+    NOT_SUPPORTED,
     UNKNOWN_ERROR,
 };
 

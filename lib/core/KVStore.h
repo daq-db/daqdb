@@ -22,6 +22,7 @@
 #include <DhtServer.h>
 #include <OffloadPoller.h>
 #include <PmemPoller.h>
+#include <PrimaryKeyEngine.h>
 #include <RTreeEngine.h>
 #include <SpdkCore.h>
 
@@ -80,6 +81,7 @@ class KVStore : public KVStoreBase {
 
     inline RTreeEngine *pmem() { return _spRtree.get(); };
     inline DhtServer *dht() { return _spDhtServer.get(); };
+    inline PrimaryKeyEngine *pKey() { return _spPKey.get(); };
 
     inline asio::io_service &getIoService() { return _ioService; };
 
@@ -88,7 +90,6 @@ class KVStore : public KVStoreBase {
     virtual ~KVStore();
 
     inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
-    char *_CreatePKeyBuff(char *srcKeyBuff);
 
     asio::io_service _ioService;
     size_t _keySize;
@@ -97,14 +98,11 @@ class KVStore : public KVStoreBase {
     std::unique_ptr<DhtServer> _spDhtServer;
     std::unique_ptr<RTreeEngine> _spRtree;
     std::unique_ptr<OffloadPoller> _spOffloadPoller;
+    std::unique_ptr<PrimaryKeyEngine> _spPKey;
     std::vector<PmemPoller *> _rqstPollers;
 
     std::unique_ptr<DhtCore> _spDht;
     std::unique_ptr<SpdkCore> _spSpdk;
-
-    struct spdk_ring *_readyPKeys;
-    size_t _pKeySize;
-    size_t _pKeyOffset;
 
     std::mutex _lock;
 };
