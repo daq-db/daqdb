@@ -16,6 +16,7 @@
 #pragma once
 
 #include <atomic>
+#include <boost/format.hpp>
 #include <string>
 
 namespace DaqDB {
@@ -26,6 +27,9 @@ enum class DhtNodeState : std::uint8_t {
     NODE_NOT_RESPONDING
 };
 
+const int ERPC_SESSION_NOT_SET = -1;
+const unsigned int ERPC_CLIENT_PORT_ADDITION = 32;
+
 /*!
  * Class that defines interface for DHT
  */
@@ -34,22 +38,40 @@ class DhtNode {
     DhtNode();
 
     /**
-     *  @return DHT ID for this node
+     *  @return eRPC session id for this node
      */
-    inline unsigned int getId() const { return _id; }
+    inline int getSessionId() const { return _sessionId; };
 
     /**
      * @return IP address for this node
      */
-    inline const std::string &getIp() const { return _ip; }
+    inline const std::string &getIp() const { return _ip; };
 
     /**
      * @return Port number for this node
      */
-    inline unsigned short getPort() const { return _port; }
+    inline unsigned short getPort() const { return _port; };
+
+    /**
+     *
+     * @return
+     */
+    inline const std::string getClientUri() const {
+        return boost::str(
+            boost::format("%1%:%2%") % getIp() %
+            std::to_string(getPort() + ERPC_CLIENT_PORT_ADDITION));
+    };
+    /**
+     *
+     * @return
+     */
+    inline const std::string getUri() const {
+        return boost::str(boost::format("%1%:%2%") % getIp() %
+                          std::to_string(getPort()));
+    };
 
     void setIp(const std::string &ip) { _ip = ip; };
-    void setId(unsigned int id) { _id = id; };
+    void setSessionId(int id) { _sessionId = id; };
     void setPort(unsigned short port) { _port = port; };
 
     inline unsigned int getMask() { return _mask; }
@@ -63,7 +85,7 @@ class DhtNode {
 
   private:
     std::string _ip = "";
-    unsigned int _id = 0;
+    int _sessionId = ERPC_SESSION_NOT_SET;
     unsigned short _port = 0;
 
     // @TODO jradtke replace with other key mapping structures

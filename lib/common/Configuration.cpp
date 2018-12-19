@@ -95,6 +95,11 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
                 dhtNeighbor->keyRange.start = "";
                 dhtNeighbor->keyRange.end = "";
             }
+            try {
+                dhtNeighbor->local = ((unsigned int)(neighbor["local"]) > 0);
+            } catch (SettingNotFoundException &e) {
+                dhtNeighbor->local = false;
+            }
             options.dht.neighbors.push_back(dhtNeighbor);
         }
     } catch (SettingNotFoundException &e) {

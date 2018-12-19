@@ -15,6 +15,7 @@
 
 #include "KVStore.h"
 
+#include <boost/filesystem.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <sstream>
@@ -27,6 +28,7 @@
 #define POLLER_CPU_CORE_BASE 1
 
 using namespace std::chrono_literals;
+namespace bf = boost::filesystem;
 
 namespace DaqDB {
 
@@ -53,6 +55,8 @@ KVStore::~KVStore() {
     for (auto index = 0; index < _rqstPollers.size(); index++) {
         delete _rqstPollers.at(index);
     }
+
+    _spOffloadPoller.reset();
 }
 
 void KVStore::init() {
@@ -62,14 +66,10 @@ void KVStore::init() {
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
-    _spSpdk.reset(new SpdkCore(getOptions().offload));
-
-    if (isOffloadEnabled()) {
-        DAQ_DEBUG("SPDK offload functionality is enabled");
-    } else {
-        DAQ_DEBUG("SPDK offload functionality is disabled");
+    // @TODO jradtke Temporary workaround - ARTree rebuilding not implemented
+    if (bf::exists(getOptions().pmem.poolPath)) {
+        bf::remove(getOptions().pmem.poolPath);
     }
-
     _spRtree.reset(DaqDB::RTreeEngine::Open(getOptions().pmem.poolPath,
                                             getOptions().pmem.totalSize,
                                             getOptions().pmem.allocUnitSize));
@@ -77,13 +77,27 @@ void KVStore::init() {
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
     _spDht.reset(new DhtCore(getOptions().dht));
-    _spDhtServer.reset(new DhtServer(getIoService(), getDhtCore(),
+    _spDhtServer.reset(new DhtServer(getDhtCore(),
                                      static_cast<KVStoreBase *>(this),
                                      getDhtCore()->getLocalNode()->getPort()));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
     } else {
         DAQ_DEBUG("Can not start DHT server");
+    }
+    _spDht->initClient();
+    if (_spDht->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
+        DAQ_DEBUG("DHT client started successfully");
+    } else {
+        DAQ_DEBUG("Can not start DHT client");
+    }
+
+    _spSpdk.reset(new SpdkCore(getOptions().offload));
+
+    if (isOffloadEnabled()) {
+        DAQ_DEBUG("SPDK offload functionality is enabled");
+    } else {
+        DAQ_DEBUG("SPDK offload functionality is disabled");
     }
 
     if (isOffloadEnabled()) {
@@ -120,7 +134,7 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     }
 
     if (!getDhtCore()->isLocalKey(key)) {
-        return dht()->put(key, val);
+        return dhtClient()->put(key, val);
     }
 
     pmem()->Put(key.data(), val.data());
@@ -159,7 +173,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
     uint8_t location;
 
     if (!getDhtCore()->isLocalKey(key)) {
-        return dht()->get(key);
+        return dhtClient()->get(key);
     }
 
     pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal), &size, &location);
@@ -340,7 +354,7 @@ void KVStore::Remove(const Key &key) {
     uint8_t location;
 
     if (!getDhtCore()->isLocalKey(key)) {
-        return dht()->remove(key);
+        return dhtClient()->remove(key);
     }
 
     pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal), &size, &location);
@@ -429,7 +443,7 @@ std::string KVStore::getProperty(const std::string &name) {
         return _spDhtServer->printNeighbors();
     if (name == "daqdb.dht.status") {
         std::stringstream result;
-        result << _spDhtServer->printStatus() << endl;
+        result << _spDhtServer->printStatus() << std::endl;
         return result.str();
     }
     if (name == "daqdb.dht.ip")

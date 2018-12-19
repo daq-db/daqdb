@@ -15,16 +15,93 @@
 
 #pragma once
 
-namespace DaqDB {
-template <class T> class DhtClient {
-  public:
-    DhtClient() : _initialized(false) {}
-    T c;
+#include <map>
+#include <mutex>
+#include <thread>
 
-    inline bool isInitialized() { return _initialized; }
-    inline void setInitialized() { _initialized = true; }
+#include <condition_variable>
+
+#include "DhtNode.h"
+#include <KVStoreBase.h>
+#include <Key.h>
+#include <Value.h>
+
+namespace DaqDB {
+
+enum class DhtClientState : std::uint8_t {
+    DHT_CLIENT_INIT = 0,
+    DHT_CLIENT_READY,
+    DHT_CLIENT_ERROR,
+    DHT_CLIENT_STOPPED
+};
+
+struct DhtReqCtx {
+    int rc;
+    Value *value;
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool ready = false;
+};
+
+class DhtCore;
+class DhtClient {
+  public:
+    DhtClient(DhtCore *dhtCore, unsigned short port);
+    ~DhtClient();
+
+    /**
+     *
+     */
+    void initialize();
+
+    /**
+     * Synchronously get a value for a given key.
+     * Remote node is calculated based on key hash (see DhtCore._genHash).
+     *
+     * @param key Reference to a key structure
+     *
+     * @throw OperationFailedException if any error occurred
+     *
+     * @return On success returns allocated buffer with value. The caller is
+     * responsible of releasing the buffer.
+     */
+    Value get(const Key &key);
+
+    /**
+     * Synchronously insert a value for a given key.
+     * Remote node is calculated based on key hash (see DhtCore._genHash).
+     *
+     * @param key Reference to a key structure
+     * @param val Reference to a value structure
+     *
+     * @throw OperationFailedException if any error occurred
+     */
+    void put(const Key &key, const Value &val);
+
+    /**
+     * Synchronously remove a key-value store entry for a given key.
+     * Remote node is calculated based on key hash (see DhtCore._genHash).
+     *
+     * @throw OperationFailedException if any error occurred
+     *
+     * @param key Reference to a key structure
+     */
+    void remove(const Key &key);
+
+    bool ping(DhtNode &node);
+
+    inline void *getRpc() { return _clientRpc; };
+
+    std::atomic<bool> keepRunning;
+    std::atomic<DhtClientState> state;
 
   private:
-    bool _initialized;
+    void _initializeNode(DhtNode *node);
+
+    // needed for class destructor only
+    void *_clientRpc;
+    void *_nexus;
+
+    DhtCore *_dhtCore;
 };
 } // namespace DaqDB

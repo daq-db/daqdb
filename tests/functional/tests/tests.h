@@ -21,10 +21,5 @@ bool testSyncOperations(DaqDB::KVStoreBase *kvs);
 bool testAsyncOperations(DaqDB::KVStoreBase *kvs);
 bool testSyncOffloadOperations(DaqDB::KVStoreBase *kvs);
 bool testAsyncOffloadOperations(DaqDB::KVStoreBase *kvs);
-bool testZhtConnect(DaqDB::KVStoreBase *kvs);
+bool testDhtConnect(DaqDB::KVStoreBase *kvs);
 bool testValueSizes(DaqDB::KVStoreBase *kvs);
-
-void prepareZhtTests(const std::string &confFile,
-                     const std::string &neighborsFile);
-void cleanupZhtTests(const std::string &confFile,
-                     const std::string &neighborsFile);

@@ -16,8 +16,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-#include <Const.h>
-#include <ZhtClient.h>
+#include <DhtClient.h>
+#include <DhtCore.h>
+#include <Options.h>
 
 #include "tests.h"
 #include <config.h>
@@ -26,58 +27,40 @@
 using namespace std;
 using namespace DaqDB;
 
-using zht_const = iit::datasys::zht::dm::Const;
-
-void prepareZhtTests(const string &confFile, const string &neighborsFile) {
-    if (!boost::filesystem::exists(confFile)) {
-        ofstream confOut(confFile, ios::out);
-        confOut << "PROTOCOL TCP" << endl;
-        confOut << "PORT 10001" << endl;
-        confOut << "MSG_MAXSIZE 1000000" << endl;
-        confOut << "SCCB_POLL_INTERVAL 100" << endl;
-        confOut << "INSTANT_SWAP 0" << endl;
-        confOut.close();
-        LOG_INFO << "ZHT config file created";
-    }
-    if (!boost::filesystem::exists(neighborsFile)) {
-        ofstream neighbourOut(neighborsFile, ios::out);
-        neighbourOut << "localhost 10001" << endl;
-        neighbourOut.close();
-        LOG_INFO << "ZHT neighbour file created";
-    }
-}
-
-void cleanupZhtTests(const string &confFile, const string &neighborsFile) {
-    if (boost::filesystem::exists(confFile)) {
-        boost::filesystem::remove(confFile);
-        LOG_INFO << "ZHT config file removed";
-    }
-    if (boost::filesystem::exists(neighborsFile)) {
-        boost::filesystem::remove(neighborsFile);
-        LOG_INFO << "ZHT neighbors file removed";
-    }
-}
-
-bool testZhtConnect(KVStoreBase *kvs) {
+bool testDhtConnect(KVStoreBase *kvs) {
     bool result = true;
-    ZHTClient zc;
 
-    const string zhtConf = "zht-ft.conf";
-    const string neighborConf = "neighbor-ft.conf";
+    DhtOptions options;
+    DhtNeighbor local;
+    local.ip = "localhost";
+    local.port = 31851;
+    local.local = true;
+    local.keyRange.mask = "1";
 
-    zc.init(zhtConf, neighborConf);
+    DhtNeighbor neighbor;
+    neighbor.ip = "localhost";
+    neighbor.port = 31850;
+    neighbor.keyRange.start = "0";
+    neighbor.keyRange.end = "255";
+    neighbor.keyRange.mask = "1";
 
-    string rsStr;
-    int rc = zc.ping();
+    options.neighbors.push_back(&local);
+    options.neighbors.push_back(&neighbor);
 
-    if (rc == zht_const::toInt(zht_const::ZSC_REC_SUCC)) {
-        LOG_INFO << "Ping: OK";
+    auto core = new DhtCore(options);
+    core->initClient();
+    if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
+        LOG_INFO << "DHT client started successfully" << flush;
     } else {
-        LOG_INFO << "Error: cannot communicate with server";
-        result = false;
+        LOG_INFO << "Can not start DHT client" << flush;
+        return false;
     }
-
-    zc.teardown();
+    auto neighborNode = core->getNeighbors()->front();
+    auto connected = core->getClient()->ping(*neighborNode);
+    if (!connected) {
+        LOG_INFO << "Can not connect to neighbor" << flush;
+        return false;
+    }
 
     return result;
 }

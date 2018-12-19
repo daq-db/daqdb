@@ -7,11 +7,10 @@
  *                  enabled filesystem
  * pmem_size      - total size of the persistent memory pool to use
  * alloc_unit_size - unit allocation size for the values stored in DaqDB
- *                   (in 32 byte units)
  */
 pmem_path = "/mnt/pmem/pool.pm";
 pmem_size = 8589934592L;
-alloc_unit_size = 512;
+alloc_unit_size = 16384;
 
 /**
  * logging_level - valid parameters:
@@ -41,18 +40,13 @@ primaryKey = "1*3";
 //******************************* DHT SECTION ********************************
 //*****************************************************************************
 
-protocol = "TCP";
-port = 10001;
-msg_maxsize = 1000000L;
-sccb_pool_interval = 100;
-instant_swap = 0;
-
 dht_key_mask = "1";
 neighbors :
 (
     {
         ip = "localhost";
-        port = 10001;
+        port = 31850;
+        local = 1;
         keys = { start = "0", end = "255"}
     },
 );

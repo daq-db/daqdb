@@ -55,7 +55,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
   public:
     OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                   const size_t cpuCore = 0);
-    virtual ~OffloadPoller(){};
+    virtual ~OffloadPoller();
 
     void process() final;
 
@@ -95,6 +95,8 @@ class OffloadPoller : public Poller<OffloadRqst> {
     SpdkCore *spdkCore;
 
     OffloadFreeList *freeLbaList = nullptr;
+
+    std::atomic<int> isRunning;
 
   private:
     void _threadMain(void);

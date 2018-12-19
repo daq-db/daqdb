@@ -17,6 +17,8 @@
 
 #include <mutex>
 
+#include <asio/io_service.hpp>
+
 #include <daqdb/KVStoreBase.h>
 
 #include <DhtServer.h>
@@ -30,6 +32,7 @@ namespace DaqDB {
 class KVStore : public KVStoreBase {
   public:
     static KVStoreBase *Open(const DaqDB::Options &options);
+    virtual ~KVStore();
     void init(void);
 
     virtual size_t KeySize();
@@ -79,13 +82,14 @@ class KVStore : public KVStoreBase {
     inline SpdkCore *getSpdkCore() { return _spSpdk.get(); };
 
     inline RTreeEngine *pmem() { return _spRtree.get(); };
-    inline DhtServer *dht() { return _spDhtServer.get(); };
+
+    inline DhtServer *dhtServer() { return _spDhtServer.get(); };
+    inline DhtClient *dhtClient() { return _spDht->getClient(); };
 
     inline asio::io_service &getIoService() { return _ioService; };
 
   private:
     explicit KVStore(const DaqDB::Options &options);
-    virtual ~KVStore();
 
     inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
 

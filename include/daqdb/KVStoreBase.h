@@ -21,11 +21,13 @@
 #pragma once
 
 #include <string>
-#include "daqdb/Status.h"
-#include "daqdb/Options.h"
-#include "daqdb/Key.h"
-#include "daqdb/Value.h"
+
 #include "daqdb/KVPair.h"
+#include "daqdb/Key.h"
+#include "daqdb/Options.h"
+#include "daqdb/Status.h"
+#include "daqdb/Value.h"
+
 #include <functional>
 
 namespace DaqDB {
@@ -45,7 +47,8 @@ namespace DaqDB {
  */
 class KVStoreBase {
   public:
-	/** @TODO: jradtke Temporarily using this base alias for both PUT,GET,UPDATE messages */
+    /** @TODO: jradtke Temporarily using this base alias for both PUT,GET,UPDATE
+     * messages */
     using KVStoreBaseCallback = std::function<void(
         KVStoreBase *kvs, Status status, const char *key, const size_t keySize,
         const char *value, const size_t valueSize)>;
@@ -54,6 +57,8 @@ class KVStoreBase {
         std::function<void(KVStoreBase *kvs, Status status, const Key &key)>;
     using KVStoreBaseRangeCallback = std::function<void(
         KVStoreBase *kvs, Status status, std::vector<KVPair> &results)>;
+
+    virtual ~KVStoreBase(){};
 
     /**
      * Open the KV store with given options.
@@ -66,9 +71,8 @@ class KVStoreBase {
      *
      * @snippet basic/basic.cpp open
      */
-    static KVStoreBase *Open(const Options &options);
 
-  public:
+    static KVStoreBase *Open(const Options &options);
     /**
      * Return the size of a key, which the KV store uses.
      *
@@ -393,4 +397,4 @@ class KVStoreBase {
     virtual bool IsOffloaded(Key &key) = 0;
 };
 
-}
+} // namespace DaqDB
