@@ -29,10 +29,10 @@ using boost::format;
 
 namespace DaqDB {
 
-const size_t DEFAULT_ERPC_REQ_SIZE = 16;
-const size_t DEFAULT_ERPC_RESPONSE_PREALOC_SIZE = 16;
-const size_t DEFAULT_ERPC_RESPONSE_BUF_SIZE = 16 * 1024;
-const size_t DEFAULT_ERPC_REQEST_BUF_SIZE = 16 * 1024;
+const size_t DEFAULT_ERPC_REQ_SIZE = 32;
+const size_t DEFAULT_ERPC_REQ_WITH_VALUE_SIZE = 16 * 1024;
+const size_t DEFAULT_ERPC_RESPONSE_SIZE = 16;
+const size_t DEFAULT_ERPC_RESPONSE_WITH_VALUE_SIZE = 16 * 1024;
 
 const unsigned int DHT_CLIENT_POLL_INTERVAL = 100;
 
@@ -58,7 +58,7 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     reqCtx->ready = true;
     reqCtx->cv.notify_all();
 
-    // TODO: jradtke Performance optimization possible if resp_msgbuf reused
+    // @TODO jradtke Performance optimization possible if resp_msgbuf reused
     rpc->release_response(respHandle);
 }
 
@@ -119,10 +119,12 @@ void DhtClient::initialize() {
     auto nexus =
         new erpc::Nexus(_dhtCore->getLocalNode()->getClientUri(), 0, 0);
     _nexus = nexus;
-    auto rpc = new erpc::Rpc<erpc::CTransport>(nexus, this, 1, sm_handler);
-    _clientRpc = rpc;
+    erpc::Rpc<erpc::CTransport> *rpc;
 
     try {
+        rpc = new erpc::Rpc<erpc::CTransport>(nexus, this, 1, sm_handler);
+        _clientRpc = rpc;
+
         auto neighbors = _dhtCore->getNeighbors();
         _initializeNode(_dhtCore->getLocalNode());
         for (DhtNode *neighbor : *neighbors) {
@@ -139,11 +141,14 @@ Value DhtClient::get(const Key &key) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     DhtReqCtx reqCtx;
 
+    if (state != DhtClientState::DHT_CLIENT_READY)
+        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
+
     auto reqSize = sizeof(DaqdbDhtMsg) + key.size();
-    // auto req = rpc->alloc_msg_buffer_or_die(rpc->get_max_msg_size());
-    auto req = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_REQEST_BUF_SIZE);
-    auto resp =
-        rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_RESPONSE_PREALOC_SIZE);
+    auto req = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_REQ_WITH_VALUE_SIZE);
+    // TODO: jradtke Performance optimization possible if previous resp_msgbuf
+    // reused
+    auto resp = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_RESPONSE_SIZE);
 
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(req.buf);
     msg->keySize = key.size();
@@ -176,8 +181,12 @@ void DhtClient::put(const Key &key, const Value &val) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     DhtReqCtx reqCtx;
 
+    if (state != DhtClientState::DHT_CLIENT_READY)
+        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
+
     auto reqSize = sizeof(DaqdbDhtMsg) + key.size() + val.size();
     auto req = rpc->alloc_msg_buffer_or_die(reqSize);
+
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(req.buf);
     msg->keySize = key.size();
     memcpy(msg->msg, key.data(), key.size());
@@ -212,14 +221,15 @@ void DhtClient::remove(const Key &key) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     DhtReqCtx reqCtx;
 
-    auto reqSize = sizeof(DaqdbDhtMsg) + key.size();
-    auto req = rpc->alloc_msg_buffer_or_die(reqSize);
+    if (state != DhtClientState::DHT_CLIENT_READY)
+        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
+
+    auto req = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_REQ_SIZE);
+    auto resp = rpc->alloc_msg_buffer_or_die(sizeof(DaqdbDhtResult));
+
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(req.buf);
     msg->keySize = key.size();
     memcpy(msg->msg, key.data(), key.size());
-
-    auto bufferSize = 16 * 1024;
-    auto resp = rpc->alloc_msg_buffer_or_die(bufferSize);
 
     auto hostToSend = _dhtCore->getHostForKey(key);
 
@@ -244,6 +254,9 @@ void DhtClient::remove(const Key &key) {
 
 bool DhtClient::ping(DhtNode &node) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
+
+    if (state != DhtClientState::DHT_CLIENT_READY)
+        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
     if (node.getSessionId() != ERPC_SESSION_NOT_SET) {
         return rpc->is_connected(node.getSessionId());

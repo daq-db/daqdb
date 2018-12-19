@@ -145,7 +145,7 @@ DhtServer::DhtServer(DhtCore *dhtCore, KVStoreBase *kvs, unsigned short port)
 
 DhtServer::~DhtServer() {
     keepRunning = false;
-    if (_thread != nullptr)
+    if (state == DhtServerState::DHT_SERVER_READY && _thread != nullptr)
         _thread->join();
 }
 
@@ -164,21 +164,26 @@ void DhtServer::_serve(void) {
 
     DhtServerCtx rpcCtx;
     rpcCtx.kvs = _kvs;
-    auto rpc = new erpc::Rpc<erpc::CTransport>(nexus, &rpcCtx, 0, nullptr);
-    rpcCtx.rpc = rpc;
 
+    erpc::Rpc<erpc::CTransport> *rpc;
     try {
+        rpc = new erpc::Rpc<erpc::CTransport>(nexus, &rpcCtx, 0, nullptr);
+        rpcCtx.rpc = rpc;
+
         state = DhtServerState::DHT_SERVER_READY;
         keepRunning = true;
         while (keepRunning) {
             rpc->run_event_loop(DHT_SERVER_POLL_INTERVAL);
         }
         state = DhtServerState::DHT_SERVER_STOPPED;
+
+        if (rpc) {
+            delete rpc;
+        }
     } catch (...) {
         state = DhtServerState::DHT_SERVER_ERROR;
     }
 
-    delete rpc;
     delete nexus;
 }
 
