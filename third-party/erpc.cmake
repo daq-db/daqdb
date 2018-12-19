@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 include(ExternalProject)
 
+set(DPDK_PATH ${PROJECT_SOURCE_DIR}/spdk/dpdk/build)
+
 ExternalProject_Add(project_erpc
 	PREFIX ${PROJECT_SOURCE_DIR}/eRPC
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/eRPC

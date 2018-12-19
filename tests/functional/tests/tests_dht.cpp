@@ -47,6 +47,12 @@ bool testDhtConnect(KVStoreBase *kvs) {
     options.neighbors.push_back(&local);
     options.neighbors.push_back(&neighbor);
 
+    auto serverStatus = kvs->getProperty("daqdb.dht.status");
+    if (serverStatus.find("DHT server: inactive") != std::string::npos) {
+        LOG_INFO << "DHT server not started" << flush;
+        return false;
+    }
+
     auto core = new DhtCore(options);
     core->initClient();
     if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {

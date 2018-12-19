@@ -37,7 +37,7 @@ bool testSyncOperations(KVStoreBase *kvs) {
     auto currVal = daqdb_get(kvs, key);
     LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
 
-    if (expectedVal.compare(currVal.data()) != 0) {
+    if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
         LOG_INFO << "Error: wrong value returned" << flush;
         result = false;
     }

@@ -24,4 +24,6 @@ include_directories(${PROJECT_SOURCE_DIR} tests)
 file(GLOB_RECURSE FUNCTESTS_THIN_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
 add_executable(functests_thin ${FUNCTESTS_THIN_SOURCES})
 
-target_link_libraries(functests_thin ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} daqdb_thin)
+set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
+target_link_libraries(functests_thin ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
+	${Dpdk_LIBRARIES} dl daqdb_thin)

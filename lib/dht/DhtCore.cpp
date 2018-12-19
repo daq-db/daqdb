@@ -37,6 +37,7 @@ const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
 DhtCore::DhtCore(DhtOptions dhtOptions) : options(dhtOptions) {
     _initNeighbors();
     _initRangeToHost();
+    _spClient.reset(new DhtClient(this, _spLocalNode->getPort()));
 }
 
 DhtCore::~DhtCore() {
@@ -47,10 +48,7 @@ DhtCore::~DhtCore() {
     }
 }
 
-void DhtCore::initClient() {
-    _spClient.reset(new DhtClient(this, _spLocalNode->getPort()));
-    _spClient->initialize();
-}
+void DhtCore::initClient() { _spClient->initialize(); }
 
 void DhtCore::_initNeighbors(void) {
 

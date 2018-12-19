@@ -76,28 +76,29 @@ void KVStore::init() {
     if (_spRtree.get() == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
 
+    _spSpdk.reset(new SpdkCore(getOptions().offload));
+    if (isOffloadEnabled()) {
+        DAQ_DEBUG("SPDK offload functionality is enabled");
+    } else {
+        DAQ_DEBUG("SPDK offload functionality is disabled");
+    }
+
     _spDht.reset(new DhtCore(getOptions().dht));
     _spDhtServer.reset(new DhtServer(getDhtCore(),
                                      static_cast<KVStoreBase *>(this),
                                      getDhtCore()->getLocalNode()->getPort()));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
+        _spDht->initClient();
+        if (_spDht->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
+            DAQ_DEBUG("DHT client started successfully");
+        } else {
+            DAQ_DEBUG("Can not start DHT client");
+        }
     } else {
         DAQ_DEBUG("Can not start DHT server");
-    }
-    _spDht->initClient();
-    if (_spDht->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
-        DAQ_DEBUG("DHT client started successfully");
-    } else {
         DAQ_DEBUG("Can not start DHT client");
-    }
-
-    _spSpdk.reset(new SpdkCore(getOptions().offload));
-
-    if (isOffloadEnabled()) {
-        DAQ_DEBUG("SPDK offload functionality is enabled");
-    } else {
-        DAQ_DEBUG("SPDK offload functionality is disabled");
+        _spDht->getClient()->state = DhtClientState::DHT_CLIENT_ERROR;
     }
 
     if (isOffloadEnabled()) {
@@ -427,13 +428,16 @@ void KVStore::ChangeOptions(Key &key, const AllocOptions &options) {
 
 bool KVStore::IsOffloaded(Key &key) {
     bool result = false;
-
     ValCtx valCtx;
-    pmem()->Get(key.data(), key.size(), &valCtx.val, &valCtx.size,
-                &valCtx.location);
-    return (valCtx.location == LOCATIONS::DISK);
+    try {
+        pmem()->Get(key.data(), key.size(), &valCtx.val, &valCtx.size,
+                    &valCtx.location);
+        result = (valCtx.location == LOCATIONS::DISK);
+    } catch (OperationFailedException &e) {
+        result = false;
+    }
+    return result;
 }
-
 std::string KVStore::getProperty(const std::string &name) {
     std::unique_lock<std::mutex> l(_lock);
 
