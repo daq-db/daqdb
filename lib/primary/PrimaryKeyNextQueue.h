@@ -24,18 +24,15 @@ namespace DaqDB {
 
 class PrimaryKeyNextQueue : public DaqDB::PrimaryKeyBase {
   public:
-    PrimaryKeyNextQueue(const DaqDB::Options &Options);
+    PrimaryKeyNextQueue(const DaqDB::Options &options);
     virtual ~PrimaryKeyNextQueue();
-    Key DequeueNext();
-    void EnqueueNext(Key &&key);
+    Key dequeueNext();
+    void enqueueNext(Key &&key);
 
   private:
-    char *_CreatePKeyBuff(char *srcKeyBuff);
+    char *_createPKeyBuff(char *srcKeyBuff);
 
     struct spdk_ring *_readyKeys;
-    size_t _keySize;
-    size_t _pKeySize;
-    size_t _pKeyOffset;
 };
 
 } // namespace DaqDB

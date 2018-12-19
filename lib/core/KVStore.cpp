@@ -113,7 +113,7 @@ void KVStore::init() {
         _rqstPollers.push_back(rqstPoller);
     }
 
-    _spPKey.reset(DaqDB::PrimaryKeyEngine::Open(getOptions()));
+    _spPKey.reset(DaqDB::PrimaryKeyEngine::open(getOptions()));
 
     DAQ_DEBUG("KVStore initialization completed");
 }
@@ -138,11 +138,10 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     }
 
     /** @todo what if more values inserted for the same primary key? */
-    /** @todo check if feature enabled */
     char *keyBuff = key.data();
     pmem()->Put(keyBuff, val.data());
     try {
-        pKey()->EnqueueNext(move(key));
+        pKey()->enqueueNext(move(key));
     } catch (OperationFailedException &e) {
         pmem()->Remove(keyBuff);
         throw;
@@ -268,7 +267,7 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
     }
 }
 
-Key KVStore::GetAny(const GetOptions &options) { return pKey()->DequeueNext(); }
+Key KVStore::GetAny(const GetOptions &options) { return pKey()->dequeueNext(); }
 
 void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
                           const GetOptions &options) {

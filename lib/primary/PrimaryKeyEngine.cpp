@@ -17,16 +17,18 @@
 #include <PrimaryKeyEngine.h>
 #include <PrimaryKeyNextQueue.h>
 #include <Types.h>
+#include <iostream>
 
 namespace DaqDB {
 
-PrimaryKeyEngine *PrimaryKeyEngine::Open(const DaqDB::Options &Options) {
-    if (Options.runtime.maxReadyKeys)
-        return new DaqDB::PrimaryKeyNextQueue(Options);
+PrimaryKeyEngine *PrimaryKeyEngine::open(const DaqDB::Options &options) {
+    std::cout << "Initializing Primary Key Engine" << std::endl;
+    if (options.runtime.maxReadyKeys)
+        return new DaqDB::PrimaryKeyNextQueue(options);
     else
-        return new DaqDB::PrimaryKeyBase(Options);
+        return new DaqDB::PrimaryKeyBase(options);
 }
 
-void PrimaryKeyEngine::Close(PrimaryKeyEngine *pke) {}
+void PrimaryKeyEngine::close(PrimaryKeyEngine *pke) {}
 
 } // namespace DaqDB

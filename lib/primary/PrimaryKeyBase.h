@@ -23,11 +23,20 @@ namespace DaqDB {
 
 class PrimaryKeyBase : public DaqDB::PrimaryKeyEngine {
   public:
-    PrimaryKeyBase(const DaqDB::Options &Options);
+    PrimaryKeyBase(const DaqDB::Options &options);
     virtual ~PrimaryKeyBase();
-    Key DequeueNext();
-    void EnqueueNext(Key &&key);
-    bool IsLocal(const Key &key);
+    Key dequeueNext();
+    void enqueueNext(Key &&key);
+    bool isLocal(const Key &key);
+
+  protected:
+    size_t _keySize;
+    size_t _pKeySize;
+    size_t _pKeyOffset;
+
+  private:
+    uint32_t _localKeyMask;
+    uint32_t _localKeyValue;
 };
 
 } // namespace DaqDB

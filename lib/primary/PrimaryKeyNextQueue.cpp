@@ -19,43 +19,29 @@
 
 namespace DaqDB {
 
-PrimaryKeyNextQueue::PrimaryKeyNextQueue(const DaqDB::Options &Options)
-    : PrimaryKeyBase(Options), _keySize(0), _pKeySize(0), _pKeyOffset(0) {
+PrimaryKeyNextQueue::PrimaryKeyNextQueue(const DaqDB::Options &options)
+    : PrimaryKeyBase(options) {
     std::cout << "Initializing NextQueue for primary keys of size "
-              << std::to_string(Options.runtime.maxReadyKeys) << std::endl;
+              << std::to_string(options.runtime.maxReadyKeys) << std::endl;
     _readyKeys =
-        spdk_ring_create(SPDK_RING_TYPE_MP_MC, Options.runtime.maxReadyKeys,
+        spdk_ring_create(SPDK_RING_TYPE_MP_MC, options.runtime.maxReadyKeys,
                          SPDK_ENV_SOCKET_ID_ANY);
     if (!_readyKeys) {
         DAQ_DEBUG("Cannnot create SPDK ring for ready keys");
         throw OperationFailedException(ALLOCATION_ERROR);
     }
-
-    for (size_t i = 0; i < Options.key.nfields(); i++) {
-        if (Options.key.field(i).isPrimary) {
-            _pKeySize = Options.key.field(i).size;
-            _pKeyOffset = _keySize;
-        }
-        _keySize += Options.key.field(i).size;
-    }
-
-    std::cout << "  Total key size: " << std::to_string(_keySize) << std::endl
-              << "  Primary key size: " << std::to_string(_pKeySize)
-              << std::endl
-              << "  Primary key offset: " << std::to_string(_pKeyOffset)
-              << std::endl;
 }
 
 PrimaryKeyNextQueue::~PrimaryKeyNextQueue() {}
 
-char *PrimaryKeyNextQueue::_CreatePKeyBuff(char *srcKeyBuff) {
+char *PrimaryKeyNextQueue::_createPKeyBuff(char *srcKeyBuff) {
     char *keyBuff = new char[_keySize];
     std::memset(keyBuff, 0, _keySize);
     std::memcpy(keyBuff + _pKeyOffset, srcKeyBuff + _pKeyOffset, _pKeySize);
     return keyBuff;
 }
 
-Key PrimaryKeyNextQueue::DequeueNext() {
+Key PrimaryKeyNextQueue::dequeueNext() {
     char *pKeyBuff;
     int cnt =
         spdk_ring_dequeue(_readyKeys, reinterpret_cast<void **>(&pKeyBuff), 1);
@@ -64,8 +50,10 @@ Key PrimaryKeyNextQueue::DequeueNext() {
     return Key(pKeyBuff, _keySize);
 }
 
-void PrimaryKeyNextQueue::EnqueueNext(Key &&key) {
-    char *pKeyBuff = _CreatePKeyBuff(key.data());
+void PrimaryKeyNextQueue::enqueueNext(Key &&key) {
+    if (!isLocal(key))
+        return;
+    char *pKeyBuff = _createPKeyBuff(key.data());
     int cnt =
         spdk_ring_enqueue(_readyKeys, reinterpret_cast<void **>(&pKeyBuff), 1);
     if (!cnt) {
