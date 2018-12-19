@@ -164,6 +164,7 @@ StatusCode OffloadPoller::_getValCtx(const OffloadRqst *rqst,
         /** @todo fix exception handling */
         return StatusCode::UNKNOWN_ERROR;
     }
+    return StatusCode::OK;
 }
 
 void OffloadPoller::_processGet(const OffloadRqst *rqst) {
@@ -198,6 +199,11 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
 void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
     OffloadIoCtx *ioCtx = nullptr;
     ValCtx valCtx;
+
+    if (rqst == nullptr) {
+        _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+        return;
+    }
 
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
