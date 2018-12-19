@@ -15,7 +15,7 @@ mode = "storage";
  *                  enabled filesystem
  * pmem_size      - total size of the persistent memory pool to use
  * alloc_unit_size - unit allocation size for the values stored in DaqDB
- */
+  */
 pmem_path = "/mnt/pmem/pool.pm";
 pmem_size = 8589934592L;
 alloc_unit_size = 16384;
