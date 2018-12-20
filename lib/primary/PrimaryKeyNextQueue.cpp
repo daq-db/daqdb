@@ -31,7 +31,12 @@ PrimaryKeyNextQueue::PrimaryKeyNextQueue(const DaqDB::Options &options)
     }
 }
 
-PrimaryKeyNextQueue::~PrimaryKeyNextQueue() {}
+PrimaryKeyNextQueue::~PrimaryKeyNextQueue() {
+    char *pKeyBuff;
+    while(spdk_ring_dequeue(_readyKeys, reinterpret_cast<void **>(&pKeyBuff), 1))
+        delete[] pKeyBuff;
+    spdk_ring_free(_readyKeys);
+}
 
 char *PrimaryKeyNextQueue::_createPKeyBuff(char *srcKeyBuff) {
     char *keyBuff = new char[_keySize];

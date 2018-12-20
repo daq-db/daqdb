@@ -82,7 +82,7 @@ static void logStd(std::string m) {
 }
 
 /** @todo move to MinidaqFogServer for distributed version */
-static DaqDB::KVStoreBase *openKVS() {
+static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     DaqDB::Options options;
     options.pmem.poolPath = pmem_path;
     options.pmem.totalSize = pmem_size;
@@ -95,8 +95,14 @@ static DaqDB::KVStoreBase *openKVS() {
     if (enableLog) {
         options.runtime.logFunc = logStd;
     }
+    DaqDB::DhtNeighbor local;
+    local.ip = "localhost";
+    local.port = 31851;
+    local.local = true;
+    local.keyRange.mask = "0";
+    options.dht.neighbors.push_back(&local);
 
-    return DaqDB::KVStoreBase::Open(options);
+    return std::unique_ptr<DaqDB::KVStoreBase>(DaqDB::KVStoreBase::Open(options));
 }
 
 static void
@@ -303,7 +309,7 @@ int main(int argc, const char *argv[]) {
                 return 0;
             }
             unique_ptr<DaqDB::MinidaqRoNode> nodeRo(
-                new DaqDB::MinidaqRoNode(kvs));
+                new DaqDB::MinidaqRoNode(kvs.get()));
             nodeRo->SetSubdetectorId(subId);
             nodeRo->SetThreads(nRoTh);
             nodeRo->SetFragmentSize(fSize);
@@ -319,7 +325,7 @@ int main(int argc, const char *argv[]) {
                 return 0;
             }
             unique_ptr<DaqDB::MinidaqAroNode> nodeAro(
-                new DaqDB::MinidaqAroNode(kvs));
+                new DaqDB::MinidaqAroNode(kvs.get()));
             nodeAro->SetSubdetectorId(subId);
             nodeAro->SetThreads(nAroTh);
             nodeAro->SetFragmentSize(fSize);
@@ -336,8 +342,8 @@ int main(int argc, const char *argv[]) {
         if (nFfTh) {
             std::cout << "### Configuring fast-filtering nodes..." << endl;
             unique_ptr<DaqDB::MinidaqFfNode> nodeFf(
-                maxReadyKeys ? (new DaqDB::MinidaqFfNode(kvs))
-                             : (new DaqDB::MinidaqFfNodeSeq(kvs)));
+                maxReadyKeys ? (new DaqDB::MinidaqFfNode(kvs.get()))
+                             : (new DaqDB::MinidaqFfNodeSeq(kvs.get())));
             nodeFf->SetBaseSubdetectorId(startSubId);
             nodeFf->SetSubdetectors(nSub);
             nodeFf->SetThreads(nFfTh);
@@ -353,6 +359,7 @@ int main(int argc, const char *argv[]) {
         std::cerr << e.what() << std::endl;
         return 0;
     }
+
 
     return 0;
 }

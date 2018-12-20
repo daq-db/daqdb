@@ -44,8 +44,12 @@ KVStore::KVStore(const DaqDB::Options &options)
     : _options(options), _spOffloadPoller(nullptr), _keySize(0) {}
 
 KVStore::~KVStore() {
+    DAQ_INFO("Closing DAQDB KVStore.");
+
     RTreeEngine::Close(_spRtree.get());
     _spRtree.reset();
+
+    _spPKey.reset();
 
     for (auto index = 0; index < _rqstPollers.size(); index++) {
         delete _rqstPollers.at(index);
@@ -62,14 +66,6 @@ void KVStore::init() {
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
     DAQ_INFO("Starting DAQDB KVStore.");
-
-    _spSpdk.reset(new SpdkCore(getOptions().offload));
-
-    if (isOffloadEnabled()) {
-        DAQ_DEBUG("SPDK offload functionality is enabled");
-    } else {
-        DAQ_DEBUG("SPDK offload functionality is disabled");
-    }
 
     DAQ_INFO("Key structure:");
     for (size_t i = 0; i < getOptions().key.nfields(); i++) {
