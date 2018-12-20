@@ -102,7 +102,8 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     local.keyRange.mask = "0";
     options.dht.neighbors.push_back(&local);
 
-    return std::unique_ptr<DaqDB::KVStoreBase>(DaqDB::KVStoreBase::Open(options));
+    return std::unique_ptr<DaqDB::KVStoreBase>(
+        DaqDB::KVStoreBase::Open(options));
 }
 
 static void
@@ -359,7 +360,6 @@ int main(int argc, const char *argv[]) {
         std::cerr << e.what() << std::endl;
         return 0;
     }
-
 
     return 0;
 }

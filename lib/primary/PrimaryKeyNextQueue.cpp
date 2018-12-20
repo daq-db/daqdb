@@ -33,7 +33,8 @@ PrimaryKeyNextQueue::PrimaryKeyNextQueue(const DaqDB::Options &options)
 
 PrimaryKeyNextQueue::~PrimaryKeyNextQueue() {
     char *pKeyBuff;
-    while(spdk_ring_dequeue(_readyKeys, reinterpret_cast<void **>(&pKeyBuff), 1))
+    while (
+        spdk_ring_dequeue(_readyKeys, reinterpret_cast<void **>(&pKeyBuff), 1))
         delete[] pKeyBuff;
     spdk_ring_free(_readyKeys);
 }

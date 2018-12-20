@@ -29,7 +29,6 @@ PrimaryKeyEngine *PrimaryKeyEngine::open(const DaqDB::Options &options) {
         return new DaqDB::PrimaryKeyBase(options);
 }
 
-PrimaryKeyEngine::~PrimaryKeyEngine() {
-}
+PrimaryKeyEngine::~PrimaryKeyEngine() {}
 
 } // namespace DaqDB

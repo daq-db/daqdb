@@ -42,8 +42,7 @@ PrimaryKeyBase::PrimaryKeyBase(const DaqDB::Options &options)
         throw OperationFailedException(NOT_SUPPORTED);
 }
 
-PrimaryKeyBase::~PrimaryKeyBase() {
-}
+PrimaryKeyBase::~PrimaryKeyBase() {}
 
 Key PrimaryKeyBase::dequeueNext() { throw FUNC_NOT_SUPPORTED; }
 
