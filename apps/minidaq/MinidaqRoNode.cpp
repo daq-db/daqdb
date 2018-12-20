@@ -17,30 +17,35 @@
 
 namespace DaqDB {
 
+thread_local MinidaqKey MinidaqRoNode::_mKey;
+
 MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
 MinidaqRoNode::~MinidaqRoNode() {}
 
 std::string MinidaqRoNode::_GetType() { return std::string("readout"); }
 
-void MinidaqRoNode::_Setup(int executorId, MinidaqKey &key) {
-    key.subdetectorId = _id;
-    key.runId = _runId;
-    key.eventId = executorId;
+void MinidaqRoNode::_Setup(int executorId) {
+    _mKey.runId = _runId;
+    _mKey.eventId = executorId - _nTh;
+    _mKey.subdetectorId = _id;
 }
 
-void MinidaqRoNode::_NextKey(MinidaqKey &key) { key.eventId += _nTh; }
+Key MinidaqRoNode::_NextKey() {
+    _mKey.eventId += _nTh;
+    return Key(reinterpret_cast<char *>(&_mKey), sizeof(_mKey));
+}
 
-void MinidaqRoNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
-    Key fogKey(reinterpret_cast<char *>(&key), sizeof(key));
-    DaqDB::Value value = _kvs->Alloc(fogKey, _fSize);
+    DaqDB::Value value = _kvs->Alloc(key, _fSize);
 
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());
+    _CheckBuffer(key, value.data(), value.size());
 #endif /* WITH_INTEGRITY_CHECK */
 
-    _kvs->Put(std::move(fogKey), std::move(value));
+    _kvs->Put(std::move(key), std::move(value));
     cnt++;
 }
 

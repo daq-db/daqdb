@@ -23,13 +23,13 @@ MinidaqAroNode::~MinidaqAroNode() {}
 
 std::string MinidaqAroNode::_GetType() { return std::string("readout-async"); }
 
-void MinidaqAroNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+void MinidaqAroNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                            std::atomic<std::uint64_t> &cntErr) {
 
     MinidaqKey *keyTmp = new MinidaqKey;
-    *keyTmp = key;
-    Key fogKey(reinterpret_cast<char *>(keyTmp), sizeof(*keyTmp));
-    DaqDB::Value value = _kvs->Alloc(fogKey, _fSize);
+    *keyTmp = _mKey;
+    key = Key(reinterpret_cast<char *>(keyTmp), sizeof(*keyTmp));
+    DaqDB::Value value = _kvs->Alloc(key, _fSize);
 
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());
@@ -37,7 +37,7 @@ void MinidaqAroNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
 
     while (1) {
         try {
-            _kvs->PutAsync(std::move(fogKey), std::move(value),
+            _kvs->PutAsync(std::move(key), std::move(value),
                            [keyTmp, &cnt, &cntErr](
                                DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                                const char *key, const size_t keySize,

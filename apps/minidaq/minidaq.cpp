@@ -19,6 +19,7 @@
 
 #include "MinidaqAroNode.h"
 #include "MinidaqFfNode.h"
+#include "MinidaqFfNodeSeq.h"
 #include "MinidaqRoNode.h"
 #include "daqdb/KVStoreBase.h"
 
@@ -46,10 +47,11 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_BASE_CORE_ID 10
 #define MINIDAQ_DEFAULT_N_CORES 10
 #define MINIDAQ_DEFAULT_LOG false
-#define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 10
+#define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 100
 #define MINIDAQ_DEFAULT_ITERATIONS 0
 #define MINIDAQ_DEFAULT_STOPONERROR false
 #define MINIDAQ_DEFAULT_LIVE false
+#define MINIDAQ_DEFAULT_MAX_READY_KEYS 4 * 1024 * 1024
 
 #define US_IN_MS 1000
 
@@ -67,6 +69,7 @@ int tRamp_ms;
 int delay;
 int nCores;
 int bCoreId;
+int maxReadyKeys;
 size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
 size_t maxIters;
@@ -79,20 +82,28 @@ static void logStd(std::string m) {
 }
 
 /** @todo move to MinidaqFogServer for distributed version */
-static DaqDB::KVStoreBase *openKVS() {
+static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     DaqDB::Options options;
     options.pmem.poolPath = pmem_path;
     options.pmem.totalSize = pmem_size;
     options.pmem.allocUnitSize = fSize;
-    options.key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
+    options.key.field(0, sizeof(DaqDB::MinidaqKey::runId));
     options.key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
-    options.key.field(2, sizeof(DaqDB::MinidaqKey::runId));
+    options.key.field(2, sizeof(DaqDB::MinidaqKey::eventId), true);
     options.runtime.numOfPollers = nPoolers;
+    options.runtime.maxReadyKeys = maxReadyKeys;
     if (enableLog) {
         options.runtime.logFunc = logStd;
     }
+    DaqDB::DhtNeighbor local;
+    local.ip = "localhost";
+    local.port = 31851;
+    local.local = true;
+    local.keyRange.mask = "0";
+    options.dht.neighbors.push_back(&local);
 
-    return DaqDB::KVStoreBase::Open(options);
+    return std::unique_ptr<DaqDB::KVStoreBase>(
+        DaqDB::KVStoreBase::Open(options));
 }
 
 static void
@@ -193,6 +204,9 @@ int main(int argc, const char *argv[]) {
         "n-cores",
         po::value<int>(&nCores)->default_value(MINIDAQ_DEFAULT_N_CORES),
         "Number of cores for minidaq worker threads.")(
+        "max-ready-keys", po::value<int>(&maxReadyKeys)
+                              ->default_value(MINIDAQ_DEFAULT_MAX_READY_KEYS),
+        "Size of the queue holding keys ready for collecting.")(
         "start-delay",
         po::value<int>(&delay)->default_value(MINIDAQ_DEFAULT_DELAY),
         "Delays start of the test on each worker thread.")(
@@ -296,7 +310,7 @@ int main(int argc, const char *argv[]) {
                 return 0;
             }
             unique_ptr<DaqDB::MinidaqRoNode> nodeRo(
-                new DaqDB::MinidaqRoNode(kvs));
+                new DaqDB::MinidaqRoNode(kvs.get()));
             nodeRo->SetSubdetectorId(subId);
             nodeRo->SetThreads(nRoTh);
             nodeRo->SetFragmentSize(fSize);
@@ -312,7 +326,7 @@ int main(int argc, const char *argv[]) {
                 return 0;
             }
             unique_ptr<DaqDB::MinidaqAroNode> nodeAro(
-                new DaqDB::MinidaqAroNode(kvs));
+                new DaqDB::MinidaqAroNode(kvs.get()));
             nodeAro->SetSubdetectorId(subId);
             nodeAro->SetThreads(nAroTh);
             nodeAro->SetFragmentSize(fSize);
@@ -329,7 +343,8 @@ int main(int argc, const char *argv[]) {
         if (nFfTh) {
             std::cout << "### Configuring fast-filtering nodes..." << endl;
             unique_ptr<DaqDB::MinidaqFfNode> nodeFf(
-                new DaqDB::MinidaqFfNode(kvs));
+                maxReadyKeys ? (new DaqDB::MinidaqFfNode(kvs.get()))
+                             : (new DaqDB::MinidaqFfNodeSeq(kvs.get())));
             nodeFf->SetBaseSubdetectorId(startSubId);
             nodeFf->SetSubdetectors(nSub);
             nodeFf->SetThreads(nFfTh);

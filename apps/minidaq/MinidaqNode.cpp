@@ -97,13 +97,10 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
 
     // Pre-test
     _Affinity(executorId);
+    _Setup(executorId);
     if (_delay_s) {
         std::this_thread::sleep_for(std::chrono::seconds(_delay_s));
     }
-
-    // Prepare reusable key
-    MinidaqKey minidaqKey;
-    _Setup(executorId, minidaqKey);
 
     // Ramp up
     timerTest.Restart_ms(_tRamp_ms);
@@ -115,8 +112,8 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         }
         s.nRequests++;
         try {
-            _Task(minidaqKey, c, c_err);
-            _NextKey(minidaqKey);
+            Key key = _NextKey();
+            _Task(std::move(key), c, c_err);
         } catch (...) {
             if (_stopOnError)
                 _stopped = true;
@@ -140,13 +137,13 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
             }
             s.nRequests++;
             try {
-                _Task(minidaqKey, c, c_err);
+                Key key = _NextKey();
+                _Task(std::move(key), c, c_err);
             } catch (...) {
                 s.nErrRequests++;
                 if (_stopOnError)
                     _stopped = true;
             }
-            _NextKey(minidaqKey);
         } while (!_stopped &&
                  ((s.nRequests % avg_r) || !timerSample.IsExpired()));
         if (_stopped)
@@ -258,17 +255,21 @@ void MinidaqNode::SaveSummary(std::string &fs, std::string &tname) {
 }
 
 #ifdef WITH_INTEGRITY_CHECK
-char MinidaqNode::_GetBufferByte(MinidaqKey &key, size_t i) {
-    return ((key.eventId + i) % 256);
+char MinidaqNode::_GetBufferByte(const Key &key, size_t i) {
+    const MinidaqKey *mKeyPtr =
+        reinterpret_cast<const MinidaqKey *>(key.data());
+    return ((mKeyPtr->eventId + i) % 256);
 }
 
-void MinidaqNode::_FillBuffer(MinidaqKey &key, char *buf, size_t s) {
+void MinidaqNode::_FillBuffer(const Key &key, char *buf, size_t s) {
     for (int i = 0; i < s; i++) {
         buf[i] = _GetBufferByte(key, i);
     }
 }
 
-bool MinidaqNode::_CheckBuffer(MinidaqKey &key, char *buf, size_t s) {
+bool MinidaqNode::_CheckBuffer(const Key &key, const char *buf, size_t s) {
+    const MinidaqKey *mKeyPtr =
+        reinterpret_cast<const MinidaqKey *>(key.data());
     std::stringstream msg;
     unsigned char b_exp;
     unsigned char b_act;
@@ -282,8 +283,8 @@ bool MinidaqNode::_CheckBuffer(MinidaqKey &key, char *buf, size_t s) {
             if (!err) {
                 err = true;
                 msg << "Integrity check failed (" << _GetType()
-                    << ") EventId=" << key.eventId
-                    << " SubdetectorId=" << key.subdetectorId << std::endl;
+                    << ") EventId=" << mKeyPtr->eventId
+                    << " SubdetectorId=" << mKeyPtr->subdetectorId << std::endl;
                 _nIntegrityErrors++;
             }
             msg << "  buf[" << i << "] = "

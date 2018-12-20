@@ -15,18 +15,24 @@
 
 #pragma once
 
-#include "MinidaqRoNode.h"
+#include <PrimaryKeyBase.h>
+#include <SpdkCore.h>
+#include <daqdb/Key.h>
+#include <daqdb/Options.h>
 
 namespace DaqDB {
 
-class MinidaqAroNode : public MinidaqRoNode {
+class PrimaryKeyNextQueue : public DaqDB::PrimaryKeyBase {
   public:
-    explicit MinidaqAroNode(KVStoreBase *kvs);
-    ~MinidaqAroNode();
+    PrimaryKeyNextQueue(const DaqDB::Options &options);
+    virtual ~PrimaryKeyNextQueue();
+    Key dequeueNext();
+    void enqueueNext(Key &&key);
 
-  protected:
-    void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
-               std::atomic<std::uint64_t> &cntErr);
-    std::string _GetType();
+  private:
+    char *_createPKeyBuff(char *srcKeyBuff);
+
+    struct spdk_ring *_readyKeys;
 };
-}
+
+} // namespace DaqDB

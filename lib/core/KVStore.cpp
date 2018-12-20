@@ -41,16 +41,15 @@ KVStoreBase *KVStore::Open(const DaqDB::Options &options) {
 }
 
 KVStore::KVStore(const DaqDB::Options &options)
-    : _options(options), _spOffloadPoller(nullptr), _keySize(0) {
-    for (size_t i = 0; i < options.key.nfields(); i++)
-        _keySize += options.key.field(i).size;
-    if (_keySize)
-        _keySize = DEFAULT_KEY_SIZE;
-}
+    : _options(options), _spOffloadPoller(nullptr), _keySize(0) {}
 
 KVStore::~KVStore() {
+    DAQ_INFO("Closing DAQDB KVStore.");
+
     RTreeEngine::Close(_spRtree.get());
     _spRtree.reset();
+
+    _spPKey.reset();
 
     for (auto index = 0; index < _rqstPollers.size(); index++) {
         delete _rqstPollers.at(index);
@@ -65,6 +64,19 @@ void KVStore::init() {
 
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
+
+    DAQ_INFO("Starting DAQDB KVStore.");
+
+    DAQ_INFO("Key structure:");
+    for (size_t i = 0; i < getOptions().key.nfields(); i++) {
+        DAQ_INFO("  Field[" + std::to_string(i) + "]: " +
+                 std::to_string(getOptions().key.field(i).size) + " byte(s)" +
+                 (getOptions().key.field(i).isPrimary ? " (primary)" : ""));
+        _keySize += getOptions().key.field(i).size;
+    }
+    if (!_keySize)
+        _keySize = DEFAULT_KEY_SIZE;
+    DAQ_INFO("  Total size: " + std::to_string(_keySize));
 
     // @TODO jradtke Temporary workaround - ARTree rebuilding not implemented
     if (bf::exists(getOptions().pmem.poolPath)) {
@@ -115,6 +127,8 @@ void KVStore::init() {
         _rqstPollers.push_back(rqstPoller);
     }
 
+    _spPKey.reset(DaqDB::PrimaryKeyEngine::open(getOptions()));
+
     DAQ_DEBUG("KVStore initialization completed");
 }
 
@@ -137,7 +151,15 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
         return dhtClient()->put(key, val);
     }
 
-    pmem()->Put(key.data(), val.data());
+    /** @todo what if more values inserted for the same primary key? */
+    char *keyBuff = key.data();
+    pmem()->Put(keyBuff, val.data());
+    try {
+        pKey()->enqueueNext(std::move(key));
+    } catch (OperationFailedException &e) {
+        pmem()->Remove(keyBuff);
+        throw;
+    }
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
 }
 
@@ -259,7 +281,7 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
     }
 }
 
-Key KVStore::GetAny(const GetOptions &options) { throw FUNC_NOT_IMPLEMENTED; }
+Key KVStore::GetAny(const GetOptions &options) { return pKey()->dequeueNext(); }
 
 void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
                           const GetOptions &options) {

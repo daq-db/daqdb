@@ -15,6 +15,9 @@
 
 #pragma once
 
+/** @todo implement logging categories */
+#define DAQ_INFO(msg) gLog.log(msg)
+#define DAQ_CRITICAL(msg) gLog.log(msg)
 #ifdef DEBUG
 #define DAQ_DEBUG(msg) gLog.log(msg)
 #else

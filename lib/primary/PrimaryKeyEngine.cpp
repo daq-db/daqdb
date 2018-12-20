@@ -13,20 +13,22 @@
  * stated in the License.
  */
 
-#pragma once
-
-#include "MinidaqRoNode.h"
+#include <Logger.h>
+#include <PrimaryKeyBase.h>
+#include <PrimaryKeyEngine.h>
+#include <PrimaryKeyNextQueue.h>
+#include <Types.h>
 
 namespace DaqDB {
 
-class MinidaqAroNode : public MinidaqRoNode {
-  public:
-    explicit MinidaqAroNode(KVStoreBase *kvs);
-    ~MinidaqAroNode();
-
-  protected:
-    void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
-               std::atomic<std::uint64_t> &cntErr);
-    std::string _GetType();
-};
+PrimaryKeyEngine *PrimaryKeyEngine::open(const DaqDB::Options &options) {
+    DAQ_INFO("Initializing Primary Key Engine");
+    if (options.runtime.maxReadyKeys)
+        return new DaqDB::PrimaryKeyNextQueue(options);
+    else
+        return new DaqDB::PrimaryKeyBase(options);
 }
+
+PrimaryKeyEngine::~PrimaryKeyEngine() {}
+
+} // namespace DaqDB

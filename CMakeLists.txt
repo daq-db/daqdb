@@ -83,7 +83,7 @@ if(NOT THIN_LIB)
 	set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread
 		rt uuid)
 	file(GLOB_RECURSE DAQDB_SOURCES lib/*.cpp)
-	include_directories(lib/offload lib/pmem lib/core lib/spdk)
+	include_directories(lib/offload lib/pmem lib/core lib/spdk lib/primary)
 	add_library(daqdb SHARED ${DAQDB_SOURCES})
 	target_link_libraries(daqdb ${Spdk_LIBRARIES} ${Boost_LIBRARIES} libconfig
 		${ERPC_LIBS})

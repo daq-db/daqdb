@@ -24,6 +24,7 @@
 #include <DhtServer.h>
 #include <OffloadPoller.h>
 #include <PmemPoller.h>
+#include <PrimaryKeyEngine.h>
 #include <RTreeEngine.h>
 #include <SpdkCore.h>
 
@@ -82,6 +83,8 @@ class KVStore : public KVStoreBase {
     inline SpdkCore *getSpdkCore() { return _spSpdk.get(); };
 
     inline RTreeEngine *pmem() { return _spRtree.get(); };
+    inline DhtServer *dht() { return _spDhtServer.get(); };
+    inline PrimaryKeyEngine *pKey() { return _spPKey.get(); };
 
     inline DhtServer *dhtServer() { return _spDhtServer.get(); };
     inline DhtClient *dhtClient() { return _spDht->getClient(); };
@@ -100,6 +103,7 @@ class KVStore : public KVStoreBase {
     std::unique_ptr<DhtServer> _spDhtServer;
     std::unique_ptr<RTreeEngine> _spRtree;
     std::unique_ptr<OffloadPoller> _spOffloadPoller;
+    std::unique_ptr<PrimaryKeyEngine> _spPKey;
     std::vector<PmemPoller *> _rqstPollers;
 
     std::unique_ptr<DhtCore> _spDht;

@@ -15,18 +15,20 @@
 
 #pragma once
 
-#include "MinidaqRoNode.h"
+#include "MinidaqFfNode.h"
 
 namespace DaqDB {
 
-class MinidaqAroNode : public MinidaqRoNode {
+class MinidaqFfNodeSeq : public MinidaqFfNode {
   public:
-    explicit MinidaqAroNode(KVStoreBase *kvs);
-    ~MinidaqAroNode();
+    explicit MinidaqFfNodeSeq(KVStoreBase *kvs);
+    virtual ~MinidaqFfNodeSeq();
 
   protected:
     void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
+    void _Setup(int executorId);
+    Key _NextKey();
     std::string _GetType();
 };
 }

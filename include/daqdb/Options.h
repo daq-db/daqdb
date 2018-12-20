@@ -99,6 +99,7 @@ struct KeyDescriptor {
             _fields.resize(idx + 1);
 
         _fields[idx].size = size;
+        _fields[idx].isPrimary = isPrimary;
     }
 
     KeyFieldDescriptor field(size_t idx) const {
@@ -123,6 +124,7 @@ struct RuntimeOptions {
     std::function<void(std::string)> logFunc = nullptr;
     std::function<void()> shutdownFunc = nullptr;
     unsigned short numOfPollers = 1;
+    size_t maxReadyKeys = 0;
 };
 
 struct DhtKeyRange {

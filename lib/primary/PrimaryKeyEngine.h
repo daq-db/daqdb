@@ -15,18 +15,17 @@
 
 #pragma once
 
-#include "MinidaqRoNode.h"
+#include <daqdb/Key.h>
+#include <daqdb/Options.h>
 
 namespace DaqDB {
 
-class MinidaqAroNode : public MinidaqRoNode {
+class PrimaryKeyEngine {
   public:
-    explicit MinidaqAroNode(KVStoreBase *kvs);
-    ~MinidaqAroNode();
-
-  protected:
-    void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
-               std::atomic<std::uint64_t> &cntErr);
-    std::string _GetType();
+    static PrimaryKeyEngine *open(const DaqDB::Options &options);
+    virtual ~PrimaryKeyEngine();
+    virtual Key dequeueNext() = 0;
+    virtual void enqueueNext(Key &&key) = 0;
+    virtual bool isLocal(const Key &key) = 0;
 };
-}
+} // namespace DaqDB
