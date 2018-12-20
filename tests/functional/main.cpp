@@ -106,13 +106,12 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    prepareZhtTests(zhtConf, neighborConf);
     map<string, function<bool(DaqDB::KVStoreBase *)>> tests =
         boost::assign::map_list_of("testSyncOperations", testSyncOperations)(
             "testASyncOperations", testAsyncOperations)(
             "testSyncOffloadOperations", testSyncOffloadOperations)(
             "testAsyncOffloadOperations", testAsyncOffloadOperations)(
-            "testZhtConnect", testZhtConnect)("testValueSizes", testValueSizes);
+            "testDhtConnect", testDhtConnect)("testValueSizes", testValueSizes);
 
     unsigned short failsCount = 0;
     for (auto test : tests) {
@@ -126,8 +125,6 @@ int main(int argc, const char *argv[]) {
     } else {
         LOG_INFO << "All tests passed!" << endl;
     }
-
-    cleanupZhtTests(zhtConf, neighborConf);
 
     return 0;
 }

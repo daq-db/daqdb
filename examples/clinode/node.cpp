@@ -26,8 +26,8 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#include "debug.h"
 #include "config.h"
+#include "debug.h"
 #include "nodeCli.h"
 
 using namespace std;
@@ -119,4 +119,3 @@ int main(int argc, const char *argv[]) {
 
     return 0;
 }
-

@@ -28,6 +28,19 @@ else(THIN_LIB)
 	MESSAGE(STATUS "Build full version of the library")
 endif(THIN_LIB)
 
+option(ERPC_RAW_TRANSPORT "Build eRPC in RAW transport mode" ON)
+if(ERPC_RAW_TRANSPORT)
+	MESSAGE(STATUS "Build eRPC in RAW transport mode")
+	set(ERPC_TRANSPORT_MODE raw)
+	set(ERPC_LIBS numa ibverbs liberpc)
+	add_definitions(-DRAW)
+else(ERPC_RAW_TRANSPORT)
+	MESSAGE(STATUS "Build eRPC in DPDK transport mode")
+	set(ERPC_TRANSPORT_MODE dpdk)
+	set(ERPC_LIBS numa liberpc)
+	add_definitions(-DDPDK)
+endif(ERPC_RAW_TRANSPORT)
+
 ###############################################################################
 # Internal options
 ###############################################################################
@@ -50,16 +63,16 @@ include_directories(include include/daqdb include/config)
 set(3RDPARTY ${PROJECT_SOURCE_DIR}/third-party)
 add_subdirectory(${3RDPARTY})
 
-include_directories(BEFORE ${PROTOBUF_INCLUDES_EXPORT}) # Must be before LCG
-include_directories(${ZHT_INCLUDES_EXPORT})
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
+include_directories(${3RDPARTY}/eRPC/src)
+include_directories(${3RDPARTY}/spdk/dpdk/build/include)
 
 file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
 	lib/dht/*.cpp lib/KVStoreBase.cpp)
 include_directories(lib/common lib/dht lib/thin)
 add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
 target_compile_definitions(daqdb_thin PRIVATE THIN_LIB=1)
-target_link_libraries(daqdb_thin ${Boost_LIBRARIES} zht libprotobuf libconfig)
+target_link_libraries(daqdb_thin ${Boost_LIBRARIES} libconfig ${ERPC_LIBS})
 
 if(NOT THIN_LIB)
 	include_directories(${3RDPARTY}/pmdk/src/include)
@@ -67,12 +80,13 @@ if(NOT THIN_LIB)
 	include_directories(${3RDPARTY}/spdk/include)
 	include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 	
-	set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread rt uuid)
+	set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread
+		rt uuid)
 	file(GLOB_RECURSE DAQDB_SOURCES lib/*.cpp)
 	include_directories(lib/offload lib/pmem lib/core lib/spdk lib/primary)
 	add_library(daqdb SHARED ${DAQDB_SOURCES})
-	target_link_libraries(daqdb ${Spdk_LIBRARIES} ${Boost_LIBRARIES}
-						  zht libprotobuf libconfig )
+	target_link_libraries(daqdb ${Spdk_LIBRARIES} ${Boost_LIBRARIES} libconfig
+		${ERPC_LIBS})
 endif()
 
 ###############################################################################

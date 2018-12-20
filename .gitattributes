@@ -1,17 +1,14 @@
-# Handle line endings automatically for files detected as text
-# and leave all files detected as binary untouched.
-* text=auto
-
 # These files are text and should be normalized (Convert crlf => lf)
-
-*.txt text eol=lf
-*.md text eol=lf
-*.gitattributes text eol=lf
-.gitignore text eol=lf
-*.cpp text eol=lf
-*.h text eol=lf
-*.sh text eol=lf
-*.in text eol=lf
-
-scripts/githooks/pre-commit text eol=lf
-scripts/githooks/git-clang-format text eol=lf
+*.txt text
+*.md text
+*.gitattributes text
+.gitignore text
+*.cpp text
+*.h text
+*.sh text
+*.in text
+*.ac text
+*.am text
+configure text
+scripts/githooks/pre-commit text
+scripts/githooks/git-clang-format text

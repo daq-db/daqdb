@@ -89,20 +89,21 @@ bool testAsyncOperations(KVStoreBase *kvs) {
 
     auto currVal = daqdb_get(kvs, key);
     LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
-    if (expectedVal.compare(currVal.data()) != 0) {
+    if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
         LOG_INFO << "Error: wrong value returned" << flush;
         result = false;
     }
 
     daqdb_async_get(
-        kvs, key, [&](KVStoreBase *kvs, Status status, const char *key,
-                      size_t keySize, const char *value, size_t valueSize) {
+        kvs, key,
+        [&](KVStoreBase *kvs, Status status, const char *key, size_t keySize,
+            const char *value, size_t valueSize) {
             unique_lock<mutex> lck(mtx);
 
             if (status.ok()) {
                 LOG_INFO << boost::format("GetAsync: [%1%] = %2%") % key %
                                 value;
-                if (expectedVal.compare(value) != 0) {
+                if (!currVal.data() || expectedVal.compare(value) != 0) {
                     LOG_INFO << "Error: wrong value returned" << flush;
                     result = false;
                 }

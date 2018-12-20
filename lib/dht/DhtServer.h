@@ -20,18 +20,14 @@
 #include <string>
 #include <thread>
 
-#include <asio/io_service.hpp>
-
-#include <EpollServer.h>
-
 #include <DhtCore.h>
 #include <DhtNode.h>
 #include <Key.h>
 #include <Value.h>
 
-namespace DaqDB {
+#include <KVStoreBase.h>
 
-namespace zh = iit::datasys::zht::dm;
+namespace DaqDB {
 
 enum class DhtServerState : std::uint8_t {
     DHT_SERVER_INIT = 0,
@@ -40,44 +36,15 @@ enum class DhtServerState : std::uint8_t {
     DHT_SERVER_STOPPED
 };
 
+struct DhtServerCtx {
+    void *rpc;
+    KVStoreBase *kvs;
+};
+
 class DhtServer {
   public:
-    DhtServer(asio::io_service &io_service, DhtCore *dhtCore, KVStoreBase *kvs,
-              unsigned short port);
-
-    /**
-     * Synchronously get a value for a given key.
-     * Remote node is calculated based on key hash (see DhtCore._genHash).
-     *
-     * @param key Reference to a key structure
-     *
-     * @throw OperationFailedException if any error occurred
-     *
-     * @return On success returns allocated buffer with value. The caller is
-     * responsible of releasing the buffer.
-     */
-    Value get(const Key &key);
-
-    /**
-     * Synchronously insert a value for a given key.
-     * Remote node is calculated based on key hash (see DhtCore._genHash).
-     *
-     * @param key Reference to a key structure
-     * @param val Reference to a value structure
-     *
-     * @throw OperationFailedException if any error occurred
-     */
-    void put(const Key &key, const Value &val);
-
-    /**
-     * Synchronously remove a key-value store entry for a given key.
-     * Remote node is calculated based on key hash (see DhtCore._genHash).
-     *
-     * @throw OperationFailedException if any error occurred
-     *
-     * @param key Reference to a key structure
-     */
-    void remove(const Key &key);
+    DhtServer(DhtCore *dhtCore, KVStoreBase *kvs, unsigned short port);
+    ~DhtServer();
 
     /**
      * Prints DHT status.
@@ -90,14 +57,11 @@ class DhtServer {
      */
     std::string printNeighbors();
 
-    inline ZHTClient *getClient() { return &_dhtCore->getClient()->c; }
-
-    /**
-     *
-     */
     void serve(void);
 
-    inline unsigned int getId() { return _dhtCore->getLocalNode()->getId(); }
+    inline unsigned int getId() {
+        return _dhtCore->getLocalNode()->getSessionId();
+    }
     inline const std::string getIp() {
         return _dhtCore->getLocalNode()->getIp();
     }
@@ -108,17 +72,14 @@ class DhtServer {
         return _dhtCore->getLocalNode()->getMask();
     }
 
+    std::atomic<bool> keepRunning;
     std::atomic<DhtServerState> state;
 
   private:
     void _serve(void);
 
     KVStoreBase *_kvs;
-
     DhtCore *_dhtCore;
-
-    std::unique_ptr<zh::EpollServer> _spEpollServer;
-
     std::thread *_thread;
 };
 

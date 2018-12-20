@@ -21,16 +21,16 @@
 /**
  * Verifies connection to remote DAQDB node (defined in configuration file)
  */
-bool testRemotePeerConnect(DaqDB::KVStoreBase *kvs);
+bool testRemotePeerConnect(DaqDB::KVStoreBase *kvs, DaqDB::Options *options);
 
 /**
  * Verifies single PUT and GET operation performed on remote DAQDB peer
  * node.
  */
-bool testPutGetSequence(DaqDB::KVStoreBase *kvs);
+bool testPutGetSequence(DaqDB::KVStoreBase *kvs, DaqDB::Options *options);
 
 /**
  * Verifies various value sizes for single PUT and GET operation performed on
  * remote DAQDB peer.
  */
-bool testValueSizes(DaqDB::KVStoreBase *kvs);
+bool testValueSizes(DaqDB::KVStoreBase *kvs, DaqDB::Options *options);

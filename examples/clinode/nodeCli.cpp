@@ -610,15 +610,12 @@ void nodeCli::_cmdRemove(const std::string &strLine) {
 void nodeCli::_cmdStatus() {
     chrono::time_point<chrono::system_clock> timestamp;
     auto currentTime = chrono::system_clock::to_time_t(timestamp);
-
     cout << format("DHT ID = %1%\nDHT ip:port = localhost:%2%\n") %
                 _spKVStore->getProperty("daqdb.dht.id") %
                 _spKVStore->getProperty("daqdb.dht.port")
          << flush;
-
     cout << format("%1%") % _spKVStore->getProperty("daqdb.dht.status")
          << flush;
-
     if (_statusMsgs.size() > 0) {
         cout << endl << "Async operations:" << endl;
         for (std::string message : _statusMsgs) {

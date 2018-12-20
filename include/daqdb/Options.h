@@ -136,6 +136,7 @@ struct DhtKeyRange {
 struct DhtNeighbor {
     std::string ip;
     unsigned short port = 0;
+    bool local = false;
     DhtKeyRange keyRange;
 };
 

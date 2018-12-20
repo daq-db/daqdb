@@ -15,125 +15,78 @@
 
 #include <boost/filesystem.hpp>
 
-#include <ConfHandler.h>
-#include <Util.h>
+#include <rpc.h>
 
 #include "DhtCore.h"
-#include <ConfHandler.h>
 #include <Logger.h>
 
 using namespace std;
 
 namespace bf = boost::filesystem;
-namespace zh = iit::datasys::zht::dm;
 
 using namespace std;
 
 namespace DaqDB {
 
+const string DEFAULT_ERPC_SERVER_IP = "localhost";
+const unsigned short DEFAULT_ERPC_SERVER_PORT = 31850;
+
+const size_t DEFAULT_ERPC_NUMA_NODE = 0;
+const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
+
 DhtCore::DhtCore(DhtOptions dhtOptions) : options(dhtOptions) {
-    createConfFile();
-    createNeighborsFile();
-    zh::ConfHandler::initConf(DEFAULT_ZHT_CONF_FILE,
-                              DEFAULT_ZHT_NEIGHBORS_FILE);
     _initNeighbors();
     _initRangeToHost();
-
-    removeConfFile();
-    removeNeighborsFile();
-
-    _zhtClient.c.init("", "", getLocalNode()->getMask(), &_rangeToHost);
-    _zhtClient.setInitialized();
 }
 
-void DhtCore::createConfFile(void) {
-
-    if (!bf::exists(DEFAULT_ZHT_CONF_FILE)) {
-
-        ofstream confOut(DEFAULT_ZHT_CONF_FILE, ios::out);
-
-        confOut << "PROTOCOL TCP" << endl;
-        confOut << "PORT " << options.port << endl;
-        confOut << "MSG_MAXSIZE " << DEFAULT_ZHT_MSG_MAXSIZE << endl;
-        confOut << "SCCB_POLL_INTERVAL " << DEFAULT_ZHT_SCCB_POOL_INTERVAL
-                << endl;
-        confOut << "INSTANT_SWAP " << DEFAULT_ZHT_INSTANT_SWAP << endl;
-        confOut.close();
-
-        DAQ_DEBUG("ZHT configuration file created");
-    } else {
-        DAQ_DEBUG("ZHT configuration file creation skipped");
+DhtCore::~DhtCore() {
+    while (!_neighbors.empty()) {
+        auto neighbor = _neighbors.back();
+        _neighbors.pop_back();
+        delete neighbor;
     }
 }
 
-void DhtCore::createNeighborsFile(void) {
-    if (!bf::exists(DEFAULT_ZHT_NEIGHBORS_FILE)) {
-        ofstream neighbourOut(DEFAULT_ZHT_NEIGHBORS_FILE, ios::out);
-
-        for (auto neighbor : options.neighbors) {
-            neighbourOut << neighbor->ip << " " << neighbor->port << endl;
-        }
-        neighbourOut.close();
-        DAQ_DEBUG("ZHT neighbor file created");
-    } else {
-        DAQ_DEBUG("ZHT neighbor file creation failed");
-    }
-}
-
-void DhtCore::removeConfFile(void) {
-    if (bf::exists(DEFAULT_ZHT_CONF_FILE)) {
-        bf::remove(DEFAULT_ZHT_CONF_FILE);
-    }
-}
-
-void DhtCore::removeNeighborsFile(void) {
-    if (bf::exists(DEFAULT_ZHT_NEIGHBORS_FILE)) {
-        bf::remove(DEFAULT_ZHT_NEIGHBORS_FILE);
-    }
-}
-
-bool DhtCore::_isLocalServerNode(string ip, string port,
-                                 unsigned short serverPort) {
-    try {
-        if ((ip.compare("localhost") == 0) && (stoi(port) == serverPort)) {
-            return true;
-        }
-    } catch (invalid_argument &ia) {
-        // no action needed
-    }
-    return false;
+void DhtCore::initClient() {
+    _spClient.reset(new DhtClient(this, _spLocalNode->getPort()));
+    _spClient->initialize();
 }
 
 void DhtCore::_initNeighbors(void) {
-    for (unsigned int index = 0; index < zh::ConfHandler::NeighborVector.size();
-         ++index) {
-        auto entry = zh::ConfHandler::NeighborVector.at(index);
-        auto dhtNode = new DhtNode();
-        dhtNode->setId(index);
-        dhtNode->setIp(entry.name());
-        dhtNode->setPort(stoi(entry.value()));
-        dhtNode->state = DhtNodeState::NODE_INIT;
 
-        for (auto option : options.neighbors) {
-            if (option->ip == dhtNode->getIp() &&
-                option->port == dhtNode->getPort()) {
-                try {
-                    dhtNode->setMask(stoi(option->keyRange.mask));
-                    dhtNode->setStart(stoi(option->keyRange.start));
-                    dhtNode->setEnd(stoi(option->keyRange.end));
-                } catch (invalid_argument &ia) {
-                    // no action needed
-                }
-            }
+    for (auto option : options.neighbors) {
+
+        auto dhtNode = new DhtNode();
+
+        dhtNode->setIp(option->ip);
+        dhtNode->setPort(option->port);
+        dhtNode->state = DhtNodeState::NODE_INIT;
+        dhtNode->setMask(1);
+
+        try {
+            dhtNode->setMask(stoi(option->keyRange.mask));
+            dhtNode->setStart(stoi(option->keyRange.start));
+            dhtNode->setEnd(stoi(option->keyRange.end));
+        } catch (invalid_argument &ia) {
+            // no action needed
         }
-        if (_isLocalServerNode(entry.name(), entry.value(), options.port)) {
+
+        if (option->local) {
+            dhtNode->state = DhtNodeState::NODE_READY;
             _spLocalNode.reset(dhtNode);
         } else {
             _neighbors.push_back(dhtNode);
         }
     }
-    if (_spLocalNode.get() == nullptr) {
-        _spLocalNode.reset(new DhtNode());
+
+    if (!_spLocalNode) {
+        // Needed in case when local server not defined in options
+        auto dhtNode = new DhtNode();
+        dhtNode->setIp(DEFAULT_ERPC_SERVER_IP);
+        dhtNode->setPort(DEFAULT_ERPC_SERVER_PORT);
+        dhtNode->state = DhtNodeState::NODE_READY;
+        dhtNode->setMask(1);
+        _spLocalNode.reset(dhtNode);
     }
 }
 
@@ -142,12 +95,33 @@ void DhtCore::_initRangeToHost(void) {
         pair<int, int> key;
         key.first = neighbor->getStart();
         key.second = neighbor->getEnd();
-        _rangeToHost[key] = neighbor->getId();
+        _rangeToHost[key] = neighbor;
     }
 }
 
 uint64_t DhtCore::_genHash(const char *key, int mask) {
-    return zh::HashUtil::genHash(key, mask);
+    uint64_t hash = 0;
+    uint64_t c;
+
+    auto maskCount = mask;
+    while ((c = (*key++)) && (--maskCount >= 0)) {
+        hash += c << maskCount;
+    }
+    return hash;
+}
+
+DhtNode *DhtCore::getHostForKey(Key key) {
+
+    auto keyHash = _genHash(key.data(), getLocalNode()->getMask());
+    if (getLocalNode()->getMask() > 0) {
+        for (auto rangeAndHost : _rangeToHost) {
+            auto range = rangeAndHost.first;
+            if ((keyHash >= range.first) && (keyHash < range.second)) {
+                return rangeAndHost.second;
+            }
+        }
+    }
+    return getLocalNode();
 }
 
 bool DhtCore::isLocalKey(Key key) {

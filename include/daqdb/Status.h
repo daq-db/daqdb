@@ -29,6 +29,7 @@ enum StatusCode : long {
     ALLOCATION_ERROR,
     OFFLOAD_DISABLED_ERROR,
     QUEUE_FULL_ERROR,
+    DHT_DISABLED_ERROR,
     TIME_OUT,
     NOT_IMPLEMENTED,
     NOT_SUPPORTED,
@@ -62,4 +63,5 @@ struct Status {
 };
 
 Status errno2status(int err);
-}
+
+} // namespace DaqDB

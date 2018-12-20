@@ -41,13 +41,11 @@ void KVStoreThin::init() {
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
     _spDht.reset(new DhtCore(getOptions().dht));
-    _spDhtServer.reset(new DhtServer(getIoService(), getDhtCore(),
-                                     static_cast<KVStoreBase *>(this),
-                                     getDhtCore()->getLocalNode()->getPort()));
-    if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
-        DAQ_DEBUG("DHT server started successfully");
+    _spDht->initClient();
+    if (_spDht->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
+        DAQ_DEBUG("DHT client started successfully");
     } else {
-        DAQ_DEBUG("Can not start DHT server");
+        DAQ_DEBUG("Can not start DHT client");
     }
 
     DAQ_DEBUG("KVStoreThin initialization completed");
@@ -64,11 +62,11 @@ void KVStoreThin::LogMsg(std::string msg) {
 }
 
 Value KVStoreThin::Get(const Key &key, const GetOptions &options) {
-    return dht()->get(key);
+    return dhtClient()->get(key);
 }
 
 void KVStoreThin::Put(Key &&key, Value &&val, const PutOptions &options) {
-    dht()->put(key, val);
+    dhtClient()->put(key, val);
 }
 
 void KVStoreThin::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
@@ -121,7 +119,7 @@ void KVStoreThin::GetRangeAsync(const Key &beg, const Key &end,
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStoreThin::Remove(const Key &key) { dht()->remove(key); }
+void KVStoreThin::Remove(const Key &key) { dhtClient()->remove(key); }
 
 void KVStoreThin::RemoveRange(const Key &beg, const Key &end) {
     throw FUNC_NOT_IMPLEMENTED;
@@ -158,20 +156,6 @@ void KVStoreThin::ChangeOptions(Key &key, const AllocOptions &options) {
 
 bool KVStoreThin::IsOffloaded(Key &key) { throw FUNC_NOT_SUPPORTED; }
 
-std::string KVStoreThin::getProperty(const std::string &name) {
-
-    if (name == "daqdb.dht.id")
-        return std::to_string(dht()->getId());
-    if (name == "daqdb.dht.neighbours")
-        return dht()->printNeighbors();
-    if (name == "daqdb.dht.status")
-        return dht()->printStatus();
-    if (name == "daqdb.dht.ip")
-        return dht()->getIp();
-    if (name == "daqdb.dht.port")
-        return std::to_string(dht()->getPort());
-
-    return "";
-}
+std::string KVStoreThin::getProperty(const std::string &name) { return ""; }
 
 } // namespace DaqDB

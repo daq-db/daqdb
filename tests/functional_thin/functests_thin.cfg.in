@@ -38,24 +38,19 @@ primaryKey = "1*3";
 //******************************* DHT SECTION ********************************
 //*****************************************************************************
 
-protocol = "TCP";
-port = 10002;
-msg_maxsize = 1000000L;
-sccb_pool_interval = 100;
-instant_swap = 0;
-
 dht_key_mask = "1";
 neighbors :
 (
     {
         ip = "localhost";
-        port = 10002;
+        port = 31851;
+        local = 1;
     },
     {
         // daqdb peer required to perform functional tests for "thin" mode
         ip = "localhost";
-        port = 10003;
-        keys = { start = "0", end = "255"}
+        port = 31850;
+        keys = { start = "0", end = "255", mask = "1"}
     },
 );
 

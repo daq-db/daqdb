@@ -15,59 +15,78 @@
 
 #pragma once
 
+#include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include <Util.h>
-#include <ZhtClient.h>
-
 #include <DhtClient.h>
 #include <DhtNode.h>
+
+#include <daqdb/Key.h>
 #include <daqdb/Options.h>
+
+// @TODO : jradtke Cannot include rpc.h, net / if.h conflict
+namespace erpc {
+class Nexus;
+}
 
 namespace DaqDB {
 
-typedef std::map<std::pair<int, int>, int> RangeToHost;
+typedef std::map<std::pair<int, int>, DhtNode *> RangeToHost;
 
-const std::string DEFAULT_ZHT_CONF_FILE = "zht.conf";
-const std::string DEFAULT_ZHT_NEIGHBORS_FILE = "neighbors.conf";
-const size_t DEFAULT_ZHT_MSG_MAXSIZE = 1000000L;
-const unsigned int DEFAULT_ZHT_SCCB_POOL_INTERVAL = 100;
-const unsigned int DEFAULT_ZHT_INSTANT_SWAP = 0;
+enum class ErpRequestType : std::uint8_t {
+    ERP_REQUEST_GET = 2,
+    ERP_REQUEST_PUT,
+    ERP_REQUEST_REMOVE
+};
+
+struct DaqdbDhtMsg {
+    size_t keySize;
+    size_t valSize;
+    // Contains both key and value
+    char msg[];
+};
+
+struct DaqdbDhtResult {
+    int rc;
+    size_t msgSize;
+    // Contains value for get requests
+    char msg[];
+};
 
 class DhtCore {
   public:
     DhtCore(DhtOptions dhtOptions);
+    ~DhtCore();
 
-    void createConfFile(void);
-
-    void createNeighborsFile(void);
-
-    void removeConfFile(void);
-
-    void removeNeighborsFile(void);
+    void initClient();
 
     bool isLocalKey(Key key);
 
-    inline DhtClient<ZHTClient> *getClient() { return &_zhtClient; };
-    inline RangeToHost *getRangeToHost() { return &_rangeToHost; }
-    inline DhtNode *getLocalNode() { return _spLocalNode.get(); }
-    inline vector<DhtNode *> *getNeighbors(void) { return &_neighbors; }
+    DhtNode *getHostForKey(Key key);
+
+    inline RangeToHost *getRangeToHost() { return &_rangeToHost; };
+
+    inline DhtNode *getLocalNode() { return _spLocalNode.get(); };
+
+    inline std::vector<DhtNode *> *getNeighbors(void) { return &_neighbors; };
+
+    inline DhtClient *getClient() { return _spClient.get(); };
 
     DhtOptions options;
 
   private:
     void _initNeighbors(void);
     void _initRangeToHost(void);
-    bool _isLocalServerNode(string ip, string port, unsigned short serverPort);
 
     uint64_t _genHash(const char *key, int mask);
 
-    std::unique_ptr<DhtNode> _spLocalNode;
-    vector<DhtNode *> _neighbors;
-    RangeToHost _rangeToHost;
+    std::unique_ptr<DhtClient> _spClient;
 
-    DhtClient<ZHTClient> _zhtClient;
+    std::unique_ptr<DhtNode> _spLocalNode;
+    std::vector<DhtNode *> _neighbors;
+    RangeToHost _rangeToHost;
 };
 
 } // namespace DaqDB
