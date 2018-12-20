@@ -44,11 +44,11 @@ PrimaryKeyBase::PrimaryKeyBase(const DaqDB::Options &options)
 
 PrimaryKeyBase::~PrimaryKeyBase() {}
 
-Key PrimaryKeyBase::dequeueNext() {
-    throw OperationFailedException(NOT_SUPPORTED);
-}
+Key PrimaryKeyBase::dequeueNext() { throw FUNC_NOT_SUPPORTED; }
 
-void PrimaryKeyBase::enqueueNext(Key &&Key) {}
+void PrimaryKeyBase::enqueueNext(Key &&Key) {
+    // don't throw exception, just do nothing
+}
 
 bool PrimaryKeyBase::isLocal(const Key &key) {
     const char *keyBuff = reinterpret_cast<const char *>(key.data());
