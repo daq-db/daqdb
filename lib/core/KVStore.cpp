@@ -159,7 +159,7 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     char *keyBuff = key.data();
     pmem()->Put(keyBuff, val.data());
     try {
-        pKey()->enqueueNext(move(key));
+        pKey()->enqueueNext(std::move(key));
     } catch (OperationFailedException &e) {
         pmem()->Remove(keyBuff);
         throw;
