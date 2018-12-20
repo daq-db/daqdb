@@ -13,14 +13,14 @@
  * stated in the License.
  */
 
+#include <Logger.h>
 #include <PrimaryKeyBase.h>
-#include <iostream>
 
 namespace DaqDB {
 
 PrimaryKeyBase::PrimaryKeyBase(const DaqDB::Options &options)
     : _keySize(0), _pKeySize(0), _pKeyOffset(0) {
-    std::cout << "Initializing Primary Key Base Engine" << std::endl;
+    DAQ_INFO("Initializing Primary Key Base Engine");
 
     for (size_t i = 0; i < options.key.nfields(); i++) {
         if (options.key.field(i).isPrimary) {
@@ -30,18 +30,14 @@ PrimaryKeyBase::PrimaryKeyBase(const DaqDB::Options &options)
         _keySize += options.key.field(i).size;
     }
 
-    std::cout << "  Total key size: " << std::to_string(_keySize) << std::endl
-              << "  Primary key size: " << std::to_string(_pKeySize)
-              << std::endl
-              << "  Primary key offset: " << std::to_string(_pKeyOffset)
-              << std::endl;
+    DAQ_INFO("  Total key size: " + std::to_string(_keySize));
+    DAQ_INFO("  Primary key size: " + std::to_string(_pKeySize));
+    DAQ_INFO("  Primary key offset: " + std::to_string(_pKeyOffset));
 
     _localKeyValue = options.dht.id;
     _localKeyMask = (1U << options.dht.neighbors.size()) - 1;
-    std::cout << "  Local key value: " << std::to_string(_localKeyValue)
-              << std::endl
-              << "  Local key mask: " << std::to_string(_localKeyMask)
-              << std::endl;
+    DAQ_INFO("  Local key value: " + std::to_string(_localKeyValue));
+    DAQ_INFO("  Local key mask: " + std::to_string(_localKeyMask));
     if (_pKeySize > sizeof(uint64_t))
         throw OperationFailedException(NOT_SUPPORTED);
 }

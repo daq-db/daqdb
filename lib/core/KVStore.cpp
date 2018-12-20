@@ -39,24 +39,7 @@ KVStoreBase *KVStore::Open(const DaqDB::Options &options) {
 }
 
 KVStore::KVStore(const DaqDB::Options &options)
-    : _options(options), _spOffloadPoller(nullptr), _keySize(0) {
-    std::stringstream msg;
-    msg << "Starting DAQDB KVStore." << std::endl
-        << "Key structure:" << std::endl;
-    for (size_t i = 0; i < options.key.nfields(); i++) {
-        msg << "  Field[" << std::to_string(i)
-            << "]: " << std::to_string(options.key.field(i).size) << " byte(s)";
-        if (options.key.field(i).isPrimary) {
-            msg << " (primary)";
-        }
-        _keySize += options.key.field(i).size;
-        msg << std::endl;
-    }
-    if (!_keySize)
-        _keySize = DEFAULT_KEY_SIZE;
-    msg << "  Total size: " << std::to_string(_keySize) << std::endl;
-    std::cout << msg.str();
-}
+    : _options(options), _spOffloadPoller(nullptr), _keySize(0) {}
 
 KVStore::~KVStore() {
     RTreeEngine::Close(_spRtree.get());
@@ -74,6 +57,8 @@ void KVStore::init() {
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
+    DAQ_INFO("Starting DAQDB KVStore.");
+
     _spSpdk.reset(new SpdkCore(getOptions().offload));
 
     if (isOffloadEnabled()) {
@@ -81,6 +66,17 @@ void KVStore::init() {
     } else {
         DAQ_DEBUG("SPDK offload functionality is disabled");
     }
+
+    DAQ_INFO("Key structure:");
+    for (size_t i = 0; i < getOptions().key.nfields(); i++) {
+        DAQ_INFO("  Field[" + std::to_string(i) + "]: " +
+                 std::to_string(getOptions().key.field(i).size) + " byte(s)" +
+                 (getOptions().key.field(i).isPrimary ? " (primary)" : ""));
+        _keySize += getOptions().key.field(i).size;
+    }
+    if (!_keySize)
+        _keySize = DEFAULT_KEY_SIZE;
+    DAQ_INFO("  Total size: " + std::to_string(_keySize));
 
     _spRtree.reset(DaqDB::RTreeEngine::Open(getOptions().pmem.poolPath,
                                             getOptions().pmem.totalSize,

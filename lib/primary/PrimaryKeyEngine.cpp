@@ -13,16 +13,16 @@
  * stated in the License.
  */
 
+#include <Logger.h>
 #include <PrimaryKeyBase.h>
 #include <PrimaryKeyEngine.h>
 #include <PrimaryKeyNextQueue.h>
 #include <Types.h>
-#include <iostream>
 
 namespace DaqDB {
 
 PrimaryKeyEngine *PrimaryKeyEngine::open(const DaqDB::Options &options) {
-    std::cout << "Initializing Primary Key Engine" << std::endl;
+    DAQ_INFO("Initializing Primary Key Engine");
     if (options.runtime.maxReadyKeys)
         return new DaqDB::PrimaryKeyNextQueue(options);
     else
