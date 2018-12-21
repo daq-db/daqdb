@@ -87,16 +87,11 @@ struct ValueWrapper {
 
 class Node {
   public:
-    explicit Node(int _depth, int _type)
-        : depth(_depth), type(_type), actionCounter(0) {}
+    explicit Node(int _depth, int _type) : depth(_depth), type(_type) {}
     // depth of current Node in tree
     int depth;
     // Type of Node: Node256 or compressed
     int type;
-    // stores all actions done on subtree with Reserve-publish
-    struct pobj_action *actionsArray;
-    // counts all actions done on subtree with Reserve-publish
-    int actionCounter;
 };
 
 /*
@@ -127,16 +122,14 @@ struct ARTreeRoot {
 class TreeImpl {
   public:
     TreeImpl(const string &path, const size_t size, const size_t allocUnitSize);
-    void allocateFullLevels(persistent_ptr<Node> node, int levelsToAllocate);
+    void allocateFullLevels(persistent_ptr<Node> node, int levelsToAllocate,
+                            struct pobj_action *actionsArray,
+                            int actionCounter);
     ValueWrapper *findValueInNode(persistent_ptr<Node> current, const char *key,
                                   bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
     int allocClass;
-
-  private:
-    struct pobj_action _actionsArray[ACTION_NUMBER];
-    int _actionCounter;
 };
 
 class ARTree : public DaqDB::RTreeEngine {
