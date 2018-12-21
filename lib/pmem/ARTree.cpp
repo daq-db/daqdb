@@ -33,7 +33,8 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
                    const size_t allocUnitSize) {
     // Enforce performance options
     int enable = 1;
-    int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "prefault.at_create", &enable);
+    int rc =
+        pmemobj_ctl_set(_pm_pool.get_handle(), "prefault.at_create", &enable);
     if (rc)
         throw OperationFailedException(Status(UNKNOWN_ERROR));
     rc = pmemobj_ctl_set(_pm_pool.get_handle(), "prefault.at_open", &enable);
