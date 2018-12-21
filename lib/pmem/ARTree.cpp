@@ -31,6 +31,16 @@ ARTree::~ARTree() {
 }
 TreeImpl::TreeImpl(const string &path, const size_t size,
                    const size_t allocUnitSize) {
+    // Enforce performance options
+    int enable = 1;
+    int rc =
+        pmemobj_ctl_set(_pm_pool.get_handle(), "prefault.at_create", &enable);
+    if (rc)
+        throw OperationFailedException(Status(UNKNOWN_ERROR));
+    rc = pmemobj_ctl_set(_pm_pool.get_handle(), "prefault.at_open", &enable);
+    if (rc)
+        throw OperationFailedException(Status(UNKNOWN_ERROR));
+
     if (!boost::filesystem::exists(path)) {
         _pm_pool =
             pool<ARTreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
@@ -80,8 +90,8 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
     alloc_daqdb.unit_size = allocUnitSize;
     alloc_daqdb.units_per_block = ALLOC_CLASS_UNITS_PER_BLOCK;
     alloc_daqdb.alignment = ALLOC_CLASS_ALIGNMENT;
-    int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
-                             &alloc_daqdb);
+    rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
+                         &alloc_daqdb);
     if (rc)
         throw OperationFailedException(Status(ALLOCATION_ERROR));
     allocClass = alloc_daqdb.class_id;
@@ -338,7 +348,7 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
         }
         if (current->type == TYPE256) { // TYPE256
             node256 = current;
-            if (node256->children[keyCalc]) {
+            if (!allocate && node256->children[keyCalc]) {
                 current = node256->children[keyCalc];
             } else if (allocate) {
                 std::lock_guard<pmem::obj::mutex> lock(node256->nodeMutex);
