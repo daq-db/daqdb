@@ -347,21 +347,26 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
         }
         if (current->type == TYPE256) { // TYPE256
             node256 = current;
-	    std::lock_guard<pmem::obj::mutex> lock(node256->nodeMutex);
-            if (node256->children[keyCalc]) {
+            if (!allocate && node256->children[keyCalc]) {
                 current = node256->children[keyCalc];
             } else if (allocate) {
-                DAQ_DEBUG("findValueInNode: allocate subtree on depth=" +
-                          std::to_string(node256->depth + 1) + " type=" +
-                          std::to_string(LEVEL_TYPE[node256->depth + 1]));
-                allocateFullLevels(node256, 1);
-                int status = pmemobj_publish(_pm_pool.get_handle(),
-                                             node256->actionsArray,
-                                             node256->actionCounter);
-                node256->actionCounter = 0;
-                free(node256->actionsArray);
-                node256->actionsArray = nullptr;
-                current = node256->children[keyCalc];
+                std::lock_guard<pmem::obj::mutex> lock(node256->nodeMutex);
+                // other threads don't have to create subtree
+                if (node256->children[keyCalc]) {
+                    current = node256->children[keyCalc];
+                } else { // not found, allocate subtree
+                    DAQ_DEBUG("findValueInNode: allocate subtree on depth=" +
+                              std::to_string(node256->depth + 1) + " type=" +
+                              std::to_string(LEVEL_TYPE[node256->depth + 1]));
+                    allocateFullLevels(node256, 1);
+                    int status = pmemobj_publish(_pm_pool.get_handle(),
+                                                 node256->actionsArray,
+                                                 node256->actionCounter);
+                    node256->actionCounter = 0;
+                    free(node256->actionsArray);
+                    node256->actionsArray = nullptr;
+                    current = node256->children[keyCalc];
+                }
             } else {
                 // not found, do not allocate subtree
                 DAQ_DEBUG("findValueInNode: Not Found");
