@@ -124,7 +124,7 @@ class TreeImpl {
     TreeImpl(const string &path, const size_t size, const size_t allocUnitSize);
     void allocateFullLevels(persistent_ptr<Node> node, int levelsToAllocate,
                             struct pobj_action *actionsArray,
-                            int actionCounter);
+                            int &actionCounter);
     ValueWrapper *findValueInNode(persistent_ptr<Node> current, const char *key,
                                   bool allocate);
     ARTreeRoot *treeRoot;

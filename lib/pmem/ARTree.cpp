@@ -194,7 +194,7 @@ void ARTree::Remove(const char *key) {
 void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                                   int levelsToAllocate,
                                   struct pobj_action *actionsArray,
-                                  int actionsCounter) {
+                                  int &actionsCounter) {
     int depth = node->depth + 1; // depth of next level to be allocated
     persistent_ptr<Node256> node256;
     persistent_ptr<Node256> node256_new;
@@ -285,8 +285,9 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
             // Node Compressed
             nodeLeafCompressed = current;
             if (allocate) {
-                struct pobj_action actionsArray[ACTION_NUMBER];
-                int actionsCounter;
+                static thread_local struct pobj_action
+                    actionsArray[ACTION_NUMBER];
+                int actionsCounter = 0;
                 nodeLeafCompressed->child = pmemobj_reserve(
                     _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
                     sizeof(ValueWrapper), VALUE);
