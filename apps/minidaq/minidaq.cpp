@@ -52,6 +52,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_STOPONERROR false
 #define MINIDAQ_DEFAULT_LIVE false
 #define MINIDAQ_DEFAULT_MAX_READY_KEYS 4 * 1024 * 1024
+#define MINIDAQ_DEFAULT_SATELLITE false
 
 #define US_IN_MS 1000
 
@@ -75,6 +76,7 @@ bool enableLog = MINIDAQ_DEFAULT_LOG;
 size_t maxIters;
 bool stopOnError = MINIDAQ_DEFAULT_STOPONERROR;
 bool live = MINIDAQ_DEFAULT_LIVE;
+bool satellite = MINIDAQ_DEFAULT_SATELLITE;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -92,6 +94,8 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.key.field(2, sizeof(DaqDB::MinidaqKey::eventId), true);
     options.runtime.numOfPollers = nPoolers;
     options.runtime.maxReadyKeys = maxReadyKeys;
+    options.mode = satellite ? DaqDB::OperationalMode::SATELLITE
+                             : DaqDB::OperationalMode::STORAGE;
     if (enableLog) {
         options.runtime.logFunc = logStd;
     }
@@ -184,6 +188,7 @@ int main(int argc, const char *argv[]) {
         "In non-zero, defines the maximum number of iterations per thread.")(
         "stopOnError", "If set, test will not continue after first error")(
         "live", "If set, live results will be displayed")(
+        "satellite", "If set, local storage backend will be disabled")(
         "pmem-path", po::value<std::string>(&pmem_path)
                          ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
         "Persistent memory pool file.")(
@@ -284,6 +289,9 @@ int main(int argc, const char *argv[]) {
     }
     if (parsedArguments.count("live")) {
         live = true;
+    }
+    if (parsedArguments.count("satellite")) {
+        satellite = true;
     }
 
     if (nEbTh) {

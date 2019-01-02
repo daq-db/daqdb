@@ -13,8 +13,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${DAQDB_BIN_DIR})
 
 if(NOT THIN_LIB)
 	include(pmdk.cmake)
-	include(spdk.cmake)
-endif()
+    include(spdk.cmake)
+else(NOT THIN_LIB)
+    if(NOT ERPC_RAW_TRANSPORT)
+        include(spdk.cmake)
+    endif(NOT ERPC_RAW_TRANSPORT)
+endif(NOT THIN_LIB)
 
 include(erpc.cmake)
 include(libconfig.cmake)
@@ -23,15 +27,13 @@ include(libconfig.cmake)
 # Dependencies - Libraries
 ###############################################################################
 
-if(NOT THIN_LIB)
-	# hdrhistogram
-	set(HDRHISTOGRAM ${PROJECT_SOURCE_DIR}/HdrHistogram_c)
-	set(HDRHISTOGRAM_INCLUDES ${HDRHISTOGRAM}/src)
-	set(HDRHISTOGRAM_INCLUDES_EXPORT ${HDRHISTOGRAM_INCLUDES} PARENT_SCOPE)
-	include_directories(${HDRHISTOGRAM_INCLUDES})
-	file(GLOB_RECURSE HDRHISTOGRAM_SOURCES ${HDRHISTOGRAM}/src/*.c)
-	add_library(hdr_histogram SHARED ${HDRHISTOGRAM_SOURCES})
-endif()
+# hdrhistogram
+set(HDRHISTOGRAM ${PROJECT_SOURCE_DIR}/HdrHistogram_c)
+set(HDRHISTOGRAM_INCLUDES ${HDRHISTOGRAM}/src)
+set(HDRHISTOGRAM_INCLUDES_EXPORT ${HDRHISTOGRAM_INCLUDES} PARENT_SCOPE)
+include_directories(${HDRHISTOGRAM_INCLUDES})
+file(GLOB_RECURSE HDRHISTOGRAM_SOURCES ${HDRHISTOGRAM}/src/*.c)
+add_library(hdr_histogram SHARED ${HDRHISTOGRAM_SOURCES})
 
 ###############################################################################
 # Custom Targets

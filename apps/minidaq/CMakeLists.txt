@@ -28,5 +28,13 @@ configure_file(minidaq.cfg.in
 
 file(GLOB MINIDAQ_SOURCES *.cpp *.h)
 add_executable(minidaq ${MINIDAQ_SOURCES})
-target_link_libraries(minidaq ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-                                          ${Dpdk_LIBRARIES} pmem daqdb pmemobj dl numa z hdr_histogram)
+set(MINIDAQ_LINK_LIBRARIES ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl numa z hdr_histogram)
+if(NOT THIN_LIB)
+    list(APPEND MINIDAQ_LINK_LIBRARIES pmem pmemobj daqdb ${Dpdk_LIBRARIES})
+else (NOT THIN_LIB)
+    list(APPEND MINIDAQ_LINK_LIBRARIES daqdb_thin)
+    if(NOT ERPC_RAW_TRANSPORT)
+        list(APPEND MINIDAQ_LINK_LIBRARIES ${Dpdk_LIBRARIES})
+    endif(NOT ERPC_RAW_TRANSPORT)
+endif(NOT THIN_LIB)
+target_link_libraries(minidaq ${MINIDAQ_LINK_LIBRARIES}) 
