@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -54,7 +54,8 @@ const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256,
 // how many levels will be created on ARTree initialization
 const int PREALLOC_LEVELS = 1;
 // size of table for actions for each Node
-#define ACTION_NUMBER (1 + 256)
+#define ACTION_NUMBER_NODE256 (1 + 256)
+#define ACTION_NUMBER_COMPRESSED 1
 
 #define KEY_SIZE 12
 
