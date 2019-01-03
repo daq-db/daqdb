@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -48,7 +48,7 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
         int countNodes = 0;
         int levelsToAllocate = PREALLOC_LEVELS;
         treeRoot = _pm_pool.get_root().get();
-        struct pobj_action _actionsArray[ACTION_NUMBER];
+        struct pobj_action _actionsArray[ACTION_NUMBER_NODE256];
         int _actionsCounter = 0;
         treeRoot->rootNode = pmemobj_reserve(
             _pm_pool.get_handle(), &(_actionsArray[_actionsCounter++]),
@@ -286,7 +286,7 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
             nodeLeafCompressed = current;
             if (allocate) {
                 static thread_local struct pobj_action
-                    actionsArray[ACTION_NUMBER];
+                    actionsArray[ACTION_NUMBER_COMPRESSED];
                 int actionsCounter = 0;
                 nodeLeafCompressed->child = pmemobj_reserve(
                     _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
@@ -339,8 +339,9 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                     DAQ_DEBUG("findValueInNode: allocate subtree on depth=" +
                               std::to_string(node256->depth + 1) + " type=" +
                               std::to_string(LEVEL_TYPE[node256->depth + 1]));
-                    struct pobj_action actionsArray[ACTION_NUMBER];
-                    int actionsCounter;
+                    static thread_local struct pobj_action
+                        actionsArray[ACTION_NUMBER_NODE256];
+                    int actionsCounter = 0;
                     allocateFullLevels(node256, 1, actionsArray,
                                        actionsCounter);
                     int status = pmemobj_publish(_pm_pool.get_handle(),
