@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -13,6 +13,7 @@
  * stated in the License.
  */
 
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <memory>
@@ -21,6 +22,7 @@
 #include "MinidaqFfNode.h"
 #include "MinidaqFfNodeSeq.h"
 #include "MinidaqRoNode.h"
+#include "config/Configuration.h"
 #include "daqdb/KVStoreBase.h"
 
 using namespace std;
@@ -53,6 +55,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_LIVE false
 #define MINIDAQ_DEFAULT_MAX_READY_KEYS 4 * 1024 * 1024
 #define MINIDAQ_DEFAULT_SATELLITE false
+#define MINIDAQ_DEFAULT_CONF "minidaq.cfg.sample"
 
 #define US_IN_MS 1000
 
@@ -77,6 +80,7 @@ size_t maxIters;
 bool stopOnError = MINIDAQ_DEFAULT_STOPONERROR;
 bool live = MINIDAQ_DEFAULT_LIVE;
 bool satellite = MINIDAQ_DEFAULT_SATELLITE;
+std::string configFile;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -86,6 +90,16 @@ static void logStd(std::string m) {
 /** @todo move to MinidaqFogServer for distributed version */
 static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     DaqDB::Options options;
+
+    if (boost::filesystem::exists(configFile)) {
+        std::cout << "### Reading minidaq configuration file... ";
+        std::stringstream errorMsg;
+        if (!DaqDB::readConfiguration(configFile, options, errorMsg)) {
+            std::cout << "### Failed to read minidaq configuration file. "
+                      << errorMsg.str() << std::endl;
+        }
+        std::cout << "### Done. ";
+    }
     options.pmem.poolPath = pmem_path;
     options.pmem.totalSize = pmem_size;
     options.pmem.allocUnitSize = fSize;
@@ -94,17 +108,23 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.key.field(2, sizeof(DaqDB::MinidaqKey::eventId), true);
     options.runtime.numOfPollers = nPoolers;
     options.runtime.maxReadyKeys = maxReadyKeys;
-    options.mode = satellite ? DaqDB::OperationalMode::SATELLITE
-                             : DaqDB::OperationalMode::STORAGE;
+    if (satellite) {
+        options.mode = DaqDB::OperationalMode::SATELLITE;
+
+    } else {
+        options.mode = DaqDB::OperationalMode::STORAGE;
+        if (!options.dht.neighbors.size()) {
+            DaqDB::DhtNeighbor local;
+            local.ip = "localhost";
+            local.port = 31851;
+            local.local = true;
+            local.keyRange.mask = "0";
+            options.dht.neighbors.push_back(&local);
+        }
+    }
     if (enableLog) {
         options.runtime.logFunc = logStd;
     }
-    DaqDB::DhtNeighbor local;
-    local.ip = "localhost";
-    local.port = 31851;
-    local.local = true;
-    local.keyRange.mask = "0";
-    options.dht.neighbors.push_back(&local);
 
     return std::unique_ptr<DaqDB::KVStoreBase>(
         DaqDB::KVStoreBase::Open(options));
@@ -218,6 +238,9 @@ int main(int argc, const char *argv[]) {
         "tid-file", po::value<std::string>(&tid_file),
         "If set a file with thread IDs of benchmark worker threads will be "
         "generated.")("log,l", "Enable logging")(
+        "config-file,c",
+        po::value<string>(&configFile)->default_value(MINIDAQ_DEFAULT_CONF),
+        "Configuration file defining DHT nodes.")(
         "spdk-conf-file,c", po::value<std::string>(&spdk_conf)
                                 ->default_value(MINIDAQ_DEFAULT_SPDK_CONF),
         "SPDK configuration file");

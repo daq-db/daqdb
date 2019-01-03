@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -51,11 +51,15 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
     std::string primaryKey;
     cfg.lookupValue("primaryKey", primaryKey);
     std::vector<int> keysStructure;
-    const libconfig::Setting &keys_settings = cfg.lookup("keys_structure");
-    for (int n = 0; n < keys_settings.getLength(); ++n) {
-        keysStructure.push_back(keys_settings[n]);
-        // TODO extend functionality of primary key definition
-        options.key.field(n, keysStructure[n], (n == 0) ? true : false);
+    try {
+        const libconfig::Setting &keys_settings = cfg.lookup("keys_structure");
+        for (int n = 0; n < keys_settings.getLength(); ++n) {
+            keysStructure.push_back(keys_settings[n]);
+            // TODO extend functionality of primary key definition
+            options.key.field(n, keysStructure[n], (n == 0) ? true : false);
+        }
+    } catch (SettingNotFoundException &e) {
+        // no action needed
     }
 
     std::string db_mode;
