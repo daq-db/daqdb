@@ -63,6 +63,13 @@ const int PREALLOC_LEVELS = 1;
 #define ALLOC_CLASS_ALIGNMENT 0
 // Units per allocation block.
 #define ALLOC_CLASS_UNITS_PER_BLOCK 100000
+enum ALLOC_CLASS {
+    ALLOC_CLASS_VALUE,
+    ALLOC_CLASS_VALUE_WRAPPER,
+    ALLOC_CLASS_NODE256,
+    ALLOC_CLASS_NODE_LEAF_COMPRESSED,
+    ALLOC_CLASS_MAX
+};
 
 enum OBJECT_TYPES { VALUE, IOV };
 
@@ -130,7 +137,12 @@ class TreeImpl {
                                   bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
-    int allocClass;
+    void setClassId(enum ALLOC_CLASS c, unsigned id);
+    unsigned getClassId(enum ALLOC_CLASS c);
+
+  private:
+    void _initAllocClasses(const size_t allocUnitSize);
+    int _allocClasses[ALLOC_CLASS_MAX];
 };
 
 class ARTree : public DaqDB::RTreeEngine {
