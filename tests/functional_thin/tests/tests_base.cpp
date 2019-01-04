@@ -32,7 +32,8 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
         if (node->local) {
             DhtNeighbor local;
             local.ip = node->ip;
-            local.keyRange.mask = "1";
+            local.keyRange.maskLength = 8;
+            local.keyRange.maskOffset = 0;
             local.port = node->port + 1;
             local.local = true;
             clientOptions.neighbors.push_back(&local);

@@ -54,8 +54,8 @@ primaryKey = "1*3";
  * key_mask
  * neighbors
  */
-dht_key_mask_length = "64";
-dht_key_mask_offset = "8";
+dht_key_mask_length = "8";
+dht_key_mask_offset = "0";
 neighbors :
 (
     {
