@@ -109,6 +109,7 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
     if (!boost::filesystem::exists(path)) {
         _pm_pool =
             pool<ARTreeRoot>::create(path, LAYOUT, size, S_IWUSR | S_IRUSR);
+        _initAllocClasses(allocUnitSize);
         int depth = 0;
         int countNodes = 0;
         int levelsToAllocate = PREALLOC_LEVELS;
@@ -139,14 +140,13 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
         DAQ_DEBUG("root created");
     } else {
         _pm_pool = pool<ARTreeRoot>::open(path, LAYOUT);
+        _initAllocClasses(allocUnitSize);
         treeRoot = _pm_pool.get_root().get();
         if (treeRoot)
             DAQ_DEBUG("Artree loaded");
         else
             std::cout << "Error on load" << std::endl;
     }
-
-    _initAllocClasses(allocUnitSize);
 }
 
 void ARTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
