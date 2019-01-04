@@ -80,7 +80,8 @@ class DhtCore {
     void _initNeighbors(void);
     void _initRangeToHost(void);
 
-    uint64_t _genHash(const char *key, int mask);
+    uint64_t _genHash(const char *key, uint64_t maskLength,
+                      uint64_t maskOffset);
 
     std::unique_ptr<DhtClient> _spClient;
 

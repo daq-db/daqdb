@@ -8,7 +8,8 @@
  * key_mask
  * neighbors
  */
-dht_key_mask = "0";
+dht_key_mask_length = 0;
+dht_key_mask_offset = 0;
 neighbors :
 (
     {

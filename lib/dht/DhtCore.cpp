@@ -59,15 +59,21 @@ void DhtCore::_initNeighbors(void) {
         dhtNode->setIp(option->ip);
         dhtNode->setPort(option->port);
         dhtNode->state = DhtNodeState::NODE_INIT;
-        dhtNode->setMask(1);
+        dhtNode->setMaskLength(64);
+        dhtNode->setMaskOffset(0);
 
         try {
-            dhtNode->setMask(stoi(option->keyRange.mask));
+            dhtNode->setMaskLength(option->keyRange.maskLength);
+            dhtNode->setMaskOffset(option->keyRange.maskOffset);
             dhtNode->setStart(stoi(option->keyRange.start));
             dhtNode->setEnd(stoi(option->keyRange.end));
         } catch (invalid_argument &ia) {
             // no action needed
         }
+
+        /** @todo add offset vs key length check */
+        if (dhtNode->getMaskLength() > sizeof(uint64_t))
+            throw OperationFailedException(Status(NOT_SUPPORTED));
 
         if (option->local) {
             dhtNode->state = DhtNodeState::NODE_READY;
@@ -83,7 +89,8 @@ void DhtCore::_initNeighbors(void) {
         dhtNode->setIp(DEFAULT_ERPC_SERVER_IP);
         dhtNode->setPort(DEFAULT_ERPC_SERVER_PORT);
         dhtNode->state = DhtNodeState::NODE_READY;
-        dhtNode->setMask(1);
+        dhtNode->setMaskLength(0);
+        dhtNode->setMaskOffset(0);
         _spLocalNode.reset(dhtNode);
     }
 }
@@ -97,24 +104,22 @@ void DhtCore::_initRangeToHost(void) {
     }
 }
 
-uint64_t DhtCore::_genHash(const char *key, int mask) {
-    uint64_t hash = 0;
-    uint64_t c;
-
-    auto maskCount = mask;
-    while ((c = (*key++)) && (--maskCount >= 0)) {
-        hash += c << maskCount;
-    }
-    return hash;
+uint64_t DhtCore::_genHash(const char *key, uint64_t maskLength,
+                           uint64_t maskOffset) {
+    /** @todo byte-granularity assumed, do we need bit-granularity? */
+    uint64_t subKey = 0;
+    for (int i = 0; i < maskLength; i++)
+        subKey += *reinterpret_cast<const uint8_t *>(key + maskOffset + i);
+    return subKey;
 }
 
 DhtNode *DhtCore::getHostForKey(Key key) {
-
-    auto keyHash = _genHash(key.data(), getLocalNode()->getMask());
-    if (getLocalNode()->getMask() > 0) {
+    if (getLocalNode()->getMaskLength() > 0) {
+        auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
+                                getLocalNode()->getMaskOffset());
         for (auto rangeAndHost : _rangeToHost) {
             auto range = rangeAndHost.first;
-            if ((keyHash >= range.first) && (keyHash < range.second)) {
+            if ((keyHash >= range.first) && (keyHash <= range.second)) {
                 return rangeAndHost.second;
             }
         }
@@ -123,10 +128,11 @@ DhtNode *DhtCore::getHostForKey(Key key) {
 }
 
 bool DhtCore::isLocalKey(Key key) {
-    if (getLocalNode()->getMask() > 0) {
-        auto keyHash = _genHash(key.data(), getLocalNode()->getMask());
+    if (getLocalNode()->getMaskLength() > 0) {
+        auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
+                                getLocalNode()->getMaskOffset());
         return (keyHash >= getLocalNode()->getStart() &&
-                keyHash < getLocalNode()->getEnd());
+                keyHash <= getLocalNode()->getEnd());
     } else {
         return true;
     }
