@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -54,7 +54,8 @@ const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256,
 // how many levels will be created on ARTree initialization
 const int PREALLOC_LEVELS = 1;
 // size of table for actions for each Node
-#define ACTION_NUMBER (1 + 256)
+#define ACTION_NUMBER_NODE256 (1 + 256)
+#define ACTION_NUMBER_COMPRESSED 1
 
 #define KEY_SIZE 12
 
@@ -62,6 +63,13 @@ const int PREALLOC_LEVELS = 1;
 #define ALLOC_CLASS_ALIGNMENT 0
 // Units per allocation block.
 #define ALLOC_CLASS_UNITS_PER_BLOCK 100000
+enum ALLOC_CLASS {
+    ALLOC_CLASS_VALUE,
+    ALLOC_CLASS_VALUE_WRAPPER,
+    ALLOC_CLASS_NODE256,
+    ALLOC_CLASS_NODE_LEAF_COMPRESSED,
+    ALLOC_CLASS_MAX
+};
 
 enum OBJECT_TYPES { VALUE, IOV };
 
@@ -87,16 +95,11 @@ struct ValueWrapper {
 
 class Node {
   public:
-    explicit Node(int _depth, int _type)
-        : depth(_depth), type(_type), actionCounter(0) {}
+    explicit Node(int _depth, int _type) : depth(_depth), type(_type) {}
     // depth of current Node in tree
     int depth;
     // Type of Node: Node256 or compressed
     int type;
-    // stores all actions done on subtree with Reserve-publish
-    struct pobj_action *actionsArray;
-    // counts all actions done on subtree with Reserve-publish
-    int actionCounter;
 };
 
 /*
@@ -127,16 +130,19 @@ struct ARTreeRoot {
 class TreeImpl {
   public:
     TreeImpl(const string &path, const size_t size, const size_t allocUnitSize);
-    void allocateFullLevels(persistent_ptr<Node> node, int levelsToAllocate);
+    void allocateFullLevels(persistent_ptr<Node> node, int levelsToAllocate,
+                            struct pobj_action *actionsArray,
+                            int &actionCounter);
     ValueWrapper *findValueInNode(persistent_ptr<Node> current, const char *key,
                                   bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
-    int allocClass;
+    void setClassId(enum ALLOC_CLASS c, unsigned id);
+    unsigned getClassId(enum ALLOC_CLASS c);
 
   private:
-    struct pobj_action _actionsArray[ACTION_NUMBER];
-    int _actionCounter;
+    void _initAllocClasses(const size_t allocUnitSize);
+    int _allocClasses[ALLOC_CLASS_MAX];
 };
 
 class ARTree : public DaqDB::RTreeEngine {
