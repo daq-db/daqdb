@@ -315,8 +315,8 @@ int main(int argc, const char *argv[]) {
     if (parsedArguments.count("serial")) {
         isParallel = false;
     }
-    if (parsedArguments.count("server")) {
-        isServer = false;
+    if (parsedArguments.count("serverMode")) {
+        isServer = true;
     }
     if (parsedArguments.count("stopOnError")) {
         stopOnError = true;
@@ -394,8 +394,10 @@ int main(int argc, const char *argv[]) {
         runBenchmark(nodes);
 	
 	if (isServer) {
-            system("pause");
+            std::cout << "### minidaq server running... Press any key to exit" << endl;
+            std::getchar();
         }
+
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return 0;
