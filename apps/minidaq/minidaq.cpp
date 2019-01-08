@@ -92,13 +92,13 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     DaqDB::Options options;
 
     if (boost::filesystem::exists(configFile)) {
-        std::cout << "### Reading minidaq configuration file... ";
+        std::cout << "### Reading minidaq configuration file... " << endl;
         std::stringstream errorMsg;
         if (!DaqDB::readConfiguration(configFile, options, errorMsg)) {
-            std::cout << "### Failed to read minidaq configuration file. "
+            std::cout << "### Failed to read minidaq configuration file. " << endl
                       << errorMsg.str() << std::endl;
         }
-        std::cout << "### Done. ";
+        std::cout << "### Done. " << endl;
     }
     options.pmem.poolPath = pmem_path;
     options.pmem.totalSize = pmem_size;
