@@ -109,7 +109,7 @@ uint64_t DhtCore::_genHash(const char *key, uint64_t maskLength,
     /** @todo byte-granularity assumed, do we need bit-granularity? */
     uint64_t subKey = 0;
     for (int i = 0; i < maskLength; i++)
-        subKey += *reinterpret_cast<const uint8_t *>(key + maskOffset + i);
+        subKey += (*reinterpret_cast<const uint8_t *>(key + maskOffset + i)) << (i * 8);
     return subKey;
 }
 
