@@ -44,6 +44,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_POOLERS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
 #define MINIDAQ_DEFAULT_PARALLEL true
+#define MINIDAQ_DEFAULT_SERVER false
 #define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
 #define MINIDAQ_DEFAULT_DELAY 0
 #define MINIDAQ_DEFAULT_BASE_CORE_ID 10
@@ -135,6 +136,9 @@ static void
 runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
     int nCoresUsed = 0;
 
+    if (!nodes.size())
+        return;
+
     // Configure
     std::cout << "### Configuring..." << endl;
     for (auto &n : nodes) {
@@ -182,6 +186,7 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
 
 int main(int argc, const char *argv[]) {
     bool isParallel = MINIDAQ_DEFAULT_PARALLEL;
+    bool isServer = MINIDAQ_DEFAULT_SERVER;
     double acceptLevel = 0;
     int collectorDelay = 0;
     int startSubId = 0;
@@ -216,6 +221,8 @@ int main(int argc, const char *argv[]) {
         "pmem-size",
         po::value<size_t>(&pmem_size)->default_value(MINIDAQ_DEFAULT_PMEM_SIZE),
         "Persistent memory pool size.")(
+        "serverMode",
+        "If set, minidaq will open KVS and wait for external requests. ")(
         "out-prefix", po::value<std::string>(&results_prefix),
         "If set CSV result files will be generated with the desired prefix and "
         "path.")("out-summary", po::value<std::string>(&results_all),
@@ -308,6 +315,9 @@ int main(int argc, const char *argv[]) {
     if (parsedArguments.count("serial")) {
         isParallel = false;
     }
+    if (parsedArguments.count("server")) {
+        isServer = false;
+    }
     if (parsedArguments.count("stopOnError")) {
         stopOnError = true;
     }
@@ -321,12 +331,6 @@ int main(int argc, const char *argv[]) {
     if (nEbTh) {
         cerr << "Event builders not supported" << endl;
         return -1;
-    }
-
-    if (!nRoTh && !nAroTh && !nFfTh && !nEbTh) {
-        std::cout << "Nothing to do. Specify at least one worker thread."
-                  << endl;
-        return 0;
     }
 
     try {
@@ -388,6 +392,10 @@ int main(int argc, const char *argv[]) {
 
         // Run remaining nodes
         runBenchmark(nodes);
+	
+	if (isServer) {
+            system("pause");
+        }
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return 0;
