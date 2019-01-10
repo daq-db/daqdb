@@ -42,15 +42,12 @@ primaryKey = "0";
 
 dht_key_mask_length = 1;
 dht_key_mask_offset = 0;
-neighbors :
-(
-    {
-        ip = "localhost";
-        port = 31850;
-        local = 1;
-        keys = { start = "0", end = "255"}
-    },
-);
+neighbors : ({
+    ip = "localhost";
+    port = 31850;
+    local = 1;
+    keys = { start = "0", end = "255" }
+}, );
 
 //*****************************************************************************
 //***************************** OFFLOAD SECTION *******************************

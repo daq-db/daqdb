@@ -40,19 +40,18 @@ primaryKey = "0";
 
 dht_key_mask_length = 1;
 dht_key_mask_offset = 0;
-neighbors :
-(
-    {
-        ip = "localhost";
-        port = 31851;
-        local = 1;
-    },
-    {
-        // daqdb peer required to perform functional tests for "thin" mode
-        ip = "localhost";
-        port = 31850;
-        keys = { start = "0", end = "255"}
-    },
-);
+neighbors : (
+                {
+                    ip = "localhost";
+                    port = 31851;
+                    local = 1;
+                },
+                {
+                    // daqdb peer required to perform functional tests for
+                    // "thin" mode
+                    ip = "localhost";
+                    port = 31850;
+                    keys = { start = "0", end = "255" }
+                }, );
 
 //************************************ EOF ************************************

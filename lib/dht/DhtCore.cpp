@@ -109,7 +109,8 @@ uint64_t DhtCore::_genHash(const char *key, uint64_t maskLength,
     /** @todo byte-granularity assumed, do we need bit-granularity? */
     uint64_t subKey = 0;
     for (int i = 0; i < maskLength; i++)
-        subKey += (*reinterpret_cast<const uint8_t *>(key + maskOffset + i)) << (i * 8);
+        subKey += (*reinterpret_cast<const uint8_t *>(key + maskOffset + i))
+                  << (i * 8);
     return subKey;
 }
 
@@ -117,13 +118,15 @@ DhtNode *DhtCore::getHostForKey(Key key) {
     if (getLocalNode()->getMaskLength() > 0) {
         auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
                                 getLocalNode()->getMaskOffset());
-        DAQ_DEBUG("keyHash:" + std::to_string(keyHash) +
-                  " maskLen:" + std::to_string(getLocalNode()->getMaskLength()) + 
-                  " maskOffset:" + std::to_string(getLocalNode()->getMaskOffset()));
+        DAQ_DEBUG("keyHash:" + std::to_string(keyHash) + " maskLen:" +
+                  std::to_string(getLocalNode()->getMaskLength()) +
+                  " maskOffset:" +
+                  std::to_string(getLocalNode()->getMaskOffset()));
         for (auto rangeAndHost : _rangeToHost) {
             auto range = rangeAndHost.first;
             DAQ_DEBUG("Node " + rangeAndHost.second->getUri() + " serving " +
-                      std::to_string(range.first) + ":" + std::to_string(range.second));
+                      std::to_string(range.first) + ":" +
+                      std::to_string(range.second));
             if ((keyHash >= range.first) && (keyHash <= range.second)) {
                 DAQ_DEBUG("Found match at " + rangeAndHost.second->getUri());
                 return rangeAndHost.second;

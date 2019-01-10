@@ -21,9 +21,9 @@
 #include "DhtClient.h"
 #include "DhtCore.h"
 
+#include <Logger.h>
 #include <rpc.h>
 #include <sslot.h>
-#include <Logger.h>
 
 using namespace std;
 using boost::format;
@@ -106,13 +106,15 @@ DhtClient::~DhtClient() {
 }
 
 void DhtClient::_initializeNode(DhtNode *node) {
-    erpc::Rpc<erpc::CTransport> *rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
+    erpc::Rpc<erpc::CTransport> *rpc =
+        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     auto serverUri = boost::str(boost::format("%1%:%2%") % node->getIp() %
                                 to_string(node->getPort()));
     DAQ_DEBUG("Connecting to " + serverUri);
     auto sessionNum = rpc->create_session(serverUri, 0);
     DAQ_DEBUG("Session " + std::to_string(sessionNum) + " created");
-    while (!rpc->is_connected(sessionNum)) rpc->run_event_loop_once();
+    while (!rpc->is_connected(sessionNum))
+        rpc->run_event_loop_once();
     node->setSessionId(sessionNum);
     DAQ_DEBUG("Connected!");
 }

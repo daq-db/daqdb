@@ -21,8 +21,8 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/format.hpp>
 
-#include <rpc.h>
 #include <Logger.h>
+#include <rpc.h>
 
 namespace DaqDB {
 
@@ -78,7 +78,7 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
 }
 
 static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
-std::cout << "PUT HANDLER" << std::endl;
+    std::cout << "PUT HANDLER" << std::endl;
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(serverCtx->rpc);
 
