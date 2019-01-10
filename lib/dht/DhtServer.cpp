@@ -22,6 +22,7 @@
 #include <boost/format.hpp>
 
 #include <rpc.h>
+#include <Logger.h>
 
 namespace DaqDB {
 
@@ -29,8 +30,6 @@ using namespace std;
 using boost::format;
 
 const size_t DEFAULT_ERPC_RESPONSE_GET_SIZE = 16 * 1024;
-// poll interval is given in milliseconds
-const unsigned int DHT_SERVER_POLL_INTERVAL = 100;
 
 map<DhtNodeState, string> NodeStateStr =
     boost::assign::map_list_of(DhtNodeState::NODE_READY, "Ready")(
@@ -79,6 +78,7 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
 }
 
 static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
+std::cout << "PUT HANDLER" << std::endl;
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(serverCtx->rpc);
 
@@ -173,7 +173,7 @@ void DhtServer::_serve(void) {
         state = DhtServerState::DHT_SERVER_READY;
         keepRunning = true;
         while (keepRunning) {
-            rpc->run_event_loop(DHT_SERVER_POLL_INTERVAL);
+            rpc->run_event_loop_once();
         }
         state = DhtServerState::DHT_SERVER_STOPPED;
 
@@ -188,10 +188,12 @@ void DhtServer::_serve(void) {
 }
 
 void DhtServer::serve(void) {
+    DAQ_DEBUG("Creating server thread");
     _thread = new thread(&DhtServer::_serve, this);
     do {
         sleep(1);
     } while (state == DhtServerState::DHT_SERVER_INIT);
+    DAQ_DEBUG("Server thread running");
 }
 
 string DhtServer::printStatus() {
