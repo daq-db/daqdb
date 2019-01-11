@@ -134,11 +134,13 @@ void DhtClient::initialize() {
             _initializeNode(neighbor);
         }
         state = DhtClientState::DHT_CLIENT_READY;
-    } catch (exception& e) {
+    }
+    catch (exception &e) {
         DAQ_DEBUG("DHT client exception: " + std::string(e.what()));
         state = DhtClientState::DHT_CLIENT_ERROR;
         throw;
-    } catch (...) {
+    }
+    catch (...) {
         DAQ_DEBUG("DHT client exception: unknown");
         state = DhtClientState::DHT_CLIENT_ERROR;
         throw;

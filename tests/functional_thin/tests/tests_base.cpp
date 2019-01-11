@@ -58,7 +58,7 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
     }
 
     for (auto node : clientOptions.neighbors)
-        if (node->local) 
+        if (node->local)
             delete node;
 
     return result;

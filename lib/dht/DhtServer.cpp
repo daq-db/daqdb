@@ -64,8 +64,8 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
         if (result->msgSize > 0) {
             memcpy(result->msg, val.data(), result->msgSize);
         }
-
-    } catch (DaqDB::OperationFailedException &e) {
+    }
+    catch (DaqDB::OperationFailedException &e) {
         auto &resp = req_handle->pre_resp_msgbuf;
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
@@ -98,7 +98,8 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 0;
         result->msgSize = 0;
-    } catch (DaqDB::OperationFailedException &e) {
+    }
+    catch (DaqDB::OperationFailedException &e) {
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 1;
@@ -126,7 +127,8 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 0;
         result->msgSize = 0;
-    } catch (DaqDB::OperationFailedException &e) {
+    }
+    catch (DaqDB::OperationFailedException &e) {
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 1;
@@ -179,11 +181,13 @@ void DhtServer::_serve(void) {
         if (rpc) {
             delete rpc;
         }
-    } catch (exception& e) {
+    }
+    catch (exception &e) {
         DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
         state = DhtServerState::DHT_SERVER_ERROR;
         throw;
-    } catch (...) {
+    }
+    catch (...) {
         DAQ_DEBUG("DHT server exception: unknown");
         state = DhtServerState::DHT_SERVER_ERROR;
         throw;
@@ -235,9 +239,10 @@ string DhtServer::printNeighbors() {
                 neighbor->state = DhtNodeState::NODE_NOT_RESPONDING;
             }
             result << boost::str(
-                boost::format("[%1%:%2%] - SessionId(%3%) : %4%\n") %
-                neighbor->getIp() % to_string(neighbor->getPort()) %
-                neighbor->getSessionId() % NodeStateStr[neighbor->state]);
+                          boost::format("[%1%:%2%] - SessionId(%3%) : %4%\n") %
+                          neighbor->getIp() % to_string(neighbor->getPort()) %
+                          neighbor->getSessionId() %
+                          NodeStateStr[neighbor->state]);
         }
     } else {
         result << "No neighbors";
