@@ -38,8 +38,6 @@ enum class DhtClientState : std::uint8_t {
 struct DhtReqCtx {
     int rc;
     Value *value;
-    std::mutex mtx;
-    std::condition_variable cv;
     bool ready = false;
 };
 

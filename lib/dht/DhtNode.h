@@ -74,10 +74,16 @@ class DhtNode {
     void setSessionId(int id) { _sessionId = id; };
     void setPort(unsigned short port) { _port = port; };
 
-    inline unsigned int getMask() { return _mask; }
+    inline unsigned int getMaskLength() { return _maskLength; }
+    inline unsigned int getMaskOffset() { return _maskOffset; }
     inline unsigned int getStart() { return _start; }
     inline unsigned int getEnd() { return _end; }
-    inline void setMask(unsigned int mask) { _mask = mask; };
+    inline void setMaskLength(unsigned int maskLength) {
+        _maskLength = maskLength;
+    };
+    inline void setMaskOffset(unsigned int maskOffset) {
+        _maskOffset = maskOffset;
+    };
     inline void setStart(unsigned int start) { _start = start; };
     inline void setEnd(unsigned int end) { _end = end; };
 
@@ -89,7 +95,8 @@ class DhtNode {
     unsigned short _port = 0;
 
     // @TODO jradtke replace with other key mapping structures
-    unsigned int _mask = 0;
+    unsigned int _maskLength = 0;
+    unsigned int _maskOffset = 0;
     unsigned int _start = 0;
     unsigned int _end = 0;
 };

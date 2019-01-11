@@ -68,9 +68,6 @@ class DhtServer {
     inline unsigned int getPort() {
         return _dhtCore->getLocalNode()->getPort();
     }
-    inline unsigned int getHashMask() {
-        return _dhtCore->getLocalNode()->getMask();
-    }
 
     std::atomic<bool> keepRunning;
     std::atomic<DhtServerState> state;

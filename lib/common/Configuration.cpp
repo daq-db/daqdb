@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -51,11 +51,15 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
     std::string primaryKey;
     cfg.lookupValue("primaryKey", primaryKey);
     std::vector<int> keysStructure;
-    const libconfig::Setting &keys_settings = cfg.lookup("keys_structure");
-    for (int n = 0; n < keys_settings.getLength(); ++n) {
-        keysStructure.push_back(keys_settings[n]);
-        // TODO extend functionality of primary key definition
-        options.key.field(n, keysStructure[n], (n == 0) ? true : false);
+    try {
+        const libconfig::Setting &keys_settings = cfg.lookup("keys_structure");
+        for (int n = 0; n < keys_settings.getLength(); ++n) {
+            keysStructure.push_back(keys_settings[n]);
+            // TODO extend functionality of primary key definition
+            options.key.field(n, keysStructure[n], (n == 0) ? true : false);
+        }
+    } catch (SettingNotFoundException &e) {
+        // no action needed
     }
 
     std::string db_mode;
@@ -77,8 +81,10 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.offload.allocUnitSize = offloadAllocUnitSize;
     cfg.lookupValue("offload_nvme_addr", options.offload.nvmeAddr);
     cfg.lookupValue("offload_nvme_name", options.offload.nvmeName);
-    std::string range_mask;
-    cfg.lookupValue("dht_key_mask", range_mask);
+    int maskLength = 0;
+    int maskOffset = 0;
+    cfg.lookupValue("dht_key_mask_length", maskLength);
+    cfg.lookupValue("dht_key_mask_offset", maskOffset);
 
     try {
         const libconfig::Setting &neighbors = cfg.lookup("neighbors");
@@ -87,7 +93,8 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
             const libconfig::Setting &neighbor = neighbors[n];
             dhtNeighbor->ip = neighbor["ip"].c_str();
             dhtNeighbor->port = (unsigned int)(neighbor["port"]);
-            dhtNeighbor->keyRange.mask = range_mask;
+            dhtNeighbor->keyRange.maskLength = maskLength;
+            dhtNeighbor->keyRange.maskOffset = maskOffset;
             try {
                 dhtNeighbor->keyRange.start = neighbor["keys"]["start"].c_str();
                 dhtNeighbor->keyRange.end = neighbor["keys"]["end"].c_str();

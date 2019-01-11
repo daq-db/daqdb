@@ -1,66 +1,21 @@
-// Configuration example running DaqDB library in storage mode
+// Configuration example for running minidaq
 
 //*****************************************************************************
-//******************************* MAIN SECTION ********************************
-//*****************************************************************************
-
-/**
- * mode - operational mode of this DaqDB instance. Valid parameters:
- *        storage - this instance will accept and store internally data
- *        satellite - this instance will accept and forward all data to
- *                    one of the storage nodes
- */
-mode = "storage";
-
-/**
- * port - port to be used for internal DaqDB communication
-port = "11000";
-
-/**
- * pmem_path      - location of file created on top of persistent memory
- *                  enabled filesystem
- * pmem_size      - total size of the persistent memory pool to use
- * alloc_unit_size - unit allocation size for the values stored in DaqDB
- */
-pmem_path = "/mnt/pmem/pmemkv.dat";
-pmem_size = "536870912";
-alloc_unit_size = "1024";
-
-/**
- * logging_level - valid parameters:
- *                 logging_level = "TRACE";
- *                 logging_level = "DEBUG";
- *                 logging_level = "INFO";
- *                 logging_level = "WARN";
- *                 logging_level = "ERROR";
- *                 logging_level = "FATAL";
- */
-logging_level = "WARN";
-
-//*****************************************************************************
-//******************************* DATA SECTION ********************************
+//******************************* DHT SECTION ********************************
 //*****************************************************************************
 
 /**
- * primaryHash - defines positioning of metadata for primary keys
- * replicaHash - defines positioning of replica sets, has to guarantee
- *               isolation from primaryHash computed nodes. It also
- *               has to take into account replica set number.
+ * key_mask
+ * neighbors
  */
-primaryHash = "123";
-replicaHash = "234";
-
-/**
- * structure - defines how compound structure of a key looks like
- *             format: /1/8/4/16, representing 29 bytes total key
- *             with four parts
- * primaryKey - primary key is being used to derive positioning of
- *              data. It is defined by operation on key parts.
- *              described by consecutive numbers starting with 1, e.g.
- *              1*3
- *              Result has to be unique for all the key stored.
- */
-keys_structure = [ 32, 32, 64 ];
-primaryKey = "1";
-
-//************************************ EOF ************************************
+dht_key_mask_length = 0;
+dht_key_mask_offset = 0;
+neighbors :
+(
+    {
+        // local
+        ip = "localhost";
+        port = 31851;
+        local = 1;
+    },
+);

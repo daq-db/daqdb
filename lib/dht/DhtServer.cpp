@@ -21,6 +21,7 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/format.hpp>
 
+#include <Logger.h>
 #include <rpc.h>
 
 namespace DaqDB {
@@ -29,8 +30,6 @@ using namespace std;
 using boost::format;
 
 const size_t DEFAULT_ERPC_RESPONSE_GET_SIZE = 16 * 1024;
-// poll interval is given in milliseconds
-const unsigned int DHT_SERVER_POLL_INTERVAL = 100;
 
 map<DhtNodeState, string> NodeStateStr =
     boost::assign::map_list_of(DhtNodeState::NODE_READY, "Ready")(
@@ -65,8 +64,8 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
         if (result->msgSize > 0) {
             memcpy(result->msg, val.data(), result->msgSize);
         }
-
-    } catch (DaqDB::OperationFailedException &e) {
+    }
+    catch (DaqDB::OperationFailedException &e) {
         auto &resp = req_handle->pre_resp_msgbuf;
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
@@ -99,7 +98,8 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 0;
         result->msgSize = 0;
-    } catch (DaqDB::OperationFailedException &e) {
+    }
+    catch (DaqDB::OperationFailedException &e) {
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 1;
@@ -127,7 +127,8 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 0;
         result->msgSize = 0;
-    } catch (DaqDB::OperationFailedException &e) {
+    }
+    catch (DaqDB::OperationFailedException &e) {
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->rc = 1;
@@ -173,25 +174,35 @@ void DhtServer::_serve(void) {
         state = DhtServerState::DHT_SERVER_READY;
         keepRunning = true;
         while (keepRunning) {
-            rpc->run_event_loop(DHT_SERVER_POLL_INTERVAL);
+            rpc->run_event_loop_once();
         }
         state = DhtServerState::DHT_SERVER_STOPPED;
 
         if (rpc) {
             delete rpc;
         }
-    } catch (...) {
+    }
+    catch (exception &e) {
+        DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
         state = DhtServerState::DHT_SERVER_ERROR;
+        throw;
+    }
+    catch (...) {
+        DAQ_DEBUG("DHT server exception: unknown");
+        state = DhtServerState::DHT_SERVER_ERROR;
+        throw;
     }
 
     delete nexus;
 }
 
 void DhtServer::serve(void) {
+    DAQ_DEBUG("Creating server thread");
     _thread = new thread(&DhtServer::_serve, this);
     do {
         sleep(1);
     } while (state == DhtServerState::DHT_SERVER_INIT);
+    DAQ_DEBUG("Server thread running");
 }
 
 string DhtServer::printStatus() {
@@ -228,9 +239,10 @@ string DhtServer::printNeighbors() {
                 neighbor->state = DhtNodeState::NODE_NOT_RESPONDING;
             }
             result << boost::str(
-                boost::format("[%1%:%2%] - SessionId(%3%) : %4%\n") %
-                neighbor->getIp() % to_string(neighbor->getPort()) %
-                neighbor->getSessionId() % NodeStateStr[neighbor->state]);
+                          boost::format("[%1%:%2%] - SessionId(%3%) : %4%\n") %
+                          neighbor->getIp() % to_string(neighbor->getPort()) %
+                          neighbor->getSessionId() %
+                          NodeStateStr[neighbor->state]);
         }
     } else {
         result << "No neighbors";

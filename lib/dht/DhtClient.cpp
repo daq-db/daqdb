@@ -21,6 +21,7 @@
 #include "DhtClient.h"
 #include "DhtCore.h"
 
+#include <Logger.h>
 #include <rpc.h>
 #include <sslot.h>
 
@@ -34,7 +35,9 @@ const size_t DEFAULT_ERPC_REQ_WITH_VALUE_SIZE = 16 * 1024;
 const size_t DEFAULT_ERPC_RESPONSE_SIZE = 16;
 const size_t DEFAULT_ERPC_RESPONSE_WITH_VALUE_SIZE = 16 * 1024;
 
-const unsigned int DHT_CLIENT_POLL_INTERVAL = 100;
+// Duration of event loop in ms
+/** @todo Make it configurable */
+const unsigned int DHT_CLIENT_EVENT_LOOP_MS = 10000;
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
@@ -56,7 +59,6 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     }
 
     reqCtx->ready = true;
-    reqCtx->cv.notify_all();
 
     // @TODO jradtke Performance optimization possible if resp_msgbuf reused
     rpc->release_response(respHandle);
@@ -64,6 +66,7 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
 
 static void clbPut(erpc::RespHandle *respHandle, void *ctxClient,
                    size_t ioCtx) {
+    DAQ_DEBUG("Put response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = reinterpret_cast<DhtReqCtx *>(ioCtx);
     auto rpc =
@@ -74,7 +77,6 @@ static void clbPut(erpc::RespHandle *respHandle, void *ctxClient,
     reqCtx->rc = resultMsg->rc;
 
     reqCtx->ready = true;
-    reqCtx->cv.notify_all();
     rpc->release_response(respHandle);
 }
 
@@ -90,7 +92,6 @@ static void clbRemove(erpc::RespHandle *respHandle, void *ctxClient,
     reqCtx->rc = resultMsg->rc;
 
     reqCtx->ready = true;
-    reqCtx->cv.notify_all();
     rpc->release_response(respHandle);
 }
 
@@ -106,13 +107,17 @@ DhtClient::~DhtClient() {
 }
 
 void DhtClient::_initializeNode(DhtNode *node) {
+    erpc::Rpc<erpc::CTransport> *rpc =
+        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     auto serverUri = boost::str(boost::format("%1%:%2%") % node->getIp() %
                                 to_string(node->getPort()));
-    auto sessionNum =
-        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc)
-            ->create_session(serverUri, 0);
-
+    DAQ_DEBUG("Connecting to " + serverUri);
+    auto sessionNum = rpc->create_session(serverUri, 0);
+    DAQ_DEBUG("Session " + std::to_string(sessionNum) + " created");
+    while (!rpc->is_connected(sessionNum))
+        rpc->run_event_loop_once();
     node->setSessionId(sessionNum);
+    DAQ_DEBUG("Connected!");
 }
 
 void DhtClient::initialize() {
@@ -126,14 +131,20 @@ void DhtClient::initialize() {
         _clientRpc = rpc;
 
         auto neighbors = _dhtCore->getNeighbors();
-        _initializeNode(_dhtCore->getLocalNode());
         for (DhtNode *neighbor : *neighbors) {
             _initializeNode(neighbor);
         }
         state = DhtClientState::DHT_CLIENT_READY;
-        rpc->run_event_loop(DHT_CLIENT_POLL_INTERVAL);
-    } catch (...) {
+    }
+    catch (exception &e) {
+        DAQ_DEBUG("DHT client exception: " + std::string(e.what()));
         state = DhtClientState::DHT_CLIENT_ERROR;
+        throw;
+    }
+    catch (...) {
+        DAQ_DEBUG("DHT client exception: unknown");
+        state = DhtClientState::DHT_CLIENT_ERROR;
+        throw;
     }
 }
 
@@ -158,17 +169,16 @@ Value DhtClient::get(const Key &key) {
 
     // @TODO jradtke passing context pointer using size_t
     assert(sizeof(size_t) == sizeof(&reqCtx));
+    DAQ_DEBUG("Enqueuing get request to " + hostToSend->getUri());
     rpc->enqueue_request(
         hostToSend->getSessionId(),
         static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_GET), &req,
         &resp, clbGet, reinterpret_cast<size_t>(&reqCtx));
-    // wait for completion
-    {
-        unique_lock<mutex> lk(reqCtx.mtx);
-        reqCtx.cv.wait_for(lk, 1s, [&reqCtx, &rpc] {
-            rpc->run_event_loop(DHT_CLIENT_POLL_INTERVAL);
-            return reqCtx.ready;
-        });
+    DAQ_DEBUG("Waiting for response");
+    rpc->run_event_loop(DHT_CLIENT_EVENT_LOOP_MS);
+    if (!reqCtx.ready) {
+        DAQ_DEBUG("Timeout");
+        throw OperationFailedException(Status(TIME_OUT));
     }
     if (reqCtx.rc != 0 || (reqCtx.value == nullptr)) {
         throw OperationFailedException(Status(KEY_NOT_FOUND));
@@ -200,17 +210,17 @@ void DhtClient::put(const Key &key, const Value &val) {
 
     // @TODO jradtke passing context pointer using size_t
     assert(sizeof(size_t) == sizeof(&reqCtx));
+    DAQ_DEBUG("Enqueuing put request to " + hostToSend->getUri());
     rpc->enqueue_request(
         hostToSend->getSessionId(),
         static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_PUT), &req,
         &resp, clbPut, reinterpret_cast<size_t>(&reqCtx));
     // wait for completion
-    {
-        unique_lock<mutex> lk(reqCtx.mtx);
-        reqCtx.cv.wait_for(lk, 1s, [&reqCtx, &rpc] {
-            rpc->run_event_loop(DHT_CLIENT_POLL_INTERVAL);
-            return reqCtx.ready;
-        });
+    DAQ_DEBUG("Waiting for response");
+    rpc->run_event_loop(DHT_CLIENT_EVENT_LOOP_MS);
+    if (!reqCtx.ready) {
+        DAQ_DEBUG("Timeout");
+        throw OperationFailedException(Status(TIME_OUT));
     }
     if (reqCtx.rc != 0) {
         throw OperationFailedException(Status(UNKNOWN_ERROR));
@@ -235,17 +245,17 @@ void DhtClient::remove(const Key &key) {
 
     // @TODO jradtke passing context pointer using size_t
     assert(sizeof(size_t) == sizeof(&reqCtx));
+    DAQ_DEBUG("Enqueuing remove request to " + hostToSend->getUri());
     rpc->enqueue_request(
         hostToSend->getSessionId(),
         static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_REMOVE), &req,
         &resp, clbRemove, reinterpret_cast<size_t>(&reqCtx));
     // wait for completion
-    {
-        unique_lock<mutex> lk(reqCtx.mtx);
-        reqCtx.cv.wait_for(lk, 1s, [&reqCtx, &rpc] {
-            rpc->run_event_loop(DHT_CLIENT_POLL_INTERVAL);
-            return reqCtx.ready;
-        });
+    DAQ_DEBUG("Waiting for response");
+    rpc->run_event_loop(DHT_CLIENT_EVENT_LOOP_MS);
+    if (!reqCtx.ready) {
+        DAQ_DEBUG("Timeout");
+        throw OperationFailedException(Status(TIME_OUT));
     }
     if (reqCtx.rc != 0) {
         throw OperationFailedException(Status(UNKNOWN_ERROR));

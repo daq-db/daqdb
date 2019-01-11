@@ -70,6 +70,7 @@ include_directories(${3RDPARTY}/spdk/dpdk/build/include)
 file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
 	lib/dht/*.cpp lib/KVStoreBase.cpp)
 include_directories(lib/common lib/dht lib/thin)
+include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
 target_compile_definitions(daqdb_thin PRIVATE THIN_LIB=1)
 target_link_libraries(daqdb_thin ${Boost_LIBRARIES} libconfig ${ERPC_LIBS})
@@ -78,7 +79,6 @@ if(NOT THIN_LIB)
 	include_directories(${3RDPARTY}/pmdk/src/include)
 	include_directories(${3RDPARTY}/libpmemobj-cpp/include)
 	include_directories(${3RDPARTY}/spdk/include)
-	include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 	
 	set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread
 		rt uuid)
@@ -115,10 +115,7 @@ endif()
 
 set(APPS ${PROJECT_SOURCE_DIR}/apps)
 add_subdirectory(${APPS}/mist)
-
-if(NOT THIN_LIB)
-	add_subdirectory(${APPS}/minidaq)
-endif()
+add_subdirectory(${APPS}/minidaq)
 
 
 ###############################################################################

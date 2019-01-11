@@ -30,12 +30,13 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
     DhtOptions clientOptions;
     for (auto node : options->dht.neighbors) {
         if (node->local) {
-            DhtNeighbor local;
-            local.ip = node->ip;
-            local.keyRange.mask = "1";
-            local.port = node->port + 1;
-            local.local = true;
-            clientOptions.neighbors.push_back(&local);
+            auto local = new DhtNeighbor();
+            local->ip = node->ip;
+            local->keyRange.maskLength = 8;
+            local->keyRange.maskOffset = 0;
+            local->port = node->port + 1;
+            local->local = true;
+            clientOptions.neighbors.push_back(local);
         } else {
             clientOptions.neighbors.push_back(node);
         }
@@ -55,6 +56,10 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
         LOG_INFO << "Can not connect to neighbor" << flush;
         return false;
     }
+
+    for (auto node : clientOptions.neighbors)
+        if (node->local)
+            delete node;
 
     return result;
 }

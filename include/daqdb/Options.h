@@ -128,7 +128,8 @@ struct RuntimeOptions {
 };
 
 struct DhtKeyRange {
-    std::string mask = "";
+    unsigned int maskLength = 0;
+    unsigned int maskOffset = 0;
     std::string start = "";
     std::string end = "";
 };

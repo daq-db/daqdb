@@ -34,6 +34,9 @@ const unsigned short DEFAULT_ERPC_SERVER_PORT = 31850;
 const size_t DEFAULT_ERPC_NUMA_NODE = 0;
 const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
 
+#define DEFAULT_DHT_MASK_LENGTH 1
+#define DEFAULT_DHT_MASK_OFFSET 0
+
 DhtCore::DhtCore(DhtOptions dhtOptions) : options(dhtOptions) {
     _initNeighbors();
     _initRangeToHost();
@@ -59,15 +62,22 @@ void DhtCore::_initNeighbors(void) {
         dhtNode->setIp(option->ip);
         dhtNode->setPort(option->port);
         dhtNode->state = DhtNodeState::NODE_INIT;
-        dhtNode->setMask(1);
+        dhtNode->setMaskLength(DEFAULT_DHT_MASK_LENGTH);
+        dhtNode->setMaskOffset(DEFAULT_DHT_MASK_OFFSET);
 
         try {
-            dhtNode->setMask(stoi(option->keyRange.mask));
+            dhtNode->setMaskLength(option->keyRange.maskLength);
+            dhtNode->setMaskOffset(option->keyRange.maskOffset);
             dhtNode->setStart(stoi(option->keyRange.start));
             dhtNode->setEnd(stoi(option->keyRange.end));
-        } catch (invalid_argument &ia) {
+        }
+        catch (invalid_argument &ia) {
             // no action needed
         }
+
+        /** @todo add offset vs key length check */
+        if (dhtNode->getMaskLength() > sizeof(uint64_t))
+            throw OperationFailedException(Status(NOT_SUPPORTED));
 
         if (option->local) {
             dhtNode->state = DhtNodeState::NODE_READY;
@@ -83,7 +93,8 @@ void DhtCore::_initNeighbors(void) {
         dhtNode->setIp(DEFAULT_ERPC_SERVER_IP);
         dhtNode->setPort(DEFAULT_ERPC_SERVER_PORT);
         dhtNode->state = DhtNodeState::NODE_READY;
-        dhtNode->setMask(1);
+        dhtNode->setMaskLength(0);
+        dhtNode->setMaskOffset(0);
         _spLocalNode.reset(dhtNode);
     }
 }
@@ -97,24 +108,31 @@ void DhtCore::_initRangeToHost(void) {
     }
 }
 
-uint64_t DhtCore::_genHash(const char *key, int mask) {
-    uint64_t hash = 0;
-    uint64_t c;
-
-    auto maskCount = mask;
-    while ((c = (*key++)) && (--maskCount >= 0)) {
-        hash += c << maskCount;
-    }
-    return hash;
+uint64_t DhtCore::_genHash(const char *key, uint64_t maskLength,
+                           uint64_t maskOffset) {
+    /** @todo byte-granularity assumed, do we need bit-granularity? */
+    uint64_t subKey = 0;
+    for (int i = 0; i < maskLength; i++)
+        subKey += (*reinterpret_cast<const uint8_t *>(key + maskOffset + i))
+                  << (i * 8);
+    return subKey;
 }
 
 DhtNode *DhtCore::getHostForKey(Key key) {
-
-    auto keyHash = _genHash(key.data(), getLocalNode()->getMask());
-    if (getLocalNode()->getMask() > 0) {
+    if (getLocalNode()->getMaskLength() > 0) {
+        auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
+                                getLocalNode()->getMaskOffset());
+        DAQ_DEBUG("keyHash:" + std::to_string(keyHash) + " maskLen:" +
+                  std::to_string(getLocalNode()->getMaskLength()) +
+                  " maskOffset:" +
+                  std::to_string(getLocalNode()->getMaskOffset()));
         for (auto rangeAndHost : _rangeToHost) {
             auto range = rangeAndHost.first;
-            if ((keyHash >= range.first) && (keyHash < range.second)) {
+            DAQ_DEBUG("Node " + rangeAndHost.second->getUri() + " serving " +
+                      std::to_string(range.first) + ":" +
+                      std::to_string(range.second));
+            if ((keyHash >= range.first) && (keyHash <= range.second)) {
+                DAQ_DEBUG("Found match at " + rangeAndHost.second->getUri());
                 return rangeAndHost.second;
             }
         }
@@ -123,10 +141,11 @@ DhtNode *DhtCore::getHostForKey(Key key) {
 }
 
 bool DhtCore::isLocalKey(Key key) {
-    if (getLocalNode()->getMask() > 0) {
-        auto keyHash = _genHash(key.data(), getLocalNode()->getMask());
+    if (getLocalNode()->getMaskLength() > 0) {
+        auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
+                                getLocalNode()->getMaskOffset());
         return (keyHash >= getLocalNode()->getStart() &&
-                keyHash < getLocalNode()->getEnd());
+                keyHash <= getLocalNode()->getEnd());
     } else {
         return true;
     }
