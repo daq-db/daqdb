@@ -273,6 +273,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 actionsCounter++;
                 node256_new->depth = depth;
                 node256_new->type = TYPE256;
+                pmemobj_flush(_pm_pool.get_handle(),
+                              pmemobj_direct(*node256_new.raw_ptr()),
+                              sizeof(Node256));
                 children[i] = node256_new;
             } else if (LEVEL_TYPE[depth] == TYPE_LEAF_COMPRESSED) {
                 nodeLeafCompressed_new = pmemobj_xreserve(
@@ -290,6 +293,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 nodeLeafCompressed_new->type = TYPE_LEAF_COMPRESSED;
                 // Temporarily disable the node
                 nodeLeafCompressed_new->key = -1;
+                pmemobj_flush(_pm_pool.get_handle(),
+                              pmemobj_direct(*nodeLeafCompressed_new.raw_ptr()),
+                              sizeof(NodeLeafCompressed));
                 children[i] = nodeLeafCompressed_new;
             }
 
@@ -307,7 +313,17 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
             throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
         for (int i = 0; i < NODE_SIZE[node->type]; i++) {
-            node256->children[i] = children[i];
+            // node256->children[i] = children[i];
+            pmemobj_set_value(_pm_pool.get_handle(),
+                              &(actionsArray[actionsCounter]),
+                              &((node256->children[i]).raw_ptr()->pool_uuid_lo),
+                              children[i].raw_ptr()->pool_uuid_lo);
+            actionsCounter++;
+            pmemobj_set_value(_pm_pool.get_handle(),
+                              &(actionsArray[actionsCounter]),
+                              &((node256->children[i]).raw_ptr()->off),
+                              children[i].raw_ptr()->off);
+            actionsCounter++;
         }
     }
 }
@@ -363,6 +379,7 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                  *        the same key. This is still not thread-safe.
                 */
                 val->location = EMPTY;
+                pmemobj_flush(_pm_pool.get_handle(), val, sizeof(ValueWrapper));
                 // Enable the node
                 nodeLeafCompressed->key = keyCalc;
                 return val;
@@ -399,6 +416,7 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                     int actionsCounter = 0;
                     allocateFullLevels(node256, 1, actionsArray,
                                        actionsCounter);
+                    pmemobj_drain(_pm_pool.get_handle());
                     int status = pmemobj_publish(_pm_pool.get_handle(),
                                                  actionsArray, actionsCounter);
                     actionsCounter = 0;
