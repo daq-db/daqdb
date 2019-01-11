@@ -179,8 +179,14 @@ void DhtServer::_serve(void) {
         if (rpc) {
             delete rpc;
         }
-    } catch (...) {
+    } catch (exception& e) {
+        DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
         state = DhtServerState::DHT_SERVER_ERROR;
+        throw;
+    } catch (...) {
+        DAQ_DEBUG("DHT server exception: unknown");
+        state = DhtServerState::DHT_SERVER_ERROR;
+        throw;
     }
 
     delete nexus;
