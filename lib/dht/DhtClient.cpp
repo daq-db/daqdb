@@ -36,6 +36,7 @@ const size_t DEFAULT_ERPC_RESPONSE_SIZE = 16;
 const size_t DEFAULT_ERPC_RESPONSE_WITH_VALUE_SIZE = 16 * 1024;
 
 // Duration of event loop in ms
+/** @todo Make it configurable */
 const unsigned int DHT_CLIENT_EVENT_LOOP_MS = 10000;
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}

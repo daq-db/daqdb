@@ -34,6 +34,9 @@ const unsigned short DEFAULT_ERPC_SERVER_PORT = 31850;
 const size_t DEFAULT_ERPC_NUMA_NODE = 0;
 const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
 
+#define DEFAULT_DHT_MASK_LENGTH 1
+#define DEFAULT_DHT_MASK_OFFSET 0
+
 DhtCore::DhtCore(DhtOptions dhtOptions) : options(dhtOptions) {
     _initNeighbors();
     _initRangeToHost();
@@ -59,15 +62,16 @@ void DhtCore::_initNeighbors(void) {
         dhtNode->setIp(option->ip);
         dhtNode->setPort(option->port);
         dhtNode->state = DhtNodeState::NODE_INIT;
-        dhtNode->setMaskLength(64);
-        dhtNode->setMaskOffset(0);
+        dhtNode->setMaskLength(DEFAULT_DHT_MASK_LENGTH);
+        dhtNode->setMaskOffset(DEFAULT_DHT_MASK_OFFSET);
 
         try {
             dhtNode->setMaskLength(option->keyRange.maskLength);
             dhtNode->setMaskOffset(option->keyRange.maskOffset);
             dhtNode->setStart(stoi(option->keyRange.start));
             dhtNode->setEnd(stoi(option->keyRange.end));
-        } catch (invalid_argument &ia) {
+        }
+        catch (invalid_argument &ia) {
             // no action needed
         }
 
