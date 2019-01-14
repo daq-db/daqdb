@@ -101,6 +101,8 @@ class DhtClient {
 
   private:
     void _initializeNode(DhtNode *node);
+    void _runToResponse();
+    void _initReqCtx();
 
     // needed for class destructor only
     void *_clientRpc;

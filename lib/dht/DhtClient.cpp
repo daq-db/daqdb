@@ -30,12 +30,9 @@ using boost::format;
 
 namespace DaqDB {
 
-const size_t DEFAULT_ERPC_REQ_SIZE = 32;
-const size_t DEFAULT_ERPC_REQ_WITH_VALUE_SIZE = 16 * 1024;
-const size_t DEFAULT_ERPC_RESPONSE_SIZE = 16;
-const size_t DEFAULT_ERPC_RESPONSE_WITH_VALUE_SIZE = 16 * 1024;
-#define ERPC_MAX_REQUEST_SIZE		32 * 1024
-#define ERPC_MAX_RESPONSE_SIZE		32 * 1024
+#define ERPC_MAX_WAIT_TIME_S		1.0
+#define ERPC_MAX_REQUEST_SIZE		16 * 1024
+#define ERPC_MAX_RESPONSE_SIZE		16 * 1024
 
 // Duration of event loop in ms
 /** @todo Make it configurable */
@@ -45,8 +42,9 @@ static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
 static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
                    size_t ioCtx) {
+    DAQ_DEBUG("Get response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
-    DhtReqCtx *reqCtx = reinterpret_cast<DhtReqCtx *>(ioCtx);
+    DhtReqCtx *reqCtx = client->getReqCtx();
     auto rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
@@ -61,8 +59,6 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     }
 
     reqCtx->ready = true;
-
-    // @TODO jradtke Performance optimization possible if resp_msgbuf reused
     rpc->release_response(respHandle);
 }
 
@@ -84,8 +80,9 @@ static void clbPut(erpc::RespHandle *respHandle, void *ctxClient,
 
 static void clbRemove(erpc::RespHandle *respHandle, void *ctxClient,
                       size_t ioCtx) {
+    DAQ_DEBUG("Remove response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
-    DhtReqCtx *reqCtx = reinterpret_cast<DhtReqCtx *>(ioCtx);
+    DhtReqCtx *reqCtx = client->getReqCtx();
     auto rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
@@ -157,43 +154,56 @@ void DhtClient::initialize() {
     }
 }
 
+void DhtClient::_initReqCtx() {
+    _reqCtx.rc = -1;
+    _reqCtx.ready = false;
+    _reqCtx.value = nullptr;
+}
+
+void DhtClient::_runToResponse() {
+    DAQ_DEBUG("Waiting for response");
+    auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
+    double ttime = rpc->sec_since_creation() + ERPC_MAX_WAIT_TIME_S;
+    while (!_reqCtx.ready) {
+        rpc->run_event_loop_once();
+        if (rpc->sec_since_creation() > ttime) {
+            DAQ_DEBUG("Timeout");
+            throw OperationFailedException(Status(TIME_OUT));
+        }
+    }
+    if (_reqCtx.rc != 0) {
+        DAQ_DEBUG("Unknown error occurred");
+        throw OperationFailedException(Status(UNKNOWN_ERROR));
+    }
+}
+
 Value DhtClient::get(const Key &key) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-    DhtReqCtx reqCtx;
 
     if (state != DhtClientState::DHT_CLIENT_READY)
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
-    auto reqSize = sizeof(DaqdbDhtMsg) + key.size();
-    auto req = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_REQ_WITH_VALUE_SIZE);
-    // TODO: jradtke Performance optimization possible if previous resp_msgbuf
-    // reused
-    auto resp = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_RESPONSE_SIZE);
+    rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size());
+    rpc->resize_msg_buffer(_respMsgBuf.get(), ERPC_MAX_RESPONSE_SIZE);
 
-    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(req.buf);
+    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
     msg->keySize = key.size();
     memcpy(msg->msg, key.data(), key.size());
 
     auto hostToSend = _dhtCore->getHostForKey(key);
-
-    // @TODO jradtke passing context pointer using size_t
-    assert(sizeof(size_t) == sizeof(&reqCtx));
     DAQ_DEBUG("Enqueuing get request to " + hostToSend->getUri());
+    _initReqCtx();
     rpc->enqueue_request(
         hostToSend->getSessionId(),
-        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_GET), &req,
-        &resp, clbGet, reinterpret_cast<size_t>(&reqCtx));
-    DAQ_DEBUG("Waiting for response");
-    rpc->run_event_loop(DHT_CLIENT_EVENT_LOOP_MS);
-    if (!reqCtx.ready) {
-        DAQ_DEBUG("Timeout");
-        throw OperationFailedException(Status(TIME_OUT));
-    }
-    if (reqCtx.rc != 0 || (reqCtx.value == nullptr)) {
+        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_GET), _reqMsgBuf.get(),
+        _respMsgBuf.get(), clbGet, 0);
+    _runToResponse();
+    if (_reqCtx.value == nullptr) {
+        DAQ_DEBUG("Key was not found");
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
 
-    return *reqCtx.value;
+    return *_reqCtx.value;
 }
 
 void DhtClient::put(const Key &key, const Value &val) {
@@ -203,8 +213,8 @@ void DhtClient::put(const Key &key, const Value &val) {
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
     // todo add size checks
-    auto reqSize = sizeof(DaqdbDhtMsg) + key.size() + val.size();
-    rpc->resize_msg_buffer(_reqMsgBuf.get(), reqSize);
+    rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size() + val.size());
+    rpc->resize_msg_buffer(_respMsgBuf.get(), sizeof(DaqdbDhtResult));
 
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
     msg->keySize = key.size();
@@ -214,57 +224,35 @@ void DhtClient::put(const Key &key, const Value &val) {
 
     auto hostToSend = _dhtCore->getHostForKey(key);
     DAQ_DEBUG("Enqueuing put request to " + hostToSend->getUri());
-    _reqCtx.ready = false;
+    _initReqCtx();
     rpc->enqueue_request(
         hostToSend->getSessionId(),
         static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_PUT), _reqMsgBuf.get(),
         _respMsgBuf.get(), clbPut, 0);
-    // wait for completion
-    DAQ_DEBUG("Waiting for response");
-    while (!_reqCtx.ready)
-        rpc->run_event_loop_once();
-    if (!_reqCtx.ready) {
-        DAQ_DEBUG("Timeout");
-        throw OperationFailedException(Status(TIME_OUT));
-    }
-    if (_reqCtx.rc != 0) {
-        throw OperationFailedException(Status(UNKNOWN_ERROR));
-    }
+    _runToResponse();
 }
 
 void DhtClient::remove(const Key &key) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-    DhtReqCtx reqCtx;
 
     if (state != DhtClientState::DHT_CLIENT_READY)
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
-    auto req = rpc->alloc_msg_buffer_or_die(DEFAULT_ERPC_REQ_SIZE);
-    auto resp = rpc->alloc_msg_buffer_or_die(sizeof(DaqdbDhtResult));
+    rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size());
+    rpc->resize_msg_buffer(_respMsgBuf.get(), sizeof(DaqdbDhtResult));
 
-    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(req.buf);
+    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
     msg->keySize = key.size();
     memcpy(msg->msg, key.data(), key.size());
 
     auto hostToSend = _dhtCore->getHostForKey(key);
-
-    // @TODO jradtke passing context pointer using size_t
-    assert(sizeof(size_t) == sizeof(&reqCtx));
     DAQ_DEBUG("Enqueuing remove request to " + hostToSend->getUri());
+    _initReqCtx();
     rpc->enqueue_request(
         hostToSend->getSessionId(),
-        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_REMOVE), &req,
-        &resp, clbRemove, reinterpret_cast<size_t>(&reqCtx));
-    // wait for completion
-    DAQ_DEBUG("Waiting for response");
-    rpc->run_event_loop(DHT_CLIENT_EVENT_LOOP_MS);
-    if (!reqCtx.ready) {
-        DAQ_DEBUG("Timeout");
-        throw OperationFailedException(Status(TIME_OUT));
-    }
-    if (reqCtx.rc != 0) {
-        throw OperationFailedException(Status(UNKNOWN_ERROR));
-    }
+        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_REMOVE), _reqMsgBuf.get(),
+        _respMsgBuf.get(), clbRemove, 0);
+    _runToResponse();
 }
 
 bool DhtClient::ping(DhtNode &node) {
