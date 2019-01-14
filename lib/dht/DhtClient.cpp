@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -34,6 +34,8 @@ const size_t DEFAULT_ERPC_REQ_SIZE = 32;
 const size_t DEFAULT_ERPC_REQ_WITH_VALUE_SIZE = 16 * 1024;
 const size_t DEFAULT_ERPC_RESPONSE_SIZE = 16;
 const size_t DEFAULT_ERPC_RESPONSE_WITH_VALUE_SIZE = 16 * 1024;
+#define ERPC_MAX_REQUEST_SIZE		32 * 1024
+#define ERPC_MAX_RESPONSE_SIZE		32 * 1024
 
 // Duration of event loop in ms
 /** @todo Make it configurable */
@@ -65,10 +67,10 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
 }
 
 static void clbPut(erpc::RespHandle *respHandle, void *ctxClient,
-                   size_t ioCtx) {
+                   size_t tag) {
     DAQ_DEBUG("Put response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
-    DhtReqCtx *reqCtx = reinterpret_cast<DhtReqCtx *>(ioCtx);
+    DhtReqCtx *reqCtx = client->getReqCtx();
     auto rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
@@ -100,8 +102,13 @@ DhtClient::DhtClient(DhtCore *dhtCore, unsigned short port)
       state(DhtClientState::DHT_CLIENT_INIT) {}
 
 DhtClient::~DhtClient() {
-    if (_clientRpc)
+    if (_clientRpc) {
+        erpc::Rpc<erpc::CTransport> *rpc =
+            reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
+        rpc->free_msg_buffer(*_reqMsgBuf);
+        rpc->free_msg_buffer(*_respMsgBuf);
         delete reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
+    }
     if (_nexus)
         delete reinterpret_cast<erpc::Nexus *>(_nexus);
 }
@@ -134,6 +141,8 @@ void DhtClient::initialize() {
         for (DhtNode *neighbor : *neighbors) {
             _initializeNode(neighbor);
         }
+        _reqMsgBuf = std::make_unique<erpc::MsgBuffer>(rpc->alloc_msg_buffer_or_die(ERPC_MAX_REQUEST_SIZE));
+        _respMsgBuf = std::make_unique<erpc::MsgBuffer>(rpc->alloc_msg_buffer_or_die(ERPC_MAX_RESPONSE_SIZE));
         state = DhtClientState::DHT_CLIENT_READY;
     }
     catch (exception &e) {
@@ -189,40 +198,36 @@ Value DhtClient::get(const Key &key) {
 
 void DhtClient::put(const Key &key, const Value &val) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-    DhtReqCtx reqCtx;
 
     if (state != DhtClientState::DHT_CLIENT_READY)
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
+    // todo add size checks
     auto reqSize = sizeof(DaqdbDhtMsg) + key.size() + val.size();
-    auto req = rpc->alloc_msg_buffer_or_die(reqSize);
+    rpc->resize_msg_buffer(_reqMsgBuf.get(), reqSize);
 
-    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(req.buf);
+    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
     msg->keySize = key.size();
     memcpy(msg->msg, key.data(), key.size());
     msg->valSize = val.size();
     memcpy(msg->msg + key.size(), val.data(), msg->valSize);
 
-    // TODO: jradtke Performance optimization possible if previous resp_msgbuf
-    // reused
-    auto resp = rpc->alloc_msg_buffer_or_die(sizeof(DaqdbDhtResult));
     auto hostToSend = _dhtCore->getHostForKey(key);
-
-    // @TODO jradtke passing context pointer using size_t
-    assert(sizeof(size_t) == sizeof(&reqCtx));
     DAQ_DEBUG("Enqueuing put request to " + hostToSend->getUri());
+    _reqCtx.ready = false;
     rpc->enqueue_request(
         hostToSend->getSessionId(),
-        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_PUT), &req,
-        &resp, clbPut, reinterpret_cast<size_t>(&reqCtx));
+        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_PUT), _reqMsgBuf.get(),
+        _respMsgBuf.get(), clbPut, 0);
     // wait for completion
     DAQ_DEBUG("Waiting for response");
-    rpc->run_event_loop(DHT_CLIENT_EVENT_LOOP_MS);
-    if (!reqCtx.ready) {
+    while (!_reqCtx.ready)
+        rpc->run_event_loop_once();
+    if (!_reqCtx.ready) {
         DAQ_DEBUG("Timeout");
         throw OperationFailedException(Status(TIME_OUT));
     }
-    if (reqCtx.rc != 0) {
+    if (_reqCtx.rc != 0) {
         throw OperationFailedException(Status(UNKNOWN_ERROR));
     }
 }

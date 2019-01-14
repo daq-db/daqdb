@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -25,6 +25,11 @@
 #include <KVStoreBase.h>
 #include <Key.h>
 #include <Value.h>
+
+// @TODO : jradtke Cannot include rpc.h, net / if.h conflict
+namespace erpc {
+class MsgBuffer;
+}
 
 namespace DaqDB {
 
@@ -89,6 +94,7 @@ class DhtClient {
     bool ping(DhtNode &node);
 
     inline void *getRpc() { return _clientRpc; };
+    inline DhtReqCtx *getReqCtx() { return &_reqCtx; };
 
     std::atomic<bool> keepRunning;
     std::atomic<DhtClientState> state;
@@ -101,5 +107,9 @@ class DhtClient {
     void *_nexus;
 
     DhtCore *_dhtCore;
+
+    struct DhtReqCtx  _reqCtx;
+    std::unique_ptr<erpc::MsgBuffer> _reqMsgBuf;
+    std::unique_ptr<erpc::MsgBuffer> _respMsgBuf;
 };
 } // namespace DaqDB
