@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -55,7 +55,7 @@ Key PrimaryKeyNextQueue::dequeueNext() {
     return Key(pKeyBuff, _keySize);
 }
 
-void PrimaryKeyNextQueue::enqueueNext(Key &&key) {
+void PrimaryKeyNextQueue::enqueueNext(Key &key) {
     if (!isLocal(key))
         return;
     char *pKeyBuff = _createPKeyBuff(key.data());

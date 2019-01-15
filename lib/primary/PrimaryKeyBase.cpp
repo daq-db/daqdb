@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -46,7 +46,7 @@ PrimaryKeyBase::~PrimaryKeyBase() {}
 
 Key PrimaryKeyBase::dequeueNext() { throw FUNC_NOT_SUPPORTED; }
 
-void PrimaryKeyBase::enqueueNext(Key &&Key) {
+void PrimaryKeyBase::enqueueNext(Key &Key) {
     // don't throw exception, just do nothing
 }
 

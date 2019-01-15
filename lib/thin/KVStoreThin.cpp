@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -66,7 +66,13 @@ Value KVStoreThin::Get(const Key &key, const GetOptions &options) {
 }
 
 void KVStoreThin::Put(Key &&key, Value &&val, const PutOptions &options) {
-    dhtClient()->put(key, val);
+    try {
+        dhtClient()->put(key, val);
+    } catch (...) {
+        dhtClient()->free(std::move(key));
+        throw;
+    }
+    dhtClient()->free(std::move(key));
 }
 
 void KVStoreThin::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
@@ -135,9 +141,7 @@ Value KVStoreThin::Alloc(const Key &key, size_t size,
 
 void KVStoreThin::Free(Value &&value) { delete[] value.data(); }
 
-Key KVStoreThin::AllocKey(const AllocOptions &options) {
-    return Key(new char[KeySize()], KeySize());
-}
+Key KVStoreThin::AllocKey(const AllocOptions &options) { return dhtClient()->allocKey(KeySize()); }
 
 void KVStoreThin::Realloc(Value &value, size_t size,
                           const AllocOptions &options) {
@@ -148,7 +152,7 @@ void KVStoreThin::ChangeOptions(Value &value, const AllocOptions &options) {
     throw FUNC_NOT_SUPPORTED;
 }
 
-void KVStoreThin::Free(Key &&key) { delete[] key.data(); }
+void KVStoreThin::Free(Key &&key) { dhtClient()->free(std::move(key)); }
 
 void KVStoreThin::ChangeOptions(Key &key, const AllocOptions &options) {
     throw FUNC_NOT_SUPPORTED;

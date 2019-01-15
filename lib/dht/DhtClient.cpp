@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 - 2019 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -30,13 +30,8 @@ using boost::format;
 
 namespace DaqDB {
 
-#define ERPC_MAX_WAIT_TIME_S		1.0
 #define ERPC_MAX_REQUEST_SIZE		16 * 1024
 #define ERPC_MAX_RESPONSE_SIZE		16 * 1024
-
-// Duration of event loop in ms
-/** @todo Make it configurable */
-const unsigned int DHT_CLIENT_EVENT_LOOP_MS = 10000;
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
@@ -48,6 +43,7 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     auto rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
+    // todo check if successful and throw otherwise
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
 
@@ -70,6 +66,7 @@ static void clbPut(erpc::RespHandle *respHandle, void *ctxClient,
     auto rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
+    // todo check if successful and throw otherwise
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
     reqCtx->rc = resultMsg->rc;
@@ -86,6 +83,7 @@ static void clbRemove(erpc::RespHandle *respHandle, void *ctxClient,
     auto rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
+    // todo check if successful and throw otherwise
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
     reqCtx->rc = resultMsg->rc;
@@ -163,14 +161,8 @@ void DhtClient::_initReqCtx() {
 void DhtClient::_runToResponse() {
     DAQ_DEBUG("Waiting for response");
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-    double ttime = rpc->sec_since_creation() + ERPC_MAX_WAIT_TIME_S;
-    while (!_reqCtx.ready) {
+    while (!_reqCtx.ready)
         rpc->run_event_loop_once();
-        if (rpc->sec_since_creation() > ttime) {
-            DAQ_DEBUG("Timeout");
-            throw OperationFailedException(Status(TIME_OUT));
-        }
-    }
     if (_reqCtx.rc != 0) {
         DAQ_DEBUG("Unknown error occurred");
         throw OperationFailedException(Status(UNKNOWN_ERROR));
@@ -213,12 +205,11 @@ void DhtClient::put(const Key &key, const Value &val) {
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
     // todo add size checks
+    // todo add a check that that the correct reqMsgBuf is used for this key
     rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size() + val.size());
     rpc->resize_msg_buffer(_respMsgBuf.get(), sizeof(DaqdbDhtResult));
 
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
-    msg->keySize = key.size();
-    memcpy(msg->msg, key.data(), key.size());
     msg->valSize = val.size();
     memcpy(msg->msg + key.size(), val.data(), msg->valSize);
 
@@ -266,6 +257,28 @@ bool DhtClient::ping(DhtNode &node) {
     } else {
         return false;
     }
+}
+
+Key DhtClient::allocKey(size_t keySize) {
+    if (_reqMsgBufInUse)
+        throw OperationFailedException(Status(ALLOCATION_ERROR));
+    _reqMsgBufInUse = true;
+    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
+    // todo keySize is known, we don't need to send it
+    // todo add size asserts
+    // todo add pool
+    msg->keySize = keySize;
+    return Key(msg->msg, keySize);
+}
+
+void DhtClient::free(Key &&key) {
+    _reqMsgBufInUse = false;
+}
+
+Value DhtClient::alloc(const Key &key, size_t size) {
+}
+
+void DhtClient::free(Value &&value) {
 }
 
 } // namespace DaqDB

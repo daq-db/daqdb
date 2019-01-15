@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -30,5 +30,7 @@ class MinidaqFfNodeSeq : public MinidaqFfNode {
     void _Setup(int executorId);
     Key _NextKey();
     std::string _GetType();
+
+    static thread_local int _eventId;
 };
 }

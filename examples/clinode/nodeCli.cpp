@@ -354,9 +354,6 @@ void nodeCli::_cmdPut(const std::string &strLine) {
             // @TODO jschmieg: free value
             //_spKVStore->Free(std::move(valBuff));
         }
-
-        if (keyBuff.size() > 0)
-            _spKVStore->Free(std::move(keyBuff));
     }
 }
 
@@ -567,9 +564,6 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
         } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot put element: " << e.status().to_string()
                  << endl;
-
-            if (keyBuff.size() > 0)
-                _spKVStore->Free(std::move(keyBuff));
 
             // @TODO jschmieg: free value
             // _spKVStore->Free(std::move(valBuff));

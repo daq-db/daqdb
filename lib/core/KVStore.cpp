@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -145,28 +145,35 @@ void KVStore::LogMsg(std::string msg) {
 
 void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
+        Free(std::move(key));
         throw FUNC_NOT_IMPLEMENTED;
     }
 
-    if (!getDhtCore()->isLocalKey(key)) {
-        return dhtClient()->put(key, val);
-    }
-
-    /** @todo what if more values inserted for the same primary key? */
-    char *keyBuff = key.data();
-    pmem()->Put(keyBuff, val.data());
     try {
-        pKey()->enqueueNext(std::move(key));
-    } catch (OperationFailedException &e) {
-        pmem()->Remove(keyBuff);
-        throw;
+        if (!getDhtCore()->isLocalKey(key))
+            return dhtClient()->put(key, val);
+
+        /** @todo what if more values inserted for the same primary key? */
+        char *keyBuff = key.data();
+        pmem()->Put(keyBuff, val.data());
+        try {
+            pKey()->enqueueNext(key);
+        } catch (OperationFailedException &e) {
+            pmem()->Remove(keyBuff);
+            throw;
+        }
+    } catch (...) {
+       Free(std::move(key));
+       throw;
     }
+    Free(std::move(key));
     // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
 }
 
 void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                        const PutOptions &options) {
     if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
+        Free(std::move(key));
         throw FUNC_NOT_IMPLEMENTED;
     }
     thread_local int pollerId = 0;
@@ -178,6 +185,7 @@ void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
         throw OperationFailedException(EINVAL);
     }
     try {
+        // todo memleak - key is not freed
         PmemRqst *msg = new PmemRqst(RqstOperation::PUT, key.data(), key.size(),
                                      value.data(), value.size(), cb);
         if (!_rqstPollers.at(pollerId)->enqueue(msg)) {
@@ -186,6 +194,7 @@ void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
     } catch (OperationFailedException &e) {
         cb(this, e.status(), key.data(), key.size(), value.data(),
            value.size());
+        Free(std::move(key));
     }
 }
 
@@ -436,11 +445,9 @@ void KVStore::ChangeOptions(Value &value, const AllocOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-Key KVStore::AllocKey(const AllocOptions &options) {
-    return Key(new char[KeySize()], KeySize());
-}
+Key KVStore::AllocKey(const AllocOptions &options) { return dhtClient()->allocKey(KeySize()); }
 
-void KVStore::Free(Key &&key) { delete[] key.data(); }
+void KVStore::Free(Key &&key) { dhtClient()->free(std::move(key)); }
 
 void KVStore::ChangeOptions(Key &key, const AllocOptions &options) {
     std::unique_lock<std::mutex> l(_lock);
