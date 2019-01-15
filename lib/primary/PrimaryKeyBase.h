@@ -25,8 +25,8 @@ class PrimaryKeyBase : public DaqDB::PrimaryKeyEngine {
   public:
     PrimaryKeyBase(const DaqDB::Options &options);
     virtual ~PrimaryKeyBase();
-    Key dequeueNext();
-    void enqueueNext(Key &key);
+    void dequeueNext(Key &key);
+    void enqueueNext(const Key &key);
     bool isLocal(const Key &key);
 
   protected:

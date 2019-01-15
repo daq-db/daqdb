@@ -24,8 +24,8 @@ class PrimaryKeyEngine {
   public:
     static PrimaryKeyEngine *open(const DaqDB::Options &options);
     virtual ~PrimaryKeyEngine();
-    virtual Key dequeueNext() = 0;
-    virtual void enqueueNext(Key &key) = 0;
+    virtual void dequeueNext(Key &key) = 0;
+    virtual void enqueueNext(const Key &key) = 0;
     virtual bool isLocal(const Key &key) = 0;
 };
 } // namespace DaqDB

@@ -291,7 +291,16 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
     }
 }
 
-Key KVStore::GetAny(const GetOptions &options) { return pKey()->dequeueNext(); }
+Key KVStore::GetAny(const GetOptions &options) {
+    Key key = AllocKey();
+    try {
+        pKey()->dequeueNext(key);
+    } catch (...) {
+        Free(std::move(key));
+    }
+    return key;
+}
+
 
 void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
                           const GetOptions &options) {

@@ -26,11 +26,11 @@ class PrimaryKeyNextQueue : public DaqDB::PrimaryKeyBase {
   public:
     PrimaryKeyNextQueue(const DaqDB::Options &options);
     virtual ~PrimaryKeyNextQueue();
-    Key dequeueNext();
-    void enqueueNext(Key &key);
+    void dequeueNext(Key &key);
+    void enqueueNext(const Key &key);
 
   private:
-    char *_createPKeyBuff(char *srcKeyBuff);
+    char *_createPKeyBuff(const char *srcKeyBuff);
 
     struct spdk_ring *_readyKeys;
 };
