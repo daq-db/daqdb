@@ -378,8 +378,8 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                  *        the same key. This is still not thread-safe.
                 */
                 val->location = EMPTY;
-                pmemobj_flush(_pm_pool.get_handle(), val->location,
-                              sizeof(ValueWrapper->location));
+                pmemobj_flush(_pm_pool.get_handle(), &(val->location),
+                              sizeof(val->location));
                 // Enable the node
                 nodeLeafCompressed->key = keyCalc;
                 pmemobj_flush(_pm_pool.get_handle(), &(nodeLeafCompressed->key),
