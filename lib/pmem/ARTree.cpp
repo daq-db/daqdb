@@ -294,8 +294,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 // Temporarily disable the node
                 nodeLeafCompressed_new->key = -1;
                 pmemobj_flush(_pm_pool.get_handle(),
-                              pmemobj_direct(*nodeLeafCompressed_new.raw_ptr()),
-                              sizeof(NodeLeafCompressed));
+                              &nodeLeafCompressed_new->depth, 2 * sizeof(int));
                 children[i] = nodeLeafCompressed_new;
             }
 
@@ -379,9 +378,12 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                  *        the same key. This is still not thread-safe.
                 */
                 val->location = EMPTY;
-                pmemobj_flush(_pm_pool.get_handle(), val, sizeof(ValueWrapper));
+                pmemobj_flush(_pm_pool.get_handle(), val->location,
+                              sizeof(ValueWrapper->location));
                 // Enable the node
                 nodeLeafCompressed->key = keyCalc;
+                pmemobj_flush(_pm_pool.get_handle(), &(nodeLeafCompressed->key),
+                              sizeof(nodeLeafCompressed->key));
                 return val;
             } else {
                 DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" +
