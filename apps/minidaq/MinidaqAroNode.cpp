@@ -27,8 +27,9 @@ void MinidaqAroNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                            std::atomic<std::uint64_t> &cntErr) {
     DaqDB::Value value;
     try {
-        value  = _kvs->Alloc(key, _fSize);
-    } catch (...) {
+        value = _kvs->Alloc(key, _fSize);
+    }
+    catch (...) {
         _kvs->Free(std::move(key));
         throw;
     }
@@ -38,15 +39,15 @@ void MinidaqAroNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
 #endif /* WITH_INTEGRITY_CHECK */
 
     _kvs->PutAsync(std::move(key), std::move(value),
-                   [&cnt, &cntErr](
-                       DaqDB::KVStoreBase *kvs, DaqDB::Status status,
-                       const char *key, const size_t keySize,
-                       const char *value, const size_t valueSize) {
-                       if (!status.ok()) {
-                           cntErr++;
-                       } else {
-                           cnt++;
-                       }
-                   });
+                   [&cnt, &cntErr](DaqDB::KVStoreBase *kvs,
+                                   DaqDB::Status status, const char *key,
+                                   const size_t keySize, const char *value,
+                                   const size_t valueSize) {
+        if (!status.ok()) {
+            cntErr++;
+        } else {
+            cnt++;
+        }
+    });
 }
 }

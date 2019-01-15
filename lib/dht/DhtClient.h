@@ -94,12 +94,16 @@ class DhtClient {
     Key allocKey(size_t keySize);
     void free(Key &&key);
     Value alloc(const Key &key, size_t size);
-    void free(Value &&value); 
+    void free(Value &&value);
 
     bool ping(DhtNode &node);
 
-    inline void *getRpc() { return _clientRpc; };
-    inline DhtReqCtx *getReqCtx() { return &_reqCtx; };
+    inline void *getRpc() {
+        return _clientRpc;
+    };
+    inline DhtReqCtx *getReqCtx() {
+        return &_reqCtx;
+    };
 
     std::atomic<bool> keepRunning;
     std::atomic<DhtClientState> state;
@@ -115,7 +119,7 @@ class DhtClient {
 
     DhtCore *_dhtCore;
 
-    struct DhtReqCtx  _reqCtx;
+    struct DhtReqCtx _reqCtx;
     std::unique_ptr<erpc::MsgBuffer> _reqMsgBuf;
     std::unique_ptr<erpc::MsgBuffer> _respMsgBuf;
     bool _reqMsgBufInUse = false;

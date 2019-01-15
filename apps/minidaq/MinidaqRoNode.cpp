@@ -42,7 +42,8 @@ void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
     DaqDB::Value value;
     try {
         value = _kvs->Alloc(key, _fSize);
-    } catch (...) {
+    }
+    catch (...) {
         _kvs->Free(std::move(key));
         throw;
     }

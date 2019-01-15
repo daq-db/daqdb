@@ -30,8 +30,8 @@ using boost::format;
 
 namespace DaqDB {
 
-#define ERPC_MAX_REQUEST_SIZE		16 * 1024
-#define ERPC_MAX_RESPONSE_SIZE		16 * 1024
+#define ERPC_MAX_REQUEST_SIZE 16 * 1024
+#define ERPC_MAX_RESPONSE_SIZE 16 * 1024
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
@@ -58,8 +58,7 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     rpc->release_response(respHandle);
 }
 
-static void clbPut(erpc::RespHandle *respHandle, void *ctxClient,
-                   size_t tag) {
+static void clbPut(erpc::RespHandle *respHandle, void *ctxClient, size_t tag) {
     DAQ_DEBUG("Put response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
@@ -136,8 +135,10 @@ void DhtClient::initialize() {
         for (DhtNode *neighbor : *neighbors) {
             _initializeNode(neighbor);
         }
-        _reqMsgBuf = std::make_unique<erpc::MsgBuffer>(rpc->alloc_msg_buffer_or_die(ERPC_MAX_REQUEST_SIZE));
-        _respMsgBuf = std::make_unique<erpc::MsgBuffer>(rpc->alloc_msg_buffer_or_die(ERPC_MAX_RESPONSE_SIZE));
+        _reqMsgBuf = std::make_unique<erpc::MsgBuffer>(
+            rpc->alloc_msg_buffer_or_die(ERPC_MAX_REQUEST_SIZE));
+        _respMsgBuf = std::make_unique<erpc::MsgBuffer>(
+            rpc->alloc_msg_buffer_or_die(ERPC_MAX_RESPONSE_SIZE));
         state = DhtClientState::DHT_CLIENT_READY;
     }
     catch (exception &e) {
@@ -187,8 +188,8 @@ Value DhtClient::get(const Key &key) {
     _initReqCtx();
     rpc->enqueue_request(
         hostToSend->getSessionId(),
-        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_GET), _reqMsgBuf.get(),
-        _respMsgBuf.get(), clbGet, 0);
+        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_GET),
+        _reqMsgBuf.get(), _respMsgBuf.get(), clbGet, 0);
     _runToResponse();
     if (_reqCtx.value == nullptr) {
         DAQ_DEBUG("Key was not found");
@@ -206,7 +207,8 @@ void DhtClient::put(const Key &key, const Value &val) {
 
     // todo add size checks
     // todo add a check that that the correct reqMsgBuf is used for this key
-    rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size() + val.size());
+    rpc->resize_msg_buffer(_reqMsgBuf.get(),
+                           sizeof(DaqdbDhtMsg) + key.size() + val.size());
     rpc->resize_msg_buffer(_respMsgBuf.get(), sizeof(DaqdbDhtResult));
 
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
@@ -218,8 +220,8 @@ void DhtClient::put(const Key &key, const Value &val) {
     _initReqCtx();
     rpc->enqueue_request(
         hostToSend->getSessionId(),
-        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_PUT), _reqMsgBuf.get(),
-        _respMsgBuf.get(), clbPut, 0);
+        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_PUT),
+        _reqMsgBuf.get(), _respMsgBuf.get(), clbPut, 0);
     _runToResponse();
 }
 
@@ -241,8 +243,8 @@ void DhtClient::remove(const Key &key) {
     _initReqCtx();
     rpc->enqueue_request(
         hostToSend->getSessionId(),
-        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_REMOVE), _reqMsgBuf.get(),
-        _respMsgBuf.get(), clbRemove, 0);
+        static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_REMOVE),
+        _reqMsgBuf.get(), _respMsgBuf.get(), clbRemove, 0);
     _runToResponse();
 }
 
@@ -271,14 +273,10 @@ Key DhtClient::allocKey(size_t keySize) {
     return Key(msg->msg, keySize);
 }
 
-void DhtClient::free(Key &&key) {
-    _reqMsgBufInUse = false;
-}
+void DhtClient::free(Key &&key) { _reqMsgBufInUse = false; }
 
-Value DhtClient::alloc(const Key &key, size_t size) {
-}
+Value DhtClient::alloc(const Key &key, size_t size) {}
 
-void DhtClient::free(Value &&value) {
-}
+void DhtClient::free(Value &&value) {}
 
 } // namespace DaqDB
