@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -24,8 +24,8 @@ class PrimaryKeyEngine {
   public:
     static PrimaryKeyEngine *open(const DaqDB::Options &options);
     virtual ~PrimaryKeyEngine();
-    virtual Key dequeueNext() = 0;
-    virtual void enqueueNext(Key &&key) = 0;
+    virtual void dequeueNext(Key &key) = 0;
+    virtual void enqueueNext(const Key &key) = 0;
     virtual bool isLocal(const Key &key) = 0;
 };
 } // namespace DaqDB

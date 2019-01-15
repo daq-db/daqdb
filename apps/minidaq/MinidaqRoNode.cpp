@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -17,7 +17,7 @@
 
 namespace DaqDB {
 
-thread_local MinidaqKey MinidaqRoNode::_mKey;
+thread_local int MinidaqRoNode::_eventId;
 
 MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
@@ -25,20 +25,28 @@ MinidaqRoNode::~MinidaqRoNode() {}
 
 std::string MinidaqRoNode::_GetType() { return std::string("readout"); }
 
-void MinidaqRoNode::_Setup(int executorId) {
-    _mKey.runId = _runId;
-    _mKey.eventId = executorId - _nTh;
-    _mKey.subdetectorId = _id;
-}
+void MinidaqRoNode::_Setup(int executorId) { _eventId = executorId; }
 
 Key MinidaqRoNode::_NextKey() {
-    _mKey.eventId += _nTh;
-    return Key(reinterpret_cast<char *>(&_mKey), sizeof(_mKey));
+    Key key = _kvs->AllocKey();
+    MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
+    mKeyPtr->runId = _runId;
+    mKeyPtr->subdetectorId = _id;
+    mKeyPtr->eventId = _eventId;
+    _eventId += _nTh;
+    return key;
 }
 
 void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
-    DaqDB::Value value = _kvs->Alloc(key, _fSize);
+    DaqDB::Value value;
+    try {
+        value = _kvs->Alloc(key, _fSize);
+    }
+    catch (...) {
+        _kvs->Free(std::move(key));
+        throw;
+    }
 
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());

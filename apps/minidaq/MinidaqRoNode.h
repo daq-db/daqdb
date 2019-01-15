@@ -34,8 +34,8 @@ class MinidaqRoNode : public MinidaqNode {
     Key _NextKey();
     std::string _GetType();
 
-    static thread_local MinidaqKey _mKey;
     size_t _fSize = 0;
     int _id = 0;
+    static thread_local int _eventId;
 };
 }

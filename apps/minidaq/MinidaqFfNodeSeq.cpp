@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -17,7 +17,7 @@
 
 namespace DaqDB {
 
-thread_local int _eventId;
+thread_local int MinidaqFfNodeSeq::_eventId;
 
 MinidaqFfNodeSeq::MinidaqFfNodeSeq(KVStoreBase *kvs) : MinidaqFfNode(kvs) {}
 
@@ -55,7 +55,8 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
             nRetries++;
             try {
                 value = _kvs->Get(key);
-            } catch (OperationFailedException &e) {
+            }
+            catch (OperationFailedException &e) {
                 if ((e.status()() == KEY_NOT_FOUND) &&
                     (nRetries < _maxRetries)) {
                     /* Wait until it is availabile. */
@@ -68,7 +69,8 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                     _kvs->Free(std::move(key));
                     throw;
                 }
-            } catch (...) {
+            }
+            catch (...) {
                 _kvs->Free(std::move(key));
                 throw;
             }
@@ -98,14 +100,16 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                      *        this is not thread-safe
                      */
                     _kvs->Free(std::move(key));
-                } catch (QueueFullException &e) {
+                }
+                catch (QueueFullException &e) {
                     // Keep retrying
                     if (_delay_us) {
                         std::this_thread::sleep_for(
                             std::chrono::microseconds(_delay_us));
                     }
                     continue;
-                } catch (...) {
+                }
+                catch (...) {
                     _kvs->Free(std::move(key));
                     delete value.data();
                     throw;

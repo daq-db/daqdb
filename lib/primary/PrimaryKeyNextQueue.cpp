@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -39,23 +39,24 @@ PrimaryKeyNextQueue::~PrimaryKeyNextQueue() {
     spdk_ring_free(_readyKeys);
 }
 
-char *PrimaryKeyNextQueue::_createPKeyBuff(char *srcKeyBuff) {
-    char *keyBuff = new char[_keySize];
-    std::memset(keyBuff, 0, _keySize);
-    std::memcpy(keyBuff + _pKeyOffset, srcKeyBuff + _pKeyOffset, _pKeySize);
-    return keyBuff;
+char *PrimaryKeyNextQueue::_createPKeyBuff(const char *srcKeyBuff) {
+    char *pKeyBuff = new char[_pKeySize];
+    std::memcpy(pKeyBuff, srcKeyBuff + _pKeyOffset, _pKeySize);
+    return pKeyBuff;
 }
 
-Key PrimaryKeyNextQueue::dequeueNext() {
+void PrimaryKeyNextQueue::dequeueNext(Key &key) {
     char *pKeyBuff;
     int cnt =
         spdk_ring_dequeue(_readyKeys, reinterpret_cast<void **>(&pKeyBuff), 1);
     if (!cnt)
         throw OperationFailedException(Status(KEY_NOT_FOUND));
-    return Key(pKeyBuff, _keySize);
+    std::memset(key.data(), 0, _keySize);
+    std::memcpy(key.data() + _pKeyOffset, pKeyBuff, _pKeySize);
+    delete[] pKeyBuff;
 }
 
-void PrimaryKeyNextQueue::enqueueNext(Key &&key) {
+void PrimaryKeyNextQueue::enqueueNext(const Key &key) {
     if (!isLocal(key))
         return;
     char *pKeyBuff = _createPKeyBuff(key.data());

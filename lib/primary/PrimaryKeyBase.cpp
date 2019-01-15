@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -44,16 +44,15 @@ PrimaryKeyBase::PrimaryKeyBase(const DaqDB::Options &options)
 
 PrimaryKeyBase::~PrimaryKeyBase() {}
 
-Key PrimaryKeyBase::dequeueNext() { throw FUNC_NOT_SUPPORTED; }
+void PrimaryKeyBase::dequeueNext(Key &key) { throw FUNC_NOT_SUPPORTED; }
 
-void PrimaryKeyBase::enqueueNext(Key &&Key) {
+void PrimaryKeyBase::enqueueNext(const Key &Key) {
     // don't throw exception, just do nothing
 }
 
 bool PrimaryKeyBase::isLocal(const Key &key) {
-    const char *keyBuff = reinterpret_cast<const char *>(key.data());
     const uint64_t *pKeyPtr =
-        reinterpret_cast<const uint64_t *>(keyBuff + _pKeyOffset);
+        reinterpret_cast<const uint64_t *>(key.data() + _pKeyOffset);
     return ((*pKeyPtr & _localKeyMask) == _localKeyValue);
 }
 
