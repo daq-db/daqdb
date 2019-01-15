@@ -39,7 +39,13 @@ Key MinidaqRoNode::_NextKey() {
 
 void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
-    DaqDB::Value value = _kvs->Alloc(key, _fSize);
+    DaqDB::Value value;
+    try {
+        value = _kvs->Alloc(key, _fSize);
+    } catch (...) {
+        _kvs->Free(std::move(key));
+        throw;
+    }
 
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());
