@@ -27,6 +27,7 @@ enum PrimaryKeyAttribute : std::int8_t {
     LOCKED = (1 << 0),
     READY = (1 << 1),
     LONG_TERM = (1 << 2),
+    DHT_BUFFERED = (1 << 3),
 };
 
 enum OperationalMode : std::int8_t { STORAGE = 0, SATELLITE };
@@ -37,10 +38,15 @@ inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
                                             static_cast<int>(b));
 }
 
-struct AllocOptions {};
+struct AllocOptions {
+    AllocOptions() : attr(PrimaryKeyAttribute::DHT_BUFFERED) {}
+    AllocOptions(PrimaryKeyAttribute attr) : attr(attr) {}
+
+    PrimaryKeyAttribute attr;
+};
 
 struct UpdateOptions {
-    UpdateOptions() {}
+    UpdateOptions() : attr(PrimaryKeyAttribute::EMPTY) {}
     UpdateOptions(PrimaryKeyAttribute attr) : attr(attr) {}
 
     PrimaryKeyAttribute attr;

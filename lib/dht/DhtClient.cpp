@@ -140,13 +140,11 @@ void DhtClient::initialize() {
         _respMsgBuf = std::make_unique<erpc::MsgBuffer>(
             rpc->alloc_msg_buffer_or_die(ERPC_MAX_RESPONSE_SIZE));
         state = DhtClientState::DHT_CLIENT_READY;
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
         DAQ_DEBUG("DHT client exception: " + std::string(e.what()));
         state = DhtClientState::DHT_CLIENT_ERROR;
         throw;
-    }
-    catch (...) {
+    } catch (...) {
         DAQ_DEBUG("DHT client exception: unknown");
         state = DhtClientState::DHT_CLIENT_ERROR;
         throw;
@@ -270,7 +268,7 @@ Key DhtClient::allocKey(size_t keySize) {
     // todo add size asserts
     // todo add pool
     msg->keySize = keySize;
-    return Key(msg->msg, keySize);
+    return Key(msg->msg, keySize, PrimaryKeyAttribute::DHT_BUFFERED);
 }
 
 void DhtClient::free(Key &&key) { _reqMsgBufInUse = false; }

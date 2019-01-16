@@ -17,17 +17,26 @@
 
 #include <cstddef>
 
+#include <daqdb/Options.h>
+
 namespace DaqDB {
 
 class Key {
   public:
-    Key() : _data(nullptr), _size(0) {}
-    Key(char *data, size_t size) : _data(data), _size(size) {}
+    Key() : attr(PrimaryKeyAttribute::EMPTY), _data(nullptr), _size(0) {}
+    Key(char *data, size_t size)
+        : _data(data), _size(size), attr(PrimaryKeyAttribute::EMPTY) {}
+    Key(char *data, size_t size, PrimaryKeyAttribute attr)
+        : _data(data), _size(size), attr(attr) {}
     char *data() { return _data; }
     inline const char *data() const { return _data; }
     inline size_t size() const { return _size; }
+    inline bool isDhtBuffered() {
+        return (attr & PrimaryKeyAttribute::DHT_BUFFERED);
+    };
 
   protected:
+    PrimaryKeyAttribute attr;
     char *_data;
     size_t _size;
 };

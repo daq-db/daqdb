@@ -36,7 +36,7 @@ Value allocAndFillValue(KVStoreBase *kvs, const Key &key,
 }
 
 Key strToKey(KVStoreBase *kvs, const string &key) {
-    Key keyBuff = kvs->AllocKey();
+    Key keyBuff = kvs->AllocKey(PrimaryKeyAttribute::EMPTY);
     memset(keyBuff.data(), 0, keyBuff.size());
     memcpy(keyBuff.data(), key.c_str(), key.size());
     return keyBuff;
@@ -58,7 +58,7 @@ Value daqdb_get(KVStoreBase *kvs, const Key &key) {
     return Value();
 }
 
-void daqdb_put(KVStoreBase *kvs, Key &key, Value &val) {
+void daqdb_put(KVStoreBase *kvs, Key &&key, Value &val) {
     try {
         kvs->Put(move(key), move(val));
     } catch (OperationFailedException &e) {
@@ -70,7 +70,7 @@ void daqdb_put(KVStoreBase *kvs, Key &key, Value &val) {
 void daqdb_update(KVStoreBase *kvs, Key &key, Value &val,
                   const UpdateOptions &options = UpdateOptions()) {
     try {
-        kvs->Update(move(key), move(val), move(options));
+        kvs->Update(key, move(val), move(options));
     } catch (OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()
@@ -81,7 +81,7 @@ void daqdb_update(KVStoreBase *kvs, Key &key, Value &val,
 void daqdb_offload(KVStoreBase *kvs, Key &key) {
     try {
         UpdateOptions options(PrimaryKeyAttribute::LONG_TERM);
-        kvs->Update(move(key), move(options));
+        kvs->Update(key, move(options));
     } catch (OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()
@@ -93,7 +93,7 @@ void daqdb_async_offload(KVStoreBase *kvs, Key &key,
                          KVStoreBase::KVStoreBaseCallback cb) {
     try {
         UpdateOptions options(PrimaryKeyAttribute::LONG_TERM);
-        kvs->UpdateAsync(move(key), move(options), cb);
+        kvs->UpdateAsync(key, move(options), cb);
     } catch (OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()
@@ -130,7 +130,7 @@ void daqdb_async_get(KVStoreBase *kvs, const Key &key,
     }
 }
 
-void daqdb_async_put(KVStoreBase *kvs, Key &key, Value &val,
+void daqdb_async_put(KVStoreBase *kvs, Key &&key, Value &val,
                      KVStoreBase::KVStoreBaseCallback cb) {
     try {
         PutOptions options(PrimaryKeyAttribute::EMPTY);
@@ -144,7 +144,7 @@ void daqdb_async_put(KVStoreBase *kvs, Key &key, Value &val,
 void daqdb_async_update(KVStoreBase *kvs, Key &key, Value &val,
                         KVStoreBase::KVStoreBaseCallback cb) {
     try {
-        kvs->UpdateAsync(move(key), move(val), cb);
+        kvs->UpdateAsync(key, move(val), cb);
     } catch (OperationFailedException &e) {
         BOOST_LOG_SEV(lg::get(), bt::info)
             << "Error: cannot update element: " << e.status().to_string()
