@@ -41,7 +41,7 @@ enum class DhtClientState : std::uint8_t {
 };
 
 struct DhtReqCtx {
-    int rc;
+    StatusCode status;
     Value *value;
     bool ready = false;
 };
@@ -98,12 +98,8 @@ class DhtClient {
 
     bool ping(DhtNode &node);
 
-    inline void *getRpc() {
-        return _clientRpc;
-    };
-    inline DhtReqCtx *getReqCtx() {
-        return &_reqCtx;
-    };
+    inline void *getRpc() { return _clientRpc; };
+    inline DhtReqCtx *getReqCtx() { return &_reqCtx; };
 
     std::atomic<bool> keepRunning;
     std::atomic<DhtClientState> state;

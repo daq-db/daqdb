@@ -70,21 +70,24 @@ bool testPutGetSequence(KVStoreBase *kvs, DaqDB::Options *options) {
     const string expectedVal = "daqdb";
     const string expectedKey = "1000";
 
-    auto key = strToKey(kvs, expectedKey);
-    auto val = allocValue(kvs, key, expectedVal);
+    auto putKey = strToKey(kvs, expectedKey);
+    auto val = allocValue(kvs, putKey, expectedVal);
 
-    remote_put(kvs, key, val);
-    LOG_INFO << format("Remote Put: [%1%] = %2%") % key.data() % val.data();
+    LOG_INFO << format("Remote Put: [%1%] = %2%") % putKey.data() % val.data();
+    remote_put(kvs, move(putKey), val);
 
+    auto key = strToKey(kvs, expectedKey, KeyAttribute::NOT_BUFFERED);
     auto resultVal = remote_get(kvs, key);
     if (resultVal.data()) {
         LOG_INFO << format("Remote Get result: [%1%] = %2%") % key.data() %
                         resultVal.data();
-    }
-
-    if (!resultVal.data() || expectedVal.compare(resultVal.data()) != 0) {
+        if (expectedVal.compare(resultVal.data()) != 0) {
+            result = false;
+            LOG_INFO << "Error: wrong value returned";
+        }
+    } else {
         result = false;
-        LOG_INFO << "Error: wrong value returned";
+        LOG_INFO << "Error: no value returned";
     }
 
     auto removeResult = remote_remove(kvs, key);

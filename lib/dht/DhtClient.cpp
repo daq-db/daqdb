@@ -30,8 +30,8 @@ using boost::format;
 
 namespace DaqDB {
 
-#define ERPC_MAX_REQUEST_SIZE 16 * 1024
-#define ERPC_MAX_RESPONSE_SIZE 16 * 1024
+#define ERPC_MAX_REQUEST_SIZE 32 * 1024
+#define ERPC_MAX_RESPONSE_SIZE 32 * 1024
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
@@ -47,8 +47,8 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
 
-    reqCtx->rc = resultMsg->rc;
-    if (resultMsg->rc == 0) {
+    reqCtx->status = resultMsg->status;
+    if (resultMsg->status == StatusCode::OK) {
         auto responseSize = resultMsg->msgSize;
         reqCtx->value = new Value(new char[responseSize], responseSize);
         memcpy(reqCtx->value->data(), resultMsg->msg, responseSize);
@@ -68,7 +68,7 @@ static void clbPut(erpc::RespHandle *respHandle, void *ctxClient, size_t tag) {
     // todo check if successful and throw otherwise
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
-    reqCtx->rc = resultMsg->rc;
+    reqCtx->status = resultMsg->status;
 
     reqCtx->ready = true;
     rpc->release_response(respHandle);
@@ -85,7 +85,7 @@ static void clbRemove(erpc::RespHandle *respHandle, void *ctxClient,
     // todo check if successful and throw otherwise
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
-    reqCtx->rc = resultMsg->rc;
+    reqCtx->status = resultMsg->status;
 
     reqCtx->ready = true;
     rpc->release_response(respHandle);
@@ -140,13 +140,11 @@ void DhtClient::initialize() {
         _respMsgBuf = std::make_unique<erpc::MsgBuffer>(
             rpc->alloc_msg_buffer_or_die(ERPC_MAX_RESPONSE_SIZE));
         state = DhtClientState::DHT_CLIENT_READY;
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
         DAQ_DEBUG("DHT client exception: " + std::string(e.what()));
         state = DhtClientState::DHT_CLIENT_ERROR;
         throw;
-    }
-    catch (...) {
+    } catch (...) {
         DAQ_DEBUG("DHT client exception: unknown");
         state = DhtClientState::DHT_CLIENT_ERROR;
         throw;
@@ -154,7 +152,7 @@ void DhtClient::initialize() {
 }
 
 void DhtClient::_initReqCtx() {
-    _reqCtx.rc = -1;
+    _reqCtx.status = StatusCode::_MAX_ERRNO;
     _reqCtx.ready = false;
     _reqCtx.value = nullptr;
 }
@@ -164,9 +162,8 @@ void DhtClient::_runToResponse() {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     while (!_reqCtx.ready)
         rpc->run_event_loop_once();
-    if (_reqCtx.rc != 0) {
-        DAQ_DEBUG("Unknown error occurred");
-        throw OperationFailedException(Status(UNKNOWN_ERROR));
+    if (_reqCtx.status != 0) {
+        throw OperationFailedException(Status(_reqCtx.status));
     }
 }
 
@@ -176,7 +173,9 @@ Value DhtClient::get(const Key &key) {
     if (state != DhtClientState::DHT_CLIENT_READY)
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
-    rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size());
+    // @TODO jradtke verify why communication is broken when _reqMsgBuf is
+    // smaller than response size
+    rpc->resize_msg_buffer(_reqMsgBuf.get(), ERPC_MAX_REQUEST_SIZE);
     rpc->resize_msg_buffer(_respMsgBuf.get(), ERPC_MAX_RESPONSE_SIZE);
 
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
@@ -191,10 +190,6 @@ Value DhtClient::get(const Key &key) {
         static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_GET),
         _reqMsgBuf.get(), _respMsgBuf.get(), clbGet, 0);
     _runToResponse();
-    if (_reqCtx.value == nullptr) {
-        DAQ_DEBUG("Key was not found");
-        throw OperationFailedException(Status(KEY_NOT_FOUND));
-    }
 
     return *_reqCtx.value;
 }
@@ -270,7 +265,7 @@ Key DhtClient::allocKey(size_t keySize) {
     // todo add size asserts
     // todo add pool
     msg->keySize = keySize;
-    return Key(msg->msg, keySize);
+    return Key(msg->msg, keySize, KeyAttribute::DHT_BUFFERED);
 }
 
 void DhtClient::free(Key &&key) { _reqMsgBufInUse = false; }

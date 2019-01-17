@@ -22,6 +22,11 @@
 
 namespace DaqDB {
 
+enum KeyAttribute : std::int8_t {
+    NOT_BUFFERED = 0,
+    DHT_BUFFERED = (1 << 0),
+};
+
 enum PrimaryKeyAttribute : std::int8_t {
     EMPTY = 0,
     LOCKED = (1 << 0),
@@ -31,16 +36,25 @@ enum PrimaryKeyAttribute : std::int8_t {
 
 enum OperationalMode : std::int8_t { STORAGE = 0, SATELLITE };
 
+inline KeyAttribute operator|(KeyAttribute a, KeyAttribute b) {
+    return static_cast<KeyAttribute>(static_cast<int>(a) | static_cast<int>(b));
+}
+
 inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
                                      PrimaryKeyAttribute b) {
     return static_cast<PrimaryKeyAttribute>(static_cast<int>(a) |
                                             static_cast<int>(b));
 }
 
-struct AllocOptions {};
+struct AllocOptions {
+    AllocOptions() : attr(KeyAttribute::DHT_BUFFERED) {}
+    AllocOptions(KeyAttribute attr) : attr(attr) {}
+
+    KeyAttribute attr;
+};
 
 struct UpdateOptions {
-    UpdateOptions() {}
+    UpdateOptions() : attr(PrimaryKeyAttribute::EMPTY) {}
     UpdateOptions(PrimaryKeyAttribute attr) : attr(attr) {}
 
     PrimaryKeyAttribute attr;

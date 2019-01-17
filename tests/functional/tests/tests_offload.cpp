@@ -32,8 +32,10 @@ bool testSyncOffloadOperations(KVStoreBase *kvs) {
     auto key = strToKey(kvs, expectedKey);
     auto val = allocValue(kvs, key, expectedVal);
 
-    daqdb_put(kvs, key, val);
     LOG_INFO << format("Put: [%1%] = %2%") % key.data() % val.data();
+    daqdb_put(kvs, move(key), val);
+
+    key = strToKey(kvs, expectedKey);
     auto currVal = daqdb_get(kvs, key);
     LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
 
@@ -47,8 +49,8 @@ bool testSyncOffloadOperations(KVStoreBase *kvs) {
         result = false;
     }
 
-    daqdb_offload(kvs, key);
     LOG_INFO << format("Offload: [%1%]") % key.data();
+    daqdb_offload(kvs, key);
 
     if (!kvs->IsOffloaded(key)) {
         LOG_INFO << "Error: wrong value location";
@@ -87,7 +89,7 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
     bool ready = false;
 
     daqdb_async_put(
-        kvs, key, val,
+        kvs, move(key), val,
         [&](KVStoreBase *kvs, Status status, const char *key,
             const size_t keySize, const char *value, const size_t valueSize) {
             unique_lock<mutex> lck(mtx);
@@ -109,6 +111,7 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
         ready = false;
     }
 
+    key = strToKey(kvs, expectedKey);
     if (kvs->IsOffloaded(key)) {
         LOG_INFO << "Error: wrong value location";
         result = false;

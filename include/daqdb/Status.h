@@ -36,8 +36,8 @@ enum StatusCode : long {
     UNKNOWN_ERROR,
 };
 
-struct Status {
-
+class Status {
+  public:
     Status() : _code(OK) {}
 
     Status(long errnum) : _code(static_cast<StatusCode>(errnum)) {}
@@ -46,6 +46,8 @@ struct Status {
     bool ok() const { return _code == OK; }
 
     StatusCode operator()() { return _code; }
+
+    StatusCode getStatusCode() { return _code; }
 
     std::string to_string() {
         if (_code < _MAX_ERRNO)
@@ -59,6 +61,7 @@ struct Status {
         }
     }
 
+  private:
     StatusCode _code;
 };
 

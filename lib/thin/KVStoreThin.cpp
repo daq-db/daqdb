@@ -68,8 +68,7 @@ Value KVStoreThin::Get(const Key &key, const GetOptions &options) {
 void KVStoreThin::Put(Key &&key, Value &&val, const PutOptions &options) {
     try {
         dhtClient()->put(key, val);
-    }
-    catch (...) {
+    } catch (...) {
         dhtClient()->free(std::move(key));
         throw;
     }
@@ -143,7 +142,11 @@ Value KVStoreThin::Alloc(const Key &key, size_t size,
 void KVStoreThin::Free(Value &&value) { delete[] value.data(); }
 
 Key KVStoreThin::AllocKey(const AllocOptions &options) {
-    return dhtClient()->allocKey(KeySize());
+    if (options.attr & KeyAttribute::DHT_BUFFERED) {
+        return dhtClient()->allocKey(KeySize());
+    } else {
+        return Key(new char[KeySize()], KeySize());
+    }
 }
 
 void KVStoreThin::Realloc(Value &value, size_t size,
@@ -155,7 +158,13 @@ void KVStoreThin::ChangeOptions(Value &value, const AllocOptions &options) {
     throw FUNC_NOT_SUPPORTED;
 }
 
-void KVStoreThin::Free(Key &&key) { dhtClient()->free(std::move(key)); }
+void KVStoreThin::Free(Key &&key) {
+    if (key.isDhtBuffered()) {
+        dhtClient()->free(std::move(key));
+    } else {
+        delete[] key.data();
+    }
+}
 
 void KVStoreThin::ChangeOptions(Key &key, const AllocOptions &options) {
     throw FUNC_NOT_SUPPORTED;

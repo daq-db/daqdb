@@ -31,7 +31,7 @@ DaqDB::Value allocAndFillValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
 DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key);
 
 DaqDB::Value daqdb_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key);
-void daqdb_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val);
+void daqdb_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &&key, DaqDB::Value &val);
 
 void daqdb_update(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val,
                   const DaqDB::UpdateOptions &options);
@@ -46,7 +46,7 @@ bool daqdb_remove(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);
 void daqdb_async_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
-void daqdb_async_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+void daqdb_async_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &&key,
                      DaqDB::Value &val,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
