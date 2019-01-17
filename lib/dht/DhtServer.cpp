@@ -29,8 +29,6 @@ namespace DaqDB {
 using namespace std;
 using boost::format;
 
-const size_t DEFAULT_ERPC_RESPONSE_GET_SIZE = 16 * 1024;
-
 map<DhtNodeState, string> NodeStateStr =
     boost::assign::map_list_of(DhtNodeState::NODE_READY, "Ready")(
         DhtNodeState::NODE_NOT_RESPONDING,
@@ -47,7 +45,9 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
      * Allocation from DHT buffer not needed for local request, for
      * remote one DHT client method will handle buffering.
      */
-    Key key = serverCtx->kvs->AllocKey(PrimaryKeyAttribute::EMPTY);
+    // @TODO jradtke AllocKey need changes to avoid extra memory copying in
+    // kvs->Get
+    Key key = serverCtx->kvs->AllocKey(KeyAttribute::NOT_BUFFERED);
     memcpy(key.data(), msg->msg, msg->keySize);
 
     try {
@@ -88,10 +88,6 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    /*
-     * Allocation from DHT buffer not needed for local request, for
-     * remote one DHT client method will handle buffering.
-     */
     Key key = serverCtx->kvs->AllocKey();
     std::memcpy(key.data(), msg->msg, msg->keySize);
     Value value = serverCtx->kvs->Alloc(key, msg->valSize);
@@ -100,7 +96,6 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto &resp = req_handle->pre_resp_msgbuf;
     req_handle->prealloc_used = true;
     try {
-
         serverCtx->kvs->Put(move(key), move(value));
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
@@ -123,7 +118,13 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    Key key = serverCtx->kvs->AllocKey(PrimaryKeyAttribute::EMPTY);
+    /*
+     * Allocation from DHT buffer not needed for local request, for
+     * remote one DHT client method will handle buffering.
+     */
+    // @TODO jradtke AllocKey need changes to avoid extra memory copying in
+    // kvs->Remove
+    Key key = serverCtx->kvs->AllocKey(KeyAttribute::NOT_BUFFERED);
     std::memcpy(key.data(), msg->msg, msg->keySize);
 
     auto &resp = req_handle->pre_resp_msgbuf;

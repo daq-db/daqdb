@@ -36,7 +36,7 @@ Value allocAndFillValue(KVStoreBase *kvs, const Key &key,
 }
 
 Key strToKey(KVStoreBase *kvs, const string &key) {
-    Key keyBuff = kvs->AllocKey(PrimaryKeyAttribute::EMPTY);
+    Key keyBuff = kvs->AllocKey(KeyAttribute::NOT_BUFFERED);
     memset(keyBuff.data(), 0, keyBuff.size());
     memcpy(keyBuff.data(), key.c_str(), key.size());
     return keyBuff;

@@ -142,7 +142,7 @@ Value KVStoreThin::Alloc(const Key &key, size_t size,
 void KVStoreThin::Free(Value &&value) { delete[] value.data(); }
 
 Key KVStoreThin::AllocKey(const AllocOptions &options) {
-    if (options.attr & PrimaryKeyAttribute::DHT_BUFFERED) {
+    if (options.attr & KeyAttribute::DHT_BUFFERED) {
         return dhtClient()->allocKey(KeySize());
     } else {
         return Key(new char[KeySize()], KeySize());

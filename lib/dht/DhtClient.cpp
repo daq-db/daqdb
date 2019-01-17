@@ -30,12 +30,6 @@ using boost::format;
 
 namespace DaqDB {
 
-/*
- * Must take into account both value and request/response metadata size
- * e.g. to support 16kB values, ERPC_MAX_* must be extended by DaqdbDhtMsg and
- * DaqdbDhtResult sizes.
- */
-// @TODO @jradtke Verify if aligned to 32kB is not too expensive
 #define ERPC_MAX_REQUEST_SIZE 32 * 1024
 #define ERPC_MAX_RESPONSE_SIZE 32 * 1024
 
@@ -179,7 +173,9 @@ Value DhtClient::get(const Key &key) {
     if (state != DhtClientState::DHT_CLIENT_READY)
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
-    rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size());
+    // @TODO jradtke verify why communication is broken when _reqMsgBuf is
+    // smaller than response size
+    rpc->resize_msg_buffer(_reqMsgBuf.get(), ERPC_MAX_REQUEST_SIZE);
     rpc->resize_msg_buffer(_respMsgBuf.get(), ERPC_MAX_RESPONSE_SIZE);
 
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
@@ -269,7 +265,7 @@ Key DhtClient::allocKey(size_t keySize) {
     // todo add size asserts
     // todo add pool
     msg->keySize = keySize;
-    return Key(msg->msg, keySize, PrimaryKeyAttribute::DHT_BUFFERED);
+    return Key(msg->msg, keySize, KeyAttribute::DHT_BUFFERED);
 }
 
 void DhtClient::free(Key &&key) { _reqMsgBufInUse = false; }

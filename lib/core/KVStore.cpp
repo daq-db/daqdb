@@ -456,7 +456,7 @@ void KVStore::ChangeOptions(Value &value, const AllocOptions &options) {
 }
 
 Key KVStore::AllocKey(const AllocOptions &options) {
-    if (options.attr & PrimaryKeyAttribute::DHT_BUFFERED) {
+    if (options.attr & KeyAttribute::DHT_BUFFERED) {
         return dhtClient()->allocKey(KeySize());
     } else {
         return Key(new char[KeySize()], KeySize());

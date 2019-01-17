@@ -42,7 +42,7 @@ Key strToKey(KVStoreBase *kvs, const string &key) {
     return keyBuff;
 }
 
-Key strToKey(KVStoreBase *kvs, const string &key, PrimaryKeyAttribute attr) {
+Key strToKey(KVStoreBase *kvs, const string &key, KeyAttribute attr) {
     Key keyBuff = kvs->AllocKey(attr);
     memset(keyBuff.data(), 0, keyBuff.size());
     memcpy(keyBuff.data(), key.c_str(), key.size());
@@ -77,6 +77,7 @@ bool remote_remove(KVStoreBase *kvs, Key &key) {
     try {
         kvs->Remove(key);
     } catch (OperationFailedException &e) {
+        LOG_INFO << "Error: cannot remove element" << flush;
         return false;
     }
     try {

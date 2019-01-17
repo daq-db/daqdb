@@ -23,20 +23,18 @@ namespace DaqDB {
 
 class Key {
   public:
-    Key() : attr(PrimaryKeyAttribute::EMPTY), _data(nullptr), _size(0) {}
+    Key() : attr(KeyAttribute::NOT_BUFFERED), _data(nullptr), _size(0) {}
     Key(char *data, size_t size)
-        : _data(data), _size(size), attr(PrimaryKeyAttribute::EMPTY) {}
-    Key(char *data, size_t size, PrimaryKeyAttribute attr)
+        : _data(data), _size(size), attr(KeyAttribute::NOT_BUFFERED) {}
+    Key(char *data, size_t size, KeyAttribute attr)
         : _data(data), _size(size), attr(attr) {}
     char *data() { return _data; }
     inline const char *data() const { return _data; }
     inline size_t size() const { return _size; }
-    inline bool isDhtBuffered() {
-        return (attr & PrimaryKeyAttribute::DHT_BUFFERED);
-    };
+    inline bool isDhtBuffered() { return (attr & KeyAttribute::DHT_BUFFERED); };
 
   protected:
-    PrimaryKeyAttribute attr;
+    KeyAttribute attr;
     char *_data;
     size_t _size;
 };
