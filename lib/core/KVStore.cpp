@@ -150,8 +150,10 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     }
 
     try {
-        if (!getDhtCore()->isLocalKey(key))
-            return dhtClient()->put(key, val);
+        if (!getDhtCore()->isLocalKey(key)) {
+            dhtClient()->put(key, val);
+            return;
+        }
 
         /** @todo what if more values inserted for the same primary key? */
         char *keyBuff = key.data();
@@ -331,7 +333,7 @@ void KVStore::Update(const Key &key, Value &&val,
         // wait for completion
         {
             std::unique_lock<std::mutex> lk(mtx);
-            cv.wait_for(lk, 100s, [&ready] { return ready; });
+            cv.wait_for(lk, 1s, [&ready] { return ready; });
             if (!ready)
                 throw OperationFailedException(Status(TIME_OUT));
         }

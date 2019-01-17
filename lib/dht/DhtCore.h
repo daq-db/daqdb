@@ -49,7 +49,7 @@ struct DaqdbDhtMsg {
 };
 
 struct DaqdbDhtResult {
-    int rc;
+    StatusCode status;
     size_t msgSize;
     // Contains value for get requests
     char msg[];

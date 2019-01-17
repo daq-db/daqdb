@@ -42,6 +42,13 @@ Key strToKey(KVStoreBase *kvs, const string &key) {
     return keyBuff;
 }
 
+Key strToKey(KVStoreBase *kvs, const string &key, PrimaryKeyAttribute attr) {
+    Key keyBuff = kvs->AllocKey(attr);
+    memset(keyBuff.data(), 0, keyBuff.size());
+    memcpy(keyBuff.data(), key.c_str(), key.size());
+    return keyBuff;
+}
+
 Value remote_get(KVStoreBase *kvs, const Key &key) {
     try {
         return kvs->Get(key);
@@ -56,7 +63,7 @@ Value remote_get(KVStoreBase *kvs, const Key &key) {
     return Value();
 }
 
-void remote_put(KVStoreBase *kvs, Key &key, Value &val) {
+void remote_put(KVStoreBase *kvs, Key &&key, Value &val) {
     try {
         kvs->Put(move(key), move(val));
     } catch (OperationFailedException &e) {
@@ -66,8 +73,9 @@ void remote_put(KVStoreBase *kvs, Key &key, Value &val) {
 }
 
 bool remote_remove(KVStoreBase *kvs, Key &key) {
+    bool result = false;
     try {
-        kvs->Remove(move(key));
+        kvs->Remove(key);
     } catch (OperationFailedException &e) {
         return false;
     }
@@ -75,7 +83,11 @@ bool remote_remove(KVStoreBase *kvs, Key &key) {
         kvs->Get(key);
     } catch (OperationFailedException &e) {
         // success scenario: exception should thrown due non-existent key.
-        return (e.status()() == KEY_NOT_FOUND);
+        result = (e.status().getStatusCode() == StatusCode::KEY_NOT_FOUND);
+        if (!result) {
+            LOG_INFO << "Error: cannot remove element: status code ["
+                     << e.status().getStatusCode() << "]" << flush;
+        }
     }
-    return false;
+    return result;
 }

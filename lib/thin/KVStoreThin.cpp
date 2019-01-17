@@ -142,8 +142,11 @@ Value KVStoreThin::Alloc(const Key &key, size_t size,
 void KVStoreThin::Free(Value &&value) { delete[] value.data(); }
 
 Key KVStoreThin::AllocKey(const AllocOptions &options) {
-    // In Satellite mode Key should be always buffered for DHT
-    return dhtClient()->allocKey(KeySize());
+    if (options.attr & PrimaryKeyAttribute::DHT_BUFFERED) {
+        return dhtClient()->allocKey(KeySize());
+    } else {
+        return Key(new char[KeySize()], KeySize());
+    }
 }
 
 void KVStoreThin::Realloc(Value &value, size_t size,

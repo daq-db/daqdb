@@ -30,8 +30,14 @@ using boost::format;
 
 namespace DaqDB {
 
-#define ERPC_MAX_REQUEST_SIZE 16 * 1024
-#define ERPC_MAX_RESPONSE_SIZE 16 * 1024
+/*
+ * Must take into account both value and request/response metadata size
+ * e.g. to support 16kB values, ERPC_MAX_* must be extended by DaqdbDhtMsg and
+ * DaqdbDhtResult sizes.
+ */
+// @TODO @jradtke Verify if aligned to 32kB is not too expensive
+#define ERPC_MAX_REQUEST_SIZE 32 * 1024
+#define ERPC_MAX_RESPONSE_SIZE 32 * 1024
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
@@ -47,8 +53,8 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
 
-    reqCtx->rc = resultMsg->rc;
-    if (resultMsg->rc == 0) {
+    reqCtx->status = resultMsg->status;
+    if (resultMsg->status == StatusCode::OK) {
         auto responseSize = resultMsg->msgSize;
         reqCtx->value = new Value(new char[responseSize], responseSize);
         memcpy(reqCtx->value->data(), resultMsg->msg, responseSize);
@@ -68,7 +74,7 @@ static void clbPut(erpc::RespHandle *respHandle, void *ctxClient, size_t tag) {
     // todo check if successful and throw otherwise
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
-    reqCtx->rc = resultMsg->rc;
+    reqCtx->status = resultMsg->status;
 
     reqCtx->ready = true;
     rpc->release_response(respHandle);
@@ -85,7 +91,7 @@ static void clbRemove(erpc::RespHandle *respHandle, void *ctxClient,
     // todo check if successful and throw otherwise
     auto *resp_msgbuf = respHandle->get_resp_msgbuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
-    reqCtx->rc = resultMsg->rc;
+    reqCtx->status = resultMsg->status;
 
     reqCtx->ready = true;
     rpc->release_response(respHandle);
@@ -152,7 +158,7 @@ void DhtClient::initialize() {
 }
 
 void DhtClient::_initReqCtx() {
-    _reqCtx.rc = -1;
+    _reqCtx.status = StatusCode::_MAX_ERRNO;
     _reqCtx.ready = false;
     _reqCtx.value = nullptr;
 }
@@ -162,9 +168,8 @@ void DhtClient::_runToResponse() {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     while (!_reqCtx.ready)
         rpc->run_event_loop_once();
-    if (_reqCtx.rc != 0) {
-        DAQ_DEBUG("Unknown error occurred");
-        throw OperationFailedException(Status(UNKNOWN_ERROR));
+    if (_reqCtx.status != 0) {
+        throw OperationFailedException(Status(_reqCtx.status));
     }
 }
 
@@ -189,10 +194,6 @@ Value DhtClient::get(const Key &key) {
         static_cast<unsigned char>(ErpRequestType::ERP_REQUEST_GET),
         _reqMsgBuf.get(), _respMsgBuf.get(), clbGet, 0);
     _runToResponse();
-    if (_reqCtx.value == nullptr) {
-        DAQ_DEBUG("Key was not found");
-        throw OperationFailedException(Status(KEY_NOT_FOUND));
-    }
 
     return *_reqCtx.value;
 }

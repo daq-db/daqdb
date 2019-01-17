@@ -43,7 +43,11 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    Key key = serverCtx->kvs->AllocKey();
+    /*
+     * Allocation from DHT buffer not needed for local request, for
+     * remote one DHT client method will handle buffering.
+     */
+    Key key = serverCtx->kvs->AllocKey(PrimaryKeyAttribute::EMPTY);
     memcpy(key.data(), msg->msg, msg->keySize);
 
     try {
@@ -59,19 +63,19 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
         DaqdbDhtResult *result =
             reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf.buf);
 
-        result->rc = 0;
         result->msgSize = val.size();
         if (result->msgSize > 0) {
             memcpy(result->msg, val.data(), result->msgSize);
         }
-    }
-    catch (DaqDB::OperationFailedException &e) {
+        result->status = StatusCode::OK;
+    } catch (DaqDB::OperationFailedException &e) {
         auto &resp = req_handle->pre_resp_msgbuf;
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
-        result->rc = 1;
         result->msgSize = 0;
         req_handle->prealloc_used = true;
+
+        result->status = e.status().getStatusCode();
     }
 
     rpc->enqueue_response(req_handle);
@@ -84,6 +88,10 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
+    /*
+     * Allocation from DHT buffer not needed for local request, for
+     * remote one DHT client method will handle buffering.
+     */
     Key key = serverCtx->kvs->AllocKey();
     std::memcpy(key.data(), msg->msg, msg->keySize);
     Value value = serverCtx->kvs->Alloc(key, msg->valSize);
@@ -96,14 +104,13 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
         serverCtx->kvs->Put(move(key), move(value));
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
-        result->rc = 0;
         result->msgSize = 0;
-    }
-    catch (DaqDB::OperationFailedException &e) {
+        result->status = StatusCode::OK;
+    } catch (DaqDB::OperationFailedException &e) {
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
-        result->rc = 1;
         result->msgSize = 0;
+        result->status = e.status().getStatusCode();
     }
 
     rpc->enqueue_response(req_handle);
@@ -116,7 +123,7 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    Key key = serverCtx->kvs->AllocKey();
+    Key key = serverCtx->kvs->AllocKey(PrimaryKeyAttribute::EMPTY);
     std::memcpy(key.data(), msg->msg, msg->keySize);
 
     auto &resp = req_handle->pre_resp_msgbuf;
@@ -125,14 +132,13 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
         serverCtx->kvs->Remove(key);
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
-        result->rc = 0;
         result->msgSize = 0;
-    }
-    catch (DaqDB::OperationFailedException &e) {
+        result->status = StatusCode::OK;
+    } catch (DaqDB::OperationFailedException &e) {
         rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
-        result->rc = 1;
         result->msgSize = 0;
+        result->status = e.status().getStatusCode();
     }
 
     rpc->enqueue_response(req_handle);
@@ -181,13 +187,11 @@ void DhtServer::_serve(void) {
         if (rpc) {
             delete rpc;
         }
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
         DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
         state = DhtServerState::DHT_SERVER_ERROR;
         throw;
-    }
-    catch (...) {
+    } catch (...) {
         DAQ_DEBUG("DHT server exception: unknown");
         state = DhtServerState::DHT_SERVER_ERROR;
         throw;
@@ -239,10 +243,9 @@ string DhtServer::printNeighbors() {
                 neighbor->state = DhtNodeState::NODE_NOT_RESPONDING;
             }
             result << boost::str(
-                          boost::format("[%1%:%2%] - SessionId(%3%) : %4%\n") %
-                          neighbor->getIp() % to_string(neighbor->getPort()) %
-                          neighbor->getSessionId() %
-                          NodeStateStr[neighbor->state]);
+                boost::format("[%1%:%2%] - SessionId(%3%) : %4%\n") %
+                neighbor->getIp() % to_string(neighbor->getPort()) %
+                neighbor->getSessionId() % NodeStateStr[neighbor->state]);
         }
     } else {
         result << "No neighbors";
