@@ -294,7 +294,11 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 // Temporarily disable the node
                 nodeLeafCompressed_new->key = -1;
                 pmemobj_flush(_pm_pool.get_handle(),
-                              &nodeLeafCompressed_new->depth, 2 * sizeof(int));
+                              &nodeLeafCompressed_new->depth, sizeof(int));
+                pmemobj_flush(_pm_pool.get_handle(),
+                              &nodeLeafCompressed_new->type, sizeof(int));
+                pmemobj_flush(_pm_pool.get_handle(),
+                              &nodeLeafCompressed_new->key, sizeof(uint32_t));
                 children[i] = nodeLeafCompressed_new;
             }
 
@@ -418,7 +422,8 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                     int actionsCounter = 0;
                     allocateFullLevels(node256, 1, actionsArray,
                                        actionsCounter);
-                    pmemobj_drain(_pm_pool.get_handle());
+                    // drain is not needed if we are publishing in the same
+                    // thread pmemobj_drain(_pm_pool.get_handle());
                     int status = pmemobj_publish(_pm_pool.get_handle(),
                                                  actionsArray, actionsCounter);
                     actionsCounter = 0;
