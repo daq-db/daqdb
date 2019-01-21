@@ -28,7 +28,7 @@ enum class DhtNodeState : std::uint8_t {
 };
 
 const int ERPC_SESSION_NOT_SET = -1;
-const unsigned int ERPC_CLIENT_PORT_ADDITION = 32;
+const unsigned int ERPC_CLIENT_PORT_ADDITION = 1;
 
 /*!
  * Class that defines interface for DHT
