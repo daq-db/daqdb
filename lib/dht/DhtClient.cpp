@@ -35,16 +35,13 @@ namespace DaqDB {
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
-static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
-                   size_t ioCtx) {
+static void clbGet(void *ctxClient, size_t ioCtx) {
     DAQ_DEBUG("Get response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
-    auto rpc =
-        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
     // todo check if successful and throw otherwise
-    auto *resp_msgbuf = respHandle->get_resp_msgbuf();
+    auto *resp_msgbuf = client->getRespMsgBuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
 
     reqCtx->status = resultMsg->status;
@@ -55,40 +52,32 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     }
 
     reqCtx->ready = true;
-    rpc->release_response(respHandle);
 }
 
-static void clbPut(erpc::RespHandle *respHandle, void *ctxClient, size_t tag) {
+static void clbPut(void *ctxClient, size_t tag) {
     DAQ_DEBUG("Put response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
-    auto rpc =
-        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
     // todo check if successful and throw otherwise
-    auto *resp_msgbuf = respHandle->get_resp_msgbuf();
+    auto *resp_msgbuf = client->getRespMsgBuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
     reqCtx->status = resultMsg->status;
 
     reqCtx->ready = true;
-    rpc->release_response(respHandle);
 }
 
-static void clbRemove(erpc::RespHandle *respHandle, void *ctxClient,
-                      size_t ioCtx) {
+static void clbRemove(void *ctxClient, size_t ioCtx) {
     DAQ_DEBUG("Remove response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
-    auto rpc =
-        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
     // todo check if successful and throw otherwise
-    auto *resp_msgbuf = respHandle->get_resp_msgbuf();
+    auto *resp_msgbuf = client->getRespMsgBuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
     reqCtx->status = resultMsg->status;
 
     reqCtx->ready = true;
-    rpc->release_response(respHandle);
 }
 
 DhtClient::DhtClient(DhtCore *dhtCore, unsigned short port)
@@ -267,6 +256,8 @@ Key DhtClient::allocKey(size_t keySize) {
     msg->keySize = keySize;
     return Key(msg->msg, keySize, KeyAttribute::DHT_BUFFERED);
 }
+
+erpc::MsgBuffer *DhtClient::getRespMsgBuf() { return _respMsgBuf.get(); }
 
 void DhtClient::free(Key &&key) { _reqMsgBufInUse = false; }
 
