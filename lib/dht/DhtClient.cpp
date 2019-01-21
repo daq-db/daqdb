@@ -159,9 +159,6 @@ void DhtClient::_runToResponse() {
 Value DhtClient::get(const Key &key) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
-    if (state != DhtClientState::DHT_CLIENT_READY)
-        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
-
     // @TODO jradtke verify why communication is broken when _reqMsgBuf is
     // smaller than response size
     rpc->resize_msg_buffer(_reqMsgBuf.get(), ERPC_MAX_REQUEST_SIZE);
@@ -186,9 +183,6 @@ Value DhtClient::get(const Key &key) {
 void DhtClient::put(const Key &key, const Value &val) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
-    if (state != DhtClientState::DHT_CLIENT_READY)
-        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
-
     // todo add size checks
     // todo add a check that that the correct reqMsgBuf is used for this key
     rpc->resize_msg_buffer(_reqMsgBuf.get(),
@@ -212,9 +206,6 @@ void DhtClient::put(const Key &key, const Value &val) {
 void DhtClient::remove(const Key &key) {
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
-    if (state != DhtClientState::DHT_CLIENT_READY)
-        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
-
     rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size());
     rpc->resize_msg_buffer(_respMsgBuf.get(), sizeof(DaqdbDhtResult));
 
@@ -233,11 +224,10 @@ void DhtClient::remove(const Key &key) {
 }
 
 bool DhtClient::ping(DhtNode &node) {
-    auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-
     if (state != DhtClientState::DHT_CLIENT_READY)
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
+    auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     if (node.getSessionId() != ERPC_SESSION_NOT_SET) {
         return rpc->is_connected(node.getSessionId());
     } else {
