@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -21,7 +21,7 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#include <DhtServer.h>
+#include <DhtCore.h>
 #include <OffloadPoller.h>
 #include <PmemPoller.h>
 #include <PrimaryKeyEngine.h>
@@ -29,6 +29,8 @@
 #include <SpdkCore.h>
 
 namespace DaqDB {
+
+class DhtServer;
 
 class KVStore : public KVStoreBase {
   public:
@@ -75,6 +77,17 @@ class KVStore : public KVStoreBase {
     virtual void Free(Key &&key);
     virtual void ChangeOptions(Key &key, const AllocOptions &options);
 
+    void Put(const char *key, size_t keySize, char *value, size_t valueSize,
+             const PutOptions &options = PutOptions());
+    void Get(const char *key, size_t keySize, char *value, size_t *valueSize,
+             const GetOptions &options = GetOptions());
+    void Get(const char *key, size_t keySize, char **value, size_t *valueSize,
+             const GetOptions &options = GetOptions());
+    void Update(const char *key, size_t keySize, char *value, size_t valueSize,
+                const UpdateOptions &options = UpdateOptions());
+    void Update(const char *key, size_t keySize, const UpdateOptions &options);
+    void Remove(const char *key, size_t keySize);
+
     virtual bool IsOffloaded(Key &key);
 
     void LogMsg(std::string msg);
@@ -93,22 +106,12 @@ class KVStore : public KVStoreBase {
 
   private:
     explicit KVStore(const DaqDB::Options &options);
+    inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
 
-    void _put(const char *key, size_t keySize, char *value, size_t valueSize,
-              const PutOptions &options = PutOptions());
-    void _get(const char *key, size_t keySize, char *value, size_t *valueSize,
-              const GetOptions &options = GetOptions());
-    void _get(const char *key, size_t keySize, char **value, size_t *valueSize,
-              const GetOptions &options = GetOptions());
     void _getOffloaded(const char *key, size_t keySize, char *value,
                        size_t *valueSize);
     void _getOffloaded(const char *key, size_t keySize, char **value,
                        size_t *valueSize);
-    void _update(const char *key, size_t keySize, char *value, size_t valueSize,
-                 const UpdateOptions &options = UpdateOptions());
-    void _update(const char *key, size_t keySize, const UpdateOptions &options);
-    void _remove(const char *key, size_t keySize);
-    inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
 
     asio::io_service _ioService;
     size_t _keySize;

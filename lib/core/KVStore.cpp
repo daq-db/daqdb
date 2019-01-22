@@ -20,6 +20,7 @@
 #include <condition_variable>
 #include <sstream>
 
+#include <DhtServer.h>
 #include <DhtUtils.h>
 #include <Logger.h>
 #include <daqdb/Types.h>
@@ -96,8 +97,7 @@ void KVStore::init() {
     }
 
     _spDht.reset(new DhtCore(getOptions().dht));
-    _spDhtServer.reset(new DhtServer(getDhtCore(),
-                                     static_cast<KVStoreBase *>(this),
+    _spDhtServer.reset(new DhtServer(getDhtCore(), this,
                                      getDhtCore()->getLocalNode()->getPort()));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
@@ -143,8 +143,8 @@ void KVStore::LogMsg(std::string msg) {
     }
 }
 
-void KVStore::_put(const char *key, size_t keySize, char *value,
-                   size_t valueSize, const PutOptions &options) {
+void KVStore::Put(const char *key, size_t keySize, char *value,
+                  size_t valueSize, const PutOptions &options) {
     if (options.attr & PrimaryKeyAttribute::LONG_TERM)
         throw FUNC_NOT_IMPLEMENTED;
 
@@ -218,8 +218,8 @@ void KVStore::_getOffloaded(const char *key, size_t keySize, char **value,
         throw OperationFailedException(Status(TIME_OUT));
 }
 
-void KVStore::_get(const char *key, size_t keySize, char *value,
-                   size_t *valueSize, const GetOptions &options) {
+void KVStore::Get(const char *key, size_t keySize, char *value,
+                  size_t *valueSize, const GetOptions &options) {
     size_t pValSize;
     char *pVal;
     uint8_t location;
@@ -239,8 +239,8 @@ void KVStore::_get(const char *key, size_t keySize, char *value,
     }
 }
 
-void KVStore::_get(const char *key, size_t keySize, char **value,
-                   size_t *valueSize, const GetOptions &options) {
+void KVStore::Get(const char *key, size_t keySize, char **value,
+                  size_t *valueSize, const GetOptions &options) {
     size_t pValSize;
     char *pVal;
     uint8_t location;
@@ -261,17 +261,17 @@ void KVStore::_get(const char *key, size_t keySize, char **value,
     }
 }
 
-void KVStore::_update(const char *key, size_t keySize, char *value,
-                      size_t valueSize, const UpdateOptions &options) {
+void KVStore::Update(const char *key, size_t keySize, char *value,
+                     size_t valueSize, const UpdateOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStore::_update(const char *key, size_t keySize,
-                      const UpdateOptions &options) {
+void KVStore::Update(const char *key, size_t keySize,
+                     const UpdateOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStore::_remove(const char *key, size_t keySize) {
+void KVStore::Remove(const char *key, size_t keySize) {
     size_t size;
     char *pVal;
     uint8_t location;
@@ -315,7 +315,7 @@ void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
         if (!getDhtCore()->isLocalKey(key)) {
             dhtClient()->put(key, val);
         } else {
-            _put(key.data(), key.size(), val.data(), val.size());
+            Put(key.data(), key.size(), val.data(), val.size());
         }
     } catch (...) {
         Free(key, std::move(val));
@@ -359,7 +359,7 @@ Value KVStore::Get(const Key &key, const GetOptions &options) {
         return dhtClient()->get(key);
     char *data;
     size_t size;
-    _get(key.data(), key.size(), &data, &size, options);
+    Get(key.data(), key.size(), &data, &size, options);
     return Value(data, size);
 }
 
@@ -505,7 +505,7 @@ void KVStore::GetRangeAsync(const Key &beg, const Key &end,
 void KVStore::Remove(const Key &key) {
     if (!getDhtCore()->isLocalKey(key))
         return dhtClient()->remove(key);
-    _remove(key.data(), key.size());
+    Remove(key.data(), key.size());
 }
 
 void KVStore::RemoveRange(const Key &beg, const Key &end) {

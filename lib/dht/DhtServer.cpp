@@ -145,7 +145,7 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     rpc->enqueue_response(req_handle);
 }
 
-DhtServer::DhtServer(DhtCore *dhtCore, KVStoreBase *kvs, unsigned short port)
+DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs, unsigned short port)
     : state(DhtServerState::DHT_SERVER_INIT), _dhtCore(dhtCore), _kvs(kvs),
       _thread(nullptr) {
     serve();
