@@ -220,7 +220,7 @@ void KVStore::Get(const char *key, size_t keySize, char *value,
     char *pVal;
     uint8_t location;
 
-    pmem()->Get(key, reinterpret_cast<void **>(pVal), &pValSize, &location);
+    pmem()->Get(key, reinterpret_cast<void **>(&pVal), &pValSize, &location);
     if (!value)
         throw OperationFailedException(ALLOCATION_ERROR);
     if (location == PMEM) {
@@ -241,14 +241,14 @@ void KVStore::Get(const char *key, size_t keySize, char **value,
     char *pVal;
     uint8_t location;
 
-    pmem()->Get(key, reinterpret_cast<void **>(pVal), &pValSize, &location);
+    pmem()->Get(key, reinterpret_cast<void **>(&pVal), &pValSize, &location);
     if (!value)
         throw OperationFailedException(ALLOCATION_ERROR);
     if (location == PMEM) {
         *value = new char[pValSize];
         if (!value)
             throw OperationFailedException(ALLOCATION_ERROR);
-        std::memcpy(value, pVal, pValSize);
+        std::memcpy(*value, pVal, pValSize);
         *valueSize = pValSize;
     } else if (location == DISK) {
         _getOffloaded(key, keySize, value, valueSize);
