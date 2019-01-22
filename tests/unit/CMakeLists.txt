@@ -17,6 +17,7 @@ find_package(Threads REQUIRED)
 include_directories(mock)
 
 add_boost_test(dht/DhtUtilsTest.cpp)
+add_boost_test(dht/DhtClientTest.cpp)
 add_boost_test(pmem/PmemPollerTest.cpp)
 add_boost_test(offload/OffloadPollerTest.cpp)
 add_boost_test(offload/OffloadFreeListTest.cpp)
