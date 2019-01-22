@@ -168,6 +168,7 @@ void DhtClient::_runToResponse() {
 }
 
 Value DhtClient::get(const Key &key) {
+    DAQ_DEBUG("Get requested from DhtClient");
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
     if (state != DhtClientState::DHT_CLIENT_READY)
@@ -195,6 +196,7 @@ Value DhtClient::get(const Key &key) {
 }
 
 void DhtClient::put(const Key &key, const Value &val) {
+    DAQ_DEBUG("Put requested from DhtClient");
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
     if (state != DhtClientState::DHT_CLIENT_READY)
@@ -221,6 +223,7 @@ void DhtClient::put(const Key &key, const Value &val) {
 }
 
 void DhtClient::remove(const Key &key) {
+    DAQ_DEBUG("Remove requested from DhtClient");
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
     if (state != DhtClientState::DHT_CLIENT_READY)
@@ -257,6 +260,7 @@ bool DhtClient::ping(DhtNode &node) {
 }
 
 Key DhtClient::allocKey(size_t keySize) {
+    DAQ_DEBUG("Key alloc requested from DhtClient");
     if (_reqMsgBufInUse)
         throw OperationFailedException(Status(ALLOCATION_ERROR));
     _reqMsgBufInUse = true;
@@ -265,13 +269,31 @@ Key DhtClient::allocKey(size_t keySize) {
     // todo add size asserts
     // todo add pool
     msg->keySize = keySize;
+    DAQ_DEBUG("Alloc ok");
     return Key(msg->msg, keySize, KeyValAttribute::KVS_BUFFERED);
 }
 
-void DhtClient::free(Key &&key) { _reqMsgBufInUse = false; }
+void DhtClient::free(Key &&key) {
+    DAQ_DEBUG("Key free requested from DhtClient");
+    _reqMsgBufInUse = false;
+}
 
-Value DhtClient::alloc(const Key &key, size_t size) {}
+Value DhtClient::alloc(const Key &key, size_t size) {
+    DAQ_DEBUG("Value alloc requested from DhtClient");
+    if (_reqMsgBufValInUse)
+        throw OperationFailedException(Status(ALLOCATION_ERROR));
+    _reqMsgBufValInUse = true;
+    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
+    // todo add size asserts
+    // todo add pool
+    msg->valSize = size;
+    DAQ_DEBUG("Alloc ok");
+    return Value(msg->msg + key.size(), size, KeyValAttribute::KVS_BUFFERED);
+}
 
-void DhtClient::free(const Key &key, Value &&value) {}
+void DhtClient::free(const Key &key, Value &&value) {
+    DAQ_DEBUG("Value free requested from DhtClient");
+     _reqMsgBufValInUse = false;
+}
 
 } // namespace DaqDB

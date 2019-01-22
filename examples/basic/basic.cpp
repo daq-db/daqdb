@@ -131,8 +131,8 @@ int KVStoreBaseExample() {
         }
 
         // success, process the data and free the buffers
-        kvs->Free(std::move(key));
         kvs->Free(key, std::move(value));
+        kvs->Free(std::move(key));
     } catch (...) {
         // error
     }

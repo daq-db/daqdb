@@ -69,9 +69,11 @@ void KVStoreThin::Put(Key &&key, Value &&val, const PutOptions &options) {
     try {
         dhtClient()->put(key, val);
     } catch (...) {
+        dhtClient()->free(key, std::move(val));
         dhtClient()->free(std::move(key));
         throw;
     }
+    dhtClient()->free(key, std::move(val));
     dhtClient()->free(std::move(key));
 }
 

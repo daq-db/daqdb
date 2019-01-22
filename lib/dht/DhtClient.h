@@ -119,5 +119,6 @@ class DhtClient {
     std::unique_ptr<erpc::MsgBuffer> _reqMsgBuf;
     std::unique_ptr<erpc::MsgBuffer> _respMsgBuf;
     bool _reqMsgBufInUse = false;
+    bool _reqMsgBufValInUse = false;
 };
 } // namespace DaqDB

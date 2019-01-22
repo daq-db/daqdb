@@ -312,20 +312,24 @@ void KVStore::_remove(const char *key, size_t keySize) {
 
 void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
     try {
-        if (!getDhtCore()->isLocalKey(key))
-            return dhtClient()->put(key, val);
-        _put(key.data(), key.size(), val.data(), val.size());
+        if (!getDhtCore()->isLocalKey(key)) {
+            dhtClient()->put(key, val);
+        } else {
+            _put(key.data(), key.size(), val.data(), val.size());
+        }
     } catch (...) {
+        Free(key, std::move(val));
         Free(std::move(key));
         throw;
     }
+    Free(key, std::move(val));
     Free(std::move(key));
-    // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
 }
 
 void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
                        const PutOptions &options) {
     if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
+        Free(key, std::move(value));
         Free(std::move(key));
         throw FUNC_NOT_IMPLEMENTED;
     }
@@ -334,12 +338,8 @@ void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
 
     pollerId = (options.roundRobin()) ? ((pollerId + 1) % _rqstPollers.size())
                                       : options.pollerId();
-
-    if (!key.data()) {
-        throw OperationFailedException(EINVAL);
-    }
     try {
-        // todo memleak - key is not freed
+        // todo memleak - key and value are not freed
         PmemRqst *msg = new PmemRqst(RqstOperation::PUT, key.data(), key.size(),
                                      value.data(), value.size(), cb);
         if (!_rqstPollers.at(pollerId)->enqueue(msg)) {
@@ -350,10 +350,8 @@ void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
         cb(this, e.status(), key.data(), key.size(), value.data(),
            value.size());
     } catch (...) {
-        Free(std::move(key));
         throw;
     }
-    Free(std::move(key));
 }
 
 Value KVStore::Get(const Key &key, const GetOptions &options) {
@@ -527,10 +525,11 @@ Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
 
 void KVStore::Free(const Key &key, Value &&value) {
     if (value.isKvsBuffered()) {
-        if (!getDhtCore()->isLocalKey(key)) {
+        if (!getDhtCore()->isLocalKey(key))
             return dhtClient()->free(key, std::move(value));
-        }
-        // todo add pmem free method
+        else
+            throw FUNC_NOT_IMPLEMENTED;
+        // todo add pmem free method (free only if not in use)
     } else {
         delete[] value.data();
     }
