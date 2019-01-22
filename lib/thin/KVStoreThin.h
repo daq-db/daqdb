@@ -16,7 +16,6 @@
 #pragma once
 
 #include <DhtServer.h>
-#include <asio/io_service.hpp>
 #include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
@@ -72,15 +71,12 @@ class KVStoreThin : public KVStoreBase {
 
     inline DhtClient *dhtClient() { return _spDht->getClient(); };
 
-    inline asio::io_service &getIoService() { return _ioService; };
-
   private:
     explicit KVStoreThin(const DaqDB::Options &options);
     virtual ~KVStoreThin();
 
     void init();
 
-    asio::io_service _ioService;
     size_t _keySize;
     Options _options;
 
