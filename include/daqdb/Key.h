@@ -29,9 +29,16 @@ class Key {
     Key(char *data, size_t size, KeyAttribute attr)
         : _data(data), _size(size), attr(attr) {}
     char *data() { return _data; }
+
+    /**
+     * @return true if allocated inside DHT buffer
+     */
+    inline bool isDhtBuffered() const {
+        return (attr & KeyAttribute::DHT_BUFFERED);
+    }
+
     inline const char *data() const { return _data; }
     inline size_t size() const { return _size; }
-    inline bool isDhtBuffered() { return (attr & KeyAttribute::DHT_BUFFERED); };
 
   protected:
     KeyAttribute attr;
