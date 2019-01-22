@@ -523,8 +523,6 @@ void KVStore::Free(const Key &key, Value &&value) {
     if (value.isKvsBuffered()) {
         if (!getDhtCore()->isLocalKey(key))
             return dhtClient()->free(key, std::move(value));
-        else
-            throw FUNC_NOT_IMPLEMENTED;
         // todo add pmem free method (free only if not in use)
     } else {
         delete[] value.data();
