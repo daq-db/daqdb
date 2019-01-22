@@ -157,7 +157,7 @@ Key KVStoreThin::AllocKey(const AllocOptions &options) {
     }
 }
 
-void KVStoreThin::Realloc(Value &value, size_t size,
+void KVStoreThin::Realloc(const Key &key, Value &value, size_t size,
                           const AllocOptions &options) {
     throw FUNC_NOT_SUPPORTED;
 }

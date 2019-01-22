@@ -536,7 +536,8 @@ void KVStore::Free(const Key &key, Value &&value) {
     }
 }
 
-void KVStore::Realloc(Value &value, size_t size, const AllocOptions &options) {
+void KVStore::Realloc(const Key &key, Value &value, size_t size,
+                      const AllocOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 

@@ -335,6 +335,8 @@ class KVStoreBase {
     /**
      * Reallocate a Value buffer.
      *
+     * @param[in] key Key buffer. If not allocated by current instance of
+     * KVStoreBase the behavior is undefined.
      * @param[in] value KV buffer to be reallocated. If buff is nullptr this
      * call is equivalent to Alloc.
      * @param[in] size New size of a Value buffer. If the size is 0 and buff is
@@ -347,7 +349,7 @@ class KVStoreBase {
      * changing a size, by passing the same size.
      *
      */
-    virtual void Realloc(Value &value, size_t size,
+    virtual void Realloc(const Key &key, Value &value, size_t size,
                          const AllocOptions &options = AllocOptions()) = 0;
 
     /**

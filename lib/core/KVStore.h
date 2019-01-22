@@ -68,7 +68,7 @@ class KVStore : public KVStoreBase {
     virtual Value Alloc(const Key &key, size_t size,
                         const AllocOptions &options = AllocOptions());
     virtual void Free(const Key &key, Value &&value);
-    virtual void Realloc(Value &value, size_t size,
+    virtual void Realloc(const Key &key, Value &value, size_t size,
                          const AllocOptions &options = AllocOptions());
     virtual void ChangeOptions(Value &value, const AllocOptions &options);
     virtual Key AllocKey(const AllocOptions &options = AllocOptions());
