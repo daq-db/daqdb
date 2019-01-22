@@ -293,7 +293,7 @@ Value DhtClient::alloc(const Key &key, size_t size) {
 
 void DhtClient::free(const Key &key, Value &&value) {
     DAQ_DEBUG("Value free requested from DhtClient");
-     _reqMsgBufValInUse = false;
+    _reqMsgBufValInUse = false;
 }
 
 } // namespace DaqDB
