@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -132,7 +132,7 @@ int KVStoreBaseExample() {
 
         // success, process the data and free the buffers
         kvs->Free(std::move(key));
-        kvs->Free(std::move(value));
+        kvs->Free(key, std::move(value));
     } catch (...) {
         // error
     }

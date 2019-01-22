@@ -265,13 +265,13 @@ Key DhtClient::allocKey(size_t keySize) {
     // todo add size asserts
     // todo add pool
     msg->keySize = keySize;
-    return Key(msg->msg, keySize, KeyAttribute::DHT_BUFFERED);
+    return Key(msg->msg, keySize, KeyValAttribute::KVS_BUFFERED);
 }
 
 void DhtClient::free(Key &&key) { _reqMsgBufInUse = false; }
 
 Value DhtClient::alloc(const Key &key, size_t size) {}
 
-void DhtClient::free(Value &&value) {}
+void DhtClient::free(const Key &key, Value &&value) {}
 
 } // namespace DaqDB

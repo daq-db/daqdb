@@ -67,7 +67,7 @@ class KVStore : public KVStoreBase {
     virtual void RemoveRange(const Key &beg, const Key &end);
     virtual Value Alloc(const Key &key, size_t size,
                         const AllocOptions &options = AllocOptions());
-    virtual void Free(Value &&value);
+    virtual void Free(const Key &key, Value &&value);
     virtual void Realloc(Value &value, size_t size,
                          const AllocOptions &options = AllocOptions());
     virtual void ChangeOptions(Value &value, const AllocOptions &options);
@@ -94,6 +94,20 @@ class KVStore : public KVStoreBase {
   private:
     explicit KVStore(const DaqDB::Options &options);
 
+    void _put(const char *key, size_t keySize, char *value, size_t valueSize,
+              const PutOptions &options = PutOptions());
+    void _get(const char *key, size_t keySize, char *value, size_t *valueSize,
+              const GetOptions &options = GetOptions());
+    void _get(const char *key, size_t keySize, char **value, size_t *valueSize,
+              const GetOptions &options = GetOptions());
+    void _getOffloaded(const char *key, size_t keySize, char *value,
+                       size_t *valueSize);
+    void _getOffloaded(const char *key, size_t keySize, char **value,
+                       size_t *valueSize);
+    void _update(const char *key, size_t keySize, char *value, size_t valueSize,
+                 const UpdateOptions &options = UpdateOptions());
+    void _update(const char *key, size_t keySize, const UpdateOptions &options);
+    void _remove(const char *key, size_t keySize);
     inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
 
     asio::io_service _ioService;

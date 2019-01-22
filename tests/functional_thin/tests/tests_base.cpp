@@ -76,7 +76,7 @@ bool testPutGetSequence(KVStoreBase *kvs, DaqDB::Options *options) {
     LOG_INFO << format("Remote Put: [%1%] = %2%") % putKey.data() % val.data();
     remote_put(kvs, move(putKey), val);
 
-    auto key = strToKey(kvs, expectedKey, KeyAttribute::NOT_BUFFERED);
+    auto key = strToKey(kvs, expectedKey, KeyValAttribute::NOT_BUFFERED);
     auto resultVal = remote_get(kvs, key);
     if (resultVal.data()) {
         LOG_INFO << format("Remote Get result: [%1%] = %2%") % key.data() %

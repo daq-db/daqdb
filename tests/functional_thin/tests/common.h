@@ -29,7 +29,7 @@ DaqDB::Value allocAndFillValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
 DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key);
 
 DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key,
-                    DaqDB::KeyAttribute attr);
+                    DaqDB::KeyValAttribute attr);
 
 DaqDB::Value remote_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key);
 

@@ -56,7 +56,7 @@ class KVStoreThin : public KVStoreBase {
     virtual void RemoveRange(const Key &beg, const Key &end);
     virtual Value Alloc(const Key &key, size_t size,
                         const AllocOptions &options = AllocOptions());
-    virtual void Free(Value &&value);
+    virtual void Free(const Key &key, Value &&value);
     virtual void Realloc(Value &value, size_t size,
                          const AllocOptions &options = AllocOptions());
     virtual void ChangeOptions(Value &value, const AllocOptions &options);

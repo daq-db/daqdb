@@ -94,7 +94,7 @@ class DhtClient {
     Key allocKey(size_t keySize);
     void free(Key &&key);
     Value alloc(const Key &key, size_t size);
-    void free(Value &&value);
+    void free(const Key &key, Value &&value);
 
     bool ping(DhtNode &node);
 
