@@ -57,8 +57,9 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
         auto responseSize = val.size() + sizeof(DaqdbDhtResult);
 
         req_handle->prealloc_used = false;
+        req_handle->dyn_resp_msgbuf =
+            rpc->alloc_msg_buffer_or_die(reqMsgbufSize);
         erpc::MsgBuffer &resp_msgbuf = req_handle->dyn_resp_msgbuf;
-        resp_msgbuf = rpc->alloc_msg_buffer_or_die(reqMsgbufSize);
 
         DaqdbDhtResult *result =
             reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf.buf);

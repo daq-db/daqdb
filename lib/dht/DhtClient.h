@@ -96,6 +96,8 @@ class DhtClient {
     Value alloc(const Key &key, size_t size);
     void free(const Key &key, Value &&value);
 
+    erpc::MsgBuffer *getRespMsgBuf();
+
     bool ping(DhtNode &node);
 
     inline void *getRpc() { return _clientRpc; };

@@ -35,16 +35,13 @@ namespace DaqDB {
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
-static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
-                   size_t ioCtx) {
+static void clbGet(void *ctxClient, size_t ioCtx) {
     DAQ_DEBUG("Get response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
-    auto rpc =
-        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
     // todo check if successful and throw otherwise
-    auto *resp_msgbuf = respHandle->get_resp_msgbuf();
+    auto *resp_msgbuf = client->getRespMsgBuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
 
     reqCtx->status = resultMsg->status;
@@ -55,40 +52,32 @@ static void clbGet(erpc::RespHandle *respHandle, void *ctxClient,
     }
 
     reqCtx->ready = true;
-    rpc->release_response(respHandle);
 }
 
-static void clbPut(erpc::RespHandle *respHandle, void *ctxClient, size_t tag) {
+static void clbPut(void *ctxClient, size_t tag) {
     DAQ_DEBUG("Put response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
-    auto rpc =
-        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
     // todo check if successful and throw otherwise
-    auto *resp_msgbuf = respHandle->get_resp_msgbuf();
+    auto *resp_msgbuf = client->getRespMsgBuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
     reqCtx->status = resultMsg->status;
 
     reqCtx->ready = true;
-    rpc->release_response(respHandle);
 }
 
-static void clbRemove(erpc::RespHandle *respHandle, void *ctxClient,
-                      size_t ioCtx) {
+static void clbRemove(void *ctxClient, size_t ioCtx) {
     DAQ_DEBUG("Remove response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
-    auto rpc =
-        reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(client->getRpc());
 
     // todo check if successful and throw otherwise
-    auto *resp_msgbuf = respHandle->get_resp_msgbuf();
+    auto *resp_msgbuf = client->getRespMsgBuf();
     auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
     reqCtx->status = resultMsg->status;
 
     reqCtx->ready = true;
-    rpc->release_response(respHandle);
 }
 
 DhtClient::DhtClient(DhtCore *dhtCore, unsigned short port)
@@ -171,9 +160,6 @@ Value DhtClient::get(const Key &key) {
     DAQ_DEBUG("Get requested from DhtClient");
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
-    if (state != DhtClientState::DHT_CLIENT_READY)
-        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
-
     // @TODO jradtke verify why communication is broken when _reqMsgBuf is
     // smaller than response size
     rpc->resize_msg_buffer(_reqMsgBuf.get(), ERPC_MAX_REQUEST_SIZE);
@@ -199,9 +185,6 @@ void DhtClient::put(const Key &key, const Value &val) {
     DAQ_DEBUG("Put requested from DhtClient");
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
-    if (state != DhtClientState::DHT_CLIENT_READY)
-        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
-
     // todo add size checks
     // todo add a check that that the correct reqMsgBuf is used for this key
     rpc->resize_msg_buffer(_reqMsgBuf.get(),
@@ -226,9 +209,6 @@ void DhtClient::remove(const Key &key) {
     DAQ_DEBUG("Remove requested from DhtClient");
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
-    if (state != DhtClientState::DHT_CLIENT_READY)
-        throw OperationFailedException(Status(DHT_DISABLED_ERROR));
-
     rpc->resize_msg_buffer(_reqMsgBuf.get(), sizeof(DaqdbDhtMsg) + key.size());
     rpc->resize_msg_buffer(_respMsgBuf.get(), sizeof(DaqdbDhtResult));
 
@@ -247,11 +227,10 @@ void DhtClient::remove(const Key &key) {
 }
 
 bool DhtClient::ping(DhtNode &node) {
-    auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-
     if (state != DhtClientState::DHT_CLIENT_READY)
         throw OperationFailedException(Status(DHT_DISABLED_ERROR));
 
+    auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     if (node.getSessionId() != ERPC_SESSION_NOT_SET) {
         return rpc->is_connected(node.getSessionId());
     } else {
@@ -277,6 +256,8 @@ void DhtClient::free(Key &&key) {
     DAQ_DEBUG("Key free requested from DhtClient");
     _reqMsgBufInUse = false;
 }
+
+erpc::MsgBuffer *DhtClient::getRespMsgBuf() { return _respMsgBuf.get(); }
 
 Value DhtClient::alloc(const Key &key, size_t size) {
     DAQ_DEBUG("Value alloc requested from DhtClient");

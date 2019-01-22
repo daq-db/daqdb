@@ -79,10 +79,6 @@ void KVStore::init() {
         _keySize = DEFAULT_KEY_SIZE;
     DAQ_INFO("  Total size: " + std::to_string(_keySize));
 
-    // @TODO jradtke Temporary workaround - ARTree rebuilding not implemented
-    if (bf::exists(getOptions().pmem.poolPath)) {
-        bf::remove(getOptions().pmem.poolPath);
-    }
     _spRtree.reset(DaqDB::RTreeEngine::Open(getOptions().pmem.poolPath,
                                             getOptions().pmem.totalSize,
                                             getOptions().pmem.allocUnitSize));
