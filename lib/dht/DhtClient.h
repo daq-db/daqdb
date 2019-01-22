@@ -22,6 +22,7 @@
 #include <condition_variable>
 
 #include "DhtNode.h"
+#include "DhtTypes.h"
 #include <KVStoreBase.h>
 #include <Key.h>
 #include <Value.h>
@@ -50,7 +51,7 @@ class DhtCore;
 class DhtClient {
   public:
     DhtClient(DhtCore *dhtCore, unsigned short port);
-    ~DhtClient();
+    virtual ~DhtClient();
 
     /**
      *
@@ -101,7 +102,58 @@ class DhtClient {
     bool ping(DhtNode &node);
 
     inline void *getRpc() { return _clientRpc; };
+
+    /**
+     * @param newRpc pointer to erpc::Rpc<erpc::CTransport> object
+     */
+    void setRpc(void *newRpc);
+
     inline DhtReqCtx *getReqCtx() { return &_reqCtx; };
+
+    void setReqCtx(DhtReqCtx &reqCtx);
+
+    /**
+     * Resize MsgBuffers to fit a request and response.
+     *
+     * @param new_request_size The new size in bytes of the _reqMsgBuf. This
+     * must be smaller than the size used to create the MsgBuffer in
+     * alloc_msg_buffer().
+     * @param new_response_size The new size in bytes of the _respMsgBuf. This
+     * must be smaller than the size used to create the MsgBuffer in
+     * alloc_msg_buffer().
+     * @note public and virtual to allow mocking in unit tests
+     */
+    virtual void resizeMsgBuffers(size_t new_request_size,
+                                  size_t new_response_size);
+
+    /**
+     * Enqueue request of given type to Rpc and waits for completion.
+     *
+     * @param target Host DHT node where request is send to
+     * @param type operation type
+     * @param contFunc callback function
+     * @note public and virtual to allow mocking in unit tests
+     */
+    virtual void enqueueAndWait(DhtNode *targetHost, ErpRequestType type,
+                                DhtContFunc contFunc);
+
+    /**
+     * Fills request buffer.
+     *
+     * @param key Pointer to a key structure, optional
+     * @param val Pointer to a value structure, optional
+     * @note public and virtual to allow mocking in unit tests
+     */
+    virtual void fillReqMsg(const Key *key, const Value *val);
+
+    /**
+     * Finds DHT node that stores given key.
+     *
+     * @param key Reference to a key structure
+     * @return DHT node that stores the key
+     * @note public and virtual to allow mocking in unit tests
+     */
+    virtual DhtNode *getTargetHost(const Key &key);
 
     std::atomic<bool> keepRunning;
     std::atomic<DhtClientState> state;
@@ -111,7 +163,6 @@ class DhtClient {
     void _runToResponse();
     void _initReqCtx();
 
-    // needed for class destructor only
     void *_clientRpc;
     void *_nexus;
 

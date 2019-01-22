@@ -23,38 +23,11 @@
 #include <DhtClient.h>
 #include <DhtNode.h>
 
+#include "DhtTypes.h"
 #include <daqdb/Key.h>
 #include <daqdb/Options.h>
 
-// @TODO : jradtke Cannot include rpc.h, net / if.h conflict
-namespace erpc {
-class Nexus;
-}
-
 namespace DaqDB {
-
-typedef std::map<std::pair<int, int>, DhtNode *> RangeToHost;
-
-enum class ErpRequestType : std::uint8_t {
-    ERP_REQUEST_GET = 2,
-    ERP_REQUEST_PUT,
-    ERP_REQUEST_REMOVE
-};
-
-struct DaqdbDhtMsg {
-    size_t keySize;
-    size_t valSize;
-    // Contains both key and value
-    char msg[];
-};
-
-struct DaqdbDhtResult {
-    StatusCode status;
-    size_t msgSize;
-    // Contains value for get requests
-    char msg[];
-};
-
 class DhtCore {
   public:
     DhtCore(DhtOptions dhtOptions);
