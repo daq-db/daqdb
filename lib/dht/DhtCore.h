@@ -31,6 +31,10 @@
 namespace DaqDB {
 class DhtCore {
   public:
+    /**
+     * @param dhtOptions dht options
+     * @param doInitNexus indicates if eRpc nexus should be initialized
+     */
     DhtCore(DhtOptions dhtOptions, bool doInitNexus = true);
     ~DhtCore();
 
@@ -50,6 +54,12 @@ class DhtCore {
 
     void initNexus(unsigned int portOffset = 0);
 
+    /**
+     * Gets DhtClient for caller thread.
+     * Create new one if not initialized for the thread.
+     *
+     * @return DhtClient object
+     */
     inline DhtClient *getClient() {
         if (!_threadDhtClient) {
             /*
@@ -63,6 +73,12 @@ class DhtCore {
         return _threadDhtClient;
     };
 
+    /**
+     * Storing each DhtClient is required to close Nexus gracefully (all
+     * connected clients must be closed before that).
+     *
+     * @param dhtClient the dht client
+     */
     void registerClient(DhtClient *dhtClient);
 
     DhtOptions options;
@@ -75,8 +91,15 @@ class DhtCore {
     uint64_t _genHash(const char *key, uint64_t maskLength,
                       uint64_t maskOffset);
 
+    /**
+     * Separated DhtClient for each thread is required because of eRpc
+     * architecture. eRpc 'endpoints' are created per thread.
+     */
     static thread_local DhtClient *_threadDhtClient;
     std::vector<DhtClient *> _registeredDhtClients;
+    /**
+     * Needed to synchronize operations on _registeredDhtClients
+     */
     std::mutex _dhtClientsMutex;
 
     std::unique_ptr<erpc::Nexus> _spNexus;

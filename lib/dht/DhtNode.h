@@ -52,8 +52,8 @@ class DhtNode {
     inline unsigned short getPort() const { return _port; };
 
     /**
-     *
-     * @return
+     * @param portOffset offset that will be added to the node port
+     * @return URI with IP and port for this node
      */
     inline const std::string getUri(unsigned int portOffset = 0) const {
         return boost::str(boost::format("%1%:%2%") % getIp() %
@@ -61,8 +61,12 @@ class DhtNode {
     };
 
     void setIp(const std::string &ip) { _ip = ip; };
-    void setSessionId(int id) { _sessionId = id; };
     void setPort(unsigned short port) { _port = port; };
+
+    /**
+     * @param id eRPC session id
+     */
+    void setSessionId(int id) { _sessionId = id; };
 
     inline unsigned int getMaskLength() { return _maskLength; }
     inline unsigned int getMaskOffset() { return _maskOffset; }

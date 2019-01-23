@@ -85,12 +85,13 @@ int main(int argc, const char *argv[]) {
 
     DaqDB::Options options;
     initKvsOptions(options, configFile);
-    /*
-        if (!executeTest("testRemotePeerConnect", testRemotePeerConnect,
-       nullptr, &options)) { LOG_INFO << "Cannot connect to peer node" << endl;
-            return -1;
-        }
-        */
+
+    if (!executeTest("testRemotePeerConnect", testRemotePeerConnect, nullptr,
+                     &options)) {
+        LOG_INFO << "Cannot connect to peer node" << endl;
+        return -1;
+    }
+
     unique_ptr<DaqDB::KVStoreBase> spKVStore;
     try {
         spKVStore.reset(DaqDB::KVStoreBase::Open(options));
