@@ -187,6 +187,7 @@ void DhtClient::put(const Key &key, const Value &val) {
 
     // todo add size checks
     // todo add a check that that the correct reqMsgBuf is used for this key
+    // todo add memcpy if key is not buffered
     rpc->resize_msg_buffer(_reqMsgBuf.get(),
                            sizeof(DaqdbDhtMsg) + key.size() + val.size());
     rpc->resize_msg_buffer(_respMsgBuf.get(), sizeof(DaqdbDhtResult));
