@@ -28,7 +28,6 @@ enum class DhtNodeState : std::uint8_t {
 };
 
 const int ERPC_SESSION_NOT_SET = -1;
-const unsigned int ERPC_CLIENT_PORT_ADDITION = 1;
 
 /*!
  * Class that defines interface for DHT
@@ -56,18 +55,9 @@ class DhtNode {
      *
      * @return
      */
-    inline const std::string getClientUri() const {
-        return boost::str(
-            boost::format("%1%:%2%") % getIp() %
-            std::to_string(getPort() + ERPC_CLIENT_PORT_ADDITION));
-    };
-    /**
-     *
-     * @return
-     */
-    inline const std::string getUri() const {
+    inline const std::string getUri(unsigned int portOffset = 0) const {
         return boost::str(boost::format("%1%:%2%") % getIp() %
-                          std::to_string(getPort()));
+                          std::to_string(getPort() + portOffset));
     };
 
     void setIp(const std::string &ip) { _ip = ip; };

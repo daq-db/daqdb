@@ -91,22 +91,17 @@ void KVStore::init() {
         DAQ_DEBUG("SPDK offload functionality is disabled");
     }
 
-    _spDht.reset(new DhtCore(getOptions().dht));
-    _spDhtServer.reset(new DhtServer(getDhtCore(),
-                                     static_cast<KVStoreBase *>(this),
-                                     getDhtCore()->getLocalNode()->getPort()));
+    /**
+     * @TODO jradtke RPC client creation should be added (additional port
+     * configuration needed)
+     */
+    _spDht.reset(new DhtCore(getOptions().dht, false));
+    _spDhtServer.reset(
+        new DhtServer(getDhtCore(), static_cast<KVStoreBase *>(this)));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
-        _spDht->initClient();
-        if (_spDht->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
-            DAQ_DEBUG("DHT client started successfully");
-        } else {
-            DAQ_DEBUG("Can not start DHT client");
-        }
     } else {
         DAQ_DEBUG("Can not start DHT server");
-        DAQ_DEBUG("Can not start DHT client");
-        _spDht->getClient()->state = DhtClientState::DHT_CLIENT_ERROR;
     }
 
     if (isOffloadEnabled()) {

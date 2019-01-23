@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <DhtClient.h>
@@ -30,7 +31,7 @@
 namespace DaqDB {
 class DhtCore {
   public:
-    DhtCore(DhtOptions dhtOptions);
+    DhtCore(DhtOptions dhtOptions, bool doInitNexus = true);
     ~DhtCore();
 
     void initClient();
@@ -45,9 +46,27 @@ class DhtCore {
 
     inline std::vector<DhtNode *> *getNeighbors(void) { return &_neighbors; };
 
-    inline DhtClient *getClient() { return _spClient.get(); };
+    inline erpc::Nexus *getNexus() { return _spNexus.get(); }
+
+    void initNexus(unsigned int portOffset = 0);
+
+    inline DhtClient *getClient() {
+        if (!_threadDhtClient) {
+            /*
+             * Separate DHT client is needed per client thread.
+             * Ii is expected that on first use the client have to be created
+             * and initialized.
+             */
+            initClient();
+        }
+
+        return _threadDhtClient;
+    };
+
+    void registerClient(DhtClient *dhtClient);
 
     DhtOptions options;
+    std::atomic<int> numberOfClients;
 
   private:
     void _initNeighbors(void);
@@ -56,8 +75,11 @@ class DhtCore {
     uint64_t _genHash(const char *key, uint64_t maskLength,
                       uint64_t maskOffset);
 
-    std::unique_ptr<DhtClient> _spClient;
+    static thread_local DhtClient *_threadDhtClient;
+    std::vector<DhtClient *> _registeredDhtClients;
+    std::mutex _dhtClientsMutex;
 
+    std::unique_ptr<erpc::Nexus> _spNexus;
     std::unique_ptr<DhtNode> _spLocalNode;
     std::vector<DhtNode *> _neighbors;
     RangeToHost _rangeToHost;
