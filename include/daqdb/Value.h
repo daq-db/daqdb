@@ -29,7 +29,7 @@ class Value {
     char *data() { return _data; }
     inline const char *data() const { return _data; }
     inline size_t size() const { return _size; }
-    inline bool isKvsBuffered() {
+    inline bool isKvsBuffered() const {
         return (attr & KeyValAttribute::KVS_BUFFERED);
     };
 

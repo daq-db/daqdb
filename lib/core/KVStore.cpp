@@ -307,11 +307,11 @@ void KVStore::Remove(const char *key, size_t keySize) {
 }
 
 void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
-    // todo add alloc if key/value is not buffered?
     try {
         if (!getDhtCore()->isLocalKey(key)) {
             dhtClient()->put(key, val);
         } else {
+            // todo add alloc if value is not buffered
             Put(key.data(), key.size(), val.data(), val.size());
         }
     } catch (...) {
@@ -352,7 +352,6 @@ void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
 }
 
 Value KVStore::Get(const Key &key, const GetOptions &options) {
-    // todo add alloc if key is not buffered?
     if (!getDhtCore()->isLocalKey(key))
         return dhtClient()->get(key);
     char *data;

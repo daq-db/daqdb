@@ -29,11 +29,16 @@ class Key {
     Key(char *data, size_t size, KeyValAttribute attr)
         : _data(data), _size(size), attr(attr) {}
     char *data() { return _data; }
-    inline const char *data() const { return _data; }
-    inline size_t size() const { return _size; }
-    inline bool isKvsBuffered() {
+
+    /**
+     * @return true if allocated inside KVS
+     */
+    inline bool isKvsBuffered() const {
         return (attr & KeyValAttribute::KVS_BUFFERED);
     };
+
+    inline const char *data() const { return _data; }
+    inline size_t size() const { return _size; }
 
   protected:
     KeyValAttribute attr;
