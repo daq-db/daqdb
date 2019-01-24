@@ -20,6 +20,7 @@
 #include <condition_variable>
 #include <sstream>
 
+#include <DhtServer.h>
 #include <DhtUtils.h>
 #include <Logger.h>
 #include <daqdb/Types.h>
@@ -97,7 +98,7 @@ void KVStore::init() {
      */
     _spDht.reset(new DhtCore(getOptions().dht, false));
     _spDhtServer.reset(
-        new DhtServer(getDhtCore(), static_cast<KVStoreBase *>(this)));
+        new DhtServer(getDhtCore(), this));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
     } else {
@@ -134,117 +135,231 @@ void KVStore::LogMsg(std::string msg) {
     }
 }
 
-void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
-    if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
-        Free(std::move(key));
+void KVStore::Put(const char *key, size_t keySize, char *value,
+                  size_t valueSize, const PutOptions &options) {
+    if (options.attr & PrimaryKeyAttribute::LONG_TERM)
         throw FUNC_NOT_IMPLEMENTED;
-    }
 
+    /** @todo what if more values inserted for the same primary key? */
+    pmem()->Put(key, value);
     try {
-        if (!getDhtCore()->isLocalKey(key)) {
-            dhtClient()->put(key, val);
-            return;
-        }
-
-        /** @todo what if more values inserted for the same primary key? */
-        char *keyBuff = key.data();
-        pmem()->Put(keyBuff, val.data());
-        try {
-            pKey()->enqueueNext(key);
-        } catch (OperationFailedException &e) {
-            pmem()->Remove(keyBuff);
-            throw;
-        }
-    } catch (...) {
-        Free(std::move(key));
+        pKey()->enqueueNext(Key(const_cast<char *>(key), keySize));
+    } catch (OperationFailedException &e) {
+        pmem()->Remove(key);
         throw;
     }
-    Free(std::move(key));
-    // Free(std::move(val)); /** @TODO jschmieg: free value if needed */
 }
 
-void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
-                       const PutOptions &options) {
-    if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
-        Free(std::move(key));
-        throw FUNC_NOT_IMPLEMENTED;
+void KVStore::_getOffloaded(const char *key, size_t keySize, char *value,
+                            size_t *valueSize) {
+    if (!isOffloadEnabled())
+        throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool ready = false;
+    if (!_spOffloadPoller->enqueue(new OffloadRqst(
+            OffloadOperation::GET, key, keySize, nullptr, 0,
+            [&mtx, &cv, &ready, &value, &valueSize](
+                KVStoreBase *kvs, Status status, const char *key,
+                size_t keySize, const char *valueOff, size_t valueOffSize) {
+                // todo add size check
+                std::unique_lock<std::mutex> lck(mtx);
+                std::memcpy(value, valueOff, valueOffSize);
+                *valueSize = valueOffSize;
+                ready = true;
+                cv.notify_all();
+            }))) {
+        throw QueueFullException();
     }
-    thread_local int pollerId = 0;
-
-    pollerId = (options.roundRobin()) ? ((pollerId + 1) % _rqstPollers.size())
-                                      : options.pollerId();
-
-    if (!key.data()) {
-        throw OperationFailedException(EINVAL);
+    // wait for completion
+    {
+        std::unique_lock<std::mutex> lk(mtx);
+        cv.wait_for(lk, 1s, [&ready] { return ready; });
     }
-    try {
-        // todo memleak - key is not freed
-        PmemRqst *msg = new PmemRqst(RqstOperation::PUT, key.data(), key.size(),
-                                     value.data(), value.size(), cb);
-        if (!_rqstPollers.at(pollerId)->enqueue(msg)) {
-            throw QueueFullException();
-        }
-    } catch (OperationFailedException &e) {
-        cb(this, e.status(), key.data(), key.size(), value.data(),
-           value.size());
-        Free(std::move(key));
-    }
+    if (!ready)
+        throw OperationFailedException(Status(TIME_OUT));
 }
 
-Value KVStore::Get(const Key &key, const GetOptions &options) {
+void KVStore::_getOffloaded(const char *key, size_t keySize, char **value,
+                            size_t *valueSize) {
+    if (!isOffloadEnabled())
+        throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool ready = false;
+    if (!_spOffloadPoller->enqueue(new OffloadRqst(
+            OffloadOperation::GET, key, keySize, nullptr, 0,
+            [&mtx, &cv, &ready, &value, &valueSize](
+                KVStoreBase *kvs, Status status, const char *key,
+                size_t keySize, const char *valueOff, size_t valueOffSize) {
+                *value = new char[valueOffSize];
+                std::unique_lock<std::mutex> lck(mtx);
+                std::memcpy(value, valueOff, valueOffSize);
+                *valueSize = valueOffSize;
+                ready = true;
+                cv.notify_all();
+            }))) {
+        throw QueueFullException();
+    }
+    // wait for completion
+    {
+        std::unique_lock<std::mutex> lk(mtx);
+        cv.wait_for(lk, 1s, [&ready] { return ready; });
+    }
+    if (!ready)
+        throw OperationFailedException(Status(TIME_OUT));
+}
 
-    size_t size;
+void KVStore::Get(const char *key, size_t keySize, char *value,
+                  size_t *valueSize, const GetOptions &options) {
+    size_t pValSize;
     char *pVal;
     uint8_t location;
 
-    if (!getDhtCore()->isLocalKey(key)) {
-        return dhtClient()->get(key);
-    }
-
-    pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal), &size, &location);
+    pmem()->Get(key, reinterpret_cast<void **>(&pVal), &pValSize, &location);
+    if (!value)
+        throw OperationFailedException(ALLOCATION_ERROR);
     if (location == PMEM) {
-        Value value(new char[size], size);
-        std::memcpy(value.data(), pVal, size);
-        return value;
+        if (*valueSize < pValSize)
+            throw OperationFailedException(ALLOCATION_ERROR);
+        std::memcpy(value, pVal, pValSize);
+        *valueSize = pValSize;
     } else if (location == DISK) {
-        if (!isOffloadEnabled())
-            throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
-
-        Value *resultValue = nullptr;
-        std::mutex mtx;
-        std::condition_variable cv;
-        bool ready = false;
-        if (!_spOffloadPoller->enqueue(new OffloadRqst(
-                OffloadOperation::GET, key.data(), key.size(), nullptr, 0,
-                [&mtx, &cv, &ready, &resultValue](
-                    KVStoreBase *kvs, Status status, const char *key,
-                    size_t keySize, const char *value, size_t valueSize) {
-                    std::unique_lock<std::mutex> lck(mtx);
-
-                    resultValue = new Value(new char[valueSize], valueSize);
-                    std::memcpy(resultValue->data(), value, valueSize);
-                    ready = true;
-
-                    cv.notify_all();
-                }))) {
-            throw QueueFullException();
-        }
-        // wait for completion
-        {
-            std::unique_lock<std::mutex> lk(mtx);
-            cv.wait_for(lk, 1s, [&ready] { return ready; });
-        }
-        if (resultValue == nullptr)
-            throw OperationFailedException(Status(TIME_OUT));
-
-        return *resultValue;
+        _getOffloaded(key, keySize, value, valueSize);
     } else {
         throw OperationFailedException(EINVAL);
     }
 }
 
+void KVStore::Get(const char *key, size_t keySize, char **value,
+                  size_t *valueSize, const GetOptions &options) {
+    size_t pValSize;
+    char *pVal;
+    uint8_t location;
+
+    pmem()->Get(key, reinterpret_cast<void **>(&pVal), &pValSize, &location);
+    if (!value)
+        throw OperationFailedException(ALLOCATION_ERROR);
+    if (location == PMEM) {
+        *value = new char[pValSize];
+        if (!value)
+            throw OperationFailedException(ALLOCATION_ERROR);
+        std::memcpy(*value, pVal, pValSize);
+        *valueSize = pValSize;
+    } else if (location == DISK) {
+        _getOffloaded(key, keySize, value, valueSize);
+    } else {
+        throw OperationFailedException(EINVAL);
+    }
+}
+
+void KVStore::Update(const char *key, size_t keySize, char *value,
+                     size_t valueSize, const UpdateOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStore::Update(const char *key, size_t keySize,
+                     const UpdateOptions &options) {
+    throw FUNC_NOT_IMPLEMENTED;
+}
+
+void KVStore::Remove(const char *key, size_t keySize) {
+    size_t size;
+    char *pVal;
+    uint8_t location;
+
+    pmem()->Get(key, reinterpret_cast<void **>(&pVal), &size, &location);
+
+    if (location == DISK) {
+        if (!isOffloadEnabled())
+            throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
+
+        std::mutex mtx;
+        std::condition_variable cv;
+        bool ready = false;
+        if (!_spOffloadPoller->enqueue(new OffloadRqst(
+                OffloadOperation::REMOVE, key, keySize, nullptr, 0,
+                [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
+                                    const char *key, size_t keySize,
+                                    const char *value, size_t valueSize) {
+                    std::unique_lock<std::mutex> lck(mtx);
+                    ready = true;
+                    cv.notify_all();
+                }))) {
+            throw QueueFullException();
+        }
+
+        // wait for completion
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            cv.wait_for(lk, 1s, [&ready] { return ready; });
+            if (!ready)
+                throw OperationFailedException(Status(TIME_OUT));
+        }
+
+    } else {
+        pmem()->Remove(key);
+    }
+}
+
+void KVStore::Put(Key &&key, Value &&val, const PutOptions &options) {
+    try {
+        if (!getDhtCore()->isLocalKey(key)) {
+            dhtClient()->put(key, val);
+        } else {
+            // todo add alloc if value is not buffered
+            Put(key.data(), key.size(), val.data(), val.size());
+        }
+    } catch (...) {
+        Free(key, std::move(val));
+        Free(std::move(key));
+        throw;
+    }
+    Free(key, std::move(val));
+    Free(std::move(key));
+}
+
+void KVStore::PutAsync(Key &&key, Value &&value, KVStoreBaseCallback cb,
+                       const PutOptions &options) {
+    if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
+        Free(key, std::move(value));
+        Free(std::move(key));
+        throw FUNC_NOT_IMPLEMENTED;
+    }
+
+    thread_local int pollerId = 0;
+
+    pollerId = (options.roundRobin()) ? ((pollerId + 1) % _rqstPollers.size())
+                                      : options.pollerId();
+    try {
+        // todo memleak - key and value are not freed
+        PmemRqst *msg = new PmemRqst(RqstOperation::PUT, key.data(), key.size(),
+                                     value.data(), value.size(), cb);
+        if (!_rqstPollers.at(pollerId)->enqueue(msg)) {
+            delete msg;
+            throw QueueFullException();
+        }
+    } catch (OperationFailedException &e) {
+        cb(this, e.status(), key.data(), key.size(), value.data(),
+           value.size());
+    } catch (...) {
+        throw;
+    }
+}
+
+Value KVStore::Get(const Key &key, const GetOptions &options) {
+    if (!getDhtCore()->isLocalKey(key))
+        return dhtClient()->get(key);
+    char *data;
+    size_t size;
+    Get(key.data(), key.size(), &data, &size, options);
+    return Value(data, size);
+}
+
 void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
                        const GetOptions &options) {
+    if (!getDhtCore()->isLocalKey(key))
+        throw FUNC_NOT_IMPLEMENTED;
     if (options.attr & PrimaryKeyAttribute::LONG_TERM) {
         if (!isOffloadEnabled())
             throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
@@ -290,6 +405,7 @@ Key KVStore::GetAny(const GetOptions &options) {
         pKey()->dequeueNext(key);
     } catch (...) {
         Free(std::move(key));
+        throw;
     }
     return key;
 }
@@ -381,47 +497,9 @@ void KVStore::GetRangeAsync(const Key &beg, const Key &end,
 }
 
 void KVStore::Remove(const Key &key) {
-
-    size_t size;
-    char *pVal;
-    uint8_t location;
-
-    if (!getDhtCore()->isLocalKey(key)) {
+    if (!getDhtCore()->isLocalKey(key))
         return dhtClient()->remove(key);
-    }
-
-    pmem()->Get(key.data(), reinterpret_cast<void **>(&pVal), &size, &location);
-
-    if (location == DISK) {
-        if (!isOffloadEnabled())
-            throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
-
-        std::mutex mtx;
-        std::condition_variable cv;
-        bool ready = false;
-        if (!_spOffloadPoller->enqueue(new OffloadRqst(
-                OffloadOperation::REMOVE, key.data(), key.size(), nullptr, 0,
-                [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
-                                    const char *key, size_t keySize,
-                                    const char *value, size_t valueSize) {
-                    std::unique_lock<std::mutex> lck(mtx);
-                    ready = true;
-                    cv.notify_all();
-                }))) {
-            throw QueueFullException();
-        }
-
-        // wait for completion
-        {
-            std::unique_lock<std::mutex> lk(mtx);
-            cv.wait_for(lk, 1s, [&ready] { return ready; });
-            if (!ready)
-                throw OperationFailedException(Status(TIME_OUT));
-        }
-
-    } else {
-        pmem()->Remove(key.data());
-    }
+    Remove(key.data(), key.size());
 }
 
 void KVStore::RemoveRange(const Key &beg, const Key &end) {
@@ -429,14 +507,28 @@ void KVStore::RemoveRange(const Key &beg, const Key &end) {
 }
 
 Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
-    char *val = nullptr;
-    pmem()->AllocValueForKey(key.data(), size, &val);
-    return Value(val, size);
+    if (options.attr & KeyValAttribute::KVS_BUFFERED) {
+        if (!getDhtCore()->isLocalKey(key))
+            return dhtClient()->alloc(key, size);
+        char *val = nullptr;
+        pmem()->AllocValueForKey(key.data(), size, &val);
+        return Value(val, size, KeyValAttribute::KVS_BUFFERED);
+    }
+    return Value(new char[KeySize()], KeySize());
 }
 
-void KVStore::Free(Value &&value) { delete[] value.data(); }
+void KVStore::Free(const Key &key, Value &&value) {
+    if (value.isKvsBuffered()) {
+        if (!getDhtCore()->isLocalKey(key))
+            return dhtClient()->free(key, std::move(value));
+        // todo add pmem free method (free only if not in use)
+    } else {
+        delete[] value.data();
+    }
+}
 
-void KVStore::Realloc(Value &value, size_t size, const AllocOptions &options) {
+void KVStore::Realloc(const Key &key, Value &value, size_t size,
+                      const AllocOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
@@ -447,7 +539,7 @@ void KVStore::ChangeOptions(Value &value, const AllocOptions &options) {
 }
 
 Key KVStore::AllocKey(const AllocOptions &options) {
-    if (options.attr & KeyAttribute::DHT_BUFFERED) {
+    if (options.attr & KeyValAttribute::KVS_BUFFERED) {
         return dhtClient()->allocKey(KeySize());
     } else {
         return Key(new char[KeySize()], KeySize());
@@ -455,7 +547,7 @@ Key KVStore::AllocKey(const AllocOptions &options) {
 }
 
 void KVStore::Free(Key &&key) {
-    if (key.isDhtBuffered()) {
+    if (key.isKvsBuffered()) {
         dhtClient()->free(std::move(key));
     } else {
         delete[] key.data();

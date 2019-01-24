@@ -29,7 +29,7 @@ bool static checkValuePutGet(KVStoreBase *kvs, const string keyStr,
                     val.size();
     remote_put(kvs, move(putKey), val);
 
-    auto key = strToKey(kvs, keyStr, KeyAttribute::NOT_BUFFERED);
+    auto key = strToKey(kvs, keyStr, KeyValAttribute::NOT_BUFFERED);
 
     auto resultVal = remote_get(kvs, key);
     if (resultVal.data()) {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -314,6 +314,8 @@ class KVStoreBase {
      * @return On success returns a pointer to allocated KV buffer. Otherwise
      * returns nullptr.
      *
+     * @param[in] key Key buffer. If not allocated by current instance of
+     * KVStoreBase the behavior is undefined.
      * @param[in] size Size of allocation.
      * @param[in] options Allocation options.
      */
@@ -323,14 +325,18 @@ class KVStoreBase {
     /**
      * Deallocate a Value buffer.
      *
+     * @param[in] key Key buffer. If not allocated by current instance of
+     * KVStoreBase the behavior is undefined.
      * @param[in] value Value buffer. If not allocated by current instance of
      * KVStoreBase the behaviour is undefined.
      */
-    virtual void Free(Value &&value) = 0;
+    virtual void Free(const Key &key, Value &&value) = 0;
 
     /**
      * Reallocate a Value buffer.
      *
+     * @param[in] key Key buffer. If not allocated by current instance of
+     * KVStoreBase the behavior is undefined.
      * @param[in] value KV buffer to be reallocated. If buff is nullptr this
      * call is equivalent to Alloc.
      * @param[in] size New size of a Value buffer. If the size is 0 and buff is
@@ -343,7 +349,7 @@ class KVStoreBase {
      * changing a size, by passing the same size.
      *
      */
-    virtual void Realloc(Value &value, size_t size,
+    virtual void Realloc(const Key &key, Value &value, size_t size,
                          const AllocOptions &options = AllocOptions()) = 0;
 
     /**

@@ -159,6 +159,7 @@ void DhtClient::_runToResponse() {
 }
 
 Value DhtClient::get(const Key &key) {
+    DAQ_DEBUG("Get requested from DhtClient");
     // @TODO jradtke verify why communication is broken when _reqMsgBuf is
     // smaller than response size
     resizeMsgBuffers(ERPC_MAX_REQUEST_SIZE, ERPC_MAX_RESPONSE_SIZE);
@@ -176,6 +177,7 @@ void DhtClient::put(const Key &key, const Value &val) {
 }
 
 void DhtClient::remove(const Key &key) {
+    DAQ_DEBUG("Remove requested from DhtClient");
     resizeMsgBuffers(sizeof(DaqdbDhtMsg) + key.size(), sizeof(DaqdbDhtResult));
     fillReqMsg(&key, nullptr);
     enqueueAndWait(getTargetHost(key), ErpRequestType::ERP_REQUEST_REMOVE,
@@ -195,6 +197,7 @@ bool DhtClient::ping(DhtNode &node) {
 }
 
 Key DhtClient::allocKey(size_t keySize) {
+    DAQ_DEBUG("Key alloc requested from DhtClient");
     if (_reqMsgBufInUse)
         throw OperationFailedException(Status(ALLOCATION_ERROR));
     _reqMsgBufInUse = true;
@@ -203,16 +206,34 @@ Key DhtClient::allocKey(size_t keySize) {
     // todo add size asserts
     // todo add pool
     msg->keySize = keySize;
-    return Key(msg->msg, keySize, KeyAttribute::DHT_BUFFERED);
+    DAQ_DEBUG("Alloc ok");
+    return Key(msg->msg, keySize, KeyValAttribute::KVS_BUFFERED);
+}
+
+void DhtClient::free(Key &&key) {
+    DAQ_DEBUG("Key free requested from DhtClient");
+    _reqMsgBufInUse = false;
 }
 
 erpc::MsgBuffer *DhtClient::getRespMsgBuf() { return _respMsgBuf.get(); }
 
-void DhtClient::free(Key &&key) { _reqMsgBufInUse = false; }
+Value DhtClient::alloc(const Key &key, size_t size) {
+    DAQ_DEBUG("Value alloc requested from DhtClient");
+    if (_reqMsgBufValInUse)
+        throw OperationFailedException(Status(ALLOCATION_ERROR));
+    _reqMsgBufValInUse = true;
+    DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
+    // todo add size asserts
+    // todo add pool
+    msg->valSize = size;
+    DAQ_DEBUG("Alloc ok");
+    return Value(msg->msg + key.size(), size, KeyValAttribute::KVS_BUFFERED);
+}
 
-Value DhtClient::alloc(const Key &key, size_t size) {}
-
-void DhtClient::free(Value &&value) {}
+void DhtClient::free(const Key &key, Value &&value) {
+    DAQ_DEBUG("Value free requested from DhtClient");
+    _reqMsgBufValInUse = false;
+}
 
 void DhtClient::setRpc(void *newRpc) {
     if (_clientRpc) {
@@ -250,7 +271,7 @@ void DhtClient::fillReqMsg(const Key *key, const Value *val) {
     size_t offsetMsgBuf = 0;
     if (key) {
         offsetMsgBuf = key->size();
-        if (!key->isDhtBuffered()) {
+        if (!key->isKvsBuffered()) {
             msg->keySize = key->size();
             memcpy(msg->msg, key->data(), key->size());
         }

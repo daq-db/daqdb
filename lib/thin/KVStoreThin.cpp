@@ -63,9 +63,11 @@ void KVStoreThin::Put(Key &&key, Value &&val, const PutOptions &options) {
     try {
         dhtClient()->put(key, val);
     } catch (...) {
+        dhtClient()->free(key, std::move(val));
         dhtClient()->free(std::move(key));
         throw;
     }
+    dhtClient()->free(key, std::move(val));
     dhtClient()->free(std::move(key));
 }
 
@@ -129,21 +131,29 @@ Value KVStoreThin::Alloc(const Key &key, size_t size,
                          const AllocOptions &options) {
     if (size == 0)
         throw OperationFailedException(ALLOCATION_ERROR);
-
-    return Value(new char[size], size);
+    if (options.attr & KeyValAttribute::KVS_BUFFERED) {
+        return dhtClient()->alloc(key, size);
+    } else {
+        return Value(new char[size], size);
+    }
 }
 
-void KVStoreThin::Free(Value &&value) { delete[] value.data(); }
+void KVStoreThin::Free(const Key &key, Value &&value) {
+    if (value.isKvsBuffered())
+        return dhtClient()->free(key, std::move(value));
+    else
+        delete[] value.data();
+}
 
 Key KVStoreThin::AllocKey(const AllocOptions &options) {
-    if (options.attr & KeyAttribute::DHT_BUFFERED) {
+    if (options.attr & KeyValAttribute::KVS_BUFFERED) {
         return dhtClient()->allocKey(KeySize());
     } else {
         return Key(new char[KeySize()], KeySize());
     }
 }
 
-void KVStoreThin::Realloc(Value &value, size_t size,
+void KVStoreThin::Realloc(const Key &key, Value &value, size_t size,
                           const AllocOptions &options) {
     throw FUNC_NOT_SUPPORTED;
 }
@@ -153,7 +163,7 @@ void KVStoreThin::ChangeOptions(Value &value, const AllocOptions &options) {
 }
 
 void KVStoreThin::Free(Key &&key) {
-    if (key.isDhtBuffered()) {
+    if (key.isKvsBuffered()) {
         dhtClient()->free(std::move(key));
     } else {
         delete[] key.data();

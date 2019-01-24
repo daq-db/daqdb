@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -21,15 +21,21 @@ namespace DaqDB {
 
 class Value {
   public:
-    Value() : _data(nullptr), _size(0) {}
-    Value(char *data, size_t size) : _data(data), _size(size) {}
+    Value() : attr(KeyValAttribute::NOT_BUFFERED), _data(nullptr), _size(0) {}
+    Value(char *data, size_t size)
+        : attr(KeyValAttribute::NOT_BUFFERED), _data(data), _size(size) {}
+    Value(char *data, size_t size, KeyValAttribute attr)
+        : _data(data), _size(size), attr(attr) {}
     char *data() { return _data; }
     inline const char *data() const { return _data; }
     inline size_t size() const { return _size; }
+    inline bool isKvsBuffered() const {
+        return (attr & KeyValAttribute::KVS_BUFFERED);
+    };
 
   protected:
+    KeyValAttribute attr;
     char *_data;
     size_t _size;
 };
-
 }

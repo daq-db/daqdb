@@ -16,7 +16,6 @@
 #pragma once
 
 #include <DhtServer.h>
-#include <asio/io_service.hpp>
 #include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
@@ -56,8 +55,8 @@ class KVStoreThin : public KVStoreBase {
     virtual void RemoveRange(const Key &beg, const Key &end);
     virtual Value Alloc(const Key &key, size_t size,
                         const AllocOptions &options = AllocOptions());
-    virtual void Free(Value &&value);
-    virtual void Realloc(Value &value, size_t size,
+    virtual void Free(const Key &key, Value &&value);
+    virtual void Realloc(const Key &key, Value &value, size_t size,
                          const AllocOptions &options = AllocOptions());
     virtual void ChangeOptions(Value &value, const AllocOptions &options);
     virtual Key AllocKey(const AllocOptions &options = AllocOptions());
@@ -72,15 +71,12 @@ class KVStoreThin : public KVStoreBase {
 
     inline DhtClient *dhtClient() { return _spDht->getClient(); };
 
-    inline asio::io_service &getIoService() { return _ioService; };
-
   private:
     explicit KVStoreThin(const DaqDB::Options &options);
     virtual ~KVStoreThin();
 
     void init();
 
-    asio::io_service _ioService;
     size_t _keySize;
     Options _options;
 
