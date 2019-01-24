@@ -20,7 +20,8 @@
 // @TODO : jradtke Cannot include rpc.h, net / if.h conflict
 namespace erpc {
 class Nexus;
-}
+class MsgBuffer;
+} // namespace erpc
 
 namespace DaqDB {
 
