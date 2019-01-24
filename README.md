@@ -1,19 +1,24 @@
 # Data AcQuisition DataBase
 
-## Contents
+* [Overview](#overview)
+* [Installation](#installation)
+	* [Source Code](#source-code)
+	* [Prerequisites](#prerequisites)
+	* [Build](#build)
+* [Execution](#execution)
+	* [Prerequisites](#prerequisites)
+		* [SPDK](#spdk)
+		* [Network](#network)
+	* [Unit Tests](#unit-tests)
+	* [Tools and Examples](#tools-and-examples)
+		* [Minidaq benchmark](#minidaq-benchmark)
+		* [CLI node example](#cli-node-example)
 
-<ul>
-<li><a href="#overview">Overview</a></li>
-<li><a href="#installation">Installation</a></li>
-<li><a href="#execution">Execution</a></li>
-</ul>
+## Overview
+DAQDB (Data Acquisition Database) — a distributed key-value store for high-bandwidth, generic data storage in event-driven systems.
 
-<a name="overview"></a>
-Overview
---------
-Scalable distributed, low-latency key/value store with range queries.
+DAQDB offers not only high-capacity and low-latency buffer for fast data selection, but also opens a new approach in high-bandwidth data acquisition by decoupling the lifetime of the data analysis processes from the changing event rate due to the duty cycle of the data source.
 
-<a name="installation"></a>
 ## Installation
 
 #### Source Code
@@ -25,28 +30,8 @@ git submodule update --init --recursive
 
 #### Prerequisites
 
-The dependencies can be installed automatically by scripts/pkgdep.sh.
-```
-cd ${daqdb_path}
-scripts/pkgdep.sh
-third-party/spdk/scripts/pkgdep.sh
-```
+DaqDB must be build using CERN's LHC Computing Grid (LCG).
 
-Following libraries are required:
-<ul>
-<li>asio-devel</li>
-<li>libjsoncpp</li>
-</ul>
-Following libraries are optional (needed for examples and unit tests):
-<ul>
-<li>boost-devel (1.63+)</li>
-<li>boost-test (1.63+)</li>
-<li>doxygen</li>
-</ul>
-
-##### LCG
-
-Another option is building against LHC Computing Grid (LCG) release. Steps to configure the LCG environemt:
 ```
 sudo yum install -y https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm
 sudo yum install cvmfs -y
@@ -55,7 +40,6 @@ echo "CVMFS_REPOSITORIES=sft.cern.ch" | sudo tee -a /etc/cvmfs/default.local
 echo "CVMFS_HTTP_PROXY=http://your-proxy.com:proxy-port | sudo tee -a /etc/cvmfs/default.local
 cvmfs_config probe
 ls /cvmfs/grid.cern.ch
-
 ```
 
 #### Build
@@ -63,10 +47,11 @@ ls /cvmfs/grid.cern.ch
 
 ```
 cd ${daqdb_path}
+. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
 cmake .
 make -j$(nproc)
 ```
-By default, all software can be found in ${daqdb_path}/bin folder.
+By default, all build products can be found in `${daqdb_path}/bin` folder.
 
 ```
 make clean              # remove daqdb lib build files
@@ -76,20 +61,15 @@ make tests              # build tests
 make test               # execute tests
 ```
 
-##### LCG
-If using LCG release, set the desired environment first:
-```
-. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
-```
-or 
-```
-. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_latest x86_64-centos7-gcc7-opt
-```
+_Note: <br>`. scripts/setup_env_lcg.sh` can be called to setup environment with LCG and SPDK._
 
-Note: `. scripts/setup_env_lcg.sh` can be called to setup environment with LCG and SPDK.
-Note2: LCG_93 contains CMake 3.7 that may show warnings if BOOST library version is 1.64+.
+_Note 2:<br> LCG_93 contains CMake 3.7 that may show warnings if BOOST library version is 1.64+._
 
-##### SPDK
+## Execution
+
+### Prerequisites
+
+#### SPDK
 DAQDB is using SPDK internally so following extra step is required to configure environment.
 
 To be called once:
@@ -104,15 +84,13 @@ cd ${daqdb_path}
 sudo third-party/spdk/scripts/setup
 ```
 
-If using LCG then execute as root with LCG initialized or remember to preserve user LD_LIBRARY_PATH in visudo.
-Example:
+#### Network
 
-```
-cd ${daqdb_path}/bin
-sudo LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH" ./clinode -i
-```
+Mellanox ConnectX-4 or newer Ethernet NICs are supported at the moment.
 
-#### Unit Tests
+Please see setup guide [here](doc/network_setup_guide.md)
+
+### Unit Tests
 
 ```
 cd ${daqdb_path}
@@ -121,8 +99,38 @@ make tests -j$(nproc)
 make test
 ```
 
-<a name="execution"></a>
-## Execution
+### Tools and Examples
+
+#### Minidaq benchmark
+
+This application (located in apps/minidaq) is a simple benchmark that emulates
+the operation of a typical Data AcQuisition (DAQ) system based on a KVS store.
+
+Currently only a single node version using DAQDB library is supported. More details
+are available in the built-in help of the application:
+```
+./minidaq --help
+```
+
+Tips for running minidaq:
+
+* Administrative privileges are required. Run with root or sudo:
+```
+sudo LD_LIBRARY_PATH=`pwd`:$LD_LIBRARY_PATH ./minidaq --help
+```
+* LCG environment is required. Note:
+```
+. scripts/setup_env_lcg.sh
+```
+can be called to setup environment with LCG and SPDK.
+
+* For single-node tests synchronous mode of operation for readout threads
+is recommended.
+* Time and persistent memory pool size should adjusted carefully. Depending on
+the performance, memory pool can be too small for giving test and ramp times.
+Performance can be degraded or interrupted.
+* Persistent memory pool file should be deleted before each test run.
+Unexpected behavior can occur otherwise.
 
 #### CLI node example 
 ```
@@ -163,34 +171,3 @@ Following commands supported:
 
 This application (located in examples/basic) provides examples how to
 use DAQDB API (initialization, basic CRUD operations, ...).
-
-#### Minidaq benchmark
-
-This application (located in apps/minidaq) is a simple benchmark that emulates
-the operation of a typical Data AcQuisition (DAQ) system based on a KVS store.
-
-Currently only a single node version using DAQDB library is supported. More details
-are available in the built-in help of the application:
-```
-./minidaq --help
-```
-
-Tips for running minidaq:
-
-* Administrative privileges are required. Run with root or sudo:
-```
-sudo LD_LIBRARY_PATH=`pwd`:$LD_LIBRARY_PATH ./minidaq --help
-```
-* LCG environment is required. Note:
-```
-. scripts/setup_env_lcg.sh
-```
-can be called to setup environment with LCG and SPDK.
-
-* For single-node tests synchronous mode of operation for readout threads
-is recommended.
-* Time and persistent memory pool size should adjusted carefully. Depending on
-the performance, memory pool can be too small for giving test and ramp times.
-Performance can be degraded or interrupted.
-* Persistent memory pool file should be deleted before each test run.
-Unexpected behavior can occur otherwise.
