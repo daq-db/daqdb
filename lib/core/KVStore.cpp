@@ -409,6 +409,7 @@ Key KVStore::GetAny(const GetOptions &options) {
         pKey()->dequeueNext(key);
     } catch (...) {
         Free(std::move(key));
+        throw;
     }
     return key;
 }
