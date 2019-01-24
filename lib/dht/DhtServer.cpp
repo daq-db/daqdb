@@ -89,7 +89,7 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    Key key = serverCtx->kvs->AllocKey();
+    Key key = serverCtx->kvs->AllocKey(KeyAttribute::NOT_BUFFERED);
     std::memcpy(key.data(), msg->msg, msg->keySize);
     Value value = serverCtx->kvs->Alloc(key, msg->valSize);
     std::memcpy(value.data(), msg->msg + msg->keySize, msg->valSize);
@@ -146,7 +146,7 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     rpc->enqueue_response(req_handle);
 }
 
-DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs, unsigned short port)
+DhtServer::DhtServer(DhtCore *dhtCore, KVStoreBase *kvs)
     : state(DhtServerState::DHT_SERVER_INIT), _dhtCore(dhtCore), _kvs(kvs),
       _thread(nullptr) {
     serve();
@@ -159,6 +159,7 @@ DhtServer::~DhtServer() {
 }
 
 void DhtServer::_serve(void) {
+
     auto nexus = new erpc::Nexus(_dhtCore->getLocalNode()->getUri(), 0, 0);
 
     nexus->register_req_func(
@@ -178,7 +179,6 @@ void DhtServer::_serve(void) {
     try {
         rpc = new erpc::Rpc<erpc::CTransport>(nexus, &rpcCtx, 0, nullptr);
         rpcCtx.rpc = rpc;
-
         state = DhtServerState::DHT_SERVER_READY;
         keepRunning = true;
         while (keepRunning) {
@@ -219,12 +219,6 @@ string DhtServer::printStatus() {
         result << "DHT server: active" << endl;
     } else {
         result << "DHT server: inactive" << endl;
-    }
-
-    if (_dhtCore->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
-        result << "DHT client: active";
-    } else {
-        result << "DHT client: inactive";
     }
 
     return result.str();

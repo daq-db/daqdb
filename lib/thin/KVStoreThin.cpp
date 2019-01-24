@@ -41,12 +41,6 @@ void KVStoreThin::init() {
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
     _spDht.reset(new DhtCore(getOptions().dht));
-    _spDht->initClient();
-    if (_spDht->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
-        DAQ_DEBUG("DHT client started successfully");
-    } else {
-        DAQ_DEBUG("Can not start DHT client");
-    }
 
     DAQ_DEBUG("KVStoreThin initialization completed");
 }

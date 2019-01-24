@@ -34,3 +34,5 @@ bool testPutGetSequence(DaqDB::KVStoreBase *kvs, DaqDB::Options *options);
  * remote DAQDB peer.
  */
 bool testValueSizes(DaqDB::KVStoreBase *kvs, DaqDB::Options *options);
+
+bool testMultithredingPutGet(DaqDB::KVStoreBase *kvs, DaqDB::Options *options);

@@ -80,8 +80,8 @@ static void clbRemove(void *ctxClient, size_t ioCtx) {
     reqCtx->ready = true;
 }
 
-DhtClient::DhtClient(DhtCore *dhtCore, unsigned short port)
-    : _dhtCore(dhtCore), _clientRpc(nullptr), _nexus(nullptr),
+DhtClient::DhtClient()
+    : _dhtCore(nullptr), _clientRpc(nullptr), _nexus(nullptr),
       state(DhtClientState::DHT_CLIENT_INIT) {}
 
 DhtClient::~DhtClient() {
@@ -92,8 +92,6 @@ DhtClient::~DhtClient() {
         rpc->free_msg_buffer(*_respMsgBuf);
         delete reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     }
-    if (_nexus)
-        delete reinterpret_cast<erpc::Nexus *>(_nexus);
 }
 
 void DhtClient::_initializeNode(DhtNode *node) {
@@ -110,15 +108,17 @@ void DhtClient::_initializeNode(DhtNode *node) {
     DAQ_DEBUG("Connected!");
 }
 
-void DhtClient::initialize() {
-    auto nexus =
-        new erpc::Nexus(_dhtCore->getLocalNode()->getClientUri(), 0, 0);
-    _nexus = nexus;
+void DhtClient::initialize(DhtCore *dhtCore) {
+
+    _dhtCore = dhtCore;
+    _nexus = _dhtCore->getNexus();
     erpc::Rpc<erpc::CTransport> *rpc;
 
     try {
-        rpc = new erpc::Rpc<erpc::CTransport>(nexus, this, 1, sm_handler);
+        rpc = new erpc::Rpc<erpc::CTransport>(
+            _nexus, this, ++_dhtCore->numberOfClients, sm_handler);
         _clientRpc = rpc;
+        _dhtCore->registerClient(this);
 
         auto neighbors = _dhtCore->getNeighbors();
         for (DhtNode *neighbor : *neighbors) {

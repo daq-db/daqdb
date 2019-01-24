@@ -28,7 +28,6 @@ enum class DhtNodeState : std::uint8_t {
 };
 
 const int ERPC_SESSION_NOT_SET = -1;
-const unsigned int ERPC_CLIENT_PORT_ADDITION = 1;
 
 /*!
  * Class that defines interface for DHT
@@ -53,26 +52,21 @@ class DhtNode {
     inline unsigned short getPort() const { return _port; };
 
     /**
-     *
-     * @return
+     * @param portOffset offset that will be added to the node port
+     * @return URI with IP and port for this node
      */
-    inline const std::string getClientUri() const {
-        return boost::str(
-            boost::format("%1%:%2%") % getIp() %
-            std::to_string(getPort() + ERPC_CLIENT_PORT_ADDITION));
-    };
-    /**
-     *
-     * @return
-     */
-    inline const std::string getUri() const {
+    inline const std::string getUri(unsigned int portOffset = 0) const {
         return boost::str(boost::format("%1%:%2%") % getIp() %
-                          std::to_string(getPort()));
+                          std::to_string(getPort() + portOffset));
     };
 
     void setIp(const std::string &ip) { _ip = ip; };
-    void setSessionId(int id) { _sessionId = id; };
     void setPort(unsigned short port) { _port = port; };
+
+    /**
+     * @param id eRPC session id
+     */
+    void setSessionId(int id) { _sessionId = id; };
 
     inline unsigned int getMaskLength() { return _maskLength; }
     inline unsigned int getMaskOffset() { return _maskOffset; }

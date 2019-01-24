@@ -27,11 +27,6 @@
 #include <Key.h>
 #include <Value.h>
 
-// @TODO : jradtke Cannot include rpc.h, net / if.h conflict
-namespace erpc {
-class MsgBuffer;
-}
-
 namespace DaqDB {
 
 enum class DhtClientState : std::uint8_t {
@@ -50,13 +45,14 @@ struct DhtReqCtx {
 class DhtCore;
 class DhtClient {
   public:
-    DhtClient(DhtCore *dhtCore, unsigned short port);
+    DhtClient();
     virtual ~DhtClient();
 
     /**
-     *
+     * Initializes internal buffers and setup eRPC environment (Rpc endpoint,
+     * sessions, etc.)
      */
-    void initialize();
+    void initialize(DhtCore *dhtCore);
 
     /**
      * Synchronously get a value for a given key.
@@ -101,6 +97,9 @@ class DhtClient {
 
     bool ping(DhtNode &node);
 
+    /**
+     * @return erpc::Rpc<erpc::CTransport> object
+     */
     inline void *getRpc() { return _clientRpc; };
 
     /**
@@ -155,7 +154,6 @@ class DhtClient {
      */
     virtual DhtNode *getTargetHost(const Key &key);
 
-    std::atomic<bool> keepRunning;
     std::atomic<DhtClientState> state;
 
   private:
@@ -163,8 +161,8 @@ class DhtClient {
     void _runToResponse();
     void _initReqCtx();
 
-    void *_clientRpc;
-    void *_nexus;
+    void *_clientRpc; // Stores erpc::Rpc<erpc::CTransport>
+    erpc::Nexus *_nexus;
 
     DhtCore *_dhtCore;
 
