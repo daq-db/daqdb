@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -22,10 +22,9 @@
 
 #include <DhtCore.h>
 #include <DhtNode.h>
+#include <KVStore.h>
 #include <Key.h>
 #include <Value.h>
-
-#include <KVStoreBase.h>
 
 namespace DaqDB {
 
@@ -43,7 +42,7 @@ struct DhtServerCtx {
 
 class DhtServer {
   public:
-    DhtServer(DhtCore *dhtCore, KVStoreBase *kvs);
+    DhtServer(DhtCore *dhtCore, KVStore *kvs);
     ~DhtServer();
 
     /**
@@ -78,7 +77,7 @@ class DhtServer {
   private:
     void _serve(void);
 
-    KVStoreBase *_kvs;
+    KVStore *_kvs;
     DhtCore *_dhtCore;
     std::thread *_thread;
 };

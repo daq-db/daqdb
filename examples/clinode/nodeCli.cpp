@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -154,8 +154,7 @@ int nodeCli::operator()() {
         } else {
             cout << format("Unreconized command: %1%\n") % strLine;
         }
-    }
-    catch (NotImplementedException &ex) {
+    } catch (NotImplementedException &ex) {
         cout << ex.what() << endl;
     }
 
@@ -180,8 +179,7 @@ void nodeCli::_cmdGet(const std::string &strLine) {
             /** @todo memleak - keyBuff.data */
             std::memset(keyBuff.data(), 0, keyBuff.size());
             std::memcpy(keyBuff.data(), key.c_str(), key.size());
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
@@ -194,8 +192,7 @@ void nodeCli::_cmdGet(const std::string &strLine) {
             value = _spKVStore->Get(keyBuff, std::move(options));
             string valuestr(value.data());
             cout << format("[%1%] = %2%\n") % key % valuestr;
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             if (e.status()() == DaqDB::KEY_NOT_FOUND) {
                 cout << format("[%1%] not found\n") % key;
             } else {
@@ -204,7 +201,7 @@ void nodeCli::_cmdGet(const std::string &strLine) {
             }
         }
         if (value.size() > 0)
-            _spKVStore->Free(std::move(value));
+            _spKVStore->Free(keyBuff, std::move(value));
         if (keyBuff.size() > 0)
             _spKVStore->Free(std::move(keyBuff));
     }
@@ -227,8 +224,7 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
             keyBuff = _spKVStore->AllocKey();
             std::memset(keyBuff.data(), 0, keyBuff.size());
             std::memcpy(keyBuff.data(), key.c_str(), key.size());
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
@@ -252,8 +248,7 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
                     }
                 },
                 std::move(options));
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             if (e.status()() == StatusCode::OFFLOAD_DISABLED_ERROR) {
                 cout << format("Error: Disk offload is disabled") << endl;
             } else {
@@ -331,16 +326,14 @@ void nodeCli::_cmdPut(const std::string &strLine) {
         DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
-        }
-        catch (...) {
+        } catch (...) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
         DaqDB::Value valBuff;
         try {
             valBuff = _allocValue(keyBuff, arguments[PUT_CMD_VAL_OFFSET]);
-        }
-        catch (...) {
+        } catch (...) {
             cout << "Error: cannot allocate value buffer" << endl;
             _spKVStore->Free(std::move(keyBuff));
             return;
@@ -354,8 +347,7 @@ void nodeCli::_cmdPut(const std::string &strLine) {
                             std::move(options));
             cout << format("Put: [%1%] = %2% (Opts:%3%)\n") % key %
                         arguments[PUT_CMD_VAL_OFFSET] % options.attr;
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot put element: " << e.status().to_string()
                  << endl;
 
@@ -399,8 +391,7 @@ void nodeCli::_cmdUpdate(const std::string &strLine) {
         DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
-        }
-        catch (...) {
+        } catch (...) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
@@ -424,8 +415,7 @@ void nodeCli::_cmdUpdate(const std::string &strLine) {
             } else {
                 _spKVStore->Update(std::move(keyBuff), std::move(options));
             }
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot update element: " << e.status().to_string()
                  << endl;
         }
@@ -447,8 +437,7 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
         DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
-        }
-        catch (...) {
+        } catch (...) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
@@ -488,29 +477,27 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
                     },
                     std::move(options));
             } else {
-                _spKVStore->UpdateAsync(std::move(keyBuff), std::move(options),
-                                        [&](DaqDB::KVStoreBase *kvs,
-                                            DaqDB::Status status,
-                                            const char *key,
-                                            const size_t keySize,
-                                            const char *value,
-                                            const size_t valueSize) {
-                    if (!status.ok()) {
-                        _statusMsgs.push_back(boost::str(
-                            boost::format("Error: cannot update element: %1%") %
-                            status.to_string()));
-                    } else {
-                        _statusMsgs.push_back(
-                            boost::str(boost::format("UPDATE[%1%] (Opts:%2%) "
-                                                     ": completed") %
-                                       key % options.attr));
-                    }
-                    if (keyBuff.size() > 0)
-                        _spKVStore->Free(std::move(keyBuff));
-                });
+                _spKVStore->UpdateAsync(
+                    std::move(keyBuff), std::move(options),
+                    [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
+                        const char *key, const size_t keySize,
+                        const char *value, const size_t valueSize) {
+                        if (!status.ok()) {
+                            _statusMsgs.push_back(boost::str(
+                                boost::format(
+                                    "Error: cannot update element: %1%") %
+                                status.to_string()));
+                        } else {
+                            _statusMsgs.push_back(boost::str(
+                                boost::format("UPDATE[%1%] (Opts:%2%) "
+                                              ": completed") %
+                                key % options.attr));
+                        }
+                        if (keyBuff.size() > 0)
+                            _spKVStore->Free(std::move(keyBuff));
+                    });
             }
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             if (e.status()() == StatusCode::OFFLOAD_DISABLED_ERROR) {
                 cout << format("Error: Disk offload is disabled\n") << endl;
             } else {
@@ -537,8 +524,7 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
         DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
-        }
-        catch (...) {
+        } catch (...) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
@@ -546,8 +532,7 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
         DaqDB::Value valBuff;
         try {
             valBuff = _allocValue(keyBuff, arguments[PUT_CMD_VAL_OFFSET]);
-        }
-        catch (...) {
+        } catch (...) {
             cout << "Error: cannot allocate value buffer" << endl;
             _spKVStore->Free(std::move(keyBuff));
             return;
@@ -576,8 +561,7 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
                         _spKVStore->Free(std::move(keyBuff));
                 },
                 std::move(options));
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot put element: " << e.status().to_string()
                  << endl;
 
@@ -599,8 +583,7 @@ void nodeCli::_cmdRemove(const std::string &strLine) {
         DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
-        }
-        catch (...) {
+        } catch (...) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
         }
@@ -608,8 +591,7 @@ void nodeCli::_cmdRemove(const std::string &strLine) {
         try {
             _spKVStore->Remove(keyBuff);
             cout << format("Remove: [%1%]\n") % key;
-        }
-        catch (DaqDB::OperationFailedException &e) {
+        } catch (DaqDB::OperationFailedException &e) {
             if (e.status()() == DaqDB::KEY_NOT_FOUND) {
                 cout << format("[%1%] not found\n") % key;
             } else {
@@ -624,7 +606,8 @@ void nodeCli::_cmdStatus() {
     auto currentTime = chrono::system_clock::to_time_t(timestamp);
     cout << format("DHT ID = %1%\nDHT ip:port = localhost:%2%\n") %
                 _spKVStore->getProperty("daqdb.dht.id") %
-                _spKVStore->getProperty("daqdb.dht.port") << flush;
+                _spKVStore->getProperty("daqdb.dht.port")
+         << flush;
     cout << format("%1%") % _spKVStore->getProperty("daqdb.dht.status")
          << flush;
     if (_statusMsgs.size() > 0) {
@@ -638,7 +621,8 @@ void nodeCli::_cmdStatus() {
 
 void nodeCli::_cmdNeighbors() {
     cout << format("Neighbors:\n%1%") %
-                _spKVStore->getProperty("daqdb.dht.neighbours") << endl;
+                _spKVStore->getProperty("daqdb.dht.neighbours")
+         << endl;
 }
 
 } // namespace DaqDB

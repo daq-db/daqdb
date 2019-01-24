@@ -91,7 +91,7 @@ class DhtClient {
     Key allocKey(size_t keySize);
     void free(Key &&key);
     Value alloc(const Key &key, size_t size);
-    void free(Value &&value);
+    void free(const Key &key, Value &&value);
 
     erpc::MsgBuffer *getRespMsgBuf();
 
@@ -170,5 +170,6 @@ class DhtClient {
     std::unique_ptr<erpc::MsgBuffer> _reqMsgBuf;
     std::unique_ptr<erpc::MsgBuffer> _respMsgBuf;
     bool _reqMsgBufInUse = false;
+    bool _reqMsgBufValInUse = false;
 };
 } // namespace DaqDB

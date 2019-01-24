@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -47,7 +47,7 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
      */
     // @TODO jradtke AllocKey need changes to avoid extra memory copying in
     // kvs->Get
-    Key key = serverCtx->kvs->AllocKey(KeyAttribute::NOT_BUFFERED);
+    Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
     memcpy(key.data(), msg->msg, msg->keySize);
 
     try {
@@ -89,7 +89,7 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    Key key = serverCtx->kvs->AllocKey(KeyAttribute::NOT_BUFFERED);
+    Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
     std::memcpy(key.data(), msg->msg, msg->keySize);
     Value value = serverCtx->kvs->Alloc(key, msg->valSize);
     std::memcpy(value.data(), msg->msg + msg->keySize, msg->valSize);
@@ -125,7 +125,7 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
      */
     // @TODO jradtke AllocKey need changes to avoid extra memory copying in
     // kvs->Remove
-    Key key = serverCtx->kvs->AllocKey(KeyAttribute::NOT_BUFFERED);
+    Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
     std::memcpy(key.data(), msg->msg, msg->keySize);
 
     auto &resp = req_handle->pre_resp_msgbuf;
@@ -146,7 +146,7 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     rpc->enqueue_response(req_handle);
 }
 
-DhtServer::DhtServer(DhtCore *dhtCore, KVStoreBase *kvs)
+DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs)
     : state(DhtServerState::DHT_SERVER_INIT), _dhtCore(dhtCore), _kvs(kvs),
       _thread(nullptr) {
     serve();

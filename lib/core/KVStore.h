@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -17,11 +17,9 @@
 
 #include <mutex>
 
-#include <asio/io_service.hpp>
-
 #include <daqdb/KVStoreBase.h>
 
-#include <DhtServer.h>
+#include <DhtCore.h>
 #include <OffloadPoller.h>
 #include <PmemPoller.h>
 #include <PrimaryKeyEngine.h>
@@ -29,6 +27,8 @@
 #include <SpdkCore.h>
 
 namespace DaqDB {
+
+class DhtServer;
 
 class KVStore : public KVStoreBase {
   public:
@@ -67,13 +67,24 @@ class KVStore : public KVStoreBase {
     virtual void RemoveRange(const Key &beg, const Key &end);
     virtual Value Alloc(const Key &key, size_t size,
                         const AllocOptions &options = AllocOptions());
-    virtual void Free(Value &&value);
-    virtual void Realloc(Value &value, size_t size,
+    virtual void Free(const Key &key, Value &&value);
+    virtual void Realloc(const Key &key, Value &value, size_t size,
                          const AllocOptions &options = AllocOptions());
     virtual void ChangeOptions(Value &value, const AllocOptions &options);
     virtual Key AllocKey(const AllocOptions &options = AllocOptions());
     virtual void Free(Key &&key);
     virtual void ChangeOptions(Key &key, const AllocOptions &options);
+
+    void Put(const char *key, size_t keySize, char *value, size_t valueSize,
+             const PutOptions &options = PutOptions());
+    void Get(const char *key, size_t keySize, char *value, size_t *valueSize,
+             const GetOptions &options = GetOptions());
+    void Get(const char *key, size_t keySize, char **value, size_t *valueSize,
+             const GetOptions &options = GetOptions());
+    void Update(const char *key, size_t keySize, char *value, size_t valueSize,
+                const UpdateOptions &options = UpdateOptions());
+    void Update(const char *key, size_t keySize, const UpdateOptions &options);
+    void Remove(const char *key, size_t keySize);
 
     virtual bool IsOffloaded(Key &key);
 
@@ -89,14 +100,15 @@ class KVStore : public KVStoreBase {
     inline DhtServer *dhtServer() { return _spDhtServer.get(); };
     inline DhtClient *dhtClient() { return _spDht->getClient(); };
 
-    inline asio::io_service &getIoService() { return _ioService; };
-
   private:
     explicit KVStore(const DaqDB::Options &options);
-
     inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }
 
-    asio::io_service _ioService;
+    void _getOffloaded(const char *key, size_t keySize, char *value,
+                       size_t *valueSize);
+    void _getOffloaded(const char *key, size_t keySize, char **value,
+                       size_t *valueSize);
+
     size_t _keySize;
     Options _options;
 
