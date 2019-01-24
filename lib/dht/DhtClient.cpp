@@ -160,8 +160,6 @@ void DhtClient::_runToResponse() {
 
 Value DhtClient::get(const Key &key) {
     DAQ_DEBUG("Get requested from DhtClient");
-    auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-
     // @TODO jradtke verify why communication is broken when _reqMsgBuf is
     // smaller than response size
     resizeMsgBuffers(ERPC_MAX_REQUEST_SIZE, ERPC_MAX_RESPONSE_SIZE);
