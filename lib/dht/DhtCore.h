@@ -34,6 +34,8 @@ class DhtCore {
     /**
      * @param dhtOptions dht options
      * @param doInitNexus indicates if eRpc nexus should be initialized
+     *
+     * @note At the moment only satellite node should initialize nexus
      */
     DhtCore(DhtOptions dhtOptions, bool doInitNexus = true);
     ~DhtCore();
@@ -63,8 +65,8 @@ class DhtCore {
     inline DhtClient *getClient() {
         if (!_threadDhtClient) {
             /*
-             * Separate DHT client is needed per client thread.
-             * Ii is expected that on first use the client have to be created
+             * Separate DHT client is needed per user thread.
+             * It is expected that on first use the DhtClient have to be created
              * and initialized.
              */
             initClient();
