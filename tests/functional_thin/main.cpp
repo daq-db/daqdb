@@ -86,6 +86,12 @@ int main(int argc, const char *argv[]) {
     DaqDB::Options options;
     initKvsOptions(options, configFile);
 
+    if (!executeTest("testRemotePeerConnect", testRemotePeerConnect, nullptr,
+                     &options)) {
+        LOG_INFO << "Cannot connect to peer node" << endl;
+        return -1;
+    }
+
     unique_ptr<DaqDB::KVStoreBase> spKVStore;
     try {
         spKVStore.reset(DaqDB::KVStoreBase::Open(options));
@@ -94,19 +100,15 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    if (!executeTest("testRemotePeerConnect", testRemotePeerConnect,
-                     spKVStore.get(), &options)) {
-        LOG_INFO << "Cannot connect to peer node" << endl;
-    } else {
-        map<string, TestFunction> tests = boost::assign::map_list_of(
-            "testPutGetSequence", testPutGetSequence)("testValueSizes",
-                                                      testValueSizes);
-        unsigned short failsCount = 0;
-        for (auto test : tests) {
-            if (!executeTest(test.first, test.second, spKVStore.get(),
-                             &options)) {
-                failsCount++;
-            }
+    map<string, TestFunction> tests =
+        boost::assign::map_list_of("testPutGetSequence", testPutGetSequence)(
+            "testValueSizes", testValueSizes)("testMultithredingPutGet",
+                                              testMultithredingPutGet);
+
+    unsigned short failsCount = 0;
+    for (auto test : tests) {
+        if (!executeTest(test.first, test.second, spKVStore.get(), &options)) {
+            failsCount++;
         }
 
         if (failsCount > 0) {

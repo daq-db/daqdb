@@ -43,17 +43,20 @@ struct DhtServerCtx {
 
 class DhtServer {
   public:
-    DhtServer(DhtCore *dhtCore, KVStoreBase *kvs, unsigned short port);
+    DhtServer(DhtCore *dhtCore, KVStoreBase *kvs);
     ~DhtServer();
 
     /**
      * Prints DHT status.
-     * @return
+     * @return DHT status
+     * e.g. "DHT server: localhost:31850
+     *       DHT server: active"
+     *
      */
     std::string printStatus();
     /**
      * Prints DHT neighbors.
-     * @return
+     * @return string with list of peer storage nodes
      */
     std::string printNeighbors();
 

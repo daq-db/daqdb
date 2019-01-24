@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <DhtClient.h>
@@ -30,7 +31,13 @@
 namespace DaqDB {
 class DhtCore {
   public:
-    DhtCore(DhtOptions dhtOptions);
+    /**
+     * @param dhtOptions dht options
+     * @param doInitNexus indicates if eRpc nexus should be initialized
+     *
+     * @note At the moment only satellite node should initialize nexus
+     */
+    DhtCore(DhtOptions dhtOptions, bool doInitNexus = true);
     ~DhtCore();
 
     void initClient();
@@ -45,9 +52,39 @@ class DhtCore {
 
     inline std::vector<DhtNode *> *getNeighbors(void) { return &_neighbors; };
 
-    inline DhtClient *getClient() { return _spClient.get(); };
+    inline erpc::Nexus *getNexus() { return _spNexus.get(); }
+
+    void initNexus(unsigned int portOffset = 0);
+
+    /**
+     * Gets DhtClient for caller thread.
+     * Create new one if not initialized for the thread.
+     *
+     * @return DhtClient object
+     */
+    inline DhtClient *getClient() {
+        if (!_threadDhtClient) {
+            /*
+             * Separate DHT client is needed per user thread.
+             * It is expected that on first use the DhtClient have to be created
+             * and initialized.
+             */
+            initClient();
+        }
+
+        return _threadDhtClient;
+    };
+
+    /**
+     * Storing each DhtClient is required to close Nexus gracefully (all
+     * connected clients must be closed before that).
+     *
+     * @param dhtClient the dht client
+     */
+    void registerClient(DhtClient *dhtClient);
 
     DhtOptions options;
+    std::atomic<int> numberOfClients;
 
   private:
     void _initNeighbors(void);
@@ -56,8 +93,18 @@ class DhtCore {
     uint64_t _genHash(const char *key, uint64_t maskLength,
                       uint64_t maskOffset);
 
-    std::unique_ptr<DhtClient> _spClient;
+    /**
+     * Separated DhtClient for each thread is required because of eRpc
+     * architecture. eRpc 'endpoints' are created per thread.
+     */
+    static thread_local DhtClient *_threadDhtClient;
+    std::vector<DhtClient *> _registeredDhtClients;
+    /**
+     * Needed to synchronize operations on _registeredDhtClients
+     */
+    std::mutex _dhtClientsMutex;
 
+    std::unique_ptr<erpc::Nexus> _spNexus;
     std::unique_ptr<DhtNode> _spLocalNode;
     std::vector<DhtNode *> _neighbors;
     RangeToHost _rangeToHost;
