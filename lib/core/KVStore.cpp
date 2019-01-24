@@ -98,7 +98,7 @@ void KVStore::init() {
      */
     _spDht.reset(new DhtCore(getOptions().dht, false));
     _spDhtServer.reset(
-        new DhtServer(getDhtCore(), static_cast<KVStoreBase *>(this)));
+        new DhtServer(getDhtCore(), this));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
     } else {

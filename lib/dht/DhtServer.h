@@ -42,7 +42,7 @@ struct DhtServerCtx {
 
 class DhtServer {
   public:
-    DhtServer(DhtCore *dhtCore, KVStoreBase *kvs);
+    DhtServer(DhtCore *dhtCore, KVStore *kvs);
     ~DhtServer();
 
     /**
