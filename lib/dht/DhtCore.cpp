@@ -39,12 +39,10 @@ const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
 #define DEFAULT_DHT_MASK_LENGTH 1
 #define DEFAULT_DHT_MASK_OFFSET 0
 
-DhtCore::DhtCore(DhtOptions dhtOptions, bool doInitNexus)
+DhtCore::DhtCore(DhtOptions dhtOptions)
     : options(dhtOptions), numberOfClients(0) {
     _initNeighbors();
     _initRangeToHost();
-    if (doInitNexus)
-        initNexus();
 }
 
 DhtCore::~DhtCore() {
@@ -60,8 +58,8 @@ DhtCore::~DhtCore() {
     }
 }
 
-void DhtCore::initNexus(unsigned int portOffset) {
-    _spNexus.reset(new erpc::Nexus(getLocalNode()->getUri(portOffset), 0, 0));
+void DhtCore::initNexus(unsigned int port) {
+    _spNexus.reset(new erpc::Nexus(getLocalNode()->getUri(port), 0, 0));
 }
 
 void DhtCore::initClient() {
@@ -87,6 +85,7 @@ void DhtCore::_initNeighbors(void) {
 
         dhtNode->setIp(option->ip);
         dhtNode->setPort(option->port);
+        dhtNode->setPeerPort(option->peerPort);
         dhtNode->state = DhtNodeState::NODE_INIT;
         dhtNode->setMaskLength(DEFAULT_DHT_MASK_LENGTH);
         dhtNode->setMaskOffset(DEFAULT_DHT_MASK_OFFSET);

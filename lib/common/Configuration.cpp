@@ -71,11 +71,6 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.mode = OperationalMode::STORAGE;
     }
 
-    cfg.lookupValue("protocol", options.dht.protocol);
-    int port;
-    if (cfg.lookupValue("port", port))
-        options.dht.port = port;
-
     int offloadAllocUnitSize;
     if (cfg.lookupValue("offload_unit_alloc_size", offloadAllocUnitSize))
         options.offload.allocUnitSize = offloadAllocUnitSize;
@@ -101,6 +96,11 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
             } catch (SettingNotFoundException &e) {
                 dhtNeighbor->keyRange.start = "";
                 dhtNeighbor->keyRange.end = "";
+            }
+            try {
+                dhtNeighbor->peerPort = (unsigned int)(neighbor["peerPort"]);
+            } catch (SettingNotFoundException &e) {
+                dhtNeighbor->peerPort = 0;
             }
             try {
                 dhtNeighbor->local = ((unsigned int)(neighbor["local"]) > 0);

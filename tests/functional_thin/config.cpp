@@ -17,11 +17,6 @@
 
 #include "config.h"
 
-const unsigned int DEFAULT_PORT = 10002;
-const size_t DEFAULT_MSG_MAX_SIZE = 1000000;
-const size_t DEFAULT_SCCB_POOL_INTERVAL = 100;
-const unsigned int DEFAULT_INSTANT_SWAP = 0;
-
 typedef char DEFAULT_KeyType[16];
 
 void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
@@ -31,10 +26,6 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
 
     /* Set default values */
     options.dht.id = 0;
-    options.dht.port = DEFAULT_PORT;
-    options.dht.msgMaxsize = DEFAULT_MSG_MAX_SIZE;
-    options.dht.sccbPoolInterval = DEFAULT_SCCB_POOL_INTERVAL;
-    options.dht.instantSwap = DEFAULT_INSTANT_SWAP;
     options.key.field(0, sizeof(DEFAULT_KeyType));
 
     if (boost::filesystem::exists(configFile)) {
