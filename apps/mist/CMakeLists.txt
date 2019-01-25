@@ -11,17 +11,16 @@ set(ROOT_DAQDB_DIR ${PROJECT_SOURCE_DIR}/../..)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ROOT_DAQDB_DIR}/bin)
 
-set(3RDPARTY ${ROOT_DAQDB_DIR}/third-party)
-set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
-
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
 find_package(Threads REQUIRED)
 
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 
-configure_file(mist.cfg.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mist.cfg COPYONLY)
-
 file(GLOB MIST_SOURCES ${APPS}/mist/*.cpp ${APPS}/mist/*.hpp)
 add_executable(mist ${MIST_SOURCES})
-target_link_libraries(mist ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-	pmem daqdb pmemobj dl numa ${Dpdk_LIBRARIES})
+set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
+target_link_libraries(mist ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INT}
+	${CMAKE_THREAD_LIBS_INIT} ${Dpdk_LIBRARIES} daqdb_thin dl numa)
+
+configure_file(mist.cfg.in
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mist.cfg.sample COPYONLY)

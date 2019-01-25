@@ -55,8 +55,9 @@ class MinidaqStats {
     explicit MinidaqStats(const std::vector<MinidaqStats> &rVector);
     ~MinidaqStats();
     MinidaqStats(const MinidaqStats &other);
-    MinidaqStats& operator=(MinidaqStats &&other);
+    MinidaqStats &operator=(MinidaqStats &&other);
 
+    static void ShowSample(const std::string &info, const MinidaqSample &s);
     void RecordSample(const MinidaqSample &s);
     void Combine(const MinidaqStats &stats);
 

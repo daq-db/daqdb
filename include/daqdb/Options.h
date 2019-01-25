@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include <asio/io_service.hpp>
 #include <functional>
 #include <vector>
 
@@ -23,17 +22,24 @@
 
 namespace DaqDB {
 
+enum KeyValAttribute : std::int8_t {
+    NOT_BUFFERED = 0,
+    KVS_BUFFERED = (1 << 0),
+};
+
 enum PrimaryKeyAttribute : std::int8_t {
     EMPTY = 0,
     LOCKED = (1 << 0),
     READY = (1 << 1),
     LONG_TERM = (1 << 2),
-    /*
-     * @TODO jradtke REMOTE flag added only for early testing purposes,
-     * value location will be calculated from the key.
-     */
-    REMOTE = (1 << 3)
 };
+
+enum OperationalMode : std::int8_t { STORAGE = 0, SATELLITE };
+
+inline KeyValAttribute operator|(KeyValAttribute a, KeyValAttribute b) {
+    return static_cast<KeyValAttribute>(static_cast<int>(a) |
+                                        static_cast<int>(b));
+}
 
 inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
                                      PrimaryKeyAttribute b) {
@@ -41,58 +47,63 @@ inline PrimaryKeyAttribute operator|(PrimaryKeyAttribute a,
                                             static_cast<int>(b));
 }
 
-struct AllocOptions {};
+struct AllocOptions {
+    AllocOptions() : attr(KeyValAttribute::KVS_BUFFERED) {}
+    AllocOptions(KeyValAttribute attr) : attr(attr) {}
+
+    KeyValAttribute attr;
+};
 
 struct UpdateOptions {
-    UpdateOptions() {}
-    UpdateOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
+    UpdateOptions() : attr(PrimaryKeyAttribute::EMPTY) {}
+    UpdateOptions(PrimaryKeyAttribute attr) : attr(attr) {}
 
-    PrimaryKeyAttribute Attr;
+    PrimaryKeyAttribute attr;
 };
 
 struct PutOptions {
     PutOptions() {}
-    explicit PutOptions(PrimaryKeyAttribute attr) : Attr(attr) {}
+    explicit PutOptions(PrimaryKeyAttribute attr) : attr(attr) {}
 
-    void poolerId(unsigned short id) { _poolerId = id; }
+    void pollerId(unsigned short id) { _pollerId = id; }
 
     void roundRobin(bool rr) { _roundRobin = rr; }
 
-    unsigned short poolerId() const { return _poolerId; }
+    unsigned short pollerId() const { return _pollerId; }
 
     bool roundRobin() const { return _roundRobin; }
 
-    PrimaryKeyAttribute Attr = PrimaryKeyAttribute::EMPTY;
-    unsigned short _poolerId = 0;
+    PrimaryKeyAttribute attr = PrimaryKeyAttribute::EMPTY;
+    unsigned short _pollerId = 0;
     bool _roundRobin = true;
 };
 
 struct GetOptions {
     GetOptions() {}
     GetOptions(PrimaryKeyAttribute attr, PrimaryKeyAttribute newAttr)
-        : Attr(attr), NewAttr(newAttr) {}
+        : attr(attr), newAttr(newAttr) {}
 
-    explicit GetOptions(PrimaryKeyAttribute attr) : Attr(attr), NewAttr(attr) {}
+    explicit GetOptions(PrimaryKeyAttribute attr) : attr(attr), newAttr(attr) {}
 
-    void poolerId(unsigned short id) { _poolerId = id; }
+    void pollerId(unsigned short id) { _pollerId = id; }
 
     void roundRobin(bool rr) { _roundRobin = rr; }
 
-    unsigned short poolerId() const { return _poolerId; }
+    unsigned short pollerId() const { return _pollerId; }
 
     bool roundRobin() const { return _roundRobin; }
 
-    PrimaryKeyAttribute Attr = PrimaryKeyAttribute::EMPTY;
-    PrimaryKeyAttribute NewAttr = PrimaryKeyAttribute::EMPTY;
+    PrimaryKeyAttribute attr = PrimaryKeyAttribute::EMPTY;
+    PrimaryKeyAttribute newAttr = PrimaryKeyAttribute::EMPTY;
 
-    unsigned short _poolerId = 0;
+    unsigned short _pollerId = 0;
     bool _roundRobin = true;
 };
 
 struct KeyFieldDescriptor {
-    KeyFieldDescriptor() : Size(0), IsPrimary(false) {}
-    size_t Size;
-    bool IsPrimary;
+    KeyFieldDescriptor() : size(0), isPrimary(false) {}
+    size_t size;
+    bool isPrimary;
 };
 
 struct KeyDescriptor {
@@ -102,7 +113,8 @@ struct KeyDescriptor {
         if (nfields() <= idx)
             _fields.resize(idx + 1);
 
-        _fields[idx].Size = size;
+        _fields[idx].size = size;
+        _fields[idx].isPrimary = isPrimary;
     }
 
     KeyFieldDescriptor field(size_t idx) const {
@@ -126,11 +138,13 @@ struct OffloadOptions {
 struct RuntimeOptions {
     std::function<void(std::string)> logFunc = nullptr;
     std::function<void()> shutdownFunc = nullptr;
-    unsigned short numOfPoolers = 1;
+    unsigned short numOfPollers = 1;
+    size_t maxReadyKeys = 0;
 };
 
 struct DhtKeyRange {
-    std::string mask = "";
+    unsigned int maskLength = 0;
+    unsigned int maskOffset = 0;
     std::string start = "";
     std::string end = "";
 };
@@ -138,19 +152,18 @@ struct DhtKeyRange {
 struct DhtNeighbor {
     std::string ip;
     unsigned short port = 0;
+    bool local = false;
     DhtKeyRange keyRange;
 };
 
 struct DhtOptions {
     unsigned short port = 0;
-    NodeId Id = 0;
-
+    NodeId id = 0;
     std::string protocol = "";
     size_t msgMaxsize = 0;
     unsigned int sccbPoolInterval = 0;
     unsigned int instantSwap = 0;
-
-    std::vector<DhtNeighbor*> neighbors;
+    std::vector<DhtNeighbor *> neighbors;
 };
 
 struct PMEMOptions {
@@ -164,11 +177,11 @@ struct Options {
     Options() {}
     explicit Options(const std::string &path);
 
-    KeyDescriptor Key;
-    OffloadOptions Offload;
-    RuntimeOptions Runtime;
-    DhtOptions Dht;
-
-    PMEMOptions PMEM;
+    DhtOptions dht;
+    KeyDescriptor key;
+    OperationalMode mode = OperationalMode::STORAGE;
+    OffloadOptions offload;
+    PMEMOptions pmem;
+    RuntimeOptions runtime;
 };
-}
+} // namespace DaqDB

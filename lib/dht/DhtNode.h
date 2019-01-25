@@ -15,35 +15,84 @@
 
 #pragma once
 
-#include <Value.h>
-#include <Key.h>
-#include "PureNode.h"
-#include <asio/io_service.hpp>
+#include <atomic>
+#include <boost/format.hpp>
+#include <string>
 
 namespace DaqDB {
+
+enum class DhtNodeState : std::uint8_t {
+    NODE_INIT = 0,
+    NODE_READY,
+    NODE_NOT_RESPONDING
+};
+
+const int ERPC_SESSION_NOT_SET = -1;
 
 /*!
  * Class that defines interface for DHT
  */
-class DhtNode : public PureNode {
+class DhtNode {
   public:
-    DhtNode(asio::io_service &io_service, unsigned short port);
-    virtual ~DhtNode();
+    DhtNode();
 
-    /*!
-     * Prints DHT status.
-     * @return
+    /**
+     *  @return eRPC session id for this node
      */
-    virtual std::string printStatus() = 0;
+    inline int getSessionId() const { return _sessionId; };
 
-    /*!
-     * Prints DHT neighbors.
-     * @return
+    /**
+     * @return IP address for this node
      */
-    virtual std::string printNeighbors() = 0;
+    inline const std::string &getIp() const { return _ip; };
 
-    virtual Value Get(const Key &key) = 0;
-    virtual void Put(const Key &key, const Value &val) = 0;
+    /**
+     * @return Port number for this node
+     */
+    inline unsigned short getPort() const { return _port; };
+
+    /**
+     * @param portOffset offset that will be added to the node port
+     * @return URI with IP and port for this node
+     */
+    inline const std::string getUri(unsigned int portOffset = 0) const {
+        return boost::str(boost::format("%1%:%2%") % getIp() %
+                          std::to_string(getPort() + portOffset));
+    };
+
+    void setIp(const std::string &ip) { _ip = ip; };
+    void setPort(unsigned short port) { _port = port; };
+
+    /**
+     * @param id eRPC session id
+     */
+    void setSessionId(int id) { _sessionId = id; };
+
+    inline unsigned int getMaskLength() { return _maskLength; }
+    inline unsigned int getMaskOffset() { return _maskOffset; }
+    inline unsigned int getStart() { return _start; }
+    inline unsigned int getEnd() { return _end; }
+    inline void setMaskLength(unsigned int maskLength) {
+        _maskLength = maskLength;
+    };
+    inline void setMaskOffset(unsigned int maskOffset) {
+        _maskOffset = maskOffset;
+    };
+    inline void setStart(unsigned int start) { _start = start; };
+    inline void setEnd(unsigned int end) { _end = end; };
+
+    std::atomic<DhtNodeState> state;
+
+  private:
+    std::string _ip = "";
+    int _sessionId = ERPC_SESSION_NOT_SET;
+    unsigned short _port = 0;
+
+    // @TODO jradtke replace with other key mapping structures
+    unsigned int _maskLength = 0;
+    unsigned int _maskOffset = 0;
+    unsigned int _start = 0;
+    unsigned int _end = 0;
 };
 
 } // namespace DaqDB

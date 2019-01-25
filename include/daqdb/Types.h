@@ -28,12 +28,25 @@ typedef unsigned int NodeId;
                             std::string(__FILE__) + ":" +                      \
                             std::to_string(__LINE__) + "]")
 
+#define FUNC_NOT_SUPPORTED                                                     \
+    NotSupportedFuncException("function: " + std::string(__func__) + " [" +    \
+                              std::string(__FILE__) + ":" +                    \
+                              std::to_string(__LINE__) + "]")
+
 class NotImplementedException : public std::logic_error {
   public:
     explicit NotImplementedException(const std::string &what)
         : logic_error("Not Implemented: " + what) {}
 
     NotImplementedException() : logic_error("Not Implemented") {}
+};
+
+class NotSupportedFuncException : public std::logic_error {
+  public:
+    explicit NotSupportedFuncException(const std::string &what)
+        : logic_error("Not Supported: " + what) {}
+
+    NotSupportedFuncException() : logic_error("Not Supported") {}
 };
 
 class OperationFailedException : public std::runtime_error {
@@ -43,7 +56,7 @@ class OperationFailedException : public std::runtime_error {
         set_what();
     }
     explicit OperationFailedException(const std::string &msg = "")
-        : runtime_error(msg), _status(UnknownError) {
+        : runtime_error(msg), _status(UNKNOWN_ERROR) {
         set_what();
     }
     OperationFailedException(int errnum, const std::string &msg = "")
@@ -73,4 +86,4 @@ class QueueFullException : public std::runtime_error {
     QueueFullException() : runtime_error("Queue full") {}
 };
 
-}
+} // namespace DaqDB

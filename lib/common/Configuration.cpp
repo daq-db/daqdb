@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -39,46 +39,52 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         return false;
     }
 
-    cfg.lookupValue("pmem_path", options.PMEM.poolPath);
+    cfg.lookupValue("pmem_path", options.pmem.poolPath);
     long long pmemSize;
     if (cfg.lookupValue("pmem_size", pmemSize))
-        options.PMEM.totalSize = pmemSize;
+        options.pmem.totalSize = pmemSize;
     int allocUnitSize;
     if (cfg.lookupValue("alloc_unit_size", allocUnitSize))
-        options.PMEM.allocUnitSize = allocUnitSize;
+        options.pmem.allocUnitSize = allocUnitSize;
 
     // Configure key structure
     std::string primaryKey;
     cfg.lookupValue("primaryKey", primaryKey);
     std::vector<int> keysStructure;
-    const libconfig::Setting &keys_settings = cfg.lookup("keys_structure");
-    for (int n = 0; n < keys_settings.getLength(); ++n) {
-        keysStructure.push_back(keys_settings[n]);
-        // TODO extend functionality of primary key definition
-        options.Key.field(n, keysStructure[n], (n == 0) ? true : false);
+    try {
+        const libconfig::Setting &keys_settings = cfg.lookup("keys_structure");
+        for (int n = 0; n < keys_settings.getLength(); ++n) {
+            keysStructure.push_back(keys_settings[n]);
+            // TODO extend functionality of primary key definition
+            options.key.field(n, keysStructure[n], (n == 0) ? true : false);
+        }
+    } catch (SettingNotFoundException &e) {
+        // no action needed
     }
 
-    cfg.lookupValue("protocol", options.Dht.protocol);
+    std::string db_mode;
+    cfg.lookupValue("mode", db_mode);
+    if (db_mode.compare("satellite") == 0) {
+        options.mode = OperationalMode::SATELLITE;
+    } else {
+        // STORAGE as default mode
+        options.mode = OperationalMode::STORAGE;
+    }
+
+    cfg.lookupValue("protocol", options.dht.protocol);
     int port;
     if (cfg.lookupValue("port", port))
-        options.Dht.port = port;
-    long long msgMaxSize;
-    if (cfg.lookupValue("msg_maxsize", msgMaxSize))
-        options.Dht.msgMaxsize = msgMaxSize;
-    int sccbPoolInterval;
-    if (cfg.lookupValue("sccb_pool_interval", sccbPoolInterval))
-        options.Dht.sccbPoolInterval = sccbPoolInterval;
-    int instantSwap;
-    if (cfg.lookupValue("instant_swap", instantSwap))
-        options.Dht.instantSwap = instantSwap;
+        options.dht.port = port;
 
     int offloadAllocUnitSize;
     if (cfg.lookupValue("offload_unit_alloc_size", offloadAllocUnitSize))
-        options.Offload.allocUnitSize = offloadAllocUnitSize;
-    cfg.lookupValue("offload_nvme_addr", options.Offload.nvmeAddr);
-    cfg.lookupValue("offload_nvme_name", options.Offload.nvmeName);
-    std::string range_mask;
-    cfg.lookupValue("dht_key_mask", range_mask);
+        options.offload.allocUnitSize = offloadAllocUnitSize;
+    cfg.lookupValue("offload_nvme_addr", options.offload.nvmeAddr);
+    cfg.lookupValue("offload_nvme_name", options.offload.nvmeName);
+    int maskLength = 0;
+    int maskOffset = 0;
+    cfg.lookupValue("dht_key_mask_length", maskLength);
+    cfg.lookupValue("dht_key_mask_offset", maskOffset);
 
     try {
         const libconfig::Setting &neighbors = cfg.lookup("neighbors");
@@ -87,10 +93,21 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
             const libconfig::Setting &neighbor = neighbors[n];
             dhtNeighbor->ip = neighbor["ip"].c_str();
             dhtNeighbor->port = (unsigned int)(neighbor["port"]);
-            dhtNeighbor->keyRange.mask = range_mask;
-            dhtNeighbor->keyRange.start = neighbor["keys"]["start"].c_str();
-            dhtNeighbor->keyRange.end = neighbor["keys"]["end"].c_str();
-            options.Dht.neighbors.push_back(dhtNeighbor);
+            dhtNeighbor->keyRange.maskLength = maskLength;
+            dhtNeighbor->keyRange.maskOffset = maskOffset;
+            try {
+                dhtNeighbor->keyRange.start = neighbor["keys"]["start"].c_str();
+                dhtNeighbor->keyRange.end = neighbor["keys"]["end"].c_str();
+            } catch (SettingNotFoundException &e) {
+                dhtNeighbor->keyRange.start = "";
+                dhtNeighbor->keyRange.end = "";
+            }
+            try {
+                dhtNeighbor->local = ((unsigned int)(neighbor["local"]) > 0);
+            } catch (SettingNotFoundException &e) {
+                dhtNeighbor->local = false;
+            }
+            options.dht.neighbors.push_back(dhtNeighbor);
         }
     } catch (SettingNotFoundException &e) {
         // no action needed

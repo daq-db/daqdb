@@ -4,7 +4,7 @@
 	ignore = dirty
 [submodule "third-party/pmdk"]
 	path = third-party/pmdk
-	url = https://github.com/pmem/pmdk
+	url = https://github.com/pbalcer/nvml.git
 	ignore = dirty
 [submodule "third-party/HdrHistogram_c"]
 	path = third-party/HdrHistogram_c
@@ -13,10 +13,6 @@
 [submodule "third-party/libconfig"]
 	path = third-party/libconfig
 	url = https://github.com/hyperrealm/libconfig.git
-	ignore = dirty
-[submodule "third-party/protobuf"]
-	path = third-party/protobuf
-	url = https://github.com/protocolbuffers/protobuf.git
 	ignore = dirty
 [submodule "src/3rd/linenoise"]
 	path = examples/clinode/linenoise

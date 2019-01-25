@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -21,11 +21,13 @@
 #pragma once
 
 #include <string>
-#include "daqdb/Status.h"
-#include "daqdb/Options.h"
-#include "daqdb/Key.h"
-#include "daqdb/Value.h"
+
 #include "daqdb/KVPair.h"
+#include "daqdb/Key.h"
+#include "daqdb/Options.h"
+#include "daqdb/Status.h"
+#include "daqdb/Value.h"
+
 #include <functional>
 
 namespace DaqDB {
@@ -45,7 +47,8 @@ namespace DaqDB {
  */
 class KVStoreBase {
   public:
-	/** @TODO: jradtke Temporarily using this base alias for both PUT,GET,UPDATE messages */
+    /** @TODO: jradtke Temporarily using this base alias for both PUT,GET,UPDATE
+     * messages */
     using KVStoreBaseCallback = std::function<void(
         KVStoreBase *kvs, Status status, const char *key, const size_t keySize,
         const char *value, const size_t valueSize)>;
@@ -54,6 +57,8 @@ class KVStoreBase {
         std::function<void(KVStoreBase *kvs, Status status, const Key &key)>;
     using KVStoreBaseRangeCallback = std::function<void(
         KVStoreBase *kvs, Status status, std::vector<KVPair> &results)>;
+
+    virtual ~KVStoreBase(){};
 
     /**
      * Open the KV store with given options.
@@ -66,9 +71,8 @@ class KVStoreBase {
      *
      * @snippet basic/basic.cpp open
      */
-    static KVStoreBase *Open(const Options &options);
 
-  public:
+    static KVStoreBase *Open(const Options &options);
     /**
      * Return the size of a key, which the KV store uses.
      *
@@ -158,7 +162,8 @@ class KVStoreBase {
      * @snippet basic/basic.cpp open
      * @snippet basic/basic.cpp get_any
      */
-    virtual Key GetAny(const GetOptions &options = GetOptions()) = 0;
+    virtual Key GetAny(const AllocOptions &allocOptions = AllocOptions(),
+                       const GetOptions &options = GetOptions()) = 0;
 
     /**
      * Asynchronously get any unlocked primary key. Other fields of the key are
@@ -169,6 +174,7 @@ class KVStoreBase {
      * completes.
      */
     virtual void GetAnyAsync(KVStoreBaseGetAnyCallback cb,
+                             const AllocOptions &allocOptions = AllocOptions(),
                              const GetOptions &options = GetOptions()) = 0;
 
     /**
@@ -310,6 +316,8 @@ class KVStoreBase {
      * @return On success returns a pointer to allocated KV buffer. Otherwise
      * returns nullptr.
      *
+     * @param[in] key Key buffer. If not allocated by current instance of
+     * KVStoreBase the behavior is undefined.
      * @param[in] size Size of allocation.
      * @param[in] options Allocation options.
      */
@@ -319,14 +327,18 @@ class KVStoreBase {
     /**
      * Deallocate a Value buffer.
      *
+     * @param[in] key Key buffer. If not allocated by current instance of
+     * KVStoreBase the behavior is undefined.
      * @param[in] value Value buffer. If not allocated by current instance of
      * KVStoreBase the behaviour is undefined.
      */
-    virtual void Free(Value &&value) = 0;
+    virtual void Free(const Key &key, Value &&value) = 0;
 
     /**
      * Reallocate a Value buffer.
      *
+     * @param[in] key Key buffer. If not allocated by current instance of
+     * KVStoreBase the behavior is undefined.
      * @param[in] value KV buffer to be reallocated. If buff is nullptr this
      * call is equivalent to Alloc.
      * @param[in] size New size of a Value buffer. If the size is 0 and buff is
@@ -339,7 +351,7 @@ class KVStoreBase {
      * changing a size, by passing the same size.
      *
      */
-    virtual void Realloc(Value &value, size_t size,
+    virtual void Realloc(const Key &key, Value &value, size_t size,
                          const AllocOptions &options = AllocOptions()) = 0;
 
     /**
@@ -393,4 +405,4 @@ class KVStoreBase {
     virtual bool IsOffloaded(Key &key) = 0;
 };
 
-}
+} // namespace DaqDB

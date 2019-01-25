@@ -25,13 +25,13 @@
 
 namespace DaqDB {
 
-struct MinidaqKey {
+struct __attribute__((packed)) MinidaqKey {
     MinidaqKey() : eventId(0), subdetectorId(0), runId(0){};
     MinidaqKey(uint64_t e, uint16_t s, uint16_t r)
         : eventId(e), subdetectorId(s), runId(r) {}
-    uint64_t eventId;
-    uint16_t subdetectorId;
     uint16_t runId;
+    uint16_t subdetectorId;
+    uint64_t eventId;
 };
 
 class MinidaqNode {
@@ -54,23 +54,26 @@ class MinidaqNode {
     void SetBaseCoreId(int id);
     void SetMaxIterations(uint64_t n);
     void SetStopOnError(bool stop);
+    void SetLive(bool live);
+    void SetLocalOnly(bool local);
     int GetThreads();
 
   protected:
-    virtual void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+    virtual void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                        std::atomic<std::uint64_t> &cntErr) = 0;
-    virtual void _Setup(int executorId, MinidaqKey &key) = 0;
-    virtual void _NextKey(MinidaqKey &key) = 0;
+    virtual void _Setup(int executorId) = 0;
+    virtual Key _NextKey() = 0;
 #ifdef WITH_INTEGRITY_CHECK
-    char _GetBufferByte(MinidaqKey &key, size_t i);
-    void _FillBuffer(MinidaqKey &key, char *buf, size_t s);
-    void _CheckBuffer(MinidaqKey &key, char *buf, size_t s);
+    char _GetBufferByte(const Key &key, size_t i);
+    void _FillBuffer(const Key &key, char *buf, size_t s);
+    bool _CheckBuffer(const Key &key, const char *buf, size_t s);
 #endif /* WITH_INTEGRITY_CHECK */
     virtual std::string _GetType() = 0;
 
     KVStoreBase *_kvs;
     int _runId = 599;
-    int _nTh = 1; // number of worker threads
+    int _nTh = 1;            // number of worker threads
+    bool _localOnly = false; // single-node benchmark
 #ifdef WITH_INTEGRITY_CHECK
     std::atomic<std::uint64_t> _nIntegrityChecks;
     std::atomic<std::uint64_t> _nIntegrityErrors;
@@ -91,6 +94,7 @@ class MinidaqNode {
     int _baseCoreId = 0; // base core id for minidaq workers
     uint64_t _maxIterations = 0; // maximum number of iterations per thread
     bool _stopOnError = false;   // break test on first error
+    bool _live = false;          // show live results
 
     std::vector<std::future<MinidaqStats>> _futureVec;
     std::vector<MinidaqStats> _statsVec;

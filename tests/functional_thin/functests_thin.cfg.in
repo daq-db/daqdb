@@ -1,0 +1,57 @@
+//*****************************************************************************
+//******************************* MAIN SECTION ********************************
+//*****************************************************************************
+
+/**
+ * mode - operational mode of this DaqDB instance. Valid parameters:
+ *        storage - this instance will accept and store internally data
+ *        satellite - this instance will accept and forward all data to
+ *                    one of the storage nodes
+ */
+mode = "satellite";
+
+/**
+ * logging_level - valid parameters:
+ *                 logging_level = "DEBUG";
+ *                 logging_level = "FATAL";
+ */
+logging_level = "DEBUG";
+
+//*****************************************************************************
+//******************************* DATA SECTION ********************************
+//*****************************************************************************
+
+/**
+ * keys_structure - defines how compound structure of a key looks like
+ *                  format: /1/8/4/16, representing 29 bytes total key
+ *                  with four parts
+ * primaryKey     - primary key is being used to derive positioning of
+ *                  data. It is defined by operation on key parts.
+ *                  described by consecutive numbers starting with 1, e.g.
+ *                  1*3
+ *                  Result has to be unique for all the key stored.
+ */
+keys_structure = [8];
+primaryKey = "0";
+
+//*****************************************************************************
+//******************************* DHT SECTION ********************************
+//*****************************************************************************
+
+dht_key_mask_length = 1;
+dht_key_mask_offset = 0;
+neighbors : (
+                {
+                    ip = "localhost";
+                    port = 31851;
+                    local = 1;
+                },
+                {
+                    // daqdb peer required to perform functional tests for
+                    // "thin" mode
+                    ip = "localhost";
+                    port = 31850;
+                    keys = { start = "0", end = "255" };
+                }, );
+
+//************************************ EOF ************************************

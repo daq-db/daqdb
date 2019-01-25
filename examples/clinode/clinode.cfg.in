@@ -5,6 +5,14 @@
 //*****************************************************************************
 
 /**
+ * mode - operational mode of this DaqDB instance. Valid parameters:
+ *        storage - this instance will accept and store internally data
+ *        satellite - this instance will accept and forward all data to
+ *                    one of the storage nodes
+ */
+mode = "storage";
+
+/**
  * pmem_path      - location of file created on top of persistent memory
  *                  enabled filesystem
  * pmem_size      - total size of the persistent memory pool to use
@@ -12,7 +20,7 @@
  */
 pmem_path = "/mnt/pmem/pool.pm";
 pmem_size = 8589934592L;
-alloc_unit_size = 8;
+alloc_unit_size = 16384;
 
 /**
  * logging_level - valid parameters:
@@ -42,27 +50,25 @@ primaryKey = "1*3";
 //******************************* DHT SECTION ********************************
 //*****************************************************************************
 
-protocol = "TCP";
-port = 11000;
-msg_maxsize = 1000000L;
-sccb_pool_interval = 100;
-instant_swap = 0;
-
 /**
  * key_mask
  * neighbors
  */
-dht_key_mask = "1";
+dht_key_mask_length = "8";
+dht_key_mask_offset = "0";
 neighbors :
 (
     {
-        ip = "localhost";
-        port = 11000;
+        // replace with ip of storage node
+        ip = "10.102.108.54";
+        port = 31850;
+        local = 1;
         keys = { start = "0", end = "64"}
     },
     {
-        ip = "10.102.108.53";
-        port = 11000;
+        // replace with ip of peer storage node 
+        ip = "10.102.108.56";
+        port = 31850;
         keys = { start = "65", end = "255"}
     },
 );

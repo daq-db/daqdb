@@ -17,7 +17,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <iostream>
 #include <numeric>
 #include <stdio.h>
 #include <system_error>
@@ -94,7 +93,7 @@ MinidaqStats::MinidaqStats(const MinidaqStats &other) : MinidaqStats() {
     _totalTime_ns = other._totalTime_ns;
 }
 
-MinidaqStats& MinidaqStats::operator=(MinidaqStats &&other) {
+MinidaqStats &MinidaqStats::operator=(MinidaqStats &&other) {
     _histogramRps = other._histogramRps;
     _histogramCps = other._histogramCps;
     _histogramRpsErr = other._histogramRpsErr;
@@ -121,6 +120,30 @@ void MinidaqStats::Combine(const MinidaqStats &stats) {
     _nOverflows += hdr_add(_histogramRpsErr, stats._histogramRpsErr);
     _nOverflows += hdr_add(_histogramCpsErr, stats._histogramCpsErr);
     _nOverflows += stats._nOverflows;
+}
+
+void MinidaqStats::ShowSample(const std::string &info, const MinidaqSample &s) {
+    uint64_t rpserr;
+    uint64_t cpserr;
+    uint64_t rps;
+    uint64_t cps;
+
+    if (!s.interval_ns) {
+        return;
+    }
+
+    rps = (s.nRequests * NSECS_IN_SEC) / (s.interval_ns * 1e3);
+    cps = (s.nCompletions * NSECS_IN_SEC) / (s.interval_ns * 1e3);
+    rpserr = (s.nErrRequests * NSECS_IN_SEC) / (s.interval_ns * 1e3);
+    cpserr = (s.nErrCompletions * NSECS_IN_SEC) / (s.interval_ns * 1e3);
+
+    std::stringstream msg;
+    msg << setw(20) << left << info << " " << setfill('0') << setw(3)
+        << std::to_string(rps) << "/" << setfill('0') << setw(3)
+        << std::to_string(cps) << "/" << setfill('0') << setw(3)
+        << std::to_string(rpserr) << "/" << setfill('0') << setw(3)
+        << std::to_string(cpserr) << std::endl;
+    std::cout << msg.str();
 }
 
 void MinidaqStats::RecordSample(const MinidaqSample &s) {

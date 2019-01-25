@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018 - 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -13,13 +13,16 @@
  * stated in the License.
  */
 
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <memory>
 
 #include "MinidaqAroNode.h"
 #include "MinidaqFfNode.h"
+#include "MinidaqFfNodeSeq.h"
 #include "MinidaqRoNode.h"
+#include "config/Configuration.h"
 #include "daqdb/KVStoreBase.h"
 
 using namespace std;
@@ -41,14 +44,19 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_POOLERS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
 #define MINIDAQ_DEFAULT_PARALLEL true
+#define MINIDAQ_DEFAULT_SERVER false
 #define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
 #define MINIDAQ_DEFAULT_DELAY 0
 #define MINIDAQ_DEFAULT_BASE_CORE_ID 10
 #define MINIDAQ_DEFAULT_N_CORES 10
 #define MINIDAQ_DEFAULT_LOG false
 #define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 100
-#define MINIDAQ_DEFAULT_ITERATIONS (1ULL << 24ULL - 1ULL)
+#define MINIDAQ_DEFAULT_ITERATIONS 0
 #define MINIDAQ_DEFAULT_STOPONERROR false
+#define MINIDAQ_DEFAULT_LIVE false
+#define MINIDAQ_DEFAULT_MAX_READY_KEYS 4 * 1024 * 1024
+#define MINIDAQ_DEFAULT_SATELLITE false
+#define MINIDAQ_DEFAULT_CONF "minidaq.cfg"
 
 #define US_IN_MS 1000
 
@@ -66,10 +74,15 @@ int tRamp_ms;
 int delay;
 int nCores;
 int bCoreId;
+int maxReadyKeys;
 size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
 size_t maxIters;
 bool stopOnError = MINIDAQ_DEFAULT_STOPONERROR;
+bool live = MINIDAQ_DEFAULT_LIVE;
+bool satellite = MINIDAQ_DEFAULT_SATELLITE;
+std::string configFile;
+bool singleNode = false;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -77,25 +90,57 @@ static void logStd(std::string m) {
 }
 
 /** @todo move to MinidaqFogServer for distributed version */
-static DaqDB::KVStoreBase *openKVS() {
+static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     DaqDB::Options options;
-    options.PMEM.poolPath = pmem_path;
-    options.PMEM.totalSize = pmem_size;
-    options.PMEM.allocUnitSize = fSize;
-    options.Key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
-    options.Key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
-    options.Key.field(2, sizeof(DaqDB::MinidaqKey::runId));
-    options.Runtime.numOfPoolers = nPoolers;
+
+    if (boost::filesystem::exists(configFile)) {
+        std::cout << "### Reading minidaq configuration file... " << endl;
+        std::stringstream errorMsg;
+        if (!DaqDB::readConfiguration(configFile, options, errorMsg)) {
+            std::cout << "### Failed to read minidaq configuration file. "
+                      << endl
+                      << errorMsg.str() << std::endl;
+        }
+        std::cout << "### Done. " << endl;
+    }
+    options.pmem.poolPath = pmem_path;
+    options.pmem.totalSize = pmem_size;
+    options.pmem.allocUnitSize = fSize;
+    options.key.field(0, sizeof(DaqDB::MinidaqKey::runId));
+    options.key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
+    options.key.field(2, sizeof(DaqDB::MinidaqKey::eventId), true);
+    options.runtime.numOfPollers = nPoolers;
+    options.runtime.maxReadyKeys = maxReadyKeys;
+    if (satellite) {
+        options.mode = DaqDB::OperationalMode::SATELLITE;
+
+    } else {
+        options.mode = DaqDB::OperationalMode::STORAGE;
+        if (!options.dht.neighbors.size()) {
+            DaqDB::DhtNeighbor local;
+            local.ip = "localhost";
+            local.port = 31851;
+            local.local = true;
+            local.keyRange.maskLength = 0;
+            local.keyRange.maskOffset = 0;
+            options.dht.neighbors.push_back(&local);
+            singleNode = true;
+        }
+    }
     if (enableLog) {
-        options.Runtime.logFunc = logStd;
+        options.runtime.logFunc = logStd;
     }
 
-    return DaqDB::KVStoreBase::Open(options);
+    return std::unique_ptr<DaqDB::KVStoreBase>(
+        DaqDB::KVStoreBase::Open(options));
 }
 
 static void
 runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
     int nCoresUsed = 0;
+
+    if (!nodes.size())
+        return;
 
     // Configure
     std::cout << "### Configuring..." << endl;
@@ -108,6 +153,8 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
         n->SetBaseCoreId(bCoreId + nCoresUsed);
         n->SetMaxIterations(maxIters);
         n->SetStopOnError(stopOnError);
+        n->SetLive(live);
+        n->SetLocalOnly(singleNode);
         nCoresUsed += n->GetThreads();
         n->SetCores(n->GetThreads());
         if (nCoresUsed > nCores) {
@@ -143,6 +190,7 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
 
 int main(int argc, const char *argv[]) {
     bool isParallel = MINIDAQ_DEFAULT_PARALLEL;
+    bool isServer = MINIDAQ_DEFAULT_SERVER;
     double acceptLevel = 0;
     int collectorDelay = 0;
     int startSubId = 0;
@@ -169,12 +217,16 @@ int main(int argc, const char *argv[]) {
         po::value<size_t>(&maxIters)->default_value(MINIDAQ_DEFAULT_ITERATIONS),
         "In non-zero, defines the maximum number of iterations per thread.")(
         "stopOnError", "If set, test will not continue after first error")(
+        "live", "If set, live results will be displayed")(
+        "satellite", "If set, local storage backend will be disabled")(
         "pmem-path", po::value<std::string>(&pmem_path)
                          ->default_value(MINIDAQ_DEFAULT_PMEM_PATH),
         "Persistent memory pool file.")(
         "pmem-size",
         po::value<size_t>(&pmem_size)->default_value(MINIDAQ_DEFAULT_PMEM_SIZE),
         "Persistent memory pool size.")(
+        "serverMode",
+        "If set, minidaq will open KVS and wait for external requests. ")(
         "out-prefix", po::value<std::string>(&results_prefix),
         "If set CSV result files will be generated with the desired prefix and "
         "path.")("out-summary", po::value<std::string>(&results_all),
@@ -189,12 +241,18 @@ int main(int argc, const char *argv[]) {
         "n-cores",
         po::value<int>(&nCores)->default_value(MINIDAQ_DEFAULT_N_CORES),
         "Number of cores for minidaq worker threads.")(
+        "max-ready-keys", po::value<int>(&maxReadyKeys)
+                              ->default_value(MINIDAQ_DEFAULT_MAX_READY_KEYS),
+        "Size of the queue holding keys ready for collecting.")(
         "start-delay",
         po::value<int>(&delay)->default_value(MINIDAQ_DEFAULT_DELAY),
         "Delays start of the test on each worker thread.")(
         "tid-file", po::value<std::string>(&tid_file),
         "If set a file with thread IDs of benchmark worker threads will be "
         "generated.")("log,l", "Enable logging")(
+        "config-file,c",
+        po::value<string>(&configFile)->default_value(MINIDAQ_DEFAULT_CONF),
+        "Configuration file defining DHT nodes.")(
         "spdk-conf-file,c", po::value<std::string>(&spdk_conf)
                                 ->default_value(MINIDAQ_DEFAULT_SPDK_CONF),
         "SPDK configuration file");
@@ -234,7 +292,7 @@ int main(int argc, const char *argv[]) {
         "delay", po::value<int>(&collectorDelay)
                      ->default_value(MINIDAQ_DEFAULT_COLLECTOR_DELAY_US),
         "If set, collector threads will wait delay us between requests for "
-        "event.");
+        "event, if not yet available.");
 
     po::options_description argumentsDescription;
     argumentsDescription.add(genericOpts).add(readoutOpts).add(filteringOpts);
@@ -261,19 +319,22 @@ int main(int argc, const char *argv[]) {
     if (parsedArguments.count("serial")) {
         isParallel = false;
     }
+    if (parsedArguments.count("serverMode")) {
+        isServer = true;
+    }
     if (parsedArguments.count("stopOnError")) {
         stopOnError = true;
+    }
+    if (parsedArguments.count("live")) {
+        live = true;
+    }
+    if (parsedArguments.count("satellite")) {
+        satellite = true;
     }
 
     if (nEbTh) {
         cerr << "Event builders not supported" << endl;
         return -1;
-    }
-
-    if (!nRoTh && !nAroTh && !nFfTh && !nEbTh) {
-        std::cout << "Nothing to do. Specify at least one worker thread."
-                  << endl;
-        return 0;
     }
 
     try {
@@ -289,7 +350,7 @@ int main(int argc, const char *argv[]) {
                 return 0;
             }
             unique_ptr<DaqDB::MinidaqRoNode> nodeRo(
-                new DaqDB::MinidaqRoNode(kvs));
+                new DaqDB::MinidaqRoNode(kvs.get()));
             nodeRo->SetSubdetectorId(subId);
             nodeRo->SetThreads(nRoTh);
             nodeRo->SetFragmentSize(fSize);
@@ -305,7 +366,7 @@ int main(int argc, const char *argv[]) {
                 return 0;
             }
             unique_ptr<DaqDB::MinidaqAroNode> nodeAro(
-                new DaqDB::MinidaqAroNode(kvs));
+                new DaqDB::MinidaqAroNode(kvs.get()));
             nodeAro->SetSubdetectorId(subId);
             nodeAro->SetThreads(nAroTh);
             nodeAro->SetFragmentSize(fSize);
@@ -322,18 +383,26 @@ int main(int argc, const char *argv[]) {
         if (nFfTh) {
             std::cout << "### Configuring fast-filtering nodes..." << endl;
             unique_ptr<DaqDB::MinidaqFfNode> nodeFf(
-                new DaqDB::MinidaqFfNode(kvs));
+                maxReadyKeys ? (new DaqDB::MinidaqFfNode(kvs.get()))
+                             : (new DaqDB::MinidaqFfNodeSeq(kvs.get())));
             nodeFf->SetBaseSubdetectorId(startSubId);
             nodeFf->SetSubdetectors(nSub);
             nodeFf->SetThreads(nFfTh);
             nodeFf->SetAcceptLevel(acceptLevel);
-            nodeFf->SetDelay(collectorDelay);
+            nodeFf->SetRetryDelay(collectorDelay);
             nodes.push_back(std::move(nodeFf));
             std::cout << "### Done." << endl;
         }
 
         // Run remaining nodes
         runBenchmark(nodes);
+
+        if (isServer) {
+            std::cout << "### minidaq server running... Press any key to exit"
+                      << endl;
+            std::getchar();
+        }
+
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return 0;

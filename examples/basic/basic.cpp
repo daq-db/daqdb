@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2017-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -38,9 +38,9 @@ int KVStoreBaseExample() {
     DaqDB::Options options;
 
     // Configure key structure
-    options.Key.field(0, sizeof(Key::event_id), true); // primary key
-    options.Key.field(1, sizeof(Key::subdetector_id));
-    options.Key.field(2, sizeof(Key::run_id));
+    options.key.field(0, sizeof(Key::event_id), true); // primary key
+    options.key.field(1, sizeof(Key::subdetector_id));
+    options.key.field(2, sizeof(Key::run_id));
 
     DaqDB::KVStoreBase *kvs;
     try {
@@ -131,8 +131,8 @@ int KVStoreBaseExample() {
         }
 
         // success, process the data and free the buffers
+        kvs->Free(key, std::move(value));
         kvs->Free(std::move(key));
-        kvs->Free(std::move(value));
     } catch (...) {
         // error
     }
@@ -177,11 +177,12 @@ int KVStoreBaseExample() {
     try {
 
         DaqDB::GetOptions getOptions;
-        getOptions.Attr = DaqDB::READY;
-        getOptions.NewAttr = DaqDB::LOCKED | DaqDB::READY;
+        DaqDB::AllocOptions allocOptions;
+        getOptions.attr = DaqDB::READY;
+        getOptions.newAttr = DaqDB::LOCKED | DaqDB::READY;
 
         // get and lock any primary key which is in unlocked state
-        DaqDB::Key keyBuff = kvs->GetAny(getOptions);
+        DaqDB::Key keyBuff = kvs->GetAny(allocOptions, getOptions);
         Key *key = reinterpret_cast<Key *>(keyBuff.data());
 
         Key keyBeg(key->event_id, std::numeric_limits<uint16_t>::min(),

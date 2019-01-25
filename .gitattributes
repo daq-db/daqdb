@@ -1,0 +1,14 @@
+# These files are text and should be normalized (Convert crlf => lf)
+*.txt text
+*.md text
+*.gitattributes text
+.gitignore text
+*.cpp text
+*.h text
+*.sh text
+*.in text
+*.ac text
+*.am text
+configure text
+scripts/githooks/pre-commit text
+scripts/githooks/git-clang-format text

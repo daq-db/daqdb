@@ -24,29 +24,26 @@ const unsigned int DEFAULT_INSTANT_SWAP = 0;
 
 const std::string DEFAULT_PMEM_POOL_PATH = "/mnt/pmem/pool.pm";
 const size_t DEFAULT_PMEM_POOL_SIZE = 8ull * 1024 * 1024 * 1024;
-const size_t DEFAULT_PMEM_ALLOC_UNIT_SIZE = 8;
+const size_t DEFAULT_PMEM_ALLOC_UNIT_SIZE = 1024;
 typedef char DEFAULT_KeyType[16];
 
 const size_t DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE = 16384;
 
 void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
-    options.Runtime.logFunc = [](std::string msg) {
+    options.runtime.logFunc = [](std::string msg) {
         BOOST_LOG_SEV(lg::get(), bt::debug) << msg << std::flush;
     };
 
     /* Set default values */
-    options.Dht.Id = 0;
-    options.Dht.port = DEFAULT_PORT;
-    options.Dht.msgMaxsize = DEFAULT_MSG_MAX_SIZE;
-    options.Dht.sccbPoolInterval = DEFAULT_SCCB_POOL_INTERVAL;
-    options.Dht.instantSwap = DEFAULT_INSTANT_SWAP;
+    options.dht.id = 0;
+    options.dht.port = DEFAULT_PORT;
 
-    options.PMEM.poolPath = DEFAULT_PMEM_POOL_PATH;
-    options.PMEM.totalSize = DEFAULT_PMEM_POOL_SIZE;
-    options.PMEM.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
-    options.Key.field(0, sizeof(DEFAULT_KeyType));
+    options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
+    options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;
+    options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
+    options.key.field(0, sizeof(DEFAULT_KeyType));
 
-    options.Offload.allocUnitSize = DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE;
+    options.offload.allocUnitSize = DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE;
 
     if (boost::filesystem::exists(configFile)) {
         std::stringstream errorMsg;

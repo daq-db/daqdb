@@ -43,10 +43,10 @@ class OffloadFreeList {
     OffloadFreeList() {};
     ~OffloadFreeList() {};
 
-    void Push(pool_base &pop, int64_t value);
-    int64_t Get(pool_base &pop);
-    void Clear(pool_base &pop);
-    void Show(void) const;
+    void push(pool_base &pop, int64_t value);
+    int64_t get(pool_base &pop);
+    void clear(pool_base &pop);
+    void show(void) const;
 
     uint64_t maxLba = 0;
 

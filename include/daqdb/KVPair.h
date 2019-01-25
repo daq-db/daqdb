@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include "Key.h"
+#include "Value.h"
+
 namespace DaqDB {
 
 class KVPair {
@@ -31,4 +34,4 @@ class KVPair {
     size_t size() const;
 };
 
-}
+} // namespace DaqDB

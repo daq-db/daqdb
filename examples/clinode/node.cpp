@@ -15,8 +15,6 @@
 
 #include <iostream>
 
-#include <asio/ip/tcp.hpp>
-#include <asio/signal_set.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
@@ -28,8 +26,8 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#include "debug.h"
 #include "config.h"
+#include "debug.h"
 #include "nodeCli.h"
 
 using namespace std;
@@ -83,7 +81,7 @@ int main(int argc, const char *argv[]) {
 
     DaqDB::Options options;
     isRunning = 1;
-    options.Runtime.shutdownFunc = [&isRunning]() { isRunning = 0; };
+    options.runtime.shutdownFunc = [&isRunning]() { isRunning = 0; };
     initKvsOptions(options, configFile);
 
     shared_ptr<DaqDB::KVStoreBase> spKVStore;
@@ -121,4 +119,3 @@ int main(int argc, const char *argv[]) {
 
     return 0;
 }
-

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Intel Corporation.
+ * Copyright 2018-2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -17,30 +17,44 @@
 
 namespace DaqDB {
 
+thread_local int MinidaqRoNode::_eventId;
+
 MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
 MinidaqRoNode::~MinidaqRoNode() {}
 
 std::string MinidaqRoNode::_GetType() { return std::string("readout"); }
 
-void MinidaqRoNode::_Setup(int executorId, MinidaqKey &key) {
-    key.subdetectorId = _id;
-    key.runId = _runId;
-    key.eventId = executorId;
+void MinidaqRoNode::_Setup(int executorId) { _eventId = executorId; }
+
+Key MinidaqRoNode::_NextKey() {
+    Key key = _kvs->AllocKey(_localOnly
+                                 ? AllocOptions(KeyValAttribute::NOT_BUFFERED)
+                                 : AllocOptions(KeyValAttribute::KVS_BUFFERED));
+    MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
+    mKeyPtr->runId = _runId;
+    mKeyPtr->subdetectorId = _id;
+    mKeyPtr->eventId = _eventId;
+    _eventId += _nTh;
+    return key;
 }
 
-void MinidaqRoNode::_NextKey(MinidaqKey &key) { key.eventId += _nTh; }
-
-void MinidaqRoNode::_Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
-    Key fogKey(reinterpret_cast<char *>(&key), sizeof(key));
-    DaqDB::Value value = _kvs->Alloc(fogKey, _fSize);
+    DaqDB::Value value;
+    try {
+        value = _kvs->Alloc(key, _fSize);
+    } catch (...) {
+        _kvs->Free(std::move(key));
+        throw;
+    }
 
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());
+    _CheckBuffer(key, value.data(), value.size());
 #endif /* WITH_INTEGRITY_CHECK */
 
-    _kvs->Put(std::move(fogKey), std::move(value));
+    _kvs->Put(std::move(key), std::move(value));
     cnt++;
 }
 

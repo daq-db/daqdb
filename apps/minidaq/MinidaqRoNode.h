@@ -28,13 +28,14 @@ class MinidaqRoNode : public MinidaqNode {
     void SetSubdetectorId(int id);
 
   protected:
-    void _Task(MinidaqKey &key, std::atomic<std::uint64_t> &cnt,
+    void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                std::atomic<std::uint64_t> &cntErr);
-    void _Setup(int executorId, MinidaqKey &key);
-    void _NextKey(MinidaqKey &key);
+    void _Setup(int executorId);
+    Key _NextKey();
     std::string _GetType();
 
     size_t _fSize = 0;
     int _id = 0;
+    static thread_local int _eventId;
 };
 }
