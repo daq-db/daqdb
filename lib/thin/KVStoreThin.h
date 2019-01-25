@@ -48,8 +48,10 @@ class KVStoreThin : public KVStoreBase {
     virtual void GetRangeAsync(const Key &beg, const Key &end,
                                KVStoreBaseRangeCallback cb,
                                const GetOptions &options = GetOptions());
-    virtual Key GetAny(const GetOptions &options = GetOptions());
+    virtual Key GetAny(const AllocOptions &allocOptions = AllocOptions(),
+                       const GetOptions &options = GetOptions());
     virtual void GetAnyAsync(KVStoreBaseGetAnyCallback cb,
+                             const AllocOptions &allocOptions = AllocOptions(),
                              const GetOptions &options = GetOptions());
     virtual void Remove(const Key &key);
     virtual void RemoveRange(const Key &beg, const Key &end);

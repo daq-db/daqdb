@@ -32,7 +32,10 @@ void MinidaqFfNode::_Setup(int executorId) {}
 Key MinidaqFfNode::_NextKey() {
     for (int i = 0; i < _maxRetries; i++) {
         try {
-            return _kvs->GetAny(GetOptions(READY));
+            return _kvs->GetAny(
+                _localOnly ? AllocOptions(KeyValAttribute::NOT_BUFFERED)
+                           : AllocOptions(KeyValAttribute::KVS_BUFFERED),
+                GetOptions(READY));
         } catch (OperationFailedException &e) {
             if (e.status()() == KEY_NOT_FOUND) {
                 /* Wait until new key is availabile. */
