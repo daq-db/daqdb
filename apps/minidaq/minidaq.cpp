@@ -56,7 +56,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_LIVE false
 #define MINIDAQ_DEFAULT_MAX_READY_KEYS 4 * 1024 * 1024
 #define MINIDAQ_DEFAULT_SATELLITE false
-#define MINIDAQ_DEFAULT_CONF "minidaq.cfg.sample"
+#define MINIDAQ_DEFAULT_CONF "minidaq.cfg"
 
 #define US_IN_MS 1000
 
@@ -82,6 +82,7 @@ bool stopOnError = MINIDAQ_DEFAULT_STOPONERROR;
 bool live = MINIDAQ_DEFAULT_LIVE;
 bool satellite = MINIDAQ_DEFAULT_SATELLITE;
 std::string configFile;
+bool singleNode = false;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -96,7 +97,8 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
         std::cout << "### Reading minidaq configuration file... " << endl;
         std::stringstream errorMsg;
         if (!DaqDB::readConfiguration(configFile, options, errorMsg)) {
-            std::cout << "### Failed to read minidaq configuration file. " << endl
+            std::cout << "### Failed to read minidaq configuration file. "
+                      << endl
                       << errorMsg.str() << std::endl;
         }
         std::cout << "### Done. " << endl;
@@ -122,6 +124,7 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
             local.keyRange.maskLength = 0;
             local.keyRange.maskOffset = 0;
             options.dht.neighbors.push_back(&local);
+            singleNode = true;
         }
     }
     if (enableLog) {
@@ -151,6 +154,7 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
         n->SetMaxIterations(maxIters);
         n->SetStopOnError(stopOnError);
         n->SetLive(live);
+        n->SetLocalOnly(singleNode);
         nCoresUsed += n->GetThreads();
         n->SetCores(n->GetThreads());
         if (nCoresUsed > nCores) {
@@ -392,9 +396,10 @@ int main(int argc, const char *argv[]) {
 
         // Run remaining nodes
         runBenchmark(nodes);
-	
-	if (isServer) {
-            std::cout << "### minidaq server running... Press any key to exit" << endl;
+
+        if (isServer) {
+            std::cout << "### minidaq server running... Press any key to exit"
+                      << endl;
             std::getchar();
         }
 

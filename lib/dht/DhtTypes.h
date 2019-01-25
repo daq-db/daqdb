@@ -25,7 +25,7 @@ class MsgBuffer;
 
 namespace DaqDB {
 
-typedef void (*DhtContFunc)(void *appCtx, size_t ioCtx);
+typedef void (*DhtContFunc)(void *appCtx, void *ioCtx);
 typedef std::map<std::pair<int, int>, DhtNode *> RangeToHost;
 
 enum class ErpRequestType : std::uint8_t {

@@ -97,8 +97,7 @@ void KVStore::init() {
      * configuration needed)
      */
     _spDht.reset(new DhtCore(getOptions().dht, false));
-    _spDhtServer.reset(
-        new DhtServer(getDhtCore(), this));
+    _spDhtServer.reset(new DhtServer(getDhtCore(), this));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
     } else {
@@ -399,8 +398,9 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
     }
 }
 
-Key KVStore::GetAny(const GetOptions &options) {
-    Key key = AllocKey();
+Key KVStore::GetAny(const AllocOptions &allocOptions,
+                    const GetOptions &options) {
+    Key key = AllocKey(allocOptions);
     try {
         pKey()->dequeueNext(key);
     } catch (...) {
@@ -411,6 +411,7 @@ Key KVStore::GetAny(const GetOptions &options) {
 }
 
 void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
+                          const AllocOptions &allocOptions,
                           const GetOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
