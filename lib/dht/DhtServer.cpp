@@ -50,6 +50,7 @@ static erpc::MsgBuffer* erpcPrepareMsgbuf(erpc::Rpc<erpc::CTransport> *rpc, erpc
 }
 
 static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
+    DAQ_DEBUG("Get request received");
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(serverCtx->rpc);
 
@@ -68,7 +69,8 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
 
     try {
         auto val = serverCtx->kvs->Get(key);
-        resp = erpcPrepareMsgbuf(rpc, req_handle, val.size() + sizeof(DaqdbDhtResult));
+        //todo why cannot we set arbitrary response size?
+        resp = erpcPrepareMsgbuf(rpc, req_handle, req->get_data_size());
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
         result->msgSize = val.size();
         if (result->msgSize > 0) {
@@ -83,9 +85,11 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     }
 
     rpc->enqueue_response(req_handle, resp);
+    DAQ_DEBUG("Response enqueued");
 }
 
 static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
+    DAQ_DEBUG("Put request received");
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(serverCtx->rpc);
 
@@ -109,9 +113,11 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
     }
 
     rpc->enqueue_response(req_handle, resp);
+    DAQ_DEBUG("Response enqueued");
 }
 
 static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
+    DAQ_DEBUG("Remove request received");
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(serverCtx->rpc);
 
@@ -139,6 +145,7 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     }
 
     rpc->enqueue_response(req_handle, resp);
+    DAQ_DEBUG("Response enqueued");
 }
 
 DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs)
