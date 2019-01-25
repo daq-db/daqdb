@@ -61,6 +61,8 @@ void MinidaqNode::SetStopOnError(bool stop) { _stopOnError = stop; }
 
 void MinidaqNode::SetLive(bool live) { _live = live; }
 
+void MinidaqNode::SetLocalOnly(bool local) { _localOnly = local; }
+
 int MinidaqNode::GetThreads() { return _nTh; }
 
 void MinidaqNode::_Affinity(int executorId) {
