@@ -221,7 +221,10 @@ void ARTree::Put(const char *key, int32_t keyBytes, const char *value,
     val->locationVolatile.get().value = PMEM;
     val->location = PMEM;
 }
-
+/*
+ * TODO: decrement value std::atomic<int> refCounter in parent and free it if
+ * counter==0 When freeing - call decrementParent recurenty.
+ * */
 void ARTree::decrementParent(persistent_ptr<Node> node) {}
 
 void ARTree::Remove(const char *key) {
@@ -246,8 +249,10 @@ void ARTree::Remove(const char *key) {
             static thread_local int actionsCounter = 0;
             std::cout << "remove off=" << (*valPrstPtr.raw_ptr()).off
                       << std::endl;
+            // TODO: commented because of error in PMDK on free() of object
+            // reserved with xreserve
             // pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
-            pmemobj_free(valPrstPtr.raw_ptr());
+            // pmemobj_free(valPrstPtr.raw_ptr());
             actionsCounter++;
             // decrement counter in parent and remove if needed
             decrementParent(val->parent);
@@ -381,6 +386,12 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                     _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
                     sizeof(ValueWrapper), VALUE,
                     POBJ_CLASS_ID(getClassId(ALLOC_CLASS_VALUE_WRAPPER)));
+                /*
+                                nodeLeafCompressed->child = pmemobj_reserve(
+                                                    _pm_pool.get_handle(),
+                   &(actionsArray[actionsCounter]), sizeof(ValueWrapper), VALUE
+                                                    );
+                  */
                 if (OID_IS_NULL(*(nodeLeafCompressed->child).raw_ptr())) {
                     DAQ_DEBUG("reserve failed actionsCounter=" +
                               std::to_string(actionsCounter));
