@@ -34,12 +34,28 @@ map<DhtNodeState, string> NodeStateStr =
         DhtNodeState::NODE_NOT_RESPONDING,
         "Not Responding")(DhtNodeState::NODE_INIT, "Not initialized");
 
+static erpc::MsgBuffer* erpcPrepareMsgbuf(erpc::Rpc<erpc::CTransport> *rpc, erpc::ReqHandle *req_handle,
+                                          size_t reqSize) {
+    erpc::MsgBuffer *msgBuf;
+
+    if (reqSize <= rpc->get_max_data_per_pkt()) {
+        msgBuf = &req_handle->pre_resp_msgbuf;
+        rpc->resize_msg_buffer(msgBuf, reqSize);
+    } else {
+        req_handle->dyn_resp_msgbuf = rpc->alloc_msg_buffer_or_die(reqSize);
+        msgBuf = &req_handle->dyn_resp_msgbuf;
+    }
+
+    return msgBuf;
+}
+
 static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(serverCtx->rpc);
 
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
+    erpc::MsgBuffer *resp;
 
     /*
      * Allocation from DHT buffer not needed for local request, for
@@ -52,34 +68,21 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
 
     try {
         auto val = serverCtx->kvs->Get(key);
-
-        auto reqMsgbufSize = req->get_data_size();
-        auto responseSize = val.size() + sizeof(DaqdbDhtResult);
-
-        req_handle->prealloc_used = false;
-        req_handle->dyn_resp_msgbuf =
-            rpc->alloc_msg_buffer_or_die(reqMsgbufSize);
-        erpc::MsgBuffer &resp_msgbuf = req_handle->dyn_resp_msgbuf;
-
-        DaqdbDhtResult *result =
-            reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf.buf);
-
+        resp = erpcPrepareMsgbuf(rpc, req_handle, val.size() + sizeof(DaqdbDhtResult));
+        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
         result->msgSize = val.size();
         if (result->msgSize > 0) {
             memcpy(result->msg, val.data(), result->msgSize);
         }
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
-        auto &resp = req_handle->pre_resp_msgbuf;
-        rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
-        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
+        resp= erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
+        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
         result->msgSize = 0;
-        req_handle->prealloc_used = true;
-
         result->status = e.status().getStatusCode();
     }
 
-    rpc->enqueue_response(req_handle);
+    rpc->enqueue_response(req_handle, resp);
 }
 
 static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
@@ -93,23 +96,19 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
     std::memcpy(key.data(), msg->msg, msg->keySize);
     Value value = serverCtx->kvs->Alloc(key, msg->valSize);
     std::memcpy(value.data(), msg->msg + msg->keySize, msg->valSize);
+    erpc::MsgBuffer *resp = erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
+    DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
 
-    auto &resp = req_handle->pre_resp_msgbuf;
-    req_handle->prealloc_used = true;
     try {
         serverCtx->kvs->Put(move(key), move(value));
-        rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
-        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->msgSize = 0;
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
-        rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
-        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->msgSize = 0;
         result->status = e.status().getStatusCode();
     }
 
-    rpc->enqueue_response(req_handle);
+    rpc->enqueue_response(req_handle, resp);
 }
 
 static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
@@ -127,23 +126,19 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     // kvs->Remove
     Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
     std::memcpy(key.data(), msg->msg, msg->keySize);
+    erpc::MsgBuffer *resp = erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
+    DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
 
-    auto &resp = req_handle->pre_resp_msgbuf;
-    req_handle->prealloc_used = true;
     try {
         serverCtx->kvs->Remove(key);
-        rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
-        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->msgSize = 0;
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
-        rpc->resize_msg_buffer(&resp, sizeof(DaqdbDhtResult));
-        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp.buf);
         result->msgSize = 0;
         result->status = e.status().getStatusCode();
     }
 
-    rpc->enqueue_response(req_handle);
+    rpc->enqueue_response(req_handle, resp);
 }
 
 DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs)
