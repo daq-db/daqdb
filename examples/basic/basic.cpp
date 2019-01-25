@@ -177,11 +177,12 @@ int KVStoreBaseExample() {
     try {
 
         DaqDB::GetOptions getOptions;
+        DaqDB::AllocOptions allocOptions;
         getOptions.attr = DaqDB::READY;
         getOptions.newAttr = DaqDB::LOCKED | DaqDB::READY;
 
         // get and lock any primary key which is in unlocked state
-        DaqDB::Key keyBuff = kvs->GetAny(getOptions);
+        DaqDB::Key keyBuff = kvs->GetAny(allocOptions, getOptions);
         Key *key = reinterpret_cast<Key *>(keyBuff.data());
 
         Key keyBeg(key->event_id, std::numeric_limits<uint16_t>::min(),
