@@ -51,6 +51,9 @@ class DhtNode {
      */
     inline unsigned short getPort() const { return _port; };
 
+    /**
+     * @return Peer port number for this node
+     */
     inline unsigned short getPeerPort() const { return _peerPort; };
 
     /**
@@ -89,7 +92,12 @@ class DhtNode {
   private:
     std::string _ip = "";
     int _sessionId = ERPC_SESSION_NOT_SET;
+
     unsigned short _port = 0;
+    /**
+     * Second port is used for additional eRPC channel that is used for
+     * communication between storage nodes.
+     */
     unsigned short _peerPort = 0;
 
     // @TODO jradtke replace with other key mapping structures
