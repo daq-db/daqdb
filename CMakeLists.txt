@@ -69,6 +69,7 @@ include_directories(${3RDPARTY}/spdk/dpdk/build/include)
 
 file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
 	lib/dht/*.cpp lib/KVStoreBase.cpp)
+list(FILTER DAQDB_THIN_SOURCES EXCLUDE REGEX "lib/dht/.*Server.*\.cpp$")
 include_directories(lib/common lib/dht lib/thin)
 include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
 add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
