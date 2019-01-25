@@ -56,7 +56,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_LIVE false
 #define MINIDAQ_DEFAULT_MAX_READY_KEYS 4 * 1024 * 1024
 #define MINIDAQ_DEFAULT_SATELLITE false
-#define MINIDAQ_DEFAULT_CONF "minidaq.cfg.sample"
+#define MINIDAQ_DEFAULT_CONF "minidaq.cfg"
 
 #define US_IN_MS 1000
 
