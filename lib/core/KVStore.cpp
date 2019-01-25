@@ -216,11 +216,16 @@ void KVStore::Get(const char *key, size_t keySize, char *value,
     uint8_t location;
 
     pmem()->Get(key, reinterpret_cast<void **>(&pVal), &pValSize, &location);
-    if (!value)
+    if (!value) {
+        DAQ_DEBUG("Error on get: value buffer is null");
         throw OperationFailedException(ALLOCATION_ERROR);
+    }
     if (location == PMEM) {
-        if (*valueSize < pValSize)
+        if (*valueSize < pValSize) {
+            DAQ_DEBUG("Error on get: buffer size " + std::to_string(*valueSize) +
+                      " < value size " + std::to_string(pValSize));
             throw OperationFailedException(ALLOCATION_ERROR);
+        }
         std::memcpy(value, pVal, pValSize);
         *valueSize = pValSize;
     } else if (location == DISK) {

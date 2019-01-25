@@ -59,24 +59,12 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
     erpc::MsgBuffer *resp;
 
-    /*
-     * Allocation from DHT buffer not needed for local request, for
-     * remote one DHT client method will handle buffering.
-     */
-    // @TODO jradtke AllocKey need changes to avoid extra memory copying in
-    // kvs->Get
-    Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
-    memcpy(key.data(), msg->msg, msg->keySize);
-
     try {
-        auto val = serverCtx->kvs->Get(key);
         // todo why cannot we set arbitrary response size?
         resp = erpcPrepareMsgbuf(rpc, req_handle, req->get_data_size());
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
-        result->msgSize = val.size();
-        if (result->msgSize > 0) {
-            memcpy(result->msg, val.data(), result->msgSize);
-        }
+        result->msgSize = req->get_data_size();
+        serverCtx->kvs->Get(msg->msg, msg->keySize, result->msg, &result->msgSize);
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
         resp = erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
