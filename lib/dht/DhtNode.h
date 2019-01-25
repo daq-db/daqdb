@@ -52,16 +52,22 @@ class DhtNode {
     inline unsigned short getPort() const { return _port; };
 
     /**
+     * @return Peer port number for this node
+     */
+    inline unsigned short getPeerPort() const { return _peerPort; };
+
+    /**
      * @param portOffset offset that will be added to the node port
      * @return URI with IP and port for this node
      */
-    inline const std::string getUri(unsigned int portOffset = 0) const {
+    inline const std::string getUri(unsigned int port = 0) const {
         return boost::str(boost::format("%1%:%2%") % getIp() %
-                          std::to_string(getPort() + portOffset));
+                          std::to_string(port ? port : getPort()));
     };
 
     void setIp(const std::string &ip) { _ip = ip; };
     void setPort(unsigned short port) { _port = port; };
+    void setPeerPort(unsigned short port) { _peerPort = port; };
 
     /**
      * @param id eRPC session id
@@ -86,7 +92,13 @@ class DhtNode {
   private:
     std::string _ip = "";
     int _sessionId = ERPC_SESSION_NOT_SET;
+
     unsigned short _port = 0;
+    /**
+     * Second port is used for additional eRPC channel that is used for
+     * communication between storage nodes.
+     */
+    unsigned short _peerPort = 0;
 
     // @TODO jradtke replace with other key mapping structures
     unsigned int _maskLength = 0;

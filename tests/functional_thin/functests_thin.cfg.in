@@ -43,7 +43,7 @@ dht_key_mask_offset = 0;
 neighbors : (
                 {
                     ip = "localhost";
-                    port = 31851;
+                    port = 31852;
                     local = 1;
                 },
                 {

@@ -27,13 +27,15 @@
 using namespace std;
 using namespace DaqDB;
 
+static const unsigned int TESTCLIENT_PORT = 31852;
+
 bool testDhtConnect(KVStoreBase *kvs) {
     bool result = true;
 
     DhtOptions options;
     DhtNeighbor local;
     local.ip = "localhost";
-    local.port = 31851;
+    local.port = TESTCLIENT_PORT;
     local.local = true;
     local.keyRange.maskLength = 8;
     local.keyRange.maskOffset = 0;
@@ -56,6 +58,7 @@ bool testDhtConnect(KVStoreBase *kvs) {
     }
 
     auto core = new DhtCore(options);
+    core->initNexus(TESTCLIENT_PORT);
     core->initClient();
     if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
         LOG_INFO << "DHT client started successfully" << flush;

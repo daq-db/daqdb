@@ -33,11 +33,10 @@ class DhtCore {
   public:
     /**
      * @param dhtOptions dht options
-     * @param doInitNexus indicates if eRpc nexus should be initialized
      *
      * @note At the moment only satellite node should initialize nexus
      */
-    DhtCore(DhtOptions dhtOptions, bool doInitNexus = true);
+    DhtCore(DhtOptions dhtOptions);
     ~DhtCore();
 
     void initClient();
