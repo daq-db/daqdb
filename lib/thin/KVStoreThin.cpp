@@ -41,6 +41,8 @@ void KVStoreThin::init() {
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
     _spDht.reset(new DhtCore(getOptions().dht));
+    _spDht->initNexus();
+    _spDht->initClient();
 
     DAQ_DEBUG("KVStoreThin initialization completed");
 }

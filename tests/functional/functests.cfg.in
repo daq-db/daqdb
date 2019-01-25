@@ -45,6 +45,7 @@ dht_key_mask_offset = 0;
 neighbors : ({
     ip = "localhost";
     port = 31850;
+    peerPort = 31851;
     local = 1;
     keys = { start = "0", end = "255" }
 }, );

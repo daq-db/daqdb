@@ -152,17 +152,13 @@ struct DhtKeyRange {
 struct DhtNeighbor {
     std::string ip;
     unsigned short port = 0;
+    unsigned short peerPort = 0;
     bool local = false;
     DhtKeyRange keyRange;
 };
 
 struct DhtOptions {
-    unsigned short port = 0;
     NodeId id = 0;
-    std::string protocol = "";
-    size_t msgMaxsize = 0;
-    unsigned int sccbPoolInterval = 0;
-    unsigned int instantSwap = 0;
     std::vector<DhtNeighbor *> neighbors;
 };
 

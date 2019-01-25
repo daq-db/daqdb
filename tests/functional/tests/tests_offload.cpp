@@ -183,11 +183,11 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
     }
 
     currVal = daqdb_get(kvs, key);
-    LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
     if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
         LOG_INFO << "Error: wrong value returned" << flush;
         result = false;
     }
+    LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
 
     daqdb_async_get(
         kvs, key,

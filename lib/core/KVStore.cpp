@@ -92,17 +92,15 @@ void KVStore::init() {
         DAQ_DEBUG("SPDK offload functionality is disabled");
     }
 
-    /**
-     * @TODO jradtke RPC client creation should be added (additional port
-     * configuration needed)
-     */
-    _spDht.reset(new DhtCore(getOptions().dht, false));
-    _spDhtServer.reset(
-        new DhtServer(getDhtCore(), this));
+    _spDht.reset(new DhtCore(getOptions().dht));
+    _spDhtServer.reset(new DhtServer(getDhtCore(), this));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
     } else {
         DAQ_DEBUG("Can not start DHT server");
+    }
+    if (_spDht->getLocalNode()->getPeerPort() > 0) {
+        _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
     }
 
     if (isOffloadEnabled()) {
@@ -194,7 +192,7 @@ void KVStore::_getOffloaded(const char *key, size_t keySize, char **value,
                 size_t keySize, const char *valueOff, size_t valueOffSize) {
                 *value = new char[valueOffSize];
                 std::unique_lock<std::mutex> lck(mtx);
-                std::memcpy(value, valueOff, valueOffSize);
+                std::memcpy(*value, valueOff, valueOffSize);
                 *valueSize = valueOffSize;
                 ready = true;
                 cv.notify_all();
