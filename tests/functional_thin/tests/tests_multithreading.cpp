@@ -32,7 +32,7 @@ bool threadTask(KVStoreBase *kvs, string key) {
 
     remote_put(kvs, move(putKey), val);
 
-    auto getKey = strToKey(kvs, expectedKey, KeyAttribute::NOT_BUFFERED);
+    auto getKey = strToKey(kvs, expectedKey, KeyValAttribute::NOT_BUFFERED);
     auto resultVal = remote_get(kvs, getKey);
     if (resultVal.data()) {
         if (expectedVal.compare(resultVal.data()) != 0) {

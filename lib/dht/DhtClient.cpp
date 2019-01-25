@@ -35,7 +35,7 @@ namespace DaqDB {
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
-static void clbGet(void *ctxClient, size_t ioCtx) {
+static void clbGet(void *ctxClient, void *ioCtx) {
     DAQ_DEBUG("Get response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
@@ -54,7 +54,7 @@ static void clbGet(void *ctxClient, size_t ioCtx) {
     reqCtx->ready = true;
 }
 
-static void clbPut(void *ctxClient, size_t tag) {
+static void clbPut(void *ctxClient, void *tag) {
     DAQ_DEBUG("Put response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
@@ -67,7 +67,7 @@ static void clbPut(void *ctxClient, size_t tag) {
     reqCtx->ready = true;
 }
 
-static void clbRemove(void *ctxClient, size_t ioCtx) {
+static void clbRemove(void *ctxClient, void *ioCtx) {
     DAQ_DEBUG("Remove response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
     DhtReqCtx *reqCtx = client->getReqCtx();
@@ -262,7 +262,7 @@ void DhtClient::enqueueAndWait(DhtNode *targetHost, ErpRequestType type,
               targetHost->getUri());
     rpc->enqueue_request(targetHost->getSessionId(),
                          static_cast<unsigned char>(type), _reqMsgBuf.get(),
-                         _respMsgBuf.get(), contFunc, 0);
+                         _respMsgBuf.get(), contFunc, nullptr);
     _runToResponse();
 }
 

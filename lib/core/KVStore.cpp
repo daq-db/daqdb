@@ -397,8 +397,9 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
     }
 }
 
-Key KVStore::GetAny(const GetOptions &options) {
-    Key key = AllocKey();
+Key KVStore::GetAny(const AllocOptions &allocOptions,
+                    const GetOptions &options) {
+    Key key = AllocKey(allocOptions);
     try {
         pKey()->dequeueNext(key);
     } catch (...) {
@@ -409,6 +410,7 @@ Key KVStore::GetAny(const GetOptions &options) {
 }
 
 void KVStore::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
+                          const AllocOptions &allocOptions,
                           const GetOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }

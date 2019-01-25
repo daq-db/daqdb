@@ -162,7 +162,8 @@ class KVStoreBase {
      * @snippet basic/basic.cpp open
      * @snippet basic/basic.cpp get_any
      */
-    virtual Key GetAny(const GetOptions &options = GetOptions()) = 0;
+    virtual Key GetAny(const AllocOptions &allocOptions = AllocOptions(),
+                       const GetOptions &options = GetOptions()) = 0;
 
     /**
      * Asynchronously get any unlocked primary key. Other fields of the key are
@@ -173,6 +174,7 @@ class KVStoreBase {
      * completes.
      */
     virtual void GetAnyAsync(KVStoreBaseGetAnyCallback cb,
+                             const AllocOptions &allocOptions = AllocOptions(),
                              const GetOptions &options = GetOptions()) = 0;
 
     /**

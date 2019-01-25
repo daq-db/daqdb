@@ -28,7 +28,9 @@ std::string MinidaqRoNode::_GetType() { return std::string("readout"); }
 void MinidaqRoNode::_Setup(int executorId) { _eventId = executorId; }
 
 Key MinidaqRoNode::_NextKey() {
-    Key key = _kvs->AllocKey();
+    Key key = _kvs->AllocKey(_localOnly
+                                 ? AllocOptions(KeyValAttribute::NOT_BUFFERED)
+                                 : AllocOptions(KeyValAttribute::KVS_BUFFERED));
     MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
     mKeyPtr->runId = _runId;
     mKeyPtr->subdetectorId = _id;
@@ -42,8 +44,7 @@ void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
     DaqDB::Value value;
     try {
         value = _kvs->Alloc(key, _fSize);
-    }
-    catch (...) {
+    } catch (...) {
         _kvs->Free(std::move(key));
         throw;
     }

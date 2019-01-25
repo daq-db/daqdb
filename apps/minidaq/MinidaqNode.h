@@ -55,6 +55,7 @@ class MinidaqNode {
     void SetMaxIterations(uint64_t n);
     void SetStopOnError(bool stop);
     void SetLive(bool live);
+    void SetLocalOnly(bool local);
     int GetThreads();
 
   protected:
@@ -71,7 +72,8 @@ class MinidaqNode {
 
     KVStoreBase *_kvs;
     int _runId = 599;
-    int _nTh = 1; // number of worker threads
+    int _nTh = 1;            // number of worker threads
+    bool _localOnly = false; // single-node benchmark
 #ifdef WITH_INTEGRITY_CHECK
     std::atomic<std::uint64_t> _nIntegrityChecks;
     std::atomic<std::uint64_t> _nIntegrityErrors;

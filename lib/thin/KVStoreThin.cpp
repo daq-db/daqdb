@@ -83,11 +83,13 @@ void KVStoreThin::GetAsync(const Key &key, KVStoreBaseCallback cb,
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-Key KVStoreThin::GetAny(const GetOptions &options) {
+Key KVStoreThin::GetAny(const AllocOptions &allocOptions,
+                        const GetOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
 void KVStoreThin::GetAnyAsync(KVStoreBaseGetAnyCallback cb,
+                              const AllocOptions &allocOptions,
                               const GetOptions &options) {
     throw FUNC_NOT_IMPLEMENTED;
 }
