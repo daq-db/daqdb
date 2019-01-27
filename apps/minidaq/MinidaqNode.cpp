@@ -187,7 +187,7 @@ void MinidaqNode::Run() {
 
     for (i = 0; i < _nTh; i++) {
         _futureVec.emplace_back(
-            std::async(std::launch::async, &MinidaqNode::_Execute, this, i));
+            std::async(std::launch::deferred, &MinidaqNode::_Execute, this, i));
     }
 }
 

@@ -113,20 +113,12 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    /*
-     * Allocation from DHT buffer not needed for local request, for
-     * remote one DHT client method will handle buffering.
-     */
-    // @TODO jradtke AllocKey need changes to avoid extra memory copying in
-    // kvs->Remove
-    Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
-    std::memcpy(key.data(), msg->msg, msg->keySize);
     erpc::MsgBuffer *resp =
         erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
     DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
 
     try {
-        serverCtx->kvs->Remove(key);
+        serverCtx->kvs->Remove(msg->msg, msg->keySize);
         result->msgSize = 0;
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
