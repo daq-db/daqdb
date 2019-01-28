@@ -64,7 +64,8 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
         resp = erpcPrepareMsgbuf(rpc, req_handle, req->get_data_size());
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
         result->msgSize = req->get_data_size();
-        serverCtx->kvs->Get(msg->msg, msg->keySize, result->msg, &result->msgSize);
+        serverCtx->kvs->Get(msg->msg, msg->keySize, result->msg,
+                            &result->msgSize);
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
         resp = erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));

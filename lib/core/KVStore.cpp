@@ -222,8 +222,9 @@ void KVStore::Get(const char *key, size_t keySize, char *value,
     }
     if (location == PMEM) {
         if (*valueSize < pValSize) {
-            DAQ_DEBUG("Error on get: buffer size " + std::to_string(*valueSize) +
-                      " < value size " + std::to_string(pValSize));
+            DAQ_DEBUG("Error on get: buffer size " +
+                      std::to_string(*valueSize) + " < value size " +
+                      std::to_string(pValSize));
             throw OperationFailedException(ALLOCATION_ERROR);
         }
         std::memcpy(value, pVal, pValSize);
@@ -512,7 +513,8 @@ void KVStore::RemoveRange(const Key &beg, const Key &end) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
-void KVStore::Alloc(const char *key, size_t keySize, char **value, size_t size, const AllocOptions &options) {
+void KVStore::Alloc(const char *key, size_t keySize, char **value, size_t size,
+                    const AllocOptions &options) {
     if (options.attr & KeyValAttribute::KVS_BUFFERED)
         pmem()->AllocValueForKey(key, size, value);
     else
