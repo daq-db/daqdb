@@ -521,13 +521,15 @@ void KVStore::Alloc(const char *key, size_t keySize, char **value, size_t size,
 }
 
 Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
+    auto valAttr = KeyValAttribute::NOT_BUFFERED;
     if (options.attr & KeyValAttribute::KVS_BUFFERED) {
+        valAttr = KeyValAttribute::KVS_BUFFERED;
         if (!getDhtCore()->isLocalKey(key))
             return dhtClient()->alloc(key, size);
     }
     char *value;
-    Alloc(key.data(), key.size(), &value, size);
-    return Value(value, size);
+    Alloc(key.data(), key.size(), &value, size, options);
+    return Value(value, size, valAttr);
 }
 
 void KVStore::Free(const Key &key, Value &&value) {
