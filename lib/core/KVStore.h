@@ -77,6 +77,8 @@ class KVStore : public KVStoreBase {
     virtual void Free(Key &&key);
     virtual void ChangeOptions(Key &key, const AllocOptions &options);
 
+    void Alloc(const char *key, size_t keySize, char **value, size_t size,
+               const AllocOptions &options = AllocOptions());
     void Put(const char *key, size_t keySize, char *value, size_t valueSize,
              const PutOptions &options = PutOptions());
     void Get(const char *key, size_t keySize, char *value, size_t *valueSize,

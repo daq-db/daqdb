@@ -37,7 +37,7 @@ enum class DhtServerState : std::uint8_t {
 
 struct DhtServerCtx {
     void *rpc;
-    KVStoreBase *kvs;
+    KVStore *kvs;
 };
 
 class DhtServer {
