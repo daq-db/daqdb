@@ -32,6 +32,7 @@ namespace DaqDB {
 
 #define ERPC_MAX_REQUEST_SIZE 32 * 1024
 #define ERPC_MAX_RESPONSE_SIZE 32 * 1024
+#define WAIT_FOR_NEIGHBOUR_TIMEOUT 1000
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
@@ -102,10 +103,13 @@ void DhtClient::_initializeNode(DhtNode *node) {
     DAQ_DEBUG("Connecting to " + serverUri);
     auto sessionNum = rpc->create_session(serverUri, 0);
     DAQ_DEBUG("Session " + std::to_string(sessionNum) + " created");
-    while (!rpc->is_connected(sessionNum))
-        rpc->run_event_loop_once();
-    node->setSessionId(sessionNum);
-    DAQ_DEBUG("Connected!");
+
+    rpc->run_event_loop(WAIT_FOR_NEIGHBOUR_TIMEOUT);
+    if (rpc->is_connected(sessionNum)) {
+        node->setSessionId(sessionNum);
+    } else {
+        DAQ_DEBUG("Cannot connect to: " + serverUri);
+    }
 }
 
 void DhtClient::initialize(DhtCore *dhtCore) {

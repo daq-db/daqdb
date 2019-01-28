@@ -16,6 +16,7 @@ neighbors :
         // local
         ip = "localhost";
         port = 31851;
+        peerPort = 31852;
         local = 1;
     },
 );

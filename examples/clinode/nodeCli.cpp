@@ -175,7 +175,7 @@ void nodeCli::_cmdGet(const std::string &strLine) {
         }
         DaqDB::Key keyBuff;
         try {
-            keyBuff = _spKVStore->AllocKey();
+            keyBuff = _spKVStore->AllocKey(KeyValAttribute::NOT_BUFFERED);
             /** @todo memleak - keyBuff.data */
             std::memset(keyBuff.data(), 0, keyBuff.size());
             std::memcpy(keyBuff.data(), key.c_str(), key.size());
@@ -221,7 +221,7 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
         }
         DaqDB::Key keyBuff;
         try {
-            keyBuff = _spKVStore->AllocKey();
+            keyBuff = _spKVStore->AllocKey(KeyValAttribute::NOT_BUFFERED);
             std::memset(keyBuff.data(), 0, keyBuff.size());
             std::memcpy(keyBuff.data(), key.c_str(), key.size());
         } catch (DaqDB::OperationFailedException &e) {
@@ -260,7 +260,7 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
 }
 
 DaqDB::Key nodeCli::_strToKey(const std::string &key) {
-    DaqDB::Key keyBuff = _spKVStore->AllocKey();
+    DaqDB::Key keyBuff = _spKVStore->AllocKey(KeyValAttribute::NOT_BUFFERED);
     std::memset(keyBuff.data(), 0, keyBuff.size());
     std::memcpy(keyBuff.data(), key.c_str(), key.size());
     return keyBuff;
