@@ -1,5 +1,5 @@
 /**
- * Copyright 2017-2018 Intel Corporation.
+ * Copyright 2019 Intel Corporation.
  *
  * This software and the related documents are Intel copyrighted materials,
  * and your use of them is governed by the express license under which they
@@ -20,7 +20,7 @@
 
 namespace ut = boost::unit_test;
 
-BOOST_AUTO_TEST_CASE(NodeConstr) {
+BOOST_AUTO_TEST_CASE(TestNodeConstr) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
 
     BOOST_CHECK(dhtNode->state == DaqDB::DhtNodeState::NODE_INIT);
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(NodeConstr) {
     delete dhtNode;
 }
 
-BOOST_AUTO_TEST_CASE(SessionId) {
+BOOST_AUTO_TEST_CASE(TestSessionIdSetting) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
     int expectedSessionId;
 
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(SessionId) {
     delete dhtNode;
 }
 
-BOOST_AUTO_TEST_CASE(NodeAddr) {
+BOOST_AUTO_TEST_CASE(TestNodeAddr) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
     const std::string expectedId = "10.1.0.1";
     unsigned short expectedPort = 50000;
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(NodeAddr) {
     delete dhtNode;
 }
 
-BOOST_AUTO_TEST_CASE(MaskLength) {
+BOOST_AUTO_TEST_CASE(TestMaskLengthSetting) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
     unsigned short expectedLength = 24;
 
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(MaskLength) {
     delete dhtNode;
 }
 
-BOOST_AUTO_TEST_CASE(MaskOffset) {
+BOOST_AUTO_TEST_CASE(TestMaskOffsetSetting) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
     unsigned short expectedOffset = 5;
 
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(MaskOffset) {
     delete dhtNode;
 }
 
-BOOST_AUTO_TEST_CASE(Start) {
+BOOST_AUTO_TEST_CASE(TestStartSetting) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
     unsigned int expectedStart = 5;
 
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(Start) {
     delete dhtNode;
 }
 
-BOOST_AUTO_TEST_CASE(End) {
+BOOST_AUTO_TEST_CASE(TestEndSetting) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
     unsigned int expectedEnd = 10;
 
