@@ -152,17 +152,18 @@ struct DhtKeyRange {
 struct DhtNeighbor {
     std::string ip;
     unsigned short port = 0;
+    /**
+     * Second port is used for additional eRPC channel that is used for
+     * communication between storage nodes.
+     * Should be set only for local node.
+     */
+    unsigned short peerPort = 0;
     bool local = false;
     DhtKeyRange keyRange;
 };
 
 struct DhtOptions {
-    unsigned short port = 0;
     NodeId id = 0;
-    std::string protocol = "";
-    size_t msgMaxsize = 0;
-    unsigned int sccbPoolInterval = 0;
-    unsigned int instantSwap = 0;
     std::vector<DhtNeighbor *> neighbors;
 };
 

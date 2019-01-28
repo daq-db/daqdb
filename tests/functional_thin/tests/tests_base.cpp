@@ -43,6 +43,7 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
     }
 
     auto core = new DhtCore(clientOptions);
+    core->initNexus(core->getLocalNode()->getPort());
     core->initClient();
     if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
         LOG_INFO << "DHT client started successfully" << flush;

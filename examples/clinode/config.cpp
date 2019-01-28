@@ -17,11 +17,6 @@
 
 #include "config.h"
 
-const unsigned int DEFAULT_PORT = 11000;
-const size_t DEFAULT_MSG_MAX_SIZE = 1000000;
-const size_t DEFAULT_SCCB_POOL_INTERVAL = 100;
-const unsigned int DEFAULT_INSTANT_SWAP = 0;
-
 const std::string DEFAULT_PMEM_POOL_PATH = "/mnt/pmem/pool.pm";
 const size_t DEFAULT_PMEM_POOL_SIZE = 8ull * 1024 * 1024 * 1024;
 const size_t DEFAULT_PMEM_ALLOC_UNIT_SIZE = 1024;
@@ -36,7 +31,6 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
 
     /* Set default values */
     options.dht.id = 0;
-    options.dht.port = DEFAULT_PORT;
 
     options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
     options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;
