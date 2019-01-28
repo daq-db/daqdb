@@ -37,10 +37,12 @@ e.g. kernel version 4.17 doesn't support Mellanox OFED._
 
 
 ##### Install Mellanox OFED driver
+See [here](http://www.mellanox.com/downloaders/mlnx_en_downloader/downloader.html#) for correct version. Following steps for CentOS 7.6:
+
 ```
-wget http://www.mellanox.com/downloads/ofed/MLNX_EN-4.4-1.0.1.0/mlnx-en-4.4-1.0.1.0-rhel7.5-x86_64.tgz
-tar zxf mlnx-en-4.4-1.0.1.0-rhel7.5-x86_64
-cd mlnx-en-4.4-1.0.1.0-rhel7.5-x86_64
+wget http://www.mellanox.com/downloads/ofed/MLNX_EN-4.5-1.0.1.0/mlnx-en-4.5-1.0.1.0-rhel7.6-x86_64.tgz
+tar zxf mlnx-en-4.5-1.0.1.0-rhel7.6-x86_64.tgz
+cd mlnx-en-4.5-1.0.1.0-rhel7.6-x86_64
 ./install --add-kernel-support --dpdk
 ```
 _Note: It may be necessary to install some extra packages e.g createrepo_
