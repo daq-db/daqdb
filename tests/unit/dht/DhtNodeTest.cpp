@@ -30,67 +30,72 @@ BOOST_AUTO_TEST_CASE(NodeConstr) {
 
 BOOST_AUTO_TEST_CASE(SessionId) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
+    int expectedSessionId;
 
-    dhtNode->setSessionId(123);
+    dhtNode->setSessionId(expectedSessionId);
 
-    BOOST_CHECK_EQUAL(dhtNode->getSessionId(), 123);
+    BOOST_CHECK_EQUAL(dhtNode->getSessionId(), expectedSessionId);
 
     delete dhtNode;
 }
 
 BOOST_AUTO_TEST_CASE(NodeAddr) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
+    const std::string expectedId = "10.1.0.1";
+    unsigned short expectedPort = 50000;
 
-    dhtNode->setIp("10.1.0.1");
-    dhtNode->setPort(50000);
+    dhtNode->setIp(expectedId);
+    dhtNode->setPort(expectedPort);
 
-    BOOST_CHECK(dhtNode->getIp() == "10.1.0.1");
-    BOOST_CHECK_EQUAL(dhtNode->getPort(), 50000);
+    BOOST_CHECK(dhtNode->getIp() == expectedId);
+    BOOST_CHECK_EQUAL(dhtNode->getPort(), expectedPort);
 
-    BOOST_CHECK(dhtNode->getUri() == "10.1.0.1:50000");
-
-    BOOST_CHECK(dhtNode->getClientUri() == "10.1.0.1:" + 
-        std::to_string(50000 + DaqDB::ERPC_CLIENT_PORT_ADDITION));
+    BOOST_CHECK(dhtNode->getUri() == expectedId + ":" + 
+                std::to_string(expectedPort));
 
     delete dhtNode;
 }
 
 BOOST_AUTO_TEST_CASE(MaskLength) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
+    unsigned short expectedLength = 24;
 
-    dhtNode->setMaskLength(24);
+    dhtNode->setMaskLength(expectedLength);
 
-    BOOST_CHECK_EQUAL(dhtNode->getMaskLength(), 24);
+    BOOST_CHECK_EQUAL(dhtNode->getMaskLength(), expectedLength);
 
     delete dhtNode;
 }
 
 BOOST_AUTO_TEST_CASE(MaskOffset) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
+    unsigned short expectedOffset = 5;
 
-    dhtNode->setMaskOffset(5);
+    dhtNode->setMaskOffset(expectedOffset);
 
-    BOOST_CHECK_EQUAL(dhtNode->getMaskOffset(), 5);
+    BOOST_CHECK_EQUAL(dhtNode->getMaskOffset(), expectedOffset);
 
     delete dhtNode;
 }
 
 BOOST_AUTO_TEST_CASE(Start) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
+    unsigned int expectedStart = 5;
 
-    dhtNode->setStart(5);
+    dhtNode->setStart(expectedStart);
 
-    BOOST_CHECK_EQUAL(dhtNode->getStart(), 5);
+    BOOST_CHECK_EQUAL(dhtNode->getStart(), expectedStart);
 
     delete dhtNode;
 }
 
 BOOST_AUTO_TEST_CASE(End) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
+    unsigned int expectedEnd = 10;
 
-    dhtNode->setEnd(10);
+    dhtNode->setEnd(expectedEnd);
 
-    BOOST_CHECK_EQUAL(dhtNode->getEnd(), 10);
+    BOOST_CHECK_EQUAL(dhtNode->getEnd(), expectedEnd);
 
     delete dhtNode;
 }

@@ -36,7 +36,9 @@ BOOST_AUTO_TEST_CASE(VerifyEnqueueRequestOnGet) {
     Mock<DhtClient> dhtClientMock;
 
     DhtClient &dhtClient = dhtClientMock.get();
+
     When(Method(dhtClientMock, resizeMsgBuffers)).AlwaysReturn();
+
     When(Method(dhtClientMock, fillReqMsg)).AlwaysReturn();
 
     DhtNode targetNode;
@@ -80,8 +82,7 @@ BOOST_AUTO_TEST_CASE(VerifyEnqueueRequestOnPut) {
         });
     
     When(Method(dhtClientMock, enqueueAndWait))
-        .Do([&](DhtNode *targetHost, ErpRequestType type, 
-                DhtContFunc contFunc){
+        .Do([&](DhtNode *targetHost, ErpRequestType type, DhtContFunc contFunc){
             BOOST_CHECK(targetHost);
             BOOST_CHECK(type == ErpRequestType::ERP_REQUEST_PUT);
         });
@@ -103,7 +104,9 @@ BOOST_AUTO_TEST_CASE(VerifyEnqueueRequestOnRemove) {
     Mock<DhtClient> dhtClientMock;
 
     DhtClient &dhtClient = dhtClientMock.get();
+
     When(Method(dhtClientMock, resizeMsgBuffers)).AlwaysReturn();
+
     When(Method(dhtClientMock, fillReqMsg)).AlwaysReturn();
 
     DhtNode targetNode;
@@ -130,10 +133,12 @@ BOOST_AUTO_TEST_CASE(VerifyResizeMsgBufferOnGet) {
 
     DhtClient &dhtClient = dhtClientMock.get();
 
+    size_t expectedSize = 32 * 1024;
+
     When(Method(dhtClientMock, resizeMsgBuffers))
         .Do([&](size_t new_request_size, size_t new_response_size) {
-            BOOST_CHECK_EQUAL(new_request_size, 32 * 1024);
-            BOOST_CHECK_EQUAL(new_response_size, 32 * 1024);
+            BOOST_CHECK_EQUAL(new_request_size, expectedSize);
+            BOOST_CHECK_EQUAL(new_response_size, expectedSize);
     });
 
     When(Method(dhtClientMock, fillReqMsg)).AlwaysReturn();
@@ -151,4 +156,68 @@ BOOST_AUTO_TEST_CASE(VerifyResizeMsgBufferOnGet) {
 
     Key key(const_cast<char *>(expectedKey.c_str()), expectedKey.size());
     dhtClient.get(key);
+}
+
+/**
+ * Test verified if resizeMsgBuffer function receives correct data when called
+ * from dhtClient.put(key, value).
+ */
+BOOST_AUTO_TEST_CASE(VerifyResizeMsgBufferOnPut) {
+    const string expectedKey = "1234";
+    const string expectedValue = "4321";
+    Mock<DhtClient> dhtClientMock;
+
+    DhtClient &dhtClient = dhtClientMock.get();
+
+    Key key(const_cast<char *>(expectedKey.c_str()), expectedKey.size());
+    Value value(const_cast<char *>(expectedValue.c_str()), expectedKey.size());
+
+    size_t expectedRequestSize = sizeof(DaqdbDhtMsg) + key.size() + value.size();
+    size_t expectedResponseSize = sizeof(DaqdbDhtResult);
+
+    When(Method(dhtClientMock, resizeMsgBuffers))
+        .Do([&](size_t new_request_size, size_t new_response_size) {
+            BOOST_CHECK_EQUAL(new_request_size, expectedRequestSize);
+            BOOST_CHECK_EQUAL(new_response_size, expectedResponseSize);
+    });
+
+    When(Method(dhtClientMock, fillReqMsg)).AlwaysReturn();
+
+    DhtNode targetNode;
+    When(Method(dhtClientMock, getTargetHost)).AlwaysReturn(&targetNode);
+
+    When(Method(dhtClientMock, enqueueAndWait)).AlwaysReturn();
+    
+    dhtClient.put(key, value);
+}
+
+/**
+ * Test verified if resizeMsgBuffer function receives correct data when called
+ * from dhtClient.remove(key).
+ */
+BOOST_AUTO_TEST_CASE(VerifyResizeMsgBufferOnRemove) {
+    const string expectedKey = "1234";
+    Mock<DhtClient> dhtClientMock;
+
+    DhtClient &dhtClient = dhtClientMock.get();
+
+    Key key(const_cast<char *>(expectedKey.c_str()), expectedKey.size());
+
+    size_t expectedRequestSize = sizeof(DaqdbDhtMsg) + key.size();
+    size_t expectedResponseSize = sizeof(DaqdbDhtResult);
+
+    When(Method(dhtClientMock, resizeMsgBuffers))
+        .Do([&](size_t new_request_size, size_t new_response_size) {
+            BOOST_CHECK_EQUAL(new_request_size, expectedRequestSize);
+            BOOST_CHECK_EQUAL(new_response_size, expectedResponseSize);
+    });
+
+    When(Method(dhtClientMock, fillReqMsg)).AlwaysReturn();
+
+    DhtNode targetNode;
+    When(Method(dhtClientMock, getTargetHost)).AlwaysReturn(&targetNode);
+
+    When(Method(dhtClientMock, enqueueAndWait)).AlwaysReturn();
+    
+    dhtClient.remove(key);
 }
