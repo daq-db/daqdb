@@ -59,24 +59,13 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
     erpc::MsgBuffer *resp;
 
-    /*
-     * Allocation from DHT buffer not needed for local request, for
-     * remote one DHT client method will handle buffering.
-     */
-    // @TODO jradtke AllocKey need changes to avoid extra memory copying in
-    // kvs->Get
-    Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
-    memcpy(key.data(), msg->msg, msg->keySize);
-
     try {
-        auto val = serverCtx->kvs->Get(key);
         // todo why cannot we set arbitrary response size?
         resp = erpcPrepareMsgbuf(rpc, req_handle, req->get_data_size());
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
-        result->msgSize = val.size();
-        if (result->msgSize > 0) {
-            memcpy(result->msg, val.data(), result->msgSize);
-        }
+        result->msgSize = req->get_data_size();
+        serverCtx->kvs->Get(msg->msg, msg->keySize, result->msg,
+                            &result->msgSize);
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
         resp = erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
@@ -97,16 +86,15 @@ static void erpcReqPutHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
-    std::memcpy(key.data(), msg->msg, msg->keySize);
-    Value value = serverCtx->kvs->Alloc(key, msg->valSize);
-    std::memcpy(value.data(), msg->msg + msg->keySize, msg->valSize);
+    char *value;
+    serverCtx->kvs->Alloc(msg->msg, msg->keySize, &value, msg->valSize);
+    std::memcpy(value, msg->msg + msg->keySize, msg->valSize);
     erpc::MsgBuffer *resp =
         erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
     DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
 
     try {
-        serverCtx->kvs->Put(move(key), move(value));
+        serverCtx->kvs->Put(msg->msg, msg->keySize, value, msg->valSize);
         result->msgSize = 0;
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
@@ -126,20 +114,12 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     auto req = req_handle->get_req_msgbuf();
     auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
 
-    /*
-     * Allocation from DHT buffer not needed for local request, for
-     * remote one DHT client method will handle buffering.
-     */
-    // @TODO jradtke AllocKey need changes to avoid extra memory copying in
-    // kvs->Remove
-    Key key = serverCtx->kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
-    std::memcpy(key.data(), msg->msg, msg->keySize);
     erpc::MsgBuffer *resp =
         erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
     DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
 
     try {
-        serverCtx->kvs->Remove(key);
+        serverCtx->kvs->Remove(msg->msg, msg->keySize);
         result->msgSize = 0;
         result->status = StatusCode::OK;
     } catch (DaqDB::OperationFailedException &e) {
