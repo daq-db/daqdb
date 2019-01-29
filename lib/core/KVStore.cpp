@@ -101,6 +101,7 @@ void KVStore::init() {
     }
     if (_spDht->getLocalNode()->getPeerPort() > 0) {
         _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
+        _spDht->initClient();
     }
 
     if (isOffloadEnabled()) {
