@@ -19,7 +19,7 @@
 
 typedef char DEFAULT_KeyType[16];
 
-void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
+bool initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     options.runtime.logFunc = [](std::string msg) {
         BOOST_LOG_SEV(lg::get(), bt::debug) << msg << std::flush;
     };
@@ -32,6 +32,10 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
         std::stringstream errorMsg;
         if (!DaqDB::readConfiguration(configFile, options, errorMsg)) {
             BOOST_LOG_SEV(lg::get(), bt::error) << errorMsg.str();
+            return false;
         }
+    } else {
+        return false;
     }
+    return true;
 }

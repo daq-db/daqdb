@@ -84,7 +84,11 @@ int main(int argc, const char *argv[]) {
     LOG_INFO << "Functional tests for DAQDB (thin) library" << flush;
 
     DaqDB::Options options;
-    initKvsOptions(options, configFile);
+    if (!initKvsOptions(options, configFile)) {
+        LOG_INFO << "Cannot read configuration file [" << configFile << "]"
+                 << endl;
+        return -1;
+    }
 
     if (!executeTest("testRemotePeerConnect", testRemotePeerConnect, nullptr,
                      &options)) {
