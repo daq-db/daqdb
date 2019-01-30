@@ -22,4 +22,4 @@
 #include "debug.h"
 #include <config/Configuration.h>
 
-void initKvsOptions(DaqDB::Options &options, const std::string &configFile);
+bool initKvsOptions(DaqDB::Options &options, const std::string &configFile);
