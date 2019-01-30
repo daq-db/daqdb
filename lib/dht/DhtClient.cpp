@@ -30,14 +30,8 @@ using boost::format;
 
 namespace DaqDB {
 
-#define ERPC_MAX_REQUEST_SIZE 32 * 1024
-#define ERPC_MAX_RESPONSE_SIZE 32 * 1024
-<<<<<<< HEAD
-#define WAIT_FOR_NEIGHBOUR_TIMEOUT 1000
-=======
 #define WAIT_FOR_NEIGHBOUR_INTERVAL 100
 #define WAIT_FOR_NEIGHBOUR_RETRIES 10
->>>>>>> 8c34b83c207d4b3f4dc19b407e853d7bac194dc0
 
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 

@@ -61,9 +61,9 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
 
     try {
         // todo why cannot we set arbitrary response size?
-        resp = erpcPrepareMsgbuf(rpc, req_handle, req->get_data_size());
+        resp = erpcPrepareMsgbuf(rpc, req_handle, ERPC_MAX_RESPONSE_SIZE);
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
-        result->msgSize = req->get_data_size();
+        result->msgSize = resp->get_data_size();
         serverCtx->kvs->Get(msg->msg, msg->keySize, result->msg,
                             &result->msgSize);
         result->status = StatusCode::OK;
