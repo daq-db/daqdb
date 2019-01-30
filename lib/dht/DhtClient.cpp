@@ -30,8 +30,6 @@ using boost::format;
 
 namespace DaqDB {
 
-#define ERPC_MAX_REQUEST_SIZE 32 * 1024
-#define ERPC_MAX_RESPONSE_SIZE 32 * 1024
 #define WAIT_FOR_NEIGHBOUR_INTERVAL 100
 #define WAIT_FOR_NEIGHBOUR_RETRIES 10
 
