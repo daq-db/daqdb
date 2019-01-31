@@ -30,26 +30,27 @@ bool static checkValuePutGet(KVStoreBase *kvs, string keyStr,
     auto key = strToKey(kvs, keyStr);
     auto val = allocAndFillValue(kvs, key, valueSize);
 
-    LOG_INFO << format("Put: [%1%] with size [%2%]") % key.data() % val.size();
+    DAQDB_INFO << format("Put: [%1%] with size [%2%]") % key.data() %
+                      val.size();
     daqdb_put(kvs, move(key), val);
 
     key = strToKey(kvs, keyStr);
     auto currVal = daqdb_get(kvs, key);
-    LOG_INFO << format("Get: [%1%] with size [%2%]") % key.data() %
-                    currVal.size();
+    DAQDB_INFO << format("Get: [%1%] with size [%2%]") % key.data() %
+                      currVal.size();
 
     if ((val.size() != currVal.size()) ||
         !memcmp(reinterpret_cast<void *>(&val),
                 reinterpret_cast<void *>(&currVal), currVal.size())) {
-        LOG_INFO << "Error: wrong value returned" << flush;
+        DAQDB_INFO << "Error: wrong value returned" << flush;
         result = false;
     }
 
     auto removeResult = daqdb_remove(kvs, key);
-    LOG_INFO << format("Remove: [%1%]") % key.data();
+    DAQDB_INFO << format("Remove: [%1%]") % key.data();
     if (!removeResult) {
         result = false;
-        LOG_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
     }
     return result;
 }

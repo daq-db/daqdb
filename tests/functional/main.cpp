@@ -50,13 +50,13 @@ static void init_logger() {
 
 static bool executeTest(string test, function<bool(DaqDB::KVStoreBase *)> fn,
                         DaqDB::KVStoreBase *kvs) {
-    LOG_INFO << string(80, '-') << endl << test << endl << string(80, '-');
+    DAQDB_INFO << string(80, '-') << endl << test << endl << string(80, '-');
 
     if (fn(kvs)) {
-        LOG_INFO << "Test completed successfully" << endl;
+        DAQDB_INFO << "Test completed successfully" << endl;
         return true;
     } else {
-        LOG_INFO << "Test failed" << endl;
+        DAQDB_INFO << "Test failed" << endl;
         return false;
     }
 }
@@ -93,12 +93,12 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    LOG_INFO << "Functional tests for DAQDB library" << flush;
+    DAQDB_INFO << "Functional tests for DAQDB library" << flush;
 
     DaqDB::Options options;
     if (!initKvsOptions(options, configFile)) {
-        LOG_INFO << "Cannot read configuration file [" << configFile << "]"
-                 << endl;
+        DAQDB_INFO << "Cannot read configuration file [" << configFile << "]"
+                   << endl;
         return -1;
     }
 
@@ -106,7 +106,7 @@ int main(int argc, const char *argv[]) {
     try {
         spKVStore.reset(DaqDB::KVStoreBase::Open(options));
     } catch (DaqDB::OperationFailedException &e) {
-        LOG_INFO << "Failed to create KVStore: " << e.what() << endl;
+        DAQDB_INFO << "Failed to create KVStore: " << e.what() << endl;
         return -1;
     }
 
@@ -125,9 +125,9 @@ int main(int argc, const char *argv[]) {
     }
 
     if (failsCount > 0) {
-        LOG_INFO << format("Test(s) failed [%1%]") % failsCount << endl;
+        DAQDB_INFO << format("Test(s) failed [%1%]") % failsCount << endl;
     } else {
-        LOG_INFO << "All tests passed!" << endl;
+        DAQDB_INFO << "All tests passed!" << endl;
     }
 
     return 0;

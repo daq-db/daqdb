@@ -25,30 +25,30 @@ bool static checkValuePutGet(KVStoreBase *kvs, const string keyStr,
     auto putKey = strToKey(kvs, keyStr);
     auto val = allocAndFillValue(kvs, putKey, valueSize);
 
-    LOG_INFO << format("Remote Put: [%1%] with size [%2%]") % putKey.data() %
-                    val.size();
+    DAQDB_INFO << format("Remote Put: [%1%] with size [%2%]") % putKey.data() %
+                      val.size();
     remote_put(kvs, move(putKey), val);
 
     auto key = strToKey(kvs, keyStr, KeyValAttribute::NOT_BUFFERED);
 
     auto resultVal = remote_get(kvs, key);
     if (resultVal.data()) {
-        LOG_INFO << format("Remote Get: [%1%] with size [%2%]") % key.data() %
-                        resultVal.size();
+        DAQDB_INFO << format("Remote Get: [%1%] with size [%2%]") % key.data() %
+                          resultVal.size();
     }
 
     if ((val.size() != resultVal.size()) ||
         !memcmp(reinterpret_cast<void *>(&val),
                 reinterpret_cast<void *>(&resultVal), resultVal.size())) {
-        LOG_INFO << "Error: wrong value returned" << flush;
+        DAQDB_INFO << "Error: wrong value returned" << flush;
         result = false;
     }
 
-    LOG_INFO << format("Remote Remove: [%1%]") % key.data();
+    DAQDB_INFO << format("Remote Remove: [%1%]") % key.data();
     auto removeResult = remote_remove(kvs, key);
     if (!removeResult) {
         result = false;
-        LOG_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
     }
 
     return result;

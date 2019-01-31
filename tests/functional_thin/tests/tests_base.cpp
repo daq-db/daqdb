@@ -46,15 +46,15 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
     core->initNexus(core->getLocalNode()->getPort());
     core->initClient();
     if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
-        LOG_INFO << "DHT client started successfully" << flush;
+        DAQDB_INFO << "DHT client started successfully" << flush;
     } else {
-        LOG_INFO << "Can not start DHT client" << flush;
+        DAQDB_INFO << "Can not start DHT client" << flush;
         return false;
     }
     auto neighborNode = core->getNeighbors()->front();
     auto connected = core->getClient()->ping(*neighborNode);
     if (!connected) {
-        LOG_INFO << "Can not connect to neighbor" << flush;
+        DAQDB_INFO << "Can not connect to neighbor" << flush;
         return false;
     }
 
@@ -74,28 +74,29 @@ bool testPutGetSequence(KVStoreBase *kvs, DaqDB::Options *options) {
     auto putKey = strToKey(kvs, expectedKey);
     auto val = allocValue(kvs, putKey, expectedVal);
 
-    LOG_INFO << format("Remote Put: [%1%] = %2%") % putKey.data() % val.data();
+    DAQDB_INFO << format("Remote Put: [%1%] = %2%") % putKey.data() %
+                      val.data();
     remote_put(kvs, move(putKey), val);
 
     auto key = strToKey(kvs, expectedKey, KeyValAttribute::NOT_BUFFERED);
     auto resultVal = remote_get(kvs, key);
     if (resultVal.data()) {
-        LOG_INFO << format("Remote Get result: [%1%] = %2%") % key.data() %
-                        resultVal.data();
+        DAQDB_INFO << format("Remote Get result: [%1%] = %2%") % key.data() %
+                          resultVal.data();
         if (expectedVal.compare(resultVal.data()) != 0) {
             result = false;
-            LOG_INFO << "Error: wrong value returned";
+            DAQDB_INFO << "Error: wrong value returned";
         }
     } else {
         result = false;
-        LOG_INFO << "Error: no value returned";
+        DAQDB_INFO << "Error: no value returned";
     }
 
     auto removeResult = remote_remove(kvs, key);
-    LOG_INFO << format("Remote Remove: [%1%]") % key.data();
+    DAQDB_INFO << format("Remote Remove: [%1%]") % key.data();
     if (!removeResult) {
         result = false;
-        LOG_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
     }
 
     return result;

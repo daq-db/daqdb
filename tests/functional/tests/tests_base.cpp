@@ -32,23 +32,23 @@ bool testSyncOperations(KVStoreBase *kvs) {
     auto key = strToKey(kvs, expectedKey);
     auto val = allocValue(kvs, key, expectedVal);
 
-    LOG_INFO << format("Put: [%1%] = %2%") % key.data() % val.data();
+    DAQDB_INFO << format("Put: [%1%] = %2%") % key.data() % val.data();
     daqdb_put(kvs, move(key), val);
 
     key = strToKey(kvs, expectedKey);
     auto currVal = daqdb_get(kvs, key);
-    LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
+    DAQDB_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
 
     if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
-        LOG_INFO << "Error: wrong value returned" << flush;
+        DAQDB_INFO << "Error: wrong value returned" << flush;
         result = false;
     }
 
     auto removeResult = daqdb_remove(kvs, key);
-    LOG_INFO << format("Remove: [%1%]") % key.data();
+    DAQDB_INFO << format("Remove: [%1%]") % key.data();
     if (!removeResult) {
         result = false;
-        LOG_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
     }
 
     return result;
@@ -72,10 +72,10 @@ bool testAsyncOperations(KVStoreBase *kvs) {
             const size_t keySize, const char *value, const size_t valueSize) {
             unique_lock<mutex> lck(mtx);
             if (status.ok()) {
-                LOG_INFO << boost::format("PutAsync: [%1%]") % key;
+                DAQDB_INFO << boost::format("PutAsync: [%1%]") % key;
             } else {
-                LOG_INFO << boost::format("Error: cannot put element: %1%") %
-                                status.to_string();
+                DAQDB_INFO << boost::format("Error: cannot put element: %1%") %
+                                  status.to_string();
                 result = false;
             }
             ready = true;
@@ -90,9 +90,9 @@ bool testAsyncOperations(KVStoreBase *kvs) {
     }
 
     auto currVal = daqdb_get(kvs, key);
-    LOG_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
+    DAQDB_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
     if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
-        LOG_INFO << "Error: wrong value returned" << flush;
+        DAQDB_INFO << "Error: wrong value returned" << flush;
         result = false;
     }
 
@@ -103,15 +103,15 @@ bool testAsyncOperations(KVStoreBase *kvs) {
             unique_lock<mutex> lck(mtx);
 
             if (status.ok()) {
-                LOG_INFO << boost::format("GetAsync: [%1%] = %2%") % key %
-                                value;
+                DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") % key %
+                                  value;
                 if (!currVal.data() || expectedVal.compare(value) != 0) {
-                    LOG_INFO << "Error: wrong value returned" << flush;
+                    DAQDB_INFO << "Error: wrong value returned" << flush;
                     result = false;
                 }
             } else {
-                LOG_INFO << boost::format("Error: cannot get element: %1%") %
-                                status.to_string();
+                DAQDB_INFO << boost::format("Error: cannot get element: %1%") %
+                                  status.to_string();
                 result = false;
             }
 
@@ -127,10 +127,10 @@ bool testAsyncOperations(KVStoreBase *kvs) {
     }
 
     auto removeResult = daqdb_remove(kvs, key);
-    LOG_INFO << format("Remove: [%1%]") % key.data();
+    DAQDB_INFO << format("Remove: [%1%]") % key.data();
     if (!removeResult) {
         result = false;
-        LOG_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
     }
 
     return result;
