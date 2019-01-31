@@ -39,6 +39,11 @@ const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
 #define DEFAULT_DHT_MASK_LENGTH 1
 #define DEFAULT_DHT_MASK_OFFSET 0
 
+DhtCore::DhtCore() : numberOfClients(0) {}
+
+DhtCore::DhtCore(const DaqDB::DhtCore &dhtCore)
+    : options(dhtCore.options), numberOfClients(0) {}
+
 DhtCore::DhtCore(DhtOptions dhtOptions)
     : options(dhtOptions), numberOfClients(0) {
     _initNeighbors();
@@ -71,6 +76,21 @@ void DhtCore::initClient() {
         DAQ_DEBUG("Can not start new DHT client");
     }
 }
+
+DhtClient *DhtCore::getClient() {
+    if (!_threadDhtClient) {
+        /*
+         * Separate DHT client is needed per user thread.
+         * It is expected that on first use the DhtClient have to be created
+         * and initialized.
+         */
+        initClient();
+    }
+
+    return _threadDhtClient;
+}
+
+void DhtCore::setClient(DhtClient *dhtClient) { _threadDhtClient = dhtClient; }
 
 void DhtCore::registerClient(DhtClient *dhtClient) {
     std::unique_lock<std::mutex> l(_dhtClientsMutex);
