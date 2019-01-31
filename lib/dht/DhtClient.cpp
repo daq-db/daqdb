@@ -177,9 +177,7 @@ void DhtClient::_runToResponse() {
 
 Value DhtClient::get(const Key &key) {
     DAQ_DEBUG("Get requested from DhtClient");
-    // @TODO jradtke verify why communication is broken when _reqMsgBuf is
-    // smaller than response size
-    resizeMsgBuffers(ERPC_MAX_REQUEST_SIZE, ERPC_MAX_RESPONSE_SIZE);
+    resizeMsgBuffers(sizeof(DaqdbDhtMsg) + key.size(), ERPC_MAX_RESPONSE_SIZE);
     fillReqMsg(&key, nullptr);
     enqueueAndWait(getTargetHost(key), ErpRequestType::ERP_REQUEST_GET, clbGet);
 
