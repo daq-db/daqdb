@@ -13,12 +13,13 @@
  * stated in the License.
  */
 
-#include <KVStoreThin.h>
 #include <daqdb/KVStoreBase.h>
 
 #ifndef THIN_LIB
-#include <KVStore.h>
+#include <KVStore.h> /* net/if.h (put before linux/if.h) */
 #endif
+
+#include <KVStoreThin.h> /* include linux/if.h */
 
 namespace DaqDB {
 

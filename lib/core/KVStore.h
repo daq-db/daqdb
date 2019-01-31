@@ -19,8 +19,9 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#include <DhtCore.h>
-#include <OffloadPoller.h>
+#include <OffloadPoller.h> /* net/if.h (put before linux/if.h) */
+
+#include <DhtCore.h> /* include linux/if.h */
 #include <PmemPoller.h>
 #include <PrimaryKeyEngine.h>
 #include <RTreeEngine.h>
