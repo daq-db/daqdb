@@ -102,12 +102,12 @@ class DhtClient {
     /**
      * @return erpc::Rpc<erpc::CTransport> object
      */
-    inline void *getRpc() { return _clientRpc; };
+    inline erpc::Rpc<erpc::CTransport> *getRpc() { return _clientRpc; };
 
     /**
      * @param newRpc pointer to erpc::Rpc<erpc::CTransport> object
      */
-    void setRpc(void *newRpc);
+    void setRpc(erpc::Rpc<erpc::CTransport> *newRpc);
 
     inline DhtReqCtx *getReqCtx() { return &_reqCtx; };
 
@@ -163,7 +163,7 @@ class DhtClient {
     void _runToResponse();
     void _initReqCtx();
 
-    void *_clientRpc; // Stores erpc::Rpc<erpc::CTransport>
+    erpc::Rpc<erpc::CTransport> *_clientRpc;
     erpc::Nexus *_nexus;
 
     DhtCore *_dhtCore;

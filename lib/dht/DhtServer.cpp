@@ -24,6 +24,9 @@
 #include <Logger.h>
 #include <rpc.h>
 
+/** @TODO jradtke: should be taken from configuration file */
+#define DHT_SERVER_CPU_CORE_BASE 5
+
 namespace DaqDB {
 
 using namespace std;
@@ -132,9 +135,9 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     DAQ_DEBUG("Response enqueued");
 }
 
-DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs)
+DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads)
     : state(DhtServerState::DHT_SERVER_INIT), _dhtCore(dhtCore), _kvs(kvs),
-      _thread(nullptr) {
+      _thread(nullptr), _workerThreadsNumber(numWorkerThreads) {
     serve();
 }
 
@@ -144,33 +147,89 @@ DhtServer::~DhtServer() {
         _thread->join();
 }
 
+void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t cpuset) {
+    DhtServerCtx rpcCtx;
+
+    const int set_result = pthread_setaffinity_np(_thread->native_handle(),
+                                                  sizeof(cpu_set_t), &cpuset);
+    if (!set_result) {
+        DAQ_DEBUG("Cannot set affinity for DHT server worker[" +
+                  to_string(workerId) + "]");
+    }
+
+    try {
+        erpc::Rpc<erpc::CTransport> *rpc = new erpc::Rpc<erpc::CTransport>(
+            _spServerNexus.get(), &rpcCtx, workerId, nullptr);
+        rpcCtx.kvs = _kvs;
+        rpcCtx.rpc = rpc;
+        while (keepRunning) {
+            rpc->run_event_loop_once();
+        }
+        if (rpc) {
+            delete rpc;
+        }
+    } catch (exception &e) {
+        DAQ_DEBUG("DHT server worker [" + to_string(workerId) +
+                  "] exception: " + std::string(e.what()));
+    } catch (...) {
+        DAQ_DEBUG("DHT server worker [" + to_string(workerId) +
+                  "] exception: unknown");
+    }
+}
+
 void DhtServer::_serve(void) {
 
-    auto nexus = new erpc::Nexus(_dhtCore->getLocalNode()->getUri(), 0, 0);
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(DHT_SERVER_CPU_CORE_BASE, &cpuset);
 
-    nexus->register_req_func(
+    const int set_result = pthread_setaffinity_np(_thread->native_handle(),
+                                                  sizeof(cpu_set_t), &cpuset);
+    if (!set_result) {
+        DAQ_DEBUG("Cannot set affinity for DHT server thread");
+    }
+
+    _spServerNexus.reset(
+        new erpc::Nexus(_dhtCore->getLocalNode()->getUri(), 0, 0));
+
+    _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GET),
         erpcReqGetHandler);
-    nexus->register_req_func(
+    _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_PUT),
         erpcReqPutHandler);
-    nexus->register_req_func(
+    _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_REMOVE),
         erpcReqRemoveHandler);
 
-    DhtServerCtx rpcCtx;
-    rpcCtx.kvs = _kvs;
-
-    erpc::Rpc<erpc::CTransport> *rpc;
     try {
-        rpc = new erpc::Rpc<erpc::CTransport>(nexus, &rpcCtx, 0, nullptr);
+        DhtServerCtx rpcCtx;
+        erpc::Rpc<erpc::CTransport> *rpc = new erpc::Rpc<erpc::CTransport>(
+            _spServerNexus.get(), &rpcCtx, 0, nullptr);
+        rpcCtx.kvs = _kvs;
         rpcCtx.rpc = rpc;
+
+        for (uint8_t threadIndex = 1; threadIndex <= _workerThreadsNumber;
+             ++threadIndex) {
+            CPU_ZERO(&cpuset);
+            CPU_SET(DHT_SERVER_CPU_CORE_BASE + threadIndex, &cpuset);
+            _workerThreads.push_back(new thread(&DhtServer::_serveWorker, this,
+                                                threadIndex, cpuset));
+        }
+
         state = DhtServerState::DHT_SERVER_READY;
         keepRunning = true;
         while (keepRunning) {
             rpc->run_event_loop_once();
         }
         state = DhtServerState::DHT_SERVER_STOPPED;
+
+        while (!_workerThreads.empty()) {
+            auto workerThread = _workerThreads.back();
+            _workerThreads.pop_back();
+            workerThread->join();
+            delete workerThread;
+        }
 
         if (rpc) {
             delete rpc;
@@ -184,8 +243,6 @@ void DhtServer::_serve(void) {
         state = DhtServerState::DHT_SERVER_ERROR;
         throw;
     }
-
-    delete nexus;
 }
 
 void DhtServer::serve(void) {
