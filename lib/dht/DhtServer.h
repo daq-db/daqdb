@@ -20,9 +20,10 @@
 #include <string>
 #include <thread>
 
+#include <KVStore.h> /* net/if.h (put before linux/if.h) */
+
 #include <DhtCore.h>
 #include <DhtNode.h>
-#include <KVStore.h>
 #include <Key.h>
 #include <Value.h>
 

@@ -21,7 +21,7 @@
 #include <thread>
 #include <vector>
 
-#include <DhtClient.h>
+#include <DhtClient.h> /* include linux/if.h */
 #include <DhtNode.h>
 
 #include "DhtTypes.h"

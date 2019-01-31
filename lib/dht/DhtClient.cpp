@@ -22,7 +22,6 @@
 #include "DhtCore.h"
 
 #include <Logger.h>
-#include <rpc.h>
 #include <sslot.h>
 
 using namespace std;

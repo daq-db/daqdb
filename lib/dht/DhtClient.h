@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <rpc.h> /* include linux/if.h */
+
 #include <map>
 #include <mutex>
 #include <thread>

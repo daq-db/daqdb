@@ -53,7 +53,7 @@ bool testDhtConnect(KVStoreBase *kvs) {
 
     auto serverStatus = kvs->getProperty("daqdb.dht.status");
     if (serverStatus.find("DHT server: inactive") != std::string::npos) {
-        LOG_INFO << "DHT server not started" << flush;
+        DAQDB_INFO << "DHT server not started" << flush;
         return false;
     }
 
@@ -61,15 +61,15 @@ bool testDhtConnect(KVStoreBase *kvs) {
     core->initNexus(TESTCLIENT_PORT);
     core->initClient();
     if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
-        LOG_INFO << "DHT client started successfully" << flush;
+        DAQDB_INFO << "DHT client started successfully" << flush;
     } else {
-        LOG_INFO << "Can not start DHT client" << flush;
+        DAQDB_INFO << "Can not start DHT client" << flush;
         return false;
     }
     auto neighborNode = core->getNeighbors()->front();
     auto connected = core->getClient()->ping(*neighborNode);
     if (!connected) {
-        LOG_INFO << "Can not connect to neighbor" << flush;
+        DAQDB_INFO << "Can not connect to neighbor" << flush;
         return false;
     }
 
