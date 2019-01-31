@@ -248,17 +248,22 @@ void ARTree::Remove(const char *key) {
             static thread_local int actionsCounter = 0;
             //std::cout << "remove off=" << (*valPrstPtr.raw_ptr()).off
             //          << std::endl;
-            // TODO: commented because of error in PMDK on free() of object
-            // reserved with xreserve
-            // pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
-            // pmemobj_free(valPrstPtr.raw_ptr());
+            //TODO: commented because of error in PMDK on free() of object
+            // reserved with xreserve - [MM]LGTM
+            pmemobj_defer_free(tree->_pm_pool.get_handle(),
+                              (*valPrstPtr.raw_ptr()),
+                              &actionsArray[actionsCounter]);
+            //pmemobj_free(valPrstPtr.raw_ptr());
             actionsCounter++;
             // decrement counter in parent and remove if needed
             decrementParent(val->parent);
-            /*int status = pmemobj_publish(tree->_pm_pool.get_handle(),
-                                        actionsArray, actionsCounter);*/
+
+            //TODO move publish from here to node removal, should be enough
+            //int status = pmemobj_publish(tree->_pm_pool.get_handle(),
+            ///                            actionsArray, actionsCounter);
         } else if (val->location == DISK) {
             // @TODO jradtke need to confirm if no extra action required here
+            // TODO we still need to remove key, and decrement counter
         }
         val->location = EMPTY;
     } catch (std::exception &e) {
