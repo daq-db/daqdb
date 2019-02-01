@@ -250,10 +250,10 @@ void DhtClient::free(const Key &key, Value &&value) {
     _reqMsgBufValInUse = false;
 }
 
-void DhtClient::setRpc(void *newRpc) {
-    if (_clientRpc) {
-        delete reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-    }
+void DhtClient::setRpc(erpc::Rpc<erpc::CTransport> *newRpc) {
+    if (_clientRpc)
+        delete _clientRpc;
+
     _clientRpc = newRpc;
 }
 
