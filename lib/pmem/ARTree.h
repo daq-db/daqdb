@@ -77,6 +77,7 @@ struct locationWrapper {
     locationWrapper() : value(EMPTY) {}
     int value;
 };
+class Node;
 
 struct ValueWrapper {
     explicit ValueWrapper()
@@ -91,6 +92,7 @@ struct ValueWrapper {
     v<locationWrapper> locationVolatile;
     struct pobj_action *actionValue;
     struct pobj_action *actionUpdate;
+    persistent_ptr<Node> parent; // pointer to parent, needed for removal
 };
 
 class Node {
@@ -100,6 +102,8 @@ class Node {
     int depth;
     // Type of Node: Node256 or compressed
     int type;
+    persistent_ptr<Node> parent; // pointer to parent, needed for removal
+    std::atomic<int> refCounter;
 };
 
 /*
@@ -133,8 +137,9 @@ class TreeImpl {
     void allocateFullLevels(persistent_ptr<Node> node, int levelsToAllocate,
                             struct pobj_action *actionsArray,
                             int &actionCounter);
-    ValueWrapper *findValueInNode(persistent_ptr<Node> current, const char *key,
-                                  bool allocate);
+    persistent_ptr<ValueWrapper> findValueInNode(persistent_ptr<Node> current,
+                                                 const char *key,
+                                                 bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
     void setClassId(enum ALLOC_CLASS c, unsigned id);
@@ -163,6 +168,7 @@ class ARTree : public DaqDB::RTreeEngine {
     void AllocateIOVForKey(const char *key, uint64_t **ptr, size_t size) final;
     void UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) final;
     void printKey(const char *key);
+    void decrementParent(persistent_ptr<Node> node);
 
   private:
     TreeImpl *tree;

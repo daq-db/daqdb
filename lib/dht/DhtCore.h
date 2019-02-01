@@ -21,7 +21,7 @@
 #include <thread>
 #include <vector>
 
-#include <DhtClient.h>
+#include <DhtClient.h> /* include linux/if.h */
 #include <DhtNode.h>
 
 #include "DhtTypes.h"
@@ -36,14 +36,24 @@ namespace DaqDB {
 class DhtCore {
   public:
     /**
+     * @note needed to allow mocking in unit tests
+     */
+    DhtCore();
+    DhtCore(const DaqDB::DhtCore &);
+
+    /**
      * @param dhtOptions dht options
      *
      * @note At the moment only satellite node should initialize nexus
      */
     DhtCore(DhtOptions dhtOptions);
-    ~DhtCore();
+    virtual ~DhtCore();
 
-    void initClient();
+    /**
+     * Creates and initializes DhtClient for caller thread.
+     * @note public and virtual to allow mocking in unit tests
+     */
+    virtual void initClient();
 
     bool isLocalKey(Key key);
 
@@ -66,18 +76,12 @@ class DhtCore {
      *
      * @return DhtClient object
      */
-    inline DhtClient *getClient() {
-        if (!_threadDhtClient) {
-            /*
-             * Separate DHT client is needed per user thread.
-             * It is expected that on first use the DhtClient have to be created
-             * and initialized.
-             */
-            initClient();
-        }
+    DhtClient *getClient();
 
-        return _threadDhtClient;
-    };
+    /**
+     * Sets DhtClient for caller thread.
+     */
+    void setClient(DhtClient *dhtClient);
 
     /**
      * Storing each DhtClient is required to close Nexus gracefully (all

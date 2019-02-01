@@ -17,12 +17,6 @@
 
 #include <daqdb/Status.h>
 
-// @TODO : jradtke Cannot include rpc.h, net / if.h conflict
-namespace erpc {
-class Nexus;
-class MsgBuffer;
-} // namespace erpc
-
 namespace DaqDB {
 
 typedef void (*DhtContFunc)(void *appCtx, void *ioCtx);

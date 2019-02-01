@@ -22,7 +22,6 @@
 #include "DhtCore.h"
 
 #include <Logger.h>
-#include <rpc.h>
 #include <sslot.h>
 
 using namespace std;
@@ -197,9 +196,7 @@ void DhtClient::_runToResponse() {
 
 Value DhtClient::get(const Key &key) {
     DAQ_DEBUG("Get requested from DhtClient");
-    // @TODO jradtke verify why communication is broken when _reqMsgBuf is
-    // smaller than response size
-    resizeMsgBuffers(ERPC_MAX_REQUEST_SIZE, ERPC_MAX_RESPONSE_SIZE);
+    resizeMsgBuffers(sizeof(DaqdbDhtMsg) + key.size(), ERPC_MAX_RESPONSE_SIZE);
     fillReqMsg(&key, nullptr);
     enqueueAndWait(getTargetHost(key), ErpRequestType::ERP_REQUEST_GET, clbGet);
 
@@ -281,10 +278,10 @@ void DhtClient::free(const Key &key, Value &&value) {
     _reqMsgBufValInUse = false;
 }
 
-void DhtClient::setRpc(void *newRpc) {
-    if (_clientRpc) {
-        delete reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
-    }
+void DhtClient::setRpc(erpc::Rpc<erpc::CTransport> *newRpc) {
+    if (_clientRpc)
+        delete _clientRpc;
+
     _clientRpc = newRpc;
 }
 

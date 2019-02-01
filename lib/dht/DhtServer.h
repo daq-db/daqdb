@@ -20,9 +20,10 @@
 #include <string>
 #include <thread>
 
+#include <KVStore.h> /* net/if.h (put before linux/if.h) */
+
 #include <DhtCore.h>
 #include <DhtNode.h>
-#include <KVStore.h>
 #include <Key.h>
 #include <Value.h>
 
@@ -42,7 +43,7 @@ struct DhtServerCtx {
 
 class DhtServer {
   public:
-    DhtServer(DhtCore *dhtCore, KVStore *kvs);
+    DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads = 0);
     ~DhtServer();
 
     /**
@@ -76,10 +77,15 @@ class DhtServer {
 
   private:
     void _serve(void);
+    void _serveWorker(unsigned int workerId, cpu_set_t cpuset);
 
+    std::unique_ptr<erpc::Nexus> _spServerNexus;
     KVStore *_kvs;
     DhtCore *_dhtCore;
     std::thread *_thread;
+
+    uint8_t _workerThreadsNumber;
+    std::vector<std::thread *> _workerThreads;
 };
 
 } // namespace DaqDB

@@ -54,10 +54,10 @@ Value remote_get(KVStoreBase *kvs, const Key &key) {
         return kvs->Get(key);
     } catch (OperationFailedException &e) {
         if (e.status()() == KEY_NOT_FOUND) {
-            LOG_INFO << format("[%1%] not found") % key.data();
+            DAQDB_INFO << format("[%1%] not found") % key.data();
         } else {
-            LOG_INFO << "Error: cannot get element: " << e.status().to_string()
-                     << flush;
+            DAQDB_INFO << "Error: cannot get element: "
+                       << e.status().to_string() << flush;
         }
     }
     return Value();
@@ -67,8 +67,8 @@ void remote_put(KVStoreBase *kvs, Key &&key, Value &val) {
     try {
         kvs->Put(move(key), move(val));
     } catch (OperationFailedException &e) {
-        LOG_INFO << "Error: cannot put element: " << e.status().to_string()
-                 << flush;
+        DAQDB_INFO << "Error: cannot put element: " << e.status().to_string()
+                   << flush;
     }
 }
 
@@ -77,7 +77,7 @@ bool remote_remove(KVStoreBase *kvs, Key &key) {
     try {
         kvs->Remove(key);
     } catch (OperationFailedException &e) {
-        LOG_INFO << "Error: cannot remove element" << flush;
+        DAQDB_INFO << "Error: cannot remove element" << flush;
         return false;
     }
     try {
@@ -86,8 +86,8 @@ bool remote_remove(KVStoreBase *kvs, Key &key) {
         // success scenario: exception should thrown due non-existent key.
         result = (e.status().getStatusCode() == StatusCode::KEY_NOT_FOUND);
         if (!result) {
-            LOG_INFO << "Error: cannot remove element: status code ["
-                     << e.status().getStatusCode() << "]" << flush;
+            DAQDB_INFO << "Error: cannot remove element: status code ["
+                       << e.status().getStatusCode() << "]" << flush;
         }
     }
     return result;
