@@ -151,8 +151,11 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
 
 void ARTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
                  uint8_t *location) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr;
+    ValueWrapper *val;
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
     if (!val)
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
@@ -169,8 +172,12 @@ void ARTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
 
 void ARTree::Get(const char *key, void **value, size_t *size,
                  uint8_t *location) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr;
+    ValueWrapper *val;
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
+    //std::cout << "Get off=" << (*valPrstPtr.raw_ptr()).off << std::endl;
     if (!val)
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
@@ -188,8 +195,11 @@ void ARTree::Get(const char *key, void **value, size_t *size,
 void ARTree::Put(const char *key, // copy value from std::string
                  char *value) {
     // printKey(key);
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr;
+    ValueWrapper *val;
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
     if (val == nullptr) {
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
@@ -198,21 +208,31 @@ void ARTree::Put(const char *key, // copy value from std::string
     }
     val->locationVolatile.get().value = PMEM;
     val->location = PMEM;
-    // std::cout<<"PUT OK"<< std::endl;
 }
 
 void ARTree::Put(const char *key, int32_t keyBytes, const char *value,
                  int32_t valuebytes) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr;
+    ValueWrapper *val;
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val = reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
     val->locationVolatile.get().value = PMEM;
     val->location = PMEM;
 }
 
+/*
+ * TODO: decrement value std::atomic<int> refCounter in parent and free it if
+ * counter==0 When freeing - call decrementParent recurenty.
+ * */
+void ARTree::decrementParent(persistent_ptr<Node> node) {}
+
 void ARTree::Remove(const char *key) {
 
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr;
+    ValueWrapper *val;
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
     if (!val) {
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
@@ -223,6 +243,20 @@ void ARTree::Remove(const char *key) {
         if (val->location == PMEM &&
             val->locationVolatile.get().value != EMPTY) {
             pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+            // free ValueWrapper
+            static thread_local struct pobj_action actionsArray[1];
+            static thread_local int actionsCounter = 0;
+            //std::cout << "remove off=" << (*valPrstPtr.raw_ptr()).off
+            //          << std::endl;
+            // TODO: commented because of error in PMDK on free() of object
+            // reserved with xreserve
+            // pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
+            // pmemobj_free(valPrstPtr.raw_ptr());
+            actionsCounter++;
+            // decrement counter in parent and remove if needed
+            decrementParent(val->parent);
+            /*int status = pmemobj_publish(tree->_pm_pool.get_handle(),
+                                        actionsArray, actionsCounter);*/
         } else if (val->location == DISK) {
             // @TODO jradtke need to confirm if no extra action required here
         }
@@ -273,6 +307,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 actionsCounter++;
                 node256_new->depth = depth;
                 node256_new->type = TYPE256;
+                node256_new->refCounter = 256; // TODO: check if it shouldn't be
+                                               // incremented during PUT
+                node256_new->parent = node;
                 children[i] = node256_new;
             } else if (LEVEL_TYPE[depth] == TYPE_LEAF_COMPRESSED) {
                 nodeLeafCompressed_new = pmemobj_xreserve(
@@ -288,6 +325,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 actionsCounter++;
                 nodeLeafCompressed_new->depth = depth;
                 nodeLeafCompressed_new->type = TYPE_LEAF_COMPRESSED;
+                nodeLeafCompressed_new->parent = node;
                 // Temporarily disable the node
                 nodeLeafCompressed_new->key = -1;
                 children[i] = nodeLeafCompressed_new;
@@ -321,14 +359,15 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
  * found
  * @return pointer to value
  */
-ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
-                                        const char *_key, bool allocate) {
+persistent_ptr<ValueWrapper>
+TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
+                          bool allocate) {
     size_t keyCalc;
     unsigned char *key = (unsigned char *)_key;
     int debugCount = 0;
     persistent_ptr<Node256> node256;
     persistent_ptr<NodeLeafCompressed> nodeLeafCompressed;
-    ValueWrapper *val;
+    // ValueWrapper *val;
 
     while (1) {
         keyCalc = key[KEY_SIZE - current->depth - 1];
@@ -346,35 +385,45 @@ ValueWrapper *TreeImpl::findValueInNode(persistent_ptr<Node> current,
                     _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
                     sizeof(ValueWrapper), VALUE,
                     POBJ_CLASS_ID(getClassId(ALLOC_CLASS_VALUE_WRAPPER)));
+                /*
+                                nodeLeafCompressed->child = pmemobj_reserve(
+                                                    _pm_pool.get_handle(),
+                   &(actionsArray[actionsCounter]), sizeof(ValueWrapper), VALUE
+                                                    );
+                  */
                 if (OID_IS_NULL(*(nodeLeafCompressed->child).raw_ptr())) {
                     DAQ_DEBUG("reserve failed actionsCounter=" +
                               std::to_string(actionsCounter));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
+                //std::cout << "valueWrapper off="
+                //          << (*nodeLeafCompressed->child.raw_ptr()).off
+                //          << std::endl;
                 actionsCounter++;
                 int status = pmemobj_publish(_pm_pool.get_handle(),
                                              actionsArray, actionsCounter);
                 /** @todo add error check for all pmemobj_publish calls */
                 actionsCounter = 0;
-                val = reinterpret_cast<ValueWrapper *>(
-                    (nodeLeafCompressed->child).raw_ptr());
+                /*val = reinterpret_cast<ValueWrapper *>(
+                    (nodeLeafCompressed->child).raw_ptr());*/
                 /** @todo initialization below temporarily fixes race conditions
                  *        when PUT and GET requests are executed in parallel on
                  *        the same key. This is still not thread-safe.
-                */
-                val->location = EMPTY;
+                 */
+                nodeLeafCompressed->child->location = EMPTY;
+                // val->location = EMPTY;
                 // Enable the node
                 nodeLeafCompressed->key = keyCalc;
-                return val;
+                return nodeLeafCompressed->child;
             } else {
                 DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" +
                           std::to_string(keyCalc) + "NodeLeafCompressed->key=" +
                           std::to_string(nodeLeafCompressed->key));
                 if (nodeLeafCompressed->key == keyCalc) {
-                    val = reinterpret_cast<ValueWrapper *>(
-                        (nodeLeafCompressed->child).raw_ptr());
+                    /*val = reinterpret_cast<ValueWrapper *>(
+                        (nodeLeafCompressed->child).raw_ptr());*/
                     DAQ_DEBUG("findValueInNode: Found");
-                    return val;
+                    return nodeLeafCompressed->child;
                 } else {
                     DAQ_DEBUG("findValueInNode: Not Found");
                     return nullptr;
@@ -440,8 +489,11 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
             tree->treeRoot->rootNode->nodeMutex);
     }
     if (tree->treeRoot->rootNode) {
-        ValueWrapper *val =
-            tree->findValueInNode(tree->treeRoot->rootNode, key, true);
+        persistent_ptr<ValueWrapper> valPrstPtr;
+        ValueWrapper *val;
+        valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, true);
+        val = reinterpret_cast<ValueWrapper *>(
+            pmemobj_direct(*valPrstPtr.raw_ptr()));
         /** @todo handle re-alloc */
         val->location = EMPTY;
         val->actionValue = new pobj_action[1];
@@ -469,8 +521,11 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
  */
 void ARTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
                                size_t size) {
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr;
+    ValueWrapper *val;
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
     val->actionUpdate = new pobj_action[3];
     /** @todo Consider changing to xreserve */
     pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
@@ -490,8 +545,11 @@ void ARTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
  */
 void ARTree::UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) {
     pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
-    ValueWrapper *val =
-        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr;
+    ValueWrapper *val;
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
                       val->locationPtr.IOVptr.get(),
                       reinterpret_cast<uint64_t>(*ptr));
