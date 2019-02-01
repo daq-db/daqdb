@@ -54,7 +54,9 @@ const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256,
 // how many levels will be created on ARTree initialization
 const int PREALLOC_LEVELS = 1;
 // size of table for actions for each Node
-#define ACTION_NUMBER_NODE256 (1 + 256)
+#define CHILDREN_SETTING_ACTIONS 2 * 256
+#define CHILDREN_NUMBER 256
+#define ACTION_NUMBER_NODE256 (1 + CHILDREN_NUMBER + CHILDREN_SETTING_ACTIONS)
 #define ACTION_NUMBER_COMPRESSED 1
 
 #define KEY_SIZE 12
@@ -100,6 +102,7 @@ class Node {
     int depth;
     // Type of Node: Node256 or compressed
     int type;
+    std::atomic<int> counter;
 };
 
 /*
