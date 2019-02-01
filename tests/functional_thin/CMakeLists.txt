@@ -19,6 +19,10 @@ configure_file(functests_thin.cfg.in
 	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functests_thin.cfg.sample COPYONLY)
 configure_file(functests_thin_clinode.cfg.in
 	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/functests_thin_clinode.cfg.sample COPYONLY)
+file(COPY functests_thin.sh
+  DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+  FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ
+  GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 include_directories(${PROJECT_SOURCE_DIR} tests)
 file(GLOB_RECURSE FUNCTESTS_THIN_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
