@@ -85,7 +85,7 @@ void KVStoreThin::GetAsync(const Key &key, KVStoreBaseCallback cb,
 
 Key KVStoreThin::GetAny(const AllocOptions &allocOptions,
                         const GetOptions &options) {
-    throw FUNC_NOT_IMPLEMENTED;
+    return dhtClient()->getAny();
 }
 
 void KVStoreThin::GetAnyAsync(KVStoreBaseGetAnyCallback cb,

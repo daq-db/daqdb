@@ -48,6 +48,7 @@ class DhtCore {
     bool isLocalKey(Key key);
 
     DhtNode *getHostForKey(Key key);
+    DhtNode *getHostAny();
 
     inline RangeToHost *getRangeToHost() { return &_rangeToHost; };
 

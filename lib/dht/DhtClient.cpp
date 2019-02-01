@@ -60,6 +60,25 @@ static void clbGet(void *ctxClient, void *ioCtx) {
     reqCtx->ready = true;
 }
 
+static void clbGetAny(void *ctxClient, void *ioCtx) {
+    DAQ_DEBUG("GetAny response received");
+    DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
+    DhtReqCtx *reqCtx = client->getReqCtx();
+
+    // todo check if successful and throw otherwise
+    auto *resp_msgbuf = client->getRespMsgBuf();
+    auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
+
+    reqCtx->status = resultMsg->status;
+    if (resultMsg->status == StatusCode::OK) {
+        auto responseSize = resultMsg->msgSize;
+        reqCtx->key = new Key(new char[resultMsg->msgSize], resultMsg->msgSize);
+        memcpy(reqCtx->key->data(), resultMsg->msg, responseSize);
+    }
+
+    reqCtx->ready = true;
+}
+
 static void clbPut(void *ctxClient, void *tag) {
     DAQ_DEBUG("Put response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
@@ -187,6 +206,15 @@ Value DhtClient::get(const Key &key) {
     return *_reqCtx.value;
 }
 
+Key DhtClient::getAny() {
+    DAQ_DEBUG("GetAny requested from DhtClient");
+    resizeMsgBuffers(sizeof(DaqdbDhtMsg), ERPC_MAX_RESPONSE_SIZE);
+    fillReqMsg(nullptr, nullptr);
+    enqueueAndWait(getAnyHost(), ErpRequestType::ERP_REQUEST_GETANY, clbGetAny);
+
+    return *_reqCtx.key;
+}
+
 void DhtClient::put(const Key &key, const Value &val) {
     resizeMsgBuffers(sizeof(DaqdbDhtMsg) + key.size() + val.size(),
                      sizeof(DaqdbDhtResult));
@@ -270,6 +298,8 @@ void DhtClient::resizeMsgBuffers(size_t new_request_size,
 DhtNode *DhtClient::getTargetHost(const Key &key) {
     return _dhtCore->getHostForKey(key);
 }
+
+DhtNode *DhtClient::getAnyHost() { return _dhtCore->getHostAny(); }
 
 void DhtClient::enqueueAndWait(DhtNode *targetHost, ErpRequestType type,
                                DhtContFunc contFunc) {
