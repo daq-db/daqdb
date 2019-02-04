@@ -26,7 +26,7 @@
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
 
-#define LOG_INFO BOOST_LOG_SEV(lg::get(), bt::info)
+#define DAQDB_INFO BOOST_LOG_SEV(lg::get(), bt::info)
 
 using boost::format;
 

@@ -19,8 +19,9 @@
 
 #include <daqdb/KVStoreBase.h>
 
-#include <DhtCore.h>
-#include <OffloadPoller.h>
+#include <OffloadPoller.h> /* net/if.h (put before linux/if.h) */
+
+#include <DhtCore.h> /* include linux/if.h */
 #include <PmemPoller.h>
 #include <PrimaryKeyEngine.h>
 #include <RTreeEngine.h>
@@ -77,6 +78,8 @@ class KVStore : public KVStoreBase {
     virtual void Free(Key &&key);
     virtual void ChangeOptions(Key &key, const AllocOptions &options);
 
+    void Alloc(const char *key, size_t keySize, char **value, size_t size,
+               const AllocOptions &options = AllocOptions());
     void Put(const char *key, size_t keySize, char *value, size_t valueSize,
              const PutOptions &options = PutOptions());
     void Get(const char *key, size_t keySize, char *value, size_t *valueSize,

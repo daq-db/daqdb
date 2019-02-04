@@ -57,12 +57,12 @@ neighbors : ({
 /**
  * offload_unit_alloc_size
  * offload_nvme_addr
- *		e.g. "0000:1a:00.0"
+ *		e.g. "0000:88:00.0"
  * offload_nvme_name
  *		e.g. "Nvme0"
  */
 offload_unit_alloc_size = 16384;
-offload_nvme_addr = "0000:1a:00.0";
+offload_nvme_addr = "0000:88:00.0";
 offload_nvme_name = "Nvme0";
 
 //************************************ EOF ************************************

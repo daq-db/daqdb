@@ -27,6 +27,8 @@
 
 /** @TODO jradtke: should be taken from configuration file */
 #define POLLER_CPU_CORE_BASE 1
+/** @TODO jradtke: should be taken from configuration file */
+#define DHT_SERVER_WORKER_THREADS 3
 
 using namespace std::chrono_literals;
 namespace bf = boost::filesystem;
@@ -93,7 +95,8 @@ void KVStore::init() {
     }
 
     _spDht.reset(new DhtCore(getOptions().dht));
-    _spDhtServer.reset(new DhtServer(getDhtCore(), this));
+    _spDhtServer.reset(
+        new DhtServer(getDhtCore(), this, DHT_SERVER_WORKER_THREADS));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
     } else {
@@ -101,6 +104,7 @@ void KVStore::init() {
     }
     if (_spDht->getLocalNode()->getPeerPort() > 0) {
         _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
+        _spDht->initClient();
     }
 
     if (isOffloadEnabled()) {
@@ -215,11 +219,17 @@ void KVStore::Get(const char *key, size_t keySize, char *value,
     uint8_t location;
 
     pmem()->Get(key, reinterpret_cast<void **>(&pVal), &pValSize, &location);
-    if (!value)
+    if (!value) {
+        DAQ_DEBUG("Error on get: value buffer is null");
         throw OperationFailedException(ALLOCATION_ERROR);
+    }
     if (location == PMEM) {
-        if (*valueSize < pValSize)
+        if (*valueSize < pValSize) {
+            DAQ_DEBUG("Error on get: buffer size " +
+                      std::to_string(*valueSize) + " < value size " +
+                      std::to_string(pValSize));
             throw OperationFailedException(ALLOCATION_ERROR);
+        }
         std::memcpy(value, pVal, pValSize);
         *valueSize = pValSize;
     } else if (location == DISK) {
@@ -506,15 +516,24 @@ void KVStore::RemoveRange(const Key &beg, const Key &end) {
     throw FUNC_NOT_IMPLEMENTED;
 }
 
+void KVStore::Alloc(const char *key, size_t keySize, char **value, size_t size,
+                    const AllocOptions &options) {
+    if (options.attr & KeyValAttribute::KVS_BUFFERED)
+        pmem()->AllocValueForKey(key, size, value);
+    else
+        *value = new char[size];
+}
+
 Value KVStore::Alloc(const Key &key, size_t size, const AllocOptions &options) {
+    auto valAttr = KeyValAttribute::NOT_BUFFERED;
     if (options.attr & KeyValAttribute::KVS_BUFFERED) {
+        valAttr = KeyValAttribute::KVS_BUFFERED;
         if (!getDhtCore()->isLocalKey(key))
             return dhtClient()->alloc(key, size);
-        char *val = nullptr;
-        pmem()->AllocValueForKey(key.data(), size, &val);
-        return Value(val, size, KeyValAttribute::KVS_BUFFERED);
     }
-    return Value(new char[KeySize()], KeySize());
+    char *value;
+    Alloc(key.data(), key.size(), &value, size, options);
+    return Value(value, size, valAttr);
 }
 
 void KVStore::Free(const Key &key, Value &&value) {

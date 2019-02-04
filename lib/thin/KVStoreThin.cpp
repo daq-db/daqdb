@@ -14,7 +14,6 @@
  */
 
 #include "KVStoreThin.h"
-#include <DhtUtils.h>
 #include <Logger.h>
 
 namespace DaqDB {
