@@ -24,6 +24,7 @@ typedef std::map<std::pair<int, int>, DhtNode *> RangeToHost;
 
 enum class ErpRequestType : std::uint8_t {
     ERP_REQUEST_GET = 2,
+    ERP_REQUEST_GETANY,
     ERP_REQUEST_PUT,
     ERP_REQUEST_REMOVE
 };

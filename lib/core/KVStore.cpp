@@ -407,6 +407,11 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
     }
 }
 
+void KVStore::GetAny(char *key, size_t keySize, const GetOptions &options) {
+    Key tmpKey = Key(key, keySize);
+    pKey()->dequeueNext(tmpKey);
+}
+
 Key KVStore::GetAny(const AllocOptions &allocOptions,
                     const GetOptions &options) {
     Key key = AllocKey(allocOptions);

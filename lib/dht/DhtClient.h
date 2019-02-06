@@ -40,7 +40,10 @@ enum class DhtClientState : std::uint8_t {
 
 struct DhtReqCtx {
     StatusCode status;
-    Value *value;
+    union {
+        Value *value;
+        Key *key;
+    };
     bool ready = false;
 };
 
@@ -68,6 +71,19 @@ class DhtClient {
      * responsible of releasing the buffer.
      */
     Value get(const Key &key);
+
+    /**
+     * Synchronously get any key.
+     * Remote node is calculated based on round robin.
+     *
+     * @param key Reference to a key structure
+     *
+     * @throw OperationFailedException if any error occurred
+     *
+     * @return On success returns allocated buffer with key. The caller is
+     * responsible of releasing the buffer.
+     */
+    Key getAny();
 
     /**
      * Synchronously insert a value for a given key.
@@ -155,6 +171,14 @@ class DhtClient {
      * @note public and virtual to allow mocking in unit tests
      */
     virtual DhtNode *getTargetHost(const Key &key);
+
+    /**
+     * Returns any DHT node.
+     *
+     * @return DHT node
+     * @note public and virtual to allow mocking in unit tests
+     */
+    virtual DhtNode *getAnyHost(void);
 
     std::atomic<DhtClientState> state;
 

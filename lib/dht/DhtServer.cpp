@@ -53,6 +53,34 @@ static erpc::MsgBuffer *erpcPrepareMsgbuf(erpc::Rpc<erpc::CTransport> *rpc,
     return msgBuf;
 }
 
+static void erpcReqGetAnyHandler(erpc::ReqHandle *req_handle, void *ctx) {
+    DAQ_DEBUG("GetAny request received");
+    auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
+    auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(serverCtx->rpc);
+
+    auto req = req_handle->get_req_msgbuf();
+    auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
+    erpc::MsgBuffer *resp;
+
+    try {
+        resp =
+            erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult) +
+                                                   serverCtx->kvs->KeySize());
+        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
+        result->msgSize = serverCtx->kvs->KeySize();
+        serverCtx->kvs->GetAny(result->msg, serverCtx->kvs->KeySize());
+        result->status = StatusCode::OK;
+    } catch (DaqDB::OperationFailedException &e) {
+        resp = erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
+        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
+        result->msgSize = 0;
+        result->status = e.status().getStatusCode();
+    }
+
+    rpc->enqueue_response(req_handle, resp);
+    DAQ_DEBUG("Response enqueued");
+}
+
 static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     DAQ_DEBUG("Get request received");
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
@@ -63,10 +91,9 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     erpc::MsgBuffer *resp;
 
     try {
-        // todo why cannot we set arbitrary response size?
         resp = erpcPrepareMsgbuf(rpc, req_handle, ERPC_MAX_RESPONSE_SIZE);
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
-        result->msgSize = resp->get_data_size();
+        result->msgSize = ERPC_MAX_RESPONSE_SIZE - sizeof(DaqdbDhtResult);
         serverCtx->kvs->Get(msg->msg, msg->keySize, result->msg,
                             &result->msgSize);
         rpc->resize_msg_buffer(resp, sizeof(DaqdbDhtResult) + result->msgSize);
@@ -195,6 +222,9 @@ void DhtServer::_serve(void) {
     _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GET),
         erpcReqGetHandler);
+    _spServerNexus->register_req_func(
+        static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GETANY),
+        erpcReqGetAnyHandler);
     _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_PUT),
         erpcReqPutHandler);

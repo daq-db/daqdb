@@ -86,6 +86,8 @@ class KVStore : public KVStoreBase {
              const GetOptions &options = GetOptions());
     void Get(const char *key, size_t keySize, char **value, size_t *valueSize,
              const GetOptions &options = GetOptions());
+    void GetAny(char *key, size_t keySize,
+                const GetOptions &options = GetOptions());
     void Update(const char *key, size_t keySize, char *value, size_t valueSize,
                 const UpdateOptions &options = UpdateOptions());
     void Update(const char *key, size_t keySize, const UpdateOptions &options);

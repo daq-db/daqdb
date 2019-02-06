@@ -162,6 +162,14 @@ uint64_t DhtCore::_genHash(const char *key, uint64_t maskLength,
     return subKey;
 }
 
+DhtNode *DhtCore::getHostAny() {
+    static thread_local size_t idx;
+    size_t maxIdx = _neighbors.size();
+
+    idx = ++idx % maxIdx;
+    return _neighbors[idx];
+}
+
 DhtNode *DhtCore::getHostForKey(Key key) {
     if (getLocalNode()->getMaskLength() > 0) {
         auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
