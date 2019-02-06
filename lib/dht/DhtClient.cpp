@@ -70,9 +70,9 @@ static void clbGetAny(void *ctxClient, void *ioCtx) {
 
     reqCtx->status = resultMsg->status;
     if (resultMsg->status == StatusCode::OK) {
-        auto responseSize = resultMsg->msgSize;
-        reqCtx->key = new Key(new char[resultMsg->msgSize], resultMsg->msgSize);
-        memcpy(reqCtx->key->data(), resultMsg->msg, responseSize);
+        auto keySize = resultMsg->msgSize;
+        reqCtx->key = new Key(new char[keySize], keySize);
+        memcpy(reqCtx->key->data(), resultMsg->msg, keySize);
     }
 
     reqCtx->ready = true;
