@@ -133,12 +133,13 @@ BOOST_AUTO_TEST_CASE(VerifyResizeMsgBufferOnGet) {
 
     DhtClient &dhtClient = dhtClientMock.get();
 
-    size_t expectedSize = 32 * 1024;
+    size_t expectedSizeRes = (16 * 1024) + 64;
+    size_t expectedSizeReq = sizeof(DaqdbDhtMsg) + expectedKey.size();
 
     When(Method(dhtClientMock, resizeMsgBuffers))
         .Do([&](size_t new_request_size, size_t new_response_size) {
-            BOOST_CHECK_EQUAL(new_request_size, expectedSize);
-            BOOST_CHECK_EQUAL(new_response_size, expectedSize);
+            BOOST_CHECK_EQUAL(new_request_size, expectedSizeReq);
+            BOOST_CHECK_EQUAL(new_response_size, expectedSizeRes);
     });
 
     When(Method(dhtClientMock, fillReqMsg)).AlwaysReturn();
