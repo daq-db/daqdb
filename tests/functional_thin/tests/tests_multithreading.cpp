@@ -43,6 +43,11 @@ bool threadTask(KVStoreBase *kvs, string key) {
         result = false;
     }
 
+    auto removeResult = remote_remove(kvs, getKey);
+    if (!removeResult) {
+        result = false;
+    }
+
     return result;
 }
 
