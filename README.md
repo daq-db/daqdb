@@ -49,7 +49,7 @@ ls /cvmfs/grid.cern.ch
 
 ```
 cd ${daqdb_path}
-. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
+. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_95 x86_64-centos7-gcc7-opt
 cmake .
 make -j$(nproc)
 ```
@@ -64,8 +64,6 @@ make test               # execute tests
 ```
 
 _Note: <br>`. scripts/setup_env_lcg.sh` can be called to setup environment with LCG and SPDK._
-
-_Note 2:<br> LCG_93 contains CMake 3.7 that may show warnings if BOOST library version is 1.64+._
 
 ## Execution
 
