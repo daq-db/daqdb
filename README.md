@@ -1,18 +1,20 @@
 # Data AcQuisition DataBase
 
-* [Overview](#overview)
-* [Installation](#installation)
-	* [Source Code](#source-code)
-	* [Prerequisites](#prerequisites)
-	* [Build](#build)
-* [Execution](#execution)
-	* [Prerequisites](#prerequisites)
-		* [SPDK](#spdk)
-		* [Network](#network)
-	* [Unit Tests](#unit-tests)
-	* [Tools and Examples](#tools-and-examples)
-		* [Minidaq benchmark](#minidaq-benchmark)
-		* [CLI node example](#cli-node-example)
+- [Data AcQuisition DataBase](#data-acquisition-database)
+  - [Overview](#overview)
+  - [Installation](#installation)
+      - [Source Code](#source-code)
+      - [Prerequisites](#prerequisites)
+      - [Build](#build)
+  - [Execution](#execution)
+    - [Prerequisites](#prerequisites-1)
+      - [SPDK](#spdk)
+      - [Network](#network)
+    - [Unit Tests](#unit-tests)
+    - [Tools and Examples](#tools-and-examples)
+      - [Minidaq benchmark](#minidaq-benchmark)
+      - [CLI node example](#cli-node-example)
+      - [Basic example](#basic-example)
 
 ## Overview
 DAQDB (Data Acquisition Database) — a distributed key-value store for high-bandwidth, generic data storage in event-driven systems.
@@ -81,8 +83,9 @@ sudo third-party/spdk/scripts/pkgdep.sh
 To be called each time:
 ```
 cd ${daqdb_path}
-sudo third-party/spdk/scripts/setup
+sudo HUGEMEM=2048 third-party/spdk/scripts/setup
 ```
+_Note: <br> sRPC requires at least 1024 of 2M hugepages (2048 for 2 sockets platform)_
 
 #### Network
 
