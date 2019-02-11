@@ -184,7 +184,7 @@ class DhtClient {
     std::atomic<DhtClientState> state;
 
   private:
-    void _initializeNode(DhtNode *node);
+    bool _initializeNode(DhtNode *node);
     void _runToResponse();
     void _initReqCtx();
 

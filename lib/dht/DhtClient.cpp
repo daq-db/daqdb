@@ -119,7 +119,8 @@ DhtClient::~DhtClient() {
     }
 }
 
-void DhtClient::_initializeNode(DhtNode *node) {
+bool DhtClient::_initializeNode(DhtNode *node) {
+    auto result = true;
     erpc::Rpc<erpc::CTransport> *rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     auto serverUri = boost::str(boost::format("%1%:%2%") % node->getIp() %
@@ -136,7 +137,9 @@ void DhtClient::_initializeNode(DhtNode *node) {
         node->setSessionId(sessionNum);
     } else {
         DAQ_DEBUG("Cannot connect to: " + serverUri);
+        result = false;
     }
+    return result;
 }
 
 void DhtClient::initialize(DhtCore *dhtCore) {
@@ -236,7 +239,11 @@ bool DhtClient::ping(DhtNode &node) {
     if (node.getSessionId() != ERPC_SESSION_NOT_SET) {
         return rpc->is_connected(node.getSessionId());
     } else {
-        return false;
+        if (_initializeNode(&node)) {
+            return rpc->is_connected(node.getSessionId());
+        } else {
+            return false;
+        }
     }
 }
 

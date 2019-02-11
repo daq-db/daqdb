@@ -85,7 +85,7 @@ To be called each time:
 cd ${daqdb_path}
 sudo HUGEMEM=2048 third-party/spdk/scripts/setup
 ```
-_Note: <br> sRPC requires at least 1024 of 2M hugepages (2048 for 2 sockets platform)_
+_Note: <br> eRPC requires at least 1024 of 2M hugepages (2048 for 2 sockets platform)_
 
 #### Network
 

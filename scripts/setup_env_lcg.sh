@@ -15,5 +15,5 @@ cvmfs_config probe
 
 source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
 
-# sRPC requires at least 1024 of 2M hugepages (2048 for 2 sockets platform)
+# eRPC requires at least 1024 of 2M hugepages (2048 for 2 sockets platform)
 sudo HUGEMEM=2048 $SCRIPT_PATH/../$SPDKPATH/scripts/setup.sh
