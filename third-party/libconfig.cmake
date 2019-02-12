@@ -17,9 +17,3 @@ add_library(libconfig STATIC IMPORTED GLOBAL)
 add_dependencies(libconfig project_libconfig)
 set_target_properties(libconfig PROPERTIES IMPORTED_LOCATION
 	${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblibconfig++.so)
-
-add_custom_target(libconfig_clean
-	COMMAND ${CMAKE_MAKE_PROGRAM} clean
-	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libconfig
-)
-	
