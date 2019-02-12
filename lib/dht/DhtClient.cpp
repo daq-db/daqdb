@@ -1,16 +1,17 @@
 /**
- * Copyright 2018-2019 Intel Corporation.
+ *  Copyright (c) 2019 Intel Corporation
  *
- * This software and the related documents are Intel copyrighted materials,
- * and your use of them is governed by the express license under which they
- * were provided to you (Intel OBL Internal Use License).
- * Unless the License provides otherwise, you may not use, modify, copy,
- * publish, distribute, disclose or transmit this software or the related
- * documents without Intel's prior written permission.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly
- * stated in the License.
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
  */
 
 #include <boost/format.hpp>
@@ -59,6 +60,25 @@ static void clbGet(void *ctxClient, void *ioCtx) {
     reqCtx->ready = true;
 }
 
+static void clbGetAny(void *ctxClient, void *ioCtx) {
+    DAQ_DEBUG("GetAny response received");
+    DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
+    DhtReqCtx *reqCtx = client->getReqCtx();
+
+    // todo check if successful and throw otherwise
+    auto *resp_msgbuf = client->getRespMsgBuf();
+    auto resultMsg = reinterpret_cast<DaqdbDhtResult *>(resp_msgbuf->buf);
+
+    reqCtx->status = resultMsg->status;
+    if (resultMsg->status == StatusCode::OK) {
+        auto keySize = resultMsg->msgSize;
+        reqCtx->key = new Key(new char[keySize], keySize);
+        memcpy(reqCtx->key->data(), resultMsg->msg, keySize);
+    }
+
+    reqCtx->ready = true;
+}
+
 static void clbPut(void *ctxClient, void *tag) {
     DAQ_DEBUG("Put response received");
     DhtClient *client = reinterpret_cast<DhtClient *>(ctxClient);
@@ -99,7 +119,8 @@ DhtClient::~DhtClient() {
     }
 }
 
-void DhtClient::_initializeNode(DhtNode *node) {
+bool DhtClient::_initializeNode(DhtNode *node) {
+    auto result = true;
     erpc::Rpc<erpc::CTransport> *rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     auto serverUri = boost::str(boost::format("%1%:%2%") % node->getIp() %
@@ -116,7 +137,9 @@ void DhtClient::_initializeNode(DhtNode *node) {
         node->setSessionId(sessionNum);
     } else {
         DAQ_DEBUG("Cannot connect to: " + serverUri);
+        result = false;
     }
+    return result;
 }
 
 void DhtClient::initialize(DhtCore *dhtCore) {
@@ -184,6 +207,15 @@ Value DhtClient::get(const Key &key) {
     return *_reqCtx.value;
 }
 
+Key DhtClient::getAny() {
+    DAQ_DEBUG("GetAny requested from DhtClient");
+    resizeMsgBuffers(sizeof(DaqdbDhtMsg), ERPC_MAX_RESPONSE_SIZE);
+    fillReqMsg(nullptr, nullptr);
+    enqueueAndWait(getAnyHost(), ErpRequestType::ERP_REQUEST_GETANY, clbGetAny);
+
+    return *_reqCtx.key;
+}
+
 void DhtClient::put(const Key &key, const Value &val) {
     resizeMsgBuffers(sizeof(DaqdbDhtMsg) + key.size() + val.size(),
                      sizeof(DaqdbDhtResult));
@@ -207,7 +239,11 @@ bool DhtClient::ping(DhtNode &node) {
     if (node.getSessionId() != ERPC_SESSION_NOT_SET) {
         return rpc->is_connected(node.getSessionId());
     } else {
-        return false;
+        if (_initializeNode(&node)) {
+            return rpc->is_connected(node.getSessionId());
+        } else {
+            return false;
+        }
     }
 }
 
@@ -267,6 +303,8 @@ void DhtClient::resizeMsgBuffers(size_t new_request_size,
 DhtNode *DhtClient::getTargetHost(const Key &key) {
     return _dhtCore->getHostForKey(key);
 }
+
+DhtNode *DhtClient::getAnyHost() { return _dhtCore->getHostAny(); }
 
 void DhtClient::enqueueAndWait(DhtNode *targetHost, ErpRequestType type,
                                DhtContFunc contFunc) {

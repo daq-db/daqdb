@@ -1,16 +1,17 @@
 /**
- * Copyright 2018 - 2019 Intel Corporation.
+ *  Copyright (c) 2019 Intel Corporation
  *
- * This software and the related documents are Intel copyrighted materials,
- * and your use of them is governed by the express license under which they
- * were provided to you (Intel OBL Internal Use License).
- * Unless the License provides otherwise, you may not use, modify, copy,
- * publish, distribute, disclose or transmit this software or the related
- * documents without Intel's prior written permission.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly
- * stated in the License.
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
  */
 
 #include <boost/filesystem.hpp>
@@ -83,6 +84,7 @@ bool live = MINIDAQ_DEFAULT_LIVE;
 bool satellite = MINIDAQ_DEFAULT_SATELLITE;
 std::string configFile;
 bool singleNode = false;
+std::unique_ptr<DaqDB::DhtNeighbor> localDht;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -117,13 +119,13 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     } else {
         options.mode = DaqDB::OperationalMode::STORAGE;
         if (!options.dht.neighbors.size()) {
-            DaqDB::DhtNeighbor local;
-            local.ip = "localhost";
-            local.port = 31851;
-            local.local = true;
-            local.keyRange.maskLength = 0;
-            local.keyRange.maskOffset = 0;
-            options.dht.neighbors.push_back(&local);
+            localDht.reset(new DaqDB::DhtNeighbor);
+            localDht->ip = "localhost";
+            localDht->port = 31851;
+            localDht->local = true;
+            localDht->keyRange.maskLength = 0;
+            localDht->keyRange.maskOffset = 0;
+            options.dht.neighbors.push_back(localDht.get());
             singleNode = true;
         }
     }

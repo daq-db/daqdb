@@ -1,16 +1,17 @@
 /**
- * Copyright 2018-2019 Intel Corporation.
+ *  Copyright (c) 2019 Intel Corporation
  *
- * This software and the related documents are Intel copyrighted materials,
- * and your use of them is governed by the express license under which they
- * were provided to you (Intel OBL Internal Use License).
- * Unless the License provides otherwise, you may not use, modify, copy,
- * publish, distribute, disclose or transmit this software or the related
- * documents without Intel's prior written permission.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly
- * stated in the License.
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
  */
 
 #include "DhtServer.h"
@@ -26,6 +27,7 @@
 
 /** @TODO jradtke: should be taken from configuration file */
 #define DHT_SERVER_CPU_CORE_BASE 5
+#define DHT_SERVER_CPU_CORE_MAX 32
 
 namespace DaqDB {
 
@@ -53,6 +55,34 @@ static erpc::MsgBuffer *erpcPrepareMsgbuf(erpc::Rpc<erpc::CTransport> *rpc,
     return msgBuf;
 }
 
+static void erpcReqGetAnyHandler(erpc::ReqHandle *req_handle, void *ctx) {
+    DAQ_DEBUG("GetAny request received");
+    auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
+    auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(serverCtx->rpc);
+
+    auto req = req_handle->get_req_msgbuf();
+    auto *msg = reinterpret_cast<DaqdbDhtMsg *>(req->buf);
+    erpc::MsgBuffer *resp;
+
+    try {
+        resp =
+            erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult) +
+                                                   serverCtx->kvs->KeySize());
+        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
+        result->msgSize = serverCtx->kvs->KeySize();
+        serverCtx->kvs->GetAny(result->msg, serverCtx->kvs->KeySize());
+        result->status = StatusCode::OK;
+    } catch (DaqDB::OperationFailedException &e) {
+        resp = erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult));
+        DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
+        result->msgSize = 0;
+        result->status = e.status().getStatusCode();
+    }
+
+    rpc->enqueue_response(req_handle, resp);
+    DAQ_DEBUG("Response enqueued");
+}
+
 static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     DAQ_DEBUG("Get request received");
     auto serverCtx = reinterpret_cast<DhtServerCtx *>(ctx);
@@ -63,10 +93,9 @@ static void erpcReqGetHandler(erpc::ReqHandle *req_handle, void *ctx) {
     erpc::MsgBuffer *resp;
 
     try {
-        // todo why cannot we set arbitrary response size?
         resp = erpcPrepareMsgbuf(rpc, req_handle, ERPC_MAX_RESPONSE_SIZE);
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
-        result->msgSize = resp->get_data_size();
+        result->msgSize = ERPC_MAX_RESPONSE_SIZE - sizeof(DaqdbDhtResult);
         serverCtx->kvs->Get(msg->msg, msg->keySize, result->msg,
                             &result->msgSize);
         rpc->resize_msg_buffer(resp, sizeof(DaqdbDhtResult) + result->msgSize);
@@ -147,11 +176,11 @@ DhtServer::~DhtServer() {
         _thread->join();
 }
 
-void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t cpuset) {
+void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t *cpuset, size_t size) {
     DhtServerCtx rpcCtx;
 
-    const int set_result = pthread_setaffinity_np(_thread->native_handle(),
-                                                  sizeof(cpu_set_t), &cpuset);
+    const int set_result = pthread_setaffinity_np(pthread_self(),
+                                                  size, cpuset);
     if (!set_result) {
         DAQ_DEBUG("Cannot set affinity for DHT server worker[" +
                   to_string(workerId) + "]");
@@ -179,12 +208,19 @@ void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t cpuset) {
 
 void DhtServer::_serve(void) {
 
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(DHT_SERVER_CPU_CORE_BASE, &cpuset);
+    size_t size = CPU_ALLOC_SIZE(DHT_SERVER_CPU_CORE_MAX);
+    cpu_set_t *cpuset = CPU_ALLOC(DHT_SERVER_CPU_CORE_MAX);
+    if (!cpuset) {
+        state = DhtServerState::DHT_SERVER_ERROR;
+        DAQ_DEBUG("Cannot allocate cpuset");
+        throw OperationFailedException(ALLOCATION_ERROR);
+    }
 
-    const int set_result = pthread_setaffinity_np(_thread->native_handle(),
-                                                  sizeof(cpu_set_t), &cpuset);
+    CPU_ZERO_S(size, cpuset);
+    CPU_SET_S(DHT_SERVER_CPU_CORE_BASE, size, cpuset);
+
+    const int set_result = pthread_setaffinity_np(pthread_self(),
+                                                  size, cpuset);
     if (!set_result) {
         DAQ_DEBUG("Cannot set affinity for DHT server thread");
     }
@@ -195,6 +231,9 @@ void DhtServer::_serve(void) {
     _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GET),
         erpcReqGetHandler);
+    _spServerNexus->register_req_func(
+        static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GETANY),
+        erpcReqGetAnyHandler);
     _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_PUT),
         erpcReqPutHandler);
@@ -211,10 +250,10 @@ void DhtServer::_serve(void) {
 
         for (uint8_t threadIndex = 1; threadIndex <= _workerThreadsNumber;
              ++threadIndex) {
-            CPU_ZERO(&cpuset);
-            CPU_SET(DHT_SERVER_CPU_CORE_BASE + threadIndex, &cpuset);
+            CPU_ZERO_S(size, cpuset);
+            CPU_SET_S(DHT_SERVER_CPU_CORE_BASE + threadIndex, size, cpuset);
             _workerThreads.push_back(new thread(&DhtServer::_serveWorker, this,
-                                                threadIndex, cpuset));
+                                                threadIndex, cpuset, size));
         }
 
         state = DhtServerState::DHT_SERVER_READY;
@@ -237,12 +276,16 @@ void DhtServer::_serve(void) {
     } catch (exception &e) {
         DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
         state = DhtServerState::DHT_SERVER_ERROR;
+        CPU_FREE(cpuset);
         throw;
     } catch (...) {
         DAQ_DEBUG("DHT server exception: unknown");
         state = DhtServerState::DHT_SERVER_ERROR;
+        CPU_FREE(cpuset);
         throw;
     }
+
+    CPU_FREE(cpuset);
 }
 
 void DhtServer::serve(void) {

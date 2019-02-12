@@ -11,7 +11,7 @@ set(cmake_generated bin
 set(folders_to_clean . apps apps/minidaq apps/mist
 	examples examples/basic examples/cli_node examples/fabric_node
 	tests tests/unit tests/functional 
-	third-party)
+	third-party third-party/eRPC third-party/eRPC-fork third-party/libconfig)
 
 file(REMOVE_RECURSE ${ROOT_DAQDB_DIR}/bin)
 foreach(file ${cmake_generated})

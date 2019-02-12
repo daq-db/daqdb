@@ -1,16 +1,17 @@
 /**
- * Copyright 2018 - 2019 Intel Corporation.
+ *  Copyright (c) 2019 Intel Corporation
  *
- * This software and the related documents are Intel copyrighted materials,
- * and your use of them is governed by the express license under which they
- * were provided to you (Intel OBL Internal Use License).
- * Unless the License provides otherwise, you may not use, modify, copy,
- * publish, distribute, disclose or transmit this software or the related
- * documents without Intel's prior written permission.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This software and the related documents are provided as is, with no
- * express or implied warranties, other than those that are expressly
- * stated in the License.
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
  */
 
 #pragma once
@@ -40,7 +41,10 @@ enum class DhtClientState : std::uint8_t {
 
 struct DhtReqCtx {
     StatusCode status;
-    Value *value;
+    union {
+        Value *value;
+        Key *key;
+    };
     bool ready = false;
 };
 
@@ -68,6 +72,19 @@ class DhtClient {
      * responsible of releasing the buffer.
      */
     Value get(const Key &key);
+
+    /**
+     * Synchronously get any key.
+     * Remote node is calculated based on round robin.
+     *
+     * @param key Reference to a key structure
+     *
+     * @throw OperationFailedException if any error occurred
+     *
+     * @return On success returns allocated buffer with key. The caller is
+     * responsible of releasing the buffer.
+     */
+    Key getAny();
 
     /**
      * Synchronously insert a value for a given key.
@@ -156,10 +173,18 @@ class DhtClient {
      */
     virtual DhtNode *getTargetHost(const Key &key);
 
+    /**
+     * Returns any DHT node.
+     *
+     * @return DHT node
+     * @note public and virtual to allow mocking in unit tests
+     */
+    virtual DhtNode *getAnyHost(void);
+
     std::atomic<DhtClientState> state;
 
   private:
-    void _initializeNode(DhtNode *node);
+    bool _initializeNode(DhtNode *node);
     void _runToResponse();
     void _initReqCtx();
 

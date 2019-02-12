@@ -13,6 +13,7 @@ SPDKPATH=third-party/spdk
 
 cvmfs_config probe
 
-source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_93 x86_64-centos7-gcc7-opt
+source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_95 x86_64-centos7-gcc8-opt
 
-sudo $SCRIPT_PATH/../$SPDKPATH/scripts/setup.sh
+# eRPC requires at least 4096 of 2M hugepages
+sudo HUGEMEM=4096 $SCRIPT_PATH/../$SPDKPATH/scripts/setup.sh

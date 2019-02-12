@@ -21,6 +21,14 @@ else(DEBUG)
 	MESSAGE(STATUS "Debug mode disabled")
 endif(DEBUG)
 
+if(SANITIZE)
+	MESSAGE(STATUS "Sanitize mode enabled")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address")
+	set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -fsanitize=address")
+else(SANITIZE)
+	MESSAGE(STATUS "Sanitize mode disabled")
+endif(SANITIZE)
+
 option(THIN_LIB "Build thin version of the library" OFF)
 if(THIN_LIB)
 	MESSAGE(STATUS "Build thin version of the library")
@@ -64,7 +72,7 @@ set(3RDPARTY ${PROJECT_SOURCE_DIR}/third-party)
 add_subdirectory(${3RDPARTY})
 
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
-include_directories(${3RDPARTY}/eRPC/src)
+include_directories(${3RDPARTY}/eRPC-fork/src)
 include_directories(${3RDPARTY}/spdk/dpdk/build/include)
 
 file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
