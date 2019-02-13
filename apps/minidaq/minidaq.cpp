@@ -84,6 +84,7 @@ bool live = MINIDAQ_DEFAULT_LIVE;
 bool satellite = MINIDAQ_DEFAULT_SATELLITE;
 std::string configFile;
 bool singleNode = false;
+std::unique_ptr<DaqDB::DhtNeighbor> localDht;
 
 static void logStd(std::string m) {
     m.append("\n");
@@ -118,13 +119,13 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     } else {
         options.mode = DaqDB::OperationalMode::STORAGE;
         if (!options.dht.neighbors.size()) {
-            DaqDB::DhtNeighbor local;
-            local.ip = "localhost";
-            local.port = 31851;
-            local.local = true;
-            local.keyRange.maskLength = 0;
-            local.keyRange.maskOffset = 0;
-            options.dht.neighbors.push_back(&local);
+            localDht.reset(new DaqDB::DhtNeighbor);
+            localDht->ip = "localhost";
+            localDht->port = 31851;
+            localDht->local = true;
+            localDht->keyRange.maskLength = 0;
+            localDht->keyRange.maskOffset = 0;
+            options.dht.neighbors.push_back(localDht.get());
             singleNode = true;
         }
     }

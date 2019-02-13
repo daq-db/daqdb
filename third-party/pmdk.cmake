@@ -10,13 +10,23 @@ else (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	set(PMDK_SOURCE_DIR ${PROJECT_SOURCE_DIR}/pmdk/lib)
 endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
+if(SANITIZE)
+	MESSAGE(STATUS "Enabling PMDK sanitize mode")
+	set(PMDK_CXX_FLAGS "-g -fsanitize=address")
+	set(PMDK_LINK_FLAGS "-fsanitize=address")
+else(SANITIZE)
+	MESSAGE(STATUS "Disabling PMDK sanitize mode")
+	set(PMDK_CXX_FLAGS "")
+	set(PMDK_LINK_FLAGS "")
+endif(SANITIZE)
+
 include_directories(pmdk/src/include)
 ExternalProject_Add(project_pmdk
 	PREFIX ${PROJECT_SOURCE_DIR}/pmdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/pmdk
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/pmdk
 	CONFIGURE_COMMAND ""
-	BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} NDCTL_ENABLE=n install prefix=${PROJECT_SOURCE_DIR}/pmdk
+	BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} EXTRA_LDFLAGS=${PMDK_LINK_FLAGS} EXTRA_CFLAGS=${PMDK_CXX_FLAGS} NDCTL_ENABLE=n install prefix=${PROJECT_SOURCE_DIR}/pmdk
 	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			${PMDK_SOURCE_DIR}/libpmem.so
 			${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libpmem.so.1 &&
