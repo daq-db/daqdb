@@ -27,6 +27,7 @@
 
 /** @TODO jradtke: should be taken from configuration file */
 #define DHT_SERVER_CPU_CORE_BASE 5
+#define DHT_SERVER_CPU_CORE_MAX 32
 
 namespace DaqDB {
 
@@ -175,11 +176,11 @@ DhtServer::~DhtServer() {
         _thread->join();
 }
 
-void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t cpuset) {
+void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t *cpuset, size_t size) {
     DhtServerCtx rpcCtx;
 
-    const int set_result = pthread_setaffinity_np(_thread->native_handle(),
-                                                  sizeof(cpu_set_t), &cpuset);
+    const int set_result = pthread_setaffinity_np(pthread_self(),
+                                                  size, cpuset);
     if (!set_result) {
         DAQ_DEBUG("Cannot set affinity for DHT server worker[" +
                   to_string(workerId) + "]");
@@ -207,12 +208,19 @@ void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t cpuset) {
 
 void DhtServer::_serve(void) {
 
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(DHT_SERVER_CPU_CORE_BASE, &cpuset);
+    size_t size = CPU_ALLOC_SIZE(DHT_SERVER_CPU_CORE_MAX);
+    cpu_set_t *cpuset = CPU_ALLOC(DHT_SERVER_CPU_CORE_MAX);
+    if (!cpuset) {
+        state = DhtServerState::DHT_SERVER_ERROR;
+        DAQ_DEBUG("Cannot allocate cpuset");
+        throw OperationFailedException(ALLOCATION_ERROR);
+    }
 
-    const int set_result = pthread_setaffinity_np(_thread->native_handle(),
-                                                  sizeof(cpu_set_t), &cpuset);
+    CPU_ZERO_S(size, cpuset);
+    CPU_SET_S(DHT_SERVER_CPU_CORE_BASE, size, cpuset);
+
+    const int set_result = pthread_setaffinity_np(pthread_self(),
+                                                  size, cpuset);
     if (!set_result) {
         DAQ_DEBUG("Cannot set affinity for DHT server thread");
     }
@@ -242,10 +250,10 @@ void DhtServer::_serve(void) {
 
         for (uint8_t threadIndex = 1; threadIndex <= _workerThreadsNumber;
              ++threadIndex) {
-            CPU_ZERO(&cpuset);
-            CPU_SET(DHT_SERVER_CPU_CORE_BASE + threadIndex, &cpuset);
+            CPU_ZERO_S(size, cpuset);
+            CPU_SET_S(DHT_SERVER_CPU_CORE_BASE + threadIndex, size, cpuset);
             _workerThreads.push_back(new thread(&DhtServer::_serveWorker, this,
-                                                threadIndex, cpuset));
+                                                threadIndex, cpuset, size));
         }
 
         state = DhtServerState::DHT_SERVER_READY;
@@ -268,12 +276,16 @@ void DhtServer::_serve(void) {
     } catch (exception &e) {
         DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
         state = DhtServerState::DHT_SERVER_ERROR;
+        CPU_FREE(cpuset);
         throw;
     } catch (...) {
         DAQ_DEBUG("DHT server exception: unknown");
         state = DhtServerState::DHT_SERVER_ERROR;
+        CPU_FREE(cpuset);
         throw;
     }
+
+    CPU_FREE(cpuset);
 }
 
 void DhtServer::serve(void) {
