@@ -96,6 +96,10 @@ class KVStore : public KVStoreBase {
 
     virtual bool IsOffloaded(Key &key);
 
+    uint64_t GetTreeSize();
+    uint64_t GetLeafCount();
+    uint8_t GetTreeDepth();
+
     void LogMsg(std::string msg);
 
     inline DhtCore *getDhtCore() { return _spDht.get(); };
