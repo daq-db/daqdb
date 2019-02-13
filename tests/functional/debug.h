@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -22,7 +22,6 @@
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sources/logger.hpp>
-#include <boost/log/support/date_time.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
