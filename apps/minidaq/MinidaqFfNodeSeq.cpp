@@ -100,6 +100,7 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                     /** @todo c++ does not allow it in lambda,
                      *        this is not thread-safe
                      */
+                    _kvs->Free(key, std::move(value));
                     _kvs->Free(std::move(key));
                 } catch (QueueFullException &e) {
                     // Keep retrying
@@ -109,18 +110,18 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                     }
                     continue;
                 } catch (...) {
+                    _kvs->Free(key, std::move(value));
                     _kvs->Free(std::move(key));
-                    delete value.data();
                     throw;
                 }
                 break;
             }
         } else {
             _kvs->Remove(key);
+            _kvs->Free(key, std::move(value));
             _kvs->Free(std::move(key));
             cnt++;
         }
-        delete value.data();
     }
 }
 }
