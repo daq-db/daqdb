@@ -49,6 +49,7 @@ void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
         _kvs->Free(std::move(key));
         throw;
     }
+    memcpy(value.data(), data_buffer, value.size());
 
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());
