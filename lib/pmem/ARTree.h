@@ -145,6 +145,8 @@ class TreeImpl {
     pool<ARTreeRoot> _pm_pool;
     void setClassId(enum ALLOC_CLASS c, unsigned id);
     unsigned getClassId(enum ALLOC_CLASS c);
+    uint64_t getTreeSize(persistent_ptr<Node> current, bool leavesOnly = false);
+    uint8_t getTreeDepth(persistent_ptr<Node> current);
 
   private:
     void _initAllocClasses(const size_t allocUnitSize);
@@ -160,6 +162,9 @@ class ARTree : public DaqDB::RTreeEngine {
              uint8_t *location) final;
     void Get(const char *key, void **value, size_t *size,
              uint8_t *location) final;
+    uint64_t GetTreeSize() final;
+    uint8_t GetTreeDepth() final;
+    uint64_t GetLeafCount() final;
     void Put(const char *key, // copy value from std::string
              char *value) final;
     void Put(const char *key, int32_t keybytes, const char *value,

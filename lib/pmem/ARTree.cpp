@@ -18,6 +18,7 @@
 #include <Logger.h>
 #include <daqdb/Types.h>
 #include <iostream>
+#include <algorithm>
 
 namespace DaqDB {
 #define LAYOUT "artree"
@@ -150,6 +151,56 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
     }
 }
 
+/*
+ * Calculates tree size with recursive DFS algorithm.
+ *
+ * @param current pointer to a node from we wish to start counting.
+ * @param leavesOnly determines if only leaves are counted.
+ *
+ */
+uint64_t TreeImpl::getTreeSize(persistent_ptr<Node> current, bool leavesOnly)
+{
+    persistent_ptr<Node256> node256;
+    uint64_t size = 0;
+
+    if (current->type == TYPE256) {
+        // TYPE256
+        node256 = current;
+        for (int i = 0; i < NODE_SIZE[LEVEL_TYPES::TYPE256]; i++) {
+            if (node256->children[i])
+                size += getTreeSize(node256->children[i], leavesOnly);
+        }
+
+        if (!leavesOnly)
+            size++;
+    } else {
+        // Count leaf
+        size++;
+    }
+
+    return size;
+}
+
+uint8_t TreeImpl::getTreeDepth(persistent_ptr<Node> current)
+{
+    persistent_ptr<Node256> node256;
+    uint8_t depth = 0;
+
+    if (current->type == TYPE256) {
+        // TYPE256
+        node256 = current;
+        for (int i = 0; i < NODE_SIZE[LEVEL_TYPES::TYPE256]; i++) {
+            if (node256->children[i])
+                depth = std::max(getTreeDepth(node256->children[i]), depth);
+        }
+    }
+
+    // Count this node
+    depth++;
+
+    return depth;
+}
+
 void ARTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
                  uint8_t *location) {
     persistent_ptr<ValueWrapper> valPrstPtr;
@@ -191,6 +242,21 @@ void ARTree::Get(const char *key, void **value, size_t *size,
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
     *size = val->size;
+}
+
+uint64_t ARTree::GetTreeSize()
+{
+    return tree->getTreeSize(tree->treeRoot->rootNode, false);
+}
+
+uint8_t ARTree::GetTreeDepth()
+{
+    return tree->getTreeDepth(tree->treeRoot->rootNode);
+}
+
+uint64_t ARTree::GetLeafCount()
+{
+    return tree->getTreeSize(tree->treeRoot->rootNode, true);
 }
 
 void ARTree::Put(const char *key, // copy value from std::string

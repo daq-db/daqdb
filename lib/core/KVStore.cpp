@@ -623,4 +623,16 @@ std::string KVStore::getProperty(const std::string &name) {
     return "";
 }
 
+uint64_t KVStore::GetTreeSize() {
+    return pmem()->GetTreeSize();
+}
+
+uint8_t KVStore::GetTreeDepth() {
+    return pmem()->GetTreeDepth();
+}
+
+uint64_t KVStore::GetLeafCount() {
+    return pmem()->GetLeafCount();
+}
+
 } // namespace DaqDB

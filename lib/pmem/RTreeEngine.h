@@ -44,6 +44,9 @@ class RTreeEngine {
                      size_t *size, uint8_t *location) = 0;
     virtual void Get(const char *key, void **value, size_t *size,
                      uint8_t *location) = 0;
+    virtual uint64_t GetTreeSize() = 0;
+    virtual uint8_t GetTreeDepth() = 0;
+    virtual uint64_t GetLeafCount() = 0;
     virtual void Put(const char *key, // copy value from std::string
                      char *value) = 0;
     virtual void Put(const char *key, int32_t keybytes, const char *value,
