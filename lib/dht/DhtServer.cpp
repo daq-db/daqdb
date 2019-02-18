@@ -29,6 +29,12 @@
 #define DHT_SERVER_CPU_CORE_BASE 5
 #define DHT_SERVER_CPU_CORE_MAX 32
 
+/**
+  * @TODO jradtke: not needed when eRPC implements configurable size of
+  * pre_resp_msgbuf
+  */
+const unsigned int PRE_BUF_SIZE = 32 * 1024;
+
 namespace DaqDB {
 
 using namespace std;
@@ -44,7 +50,7 @@ static erpc::MsgBuffer *erpcPrepareMsgbuf(erpc::Rpc<erpc::CTransport> *rpc,
                                           size_t reqSize) {
     erpc::MsgBuffer *msgBuf;
 
-    if (reqSize <= rpc->get_max_data_per_pkt()) {
+    if (reqSize <= PRE_BUF_SIZE) {
         msgBuf = &req_handle->pre_resp_msgbuf;
         rpc->resize_msg_buffer(msgBuf, reqSize);
     } else {
