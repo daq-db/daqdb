@@ -19,6 +19,7 @@
 namespace DaqDB {
 
 thread_local int MinidaqRoNode::_eventId;
+thread_local constexpr char MinidaqRoNode::_data_buffer [100000];
 
 MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
@@ -50,7 +51,7 @@ void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
         throw;
     }
 
-    memcpy(value.data(), data_buffer, value.size());
+    memcpy(value.data(), _data_buffer, value.size());
 
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());
