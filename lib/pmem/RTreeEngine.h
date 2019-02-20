@@ -37,6 +37,7 @@ class RTreeEngine {
     static RTreeEngine *Open(const string &path, // path to persistent pool
                              size_t size,        // size used when creating pool
                              size_t allocUnitSize); // allocation unit size
+    virtual ~RTreeEngine() {};
     static void Close(RTreeEngine *kv);             // close storage engine
 
     virtual string Engine() = 0; // engine identifier

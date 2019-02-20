@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #ifndef LIB_STORE_ARTREE_H_
@@ -175,8 +175,14 @@ class ARTree : public DaqDB::RTreeEngine {
     void UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) final;
     void printKey(const char *key);
     void decrementParent(persistent_ptr<Node> node);
+    void removeFromParent(ValueWrapper *val);
 
   private:
+    inline bool _isValueReservedNotPublished(ValueWrapper *val) {
+        return (val->location == PMEM &&
+                val->locationVolatile.get().value != EMPTY);
+    }
+
     TreeImpl *tree;
 };
 } // namespace DaqDB

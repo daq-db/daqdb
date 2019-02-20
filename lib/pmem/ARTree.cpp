@@ -11,14 +11,14 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "ARTree.h"
 #include <Logger.h>
+#include <algorithm>
 #include <daqdb/Types.h>
 #include <iostream>
-#include <algorithm>
 
 namespace DaqDB {
 #define LAYOUT "artree"
@@ -158,8 +158,7 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
  * @param leavesOnly determines if only leaves are counted.
  *
  */
-uint64_t TreeImpl::getTreeSize(persistent_ptr<Node> current, bool leavesOnly)
-{
+uint64_t TreeImpl::getTreeSize(persistent_ptr<Node> current, bool leavesOnly) {
     persistent_ptr<Node256> node256;
     uint64_t size = 0;
 
@@ -181,8 +180,7 @@ uint64_t TreeImpl::getTreeSize(persistent_ptr<Node> current, bool leavesOnly)
     return size;
 }
 
-uint8_t TreeImpl::getTreeDepth(persistent_ptr<Node> current)
-{
+uint8_t TreeImpl::getTreeDepth(persistent_ptr<Node> current) {
     persistent_ptr<Node256> node256;
     uint8_t depth = 0;
 
@@ -229,7 +227,7 @@ void ARTree::Get(const char *key, void **value, size_t *size,
     valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     val =
         reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
-    //std::cout << "Get off=" << (*valPrstPtr.raw_ptr()).off << std::endl;
+    // std::cout << "Get off=" << (*valPrstPtr.raw_ptr()).off << std::endl;
     if (!val)
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     if (val->location == PMEM && val->locationVolatile.get().value != EMPTY) {
@@ -244,18 +242,15 @@ void ARTree::Get(const char *key, void **value, size_t *size,
     *size = val->size;
 }
 
-uint64_t ARTree::GetTreeSize()
-{
+uint64_t ARTree::GetTreeSize() {
     return tree->getTreeSize(tree->treeRoot->rootNode, false);
 }
 
-uint8_t ARTree::GetTreeDepth()
-{
+uint8_t ARTree::GetTreeDepth() {
     return tree->getTreeDepth(tree->treeRoot->rootNode);
 }
 
-uint64_t ARTree::GetLeafCount()
-{
+uint64_t ARTree::GetLeafCount() {
     return tree->getTreeSize(tree->treeRoot->rootNode, true);
 }
 
@@ -282,7 +277,8 @@ void ARTree::Put(const char *key, int32_t keyBytes, const char *value,
     persistent_ptr<ValueWrapper> valPrstPtr;
     ValueWrapper *val;
     valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
-    val = reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
     val->locationVolatile.get().value = PMEM;
     val->location = PMEM;
 }
@@ -293,47 +289,56 @@ void ARTree::Put(const char *key, int32_t keyBytes, const char *value,
  * */
 void ARTree::decrementParent(persistent_ptr<Node> node) {}
 
+void ARTree::removeFromParent(ValueWrapper *val) {
+    static thread_local struct pobj_action actionsArray[1];
+    static thread_local int actionsCounter = 0;
+
+    actionsCounter++;
+
+    // decrement counter in parent and remove if needed
+    decrementParent(val->parent);
+
+    /*
+     int status = pmemobj_publish(tree->_pm_pool.get_handle(), actionsArray,
+     actionsCounter);
+     */
+}
+
 void ARTree::Remove(const char *key) {
 
-    persistent_ptr<ValueWrapper> valPrstPtr;
-    ValueWrapper *val;
-    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
-    val =
+    persistent_ptr<ValueWrapper> valPrstPtr =
+        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    auto *val =
         reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
-    if (!val) {
+
+    if (!val || (val->location == EMPTY)) {
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     }
-    if (val->location == EMPTY) {
-        throw OperationFailedException(Status(KEY_NOT_FOUND));
-    }
+
     try {
-        if (val->location == PMEM &&
-            val->locationVolatile.get().value != EMPTY) {
-            pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
-            // free ValueWrapper
-            static thread_local struct pobj_action actionsArray[1];
-            static thread_local int actionsCounter = 0;
-            //std::cout << "remove off=" << (*valPrstPtr.raw_ptr()).off
-            //          << std::endl;
+        if (_isValueReservedNotPublished(val)) {
+            val->location = EMPTY;
+            auto actionValue = val->actionValue;
+            pmemobj_cancel(tree->_pm_pool.get_handle(), actionValue, 1);
+
             // TODO: commented because of error in PMDK on free() of object
             // reserved with xreserve
             // pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
             // pmemobj_free(valPrstPtr.raw_ptr());
-            actionsCounter++;
-            // decrement counter in parent and remove if needed
-            decrementParent(val->parent);
-            /*int status = pmemobj_publish(tree->_pm_pool.get_handle(),
-                                        actionsArray, actionsCounter);*/
+
+            delete[] actionValue;
         } else if (val->location == DISK) {
-            // @TODO jradtke need to confirm if no extra action required here
+            // TODO: jradtke need to confirm if no extra action required here
+            val->location = EMPTY;
+        } else {
+            // TODO: jradtke need to confirm if no extra action or error
+            // handling required here
+            val->location = EMPTY;
         }
-        val->location = EMPTY;
+        removeFromParent(val);
     } catch (std::exception &e) {
         std::cout << "Error " << e.what();
         throw OperationFailedException(Status(UNKNOWN_ERROR));
-    }
-    if (val->location == PMEM) {
-        delete val->actionValue;
     }
 }
 
@@ -422,8 +427,8 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
  *
  * @param current marks beggining of search
  * @param key pointer to searched key
- * @param allocate flag to specify if subtree should be allocated when key not
- * found
+ * @param allocate flag to specify if subtree should be allocated when key
+ * not found
  * @return pointer to value
  */
 persistent_ptr<ValueWrapper>
@@ -455,7 +460,8 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                 /*
                                 nodeLeafCompressed->child = pmemobj_reserve(
                                                     _pm_pool.get_handle(),
-                   &(actionsArray[actionsCounter]), sizeof(ValueWrapper), VALUE
+                   &(actionsArray[actionsCounter]), sizeof(ValueWrapper),
+                   VALUE
                                                     );
                   */
                 if (OID_IS_NULL(*(nodeLeafCompressed->child).raw_ptr())) {
@@ -463,7 +469,7 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                               std::to_string(actionsCounter));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
-                //std::cout << "valueWrapper off="
+                // std::cout << "valueWrapper off="
                 //          << (*nodeLeafCompressed->child.raw_ptr()).off
                 //          << std::endl;
                 actionsCounter++;
@@ -473,9 +479,9 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                 actionsCounter = 0;
                 /*val = reinterpret_cast<ValueWrapper *>(
                     (nodeLeafCompressed->child).raw_ptr());*/
-                /** @todo initialization below temporarily fixes race conditions
-                 *        when PUT and GET requests are executed in parallel on
-                 *        the same key. This is still not thread-safe.
+                /** @todo initialization below temporarily fixes race
+                 * conditions when PUT and GET requests are executed in
+                 * parallel on the same key. This is still not thread-safe.
                  */
                 nodeLeafCompressed->child->location = EMPTY;
                 // val->location = EMPTY;
