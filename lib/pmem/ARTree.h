@@ -178,7 +178,7 @@ class ARTree : public DaqDB::RTreeEngine {
     void removeFromParent(ValueWrapper *val);
 
   private:
-    inline bool _isValueReservedNotPublished(ValueWrapper *val) {
+    inline bool _isLocationReservedNotPublished(ValueWrapper *val) {
         return (val->location == PMEM &&
                 val->locationVolatile.get().value != EMPTY);
     }

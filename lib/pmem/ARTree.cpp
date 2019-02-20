@@ -290,18 +290,8 @@ void ARTree::Put(const char *key, int32_t keyBytes, const char *value,
 void ARTree::decrementParent(persistent_ptr<Node> node) {}
 
 void ARTree::removeFromParent(ValueWrapper *val) {
-    static thread_local struct pobj_action actionsArray[1];
-    static thread_local int actionsCounter = 0;
-
-    actionsCounter++;
-
-    // decrement counter in parent and remove if needed
+    // @TODO: cleaning parent node not implemented
     decrementParent(val->parent);
-
-    /*
-     int status = pmemobj_publish(tree->_pm_pool.get_handle(), actionsArray,
-     actionsCounter);
-     */
 }
 
 void ARTree::Remove(const char *key) {
@@ -316,7 +306,7 @@ void ARTree::Remove(const char *key) {
     }
 
     try {
-        if (_isValueReservedNotPublished(val)) {
+        if (_isLocationReservedNotPublished(val)) {
             val->location = EMPTY;
             auto actionValue = val->actionValue;
             pmemobj_cancel(tree->_pm_pool.get_handle(), actionValue, 1);
@@ -327,6 +317,7 @@ void ARTree::Remove(const char *key) {
             // pmemobj_free(valPrstPtr.raw_ptr());
 
             delete[] actionValue;
+            actionValue = nullptr;
         } else if (val->location == DISK) {
             // TODO: jradtke need to confirm if no extra action required here
             val->location = EMPTY;
@@ -574,7 +565,7 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
             tree->_pm_pool.get_handle(), &(val->actionValue[0]), size, VALUE,
             POBJ_CLASS_ID(tree->getClassId(ALLOC_CLASS_VALUE)));
         if (OID_IS_NULL(poid)) {
-            delete val->actionValue;
+            delete[] val->actionValue;
             val->actionValue = nullptr;
             throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
@@ -631,8 +622,10 @@ void ARTree::UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) {
                       DISK);
     pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 3);
     pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
-    delete val->actionValue;
-    delete val->actionUpdate;
+    delete[] val->actionValue;
+    val->actionValue = nullptr;
+    delete[] val->actionUpdate;
+    val->actionUpdate = nullptr;
 }
 
 } // namespace DaqDB
