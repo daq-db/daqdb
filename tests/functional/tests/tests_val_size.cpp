@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <cstring>
@@ -60,14 +60,19 @@ bool testValueSizes(KVStoreBase *kvs) {
     bool result = true;
     const string expectedKey = "111";
 
-    vector<size_t> valSizes = {1,    8,    16,   32,    64,   127,  128,
-                               129,  255,  256,  512,   1023, 1024, 1025,
-                               2048, 4096, 8192, 10240, 16384};
+    vector<size_t> valSizes = { 1,         8,     16,        32,
+                                64,        127,   128,       129,
+                                255,       256,   512,       1023,
+                                1024,      1025,  2 * 1024,  4 * 1024,
+                                8 * 1024,  10240, 16 * 1024, 32 * 1024,
+                                64 * 1024, 69632 };
+    // @TODO: jradtke (128 * 1024) is failing on pmem_pool initialization, works
+    // fine on next test run
+
     for (auto valSize : valSizes) {
         if (!checkValuePutGet(kvs, expectedKey, valSize)) {
             return false;
         }
     }
-
     return result;
 }
