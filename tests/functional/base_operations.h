@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -24,33 +24,41 @@
 #include <daqdb/Status.h>
 #include <daqdb/Value.h>
 
-DaqDB::Value allocValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
+DaqDB::Value allocValue(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
                         const std::string &value);
-DaqDB::Value allocAndFillValue(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
-                               const size_t valueSize);
 
-DaqDB::Key strToKey(DaqDB::KVStoreBase *kvs, const std::string &key);
+const std::string generateValueStr(const size_t valueSize);
 
-DaqDB::Value daqdb_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key);
-void daqdb_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &&key, DaqDB::Value &val);
+DaqDB::Key allocKey(DaqDB::KVStoreBase *kvs, const uint64_t id);
 
-void daqdb_update(DaqDB::KVStoreBase *kvs, DaqDB::Key &key, DaqDB::Value &val,
-                  const DaqDB::UpdateOptions &options);
+bool checkValue(const std::string &expectedValue, DaqDB::Value *value);
 
-void daqdb_offload(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);
+const std::string keyToStr(DaqDB::Key &key);
 
-void daqdb_async_offload(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+const std::string keyToStr(const char *key);
+
+DaqDB::Value daqdb_get(DaqDB::KVStoreBase *kvs, const uint64_t id);
+
+void daqdb_put(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
+               const std::string &value);
+
+void daqdb_update(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
+                  DaqDB::Value &val, const DaqDB::UpdateOptions &options);
+
+void daqdb_offload(DaqDB::KVStoreBase *kvs, const uint64_t keyId);
+
+void daqdb_async_offload(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
                          DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
-bool daqdb_remove(DaqDB::KVStoreBase *kvs, DaqDB::Key &key);
+bool daqdb_remove(DaqDB::KVStoreBase *kvs, const uint64_t keyId);
 
-void daqdb_async_get(DaqDB::KVStoreBase *kvs, const DaqDB::Key &key,
+void daqdb_async_get(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
-void daqdb_async_put(DaqDB::KVStoreBase *kvs, DaqDB::Key &&key,
-                     DaqDB::Value &val,
+void daqdb_async_put(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
+                     const std::string &value,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
-void daqdb_async_update(DaqDB::KVStoreBase *kvs, DaqDB::Key &key,
+void daqdb_async_update(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
                         DaqDB::Value &val,
                         DaqDB::KVStoreBase::KVStoreBaseCallback cb);

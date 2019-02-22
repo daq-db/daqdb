@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <chrono>
@@ -27,47 +27,35 @@ using namespace DaqDB;
 
 bool testSyncOffloadOperations(KVStoreBase *kvs) {
     bool result = true;
-    const string expectedVal = "fghi";
-    const string expectedKey = "300";
+    const string val = "fghi";
+    const uint64_t keyId = 300;
 
-    auto key = strToKey(kvs, expectedKey);
-    auto val = allocValue(kvs, key, expectedVal);
+    daqdb_put(kvs, keyId, val);
 
-    DAQDB_INFO << format("Put: [%1%] = %2%") % key.data() % val.data();
-    daqdb_put(kvs, move(key), val);
-
-    key = strToKey(kvs, expectedKey);
-    auto currVal = daqdb_get(kvs, key);
-    DAQDB_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
-
-    if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
-        DAQDB_INFO << "Error: wrong value returned" << flush;
+    auto resultVal = daqdb_get(kvs, keyId);
+    if (!checkValue(val, &resultVal)) {
         result = false;
     }
 
+    auto key = allocKey(kvs, keyId);
     if (kvs->IsOffloaded(key)) {
         DAQDB_INFO << "Error: wrong value location";
         result = false;
     }
 
-    DAQDB_INFO << format("Offload: [%1%]") % key.data();
-    daqdb_offload(kvs, key);
+    daqdb_offload(kvs, keyId);
 
     if (!kvs->IsOffloaded(key)) {
         DAQDB_INFO << "Error: wrong value location";
         result = false;
     }
 
-    currVal = daqdb_get(kvs, key);
-    DAQDB_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
-
-    if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
-        DAQDB_INFO << "Error: wrong value returned" << flush;
+    resultVal = daqdb_get(kvs, keyId);
+    if (!checkValue(val, &resultVal)) {
         result = false;
     }
 
-    auto removeResult = daqdb_remove(kvs, key);
-    DAQDB_INFO << format("Remove: [%1%]") % key.data();
+    auto removeResult = daqdb_remove(kvs, keyId);
     if (!removeResult) {
         result = false;
         DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
@@ -79,23 +67,21 @@ bool testSyncOffloadOperations(KVStoreBase *kvs) {
 bool testAsyncOffloadOperations(KVStoreBase *kvs) {
     bool result = true;
 
-    const string expectedVal = "oprstu";
-    const string expectedKey = "400";
-
-    auto key = strToKey(kvs, expectedKey);
-    auto val = allocValue(kvs, key, expectedVal);
+    const string val = "oprstu";
+    const uint64_t keyId = 400;
 
     mutex mtx;
     condition_variable cv;
     bool ready = false;
 
-    daqdb_async_put(
-        kvs, move(key), val,
-        [&](KVStoreBase *kvs, Status status, const char *key,
-            const size_t keySize, const char *value, const size_t valueSize) {
+    daqdb_async_put(kvs, keyId, val,
+                    [&](KVStoreBase *kvs, Status status, const char *argKey,
+                        const size_t keySize, const char *value,
+                        const size_t valueSize) {
             unique_lock<mutex> lck(mtx);
             if (status.ok()) {
-                DAQDB_INFO << boost::format("PutAsync: [%1%]") % key;
+                DAQDB_INFO << boost::format("PutAsync: [%1%]") %
+                                  keyToStr(argKey);
             } else {
                 DAQDB_INFO << boost::format("Error: cannot put element: %1%") %
                                   status.to_string();
@@ -103,7 +89,7 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
             }
             ready = true;
             cv.notify_all();
-        });
+    });
 
     // wait for completion
     {
@@ -112,29 +98,26 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
         ready = false;
     }
 
-    key = strToKey(kvs, expectedKey);
+    auto key = allocKey(kvs, keyId);
     if (kvs->IsOffloaded(key)) {
         DAQDB_INFO << "Error: wrong value location";
         result = false;
     }
 
-    auto currVal = daqdb_get(kvs, key);
-    DAQDB_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
-    if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
-        DAQDB_INFO << "Error: wrong value returned" << flush;
+    auto resultVal = daqdb_get(kvs, keyId);
+    if (!checkValue(val, &resultVal)) {
         result = false;
     }
 
-    daqdb_async_get(
-        kvs, key,
-        [&](KVStoreBase *kvs, Status status, const char *key, size_t keySize,
-            const char *value, size_t valueSize) {
+    daqdb_async_get(kvs, keyId,
+                    [&](KVStoreBase *kvs, Status status, const char *argKey,
+                        size_t keySize, const char *value, size_t valueSize) {
             unique_lock<mutex> lck(mtx);
 
             if (status.ok()) {
-                DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") % key %
-                                  value;
-                if (!value || expectedVal.compare(value) != 0) {
+                DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") %
+                                  keyToStr(argKey) % value;
+                if (!value || val.compare(value) != 0) {
                     DAQDB_INFO << "Error: wrong value returned" << flush;
                     result = false;
                 }
@@ -146,7 +129,7 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
 
             ready = true;
             cv.notify_all();
-        });
+    });
 
     // wait for completion
     {
@@ -155,13 +138,14 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
         ready = false;
     }
 
-    daqdb_async_offload(
-        kvs, key,
-        [&](KVStoreBase *kvs, Status status, const char *key,
-            const size_t keySize, const char *value, const size_t valueSize) {
+    daqdb_async_offload(kvs, keyId,
+                        [&](KVStoreBase *kvs, Status status, const char *argKey,
+                            const size_t keySize, const char *value,
+                            const size_t valueSize) {
             unique_lock<mutex> lck(mtx);
             if (status.ok()) {
-                DAQDB_INFO << boost::format("Offload: [%1%]") % key;
+                DAQDB_INFO << boost::format("Offload: [%1%]") %
+                                  keyToStr(argKey);
             } else {
                 DAQDB_INFO << boost::format("Offload Error: %1%") %
                                   status.to_string();
@@ -169,7 +153,7 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
             }
             ready = true;
             cv.notify_all();
-        });
+    });
 
     // wait for completion
     {
@@ -183,23 +167,20 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
         result = false;
     }
 
-    currVal = daqdb_get(kvs, key);
-    if (!currVal.data() || expectedVal.compare(currVal.data()) != 0) {
-        DAQDB_INFO << "Error: wrong value returned" << flush;
+    resultVal = daqdb_get(kvs, keyId);
+    if (!checkValue(val, &resultVal)) {
         result = false;
     }
-    DAQDB_INFO << format("Get: [%1%] = %2%") % key.data() % currVal.data();
 
-    daqdb_async_get(
-        kvs, key,
-        [&](KVStoreBase *kvs, Status status, const char *key, size_t keySize,
-            const char *value, size_t valueSize) {
+    daqdb_async_get(kvs, keyId,
+                    [&](KVStoreBase *kvs, Status status, const char *argKey,
+                        size_t keySize, const char *value, size_t valueSize) {
             unique_lock<mutex> lck(mtx);
 
             if (status.ok()) {
-                DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") % key %
-                                  value;
-                if (!value || expectedVal.compare(value) != 0) {
+                DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") %
+                                  keyToStr(argKey) % value;
+                if (!value || val.compare(value) != 0) {
                     DAQDB_INFO << "Error: wrong value returned" << flush;
                     result = false;
                 }
@@ -211,7 +192,7 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
 
             ready = true;
             cv.notify_all();
-        });
+    });
 
     // wait for completion
     {
@@ -220,11 +201,10 @@ bool testAsyncOffloadOperations(KVStoreBase *kvs) {
         ready = false;
     }
 
-    auto removeResult = daqdb_remove(kvs, key);
-    DAQDB_INFO << format("Remove: [%1%]") % key.data();
+    auto removeResult = daqdb_remove(kvs, keyId);
     if (!removeResult) {
         result = false;
-        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % keyId;
     }
 
     return result;

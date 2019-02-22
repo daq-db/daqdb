@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <boost/filesystem.hpp>
@@ -36,7 +36,10 @@ bool initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
     options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;
     options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
-    options.key.field(0, sizeof(DEFAULT_KeyType));
+
+    options.key.field(0, sizeof(FuncTestKey::runId));
+    options.key.field(1, sizeof(FuncTestKey::subdetectorId));
+    options.key.field(2, sizeof(FuncTestKey::eventId), true);
 
     options.offload.allocUnitSize = DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE;
 

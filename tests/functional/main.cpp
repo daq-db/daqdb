@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <iostream>
@@ -111,9 +111,10 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    map<string, function<bool(DaqDB::KVStoreBase *)>> tests =
+    map<string, function<bool(DaqDB::KVStoreBase *)> > tests =
         boost::assign::map_list_of("testSyncOperations", testSyncOperations)(
-            "testASyncOperations", testAsyncOperations)(
+            "testMultiplePuts", testMultiplePuts)("testASyncOperations",
+                                                  testAsyncOperations)(
             "testSyncOffloadOperations", testSyncOffloadOperations)(
             "testAsyncOffloadOperations", testAsyncOffloadOperations)(
             "testDhtConnect", testDhtConnect)("testValueSizes", testValueSizes);
