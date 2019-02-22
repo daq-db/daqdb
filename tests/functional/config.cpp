@@ -21,7 +21,6 @@
 const std::string DEFAULT_PMEM_POOL_PATH = "/mnt/pmem/pool.pm";
 const size_t DEFAULT_PMEM_POOL_SIZE = 8ull * 1024 * 1024 * 1024;
 const size_t DEFAULT_PMEM_ALLOC_UNIT_SIZE = 8;
-typedef char DEFAULT_KeyType[16];
 
 const size_t DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE = 16384;
 

@@ -32,11 +32,7 @@ bool static checkValuePutGet(KVStoreBase *kvs, uint64_t keyId,
     daqdb_put(kvs, keyId, val);
 
     auto resultVal = daqdb_get(kvs, keyId);
-
-    if ((val.size() != resultVal.size()) ||
-        !memcmp(reinterpret_cast<void *>(&val),
-                reinterpret_cast<void *>(&resultVal), resultVal.size())) {
-        DAQDB_INFO << "Error: wrong value returned" << flush;
+    if (!checkValue(val, &resultVal)) {
         result = false;
     }
 
