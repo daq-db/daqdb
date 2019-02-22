@@ -9,6 +9,9 @@ Following steps should be performed to run DaqDB with this network configuration
 * [Set Ethernet mode](Set-Ethernet-mode)
 
 ##### Build and install kernel with PMEM and OFED support
+
+This section can be skipped for Fedora 28.
+
 Kernel config file can be taken from [here](config/config_4_15.txt).
 
 Kernel building and installation may be done as below:
@@ -45,7 +48,7 @@ tar zxf mlnx-en-4.5-1.0.1.0-rhel7.6-x86_64.tgz
 cd mlnx-en-4.5-1.0.1.0-rhel7.6-x86_64
 ./install --add-kernel-support --dpdk
 ```
-_Note: It may be necessary to install some extra packages e.g createrepo_
+_Note: It may be necessary to install some extra packages e.g createrepo, elfutils_
 
 ##### Set Ethernet mode
 ```
@@ -55,3 +58,10 @@ cd  mft-4.11.0-103-x86_64-rpm
 ./install.sh
 ```
 follow [Getting Started with ConnectX-5 100Gb/s Adapters for Linux](https://community.mellanox.com/s/article/getting-started-with-connectx-5-100gb-s-adapters-for-linux)
+
+Depends on network card version e.g.
+```
+mst start
+mlxconfig -d /dev/mst/mt4119_pciconf0 set LINK_TYPE_P1=2
+ifconfig ens801f0 15.15.15.5/24 up
+```
