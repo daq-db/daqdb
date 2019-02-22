@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <daqdb/Types.h>
@@ -26,6 +26,7 @@
 #include <iostream>
 #include <map>
 
+#include "config.h"
 #include "nodeCli.h"
 
 using namespace std;
@@ -170,16 +171,14 @@ void nodeCli::_cmdGet(const std::string &strLine) {
         cout << "Error: expects at least one argument" << endl;
     } else {
         auto key = arguments[1];
-        if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+        if (_isInvalidKey(key)) {
+            cout << "Error: wrong key size" << endl;
             return;
         }
+
         DaqDB::Key keyBuff;
         try {
-            keyBuff = _spKVStore->AllocKey(KeyValAttribute::NOT_BUFFERED);
-            /** @todo memleak - keyBuff.data */
-            std::memset(keyBuff.data(), 0, keyBuff.size());
-            std::memcpy(keyBuff.data(), key.c_str(), key.size());
+            keyBuff = _strToKey(key);
         } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
@@ -216,15 +215,13 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
         cout << "Error: expects at least one argument" << endl;
     } else {
         auto key = arguments[1];
-        if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+        if (_isInvalidKey(key)) {
+            cout << "Error: wrong key size" << endl;
             return;
         }
         DaqDB::Key keyBuff;
         try {
-            keyBuff = _spKVStore->AllocKey(KeyValAttribute::NOT_BUFFERED);
-            std::memset(keyBuff.data(), 0, keyBuff.size());
-            std::memcpy(keyBuff.data(), key.c_str(), key.size());
+            keyBuff = _strToKey(key);
         } catch (DaqDB::OperationFailedException &e) {
             cout << "Error: cannot allocate key buffer" << endl;
             return;
@@ -261,9 +258,17 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
 }
 
 DaqDB::Key nodeCli::_strToKey(const std::string &key) {
+    if (_isInvalidKey(key)) {
+        throw DaqDB::OperationFailedException(ALLOCATION_ERROR);
+    }
+
     DaqDB::Key keyBuff = _spKVStore->AllocKey(KeyValAttribute::NOT_BUFFERED);
-    std::memset(keyBuff.data(), 0, keyBuff.size());
-    std::memcpy(keyBuff.data(), key.c_str(), key.size());
+    CliNodeKey *cliKeyPtr = reinterpret_cast<CliNodeKey *>(keyBuff.data());
+    cliKeyPtr->runId = 0;
+    cliKeyPtr->subdetectorId = 0;
+    cliKeyPtr->eventId = 0;
+
+    memcpy(&(cliKeyPtr->eventId), key.data(), key.size());
     return keyBuff;
 }
 
@@ -319,8 +324,8 @@ void nodeCli::_cmdPut(const std::string &strLine) {
         cout << "Error: expects at least two arguments" << endl;
     } else {
         auto key = arguments[1];
-        if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+        if (_isInvalidKey(key)) {
+            cout << "Error: wrong key size" << endl;
             return;
         }
 
@@ -385,8 +390,8 @@ void nodeCli::_cmdUpdate(const std::string &strLine) {
         cout << "Error: expects at least one argument" << endl;
     } else {
         auto key = arguments[1];
-        if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+        if (_isInvalidKey(key)) {
+            cout << "Error: wrong key size" << endl;
             return;
         }
         DaqDB::Key keyBuff;
@@ -431,8 +436,8 @@ void nodeCli::_cmdUpdateAsync(const std::string &strLine) {
         cout << "Error: expects at least one argument" << endl;
     } else {
         auto key = arguments[1];
-        if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+        if (_isInvalidKey(key)) {
+            cout << "Error: wrong key size" << endl;
             return;
         }
         DaqDB::Key keyBuff;
@@ -517,8 +522,8 @@ void nodeCli::_cmdPutAsync(const std::string &strLine) {
         cout << "Error: expects at least two arguments" << endl;
     } else {
         auto key = arguments[1];
-        if (key.size() > _spKVStore->KeySize()) {
-            cout << "Error: key size is " << _spKVStore->KeySize() << endl;
+        if (_isInvalidKey(key)) {
+            cout << "Error: wrong key size" << endl;
             return;
         }
 
@@ -581,6 +586,11 @@ void nodeCli::_cmdRemove(const std::string &strLine) {
     } else {
 
         auto key = arguments[1];
+        if (_isInvalidKey(key)) {
+            cout << "Error: wrong key size" << endl;
+            return;
+        }
+
         DaqDB::Key keyBuff;
         try {
             keyBuff = _strToKey(key);
