@@ -35,6 +35,8 @@ void MinidaqAroNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
         throw;
     }
 
+    memcpy(value.data(), _data_buffer, value.size());
+
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());
 #endif /* WITH_INTEGRITY_CHECK */
