@@ -7,7 +7,7 @@
       - [Prerequisites](#prerequisites)
       - [Build](#build)
   - [Execution](#execution)
-    - [Prerequisites](#prerequisites-1)
+    - [Initial Steps](#initial-steps)
       - [SPDK](#spdk)
       - [Network](#network)
     - [Unit Tests](#unit-tests)
@@ -30,9 +30,20 @@ cd ${daqdb_path}
 git submodule update --init --recursive
 ```
 
+---
+
 #### Prerequisites
 
-DaqDB must be build using CERN's LHC Computing Grid (LCG).
+* asio-devel (1.10+)
+* autoconf (2.69+)
+* boost-devel (1.64+)
+* boost-test (1.64+)
+* cmake (3.11+)
+* gtest-devel (1.8+)
+
+##### CERN's LHC
+
+DaqDB could be built using CERN's LHC Computing Grid (LCG).
 
 ```
 sudo yum install -y https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm
@@ -43,13 +54,24 @@ echo "CVMFS_HTTP_PROXY=http://your-proxy.com:proxy-port | sudo tee -a /etc/cvmfs
 cvmfs_config probe
 ls /cvmfs/grid.cern.ch
 ```
+##### Fedora 28
+
+The dependencies can be installed automatically by `scripts/pkgdep.sh`.
+```
+cd ${daqdb_path}
+sudo ./scripts/pkgdep.sh
+sudo third-party/spdk/scripts/pkgdep.sh
+``` 
+
+_Note: <br> No support for Mellanox cards on Fedora 29 at the moment._
+
+---
 
 #### Build
 
 
 ```
 cd ${daqdb_path}
-. /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_95 x86_64-centos7-gcc7-opt
 cmake .
 make -j$(nproc)
 ```
@@ -67,9 +89,9 @@ _Note: <br>`. scripts/setup_env_lcg.sh` can be called to setup environment with 
 
 ## Execution
 
-### Prerequisites
+#### Initial Steps
 
-#### SPDK
+##### SPDK
 DAQDB is using SPDK internally so following extra step is required to configure environment.
 
 To be called once:
@@ -85,13 +107,15 @@ sudo HUGEMEM=4096 third-party/spdk/scripts/setup
 ```
 _Note: <br> eRPC requires at least 4096 of 2M hugepages_
 
-#### Network
+##### Network
 
 Mellanox ConnectX-4 or newer Ethernet NICs are supported at the moment.
 
 Please see setup guide [here](doc/network_setup_guide.md)
 
-### Unit Tests
+---
+
+#### Unit Tests
 
 ```
 cd ${daqdb_path}
@@ -100,9 +124,11 @@ make tests -j$(nproc)
 make test
 ```
 
-### Tools and Examples
+---
 
-#### Minidaq benchmark
+#### Tools and Examples
+
+##### Minidaq benchmark
 
 This application (located in apps/minidaq) is a simple benchmark that emulates
 the operation of a typical Data AcQuisition (DAQ) system based on a KVS store.
@@ -133,20 +159,15 @@ Performance can be degraded or interrupted.
 * Persistent memory pool file should be deleted before each test run.
 Unexpected behavior can occur otherwise.
 
-#### CLI node example 
+##### CLI node example 
 ```
-sudo ./cli-node -h
+sudo ./clinode -h
 Options:
   -h [ --help ]                         Print help messages
-  -p [ --port ] arg                     Node Communication port
-  -d [ --dht ] arg                      DHT Communication port
-  -n [ --nodeid ] arg (=0)              Node ID used to match database file
   -i [ --interactive ]                  Enable interactive mode
   -l [ --log ]                          Enable logging
-  --pmem-path arg (=/mnt/pmem/pool.pm)  Rtree persistent memory pool file
-  --pmem-size arg (=2147483648)         Rtree persistent memory pool size
-  -c [ --spdk-conf-file ] arg (=../config.spdk)
-                                        SPDK configuration file
+  -c [ --config-file ] arg (=clinode.cfg)
+                                        Configuration file
 ```
 
 To enter interactive mode execute cli-node with `--interactive` flag.
@@ -155,20 +176,20 @@ To enter interactive mode execute cli-node with `--interactive` flag.
 sudo ./cli_node -i
 daqdb> help
 Following commands supported:
-    - aget <key>
-    - aput <key> <value> [-o <lock|ready|long_term> <0|1>]
-    - aupdate <key> [value] [-o <lock|ready|long_term> <0|1>]
-    - get <key>
-    - help
-    - node <id>
-    - put <key> <value> [-o <lock|ready|long_term> <0|1>]
-    - quit
-    - remove <key>
-    - status
-    - update <key> [value] [-o <lock|ready|long_term> <0|1>]
+	- aget <key> [-o <long_term> <0|1>]
+	- aput <key> <value> [-o <lock|ready|long_term> <0|1>]
+	- aupdate <key> [value] [-o <lock|ready|long_term> <0|1>]
+	- get <key> [-o <long_term> <0|1>]
+	- help
+	- neighbors
+	- put <key> <value> [-o <lock|ready|long_term> <0|1>]
+	- quit
+	- remove <key>
+	- status
+	- update <key> [value] [-o <lock|ready|long_term> <0|1>]
 ```
 
-#### Basic example
+##### Basic example
 
 This application (located in examples/basic) provides examples how to
 use DAQDB API (initialization, basic CRUD operations, ...).

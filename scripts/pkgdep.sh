@@ -3,26 +3,9 @@
 
 SYSTEM=`uname -s`
 
-if [ -s /etc/centos-release ]; then
-	yum install cmake
-	yum install boost boost-test boost-devel
-	yum install asio-devel
-	yum install libaio libaio-devel
-	yum install jsoncpp jsoncpp-devel
-elif [ -s /etc/redhat-release ]; then
+if [ -s /etc/redhat-release -o -s /etc/centos-release ]; then
     # Includes Fedora
-    dnf install cmake
-    dnf install boost boost-test boost-devel
-    dnf install asio-devel
-    dnf install libaio libaio-devel
-    dnf install jsoncpp jsoncpp-devel
-elif [ -f /etc/debian_version ]; then
-    # Includes Ubuntu, Debian
-    apt-get install cmake
-    apt-get install libboost-all-dev
-    apt-get install libasio-dev
-    apt-get install libaio1 libaio-dev
-    apt-get install libjsoncpp1 libjsoncpp-dev 
+    yum install cmake boost boost-test boost-devel asio-devel autoconf gtest gtest-devel -y
 else
 	echo "pkgdep: unknown system type."
 	exit 1
