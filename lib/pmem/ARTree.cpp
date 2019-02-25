@@ -331,8 +331,12 @@ void ARTree::Remove(const char *key) {
             // pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
             // pmemobj_free(valPrstPtr.raw_ptr());
 #else
-            pmemobj_defer_free(tree->_pm_pool.get_handle(),
-                               (*valPrstPtr.raw_ptr()), &actionValue[0]);
+            // @TODO Only one of (pmemobj_defer_free, pmemobj_free) could be
+            // called.
+
+            // pmemobj_defer_free(tree->_pm_pool.get_handle(),
+            //                   (*valPrstPtr.raw_ptr()), &actionValue[0]);
+
             pmemobj_free(valPrstPtr.raw_ptr());
 #endif
             delete[] actionValue;
