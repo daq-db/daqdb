@@ -326,7 +326,7 @@ void ARTree::Remove(const char *key) {
             pmemobj_cancel(tree->_pm_pool.get_handle(), actionValue, 1);
 
 #ifdef USE_ALLOCATION_CLASSES
-// TODO: commented because of error in PMDK on free() of object
+            // TODO: commented because of error in PMDK on free() of object
             // reserved with xreserve
             // pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
             // pmemobj_free(valPrstPtr.raw_ptr());
