@@ -25,52 +25,38 @@
 using namespace std;
 using namespace DaqDB;
 
-bool static checkValuePutGet(KVStoreBase *kvs, string keyStr,
+bool static checkValuePutGet(KVStoreBase *kvs, uint64_t keyId,
                              size_t valueSize) {
     bool result = true;
-    auto key = strToKey(kvs, keyStr);
-    auto val = allocAndFillValue(kvs, key, valueSize);
+    auto val = generateValueStr(valueSize);
+    daqdb_put(kvs, keyId, val);
 
-    DAQDB_INFO << format("Put: [%1%] with size [%2%]") % key.data() %
-                      val.size();
-    daqdb_put(kvs, move(key), val);
-
-    key = strToKey(kvs, keyStr);
-    auto currVal = daqdb_get(kvs, key);
-    DAQDB_INFO << format("Get: [%1%] with size [%2%]") % key.data() %
-                      currVal.size();
-
-    if ((val.size() != currVal.size()) ||
-        !memcmp(reinterpret_cast<void *>(&val),
-                reinterpret_cast<void *>(&currVal), currVal.size())) {
-        DAQDB_INFO << "Error: wrong value returned" << flush;
+    auto resultVal = daqdb_get(kvs, keyId);
+    if (!checkValue(val, &resultVal)) {
         result = false;
     }
 
-    auto removeResult = daqdb_remove(kvs, key);
-    DAQDB_INFO << format("Remove: [%1%]") % key.data();
+    auto removeResult = daqdb_remove(kvs, keyId);
     if (!removeResult) {
         result = false;
-        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % keyId;
     }
     return result;
 }
 
 bool testValueSizes(KVStoreBase *kvs) {
     bool result = true;
-    const string expectedKey = "111";
+    uint64_t expectedKey = 111;
 
     vector<size_t> valSizes = { 1,         8,     16,        32,
                                 64,        127,   128,       129,
                                 255,       256,   512,       1023,
                                 1024,      1025,  2 * 1024,  4 * 1024,
                                 8 * 1024,  10240, 16 * 1024, 32 * 1024,
-                                64 * 1024, 69632 };
-    // @TODO: jradtke (128 * 1024) is failing on pmem_pool initialization, works
-    // fine on next test run
+                                64 * 1024, 69632, 128 * 1024 };
 
     for (auto valSize : valSizes) {
-        if (!checkValuePutGet(kvs, expectedKey, valSize)) {
+        if (!checkValuePutGet(kvs, expectedKey++, valSize)) {
             return false;
         }
     }

@@ -11,45 +11,72 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "base_operations.h"
+#include "config.h"
 #include "debug.h"
 
 using namespace std;
 using namespace DaqDB;
 
-Value allocValue(KVStoreBase *kvs, const Key &key, const string &value) {
-    Value result = kvs->Alloc(key, value.size() + 1);
+Value allocValue(KVStoreBase *kvs, const uint64_t keyId, const string &value) {
+    auto key = allocKey(kvs, keyId);
+    Value result = kvs->Alloc(key, value.size());
     memcpy(result.data(), value.c_str(), value.size());
-    result.data()[result.size() - 1] = '\0';
     return result;
 }
 
-Value allocAndFillValue(KVStoreBase *kvs, const Key &key,
-                        const size_t valueSize) {
-    Value result = kvs->Alloc(key, valueSize);
-    for (int i = 0; i < valueSize; i++) {
-        result.data()[i] = i % 256;
-    }
-    return result;
-}
-
-Key strToKey(KVStoreBase *kvs, const string &key) {
+Key allocKey(KVStoreBase *kvs, const uint64_t id) {
     Key keyBuff = kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
-    memset(keyBuff.data(), 0, keyBuff.size());
-    memcpy(keyBuff.data(), key.c_str(), key.size());
+    FuncTestKey *fKeyPtr = reinterpret_cast<FuncTestKey *>(keyBuff.data());
+    fKeyPtr->runId = 0;
+    fKeyPtr->subdetectorId = 0;
+    fKeyPtr->eventId = id;
     return keyBuff;
 }
 
-Value daqdb_get(KVStoreBase *kvs, const Key &key) {
+const std::string generateValueStr(const size_t valueSize) {
+    string result(valueSize, 0);
+    generate_n(result.begin(), valueSize,
+               [n = 0]() mutable { return n++ % 256; });
+    return result;
+}
+
+bool checkValue(const string &expectedValue, Value *value) {
+    if (!value || !value->data()) {
+        DAQDB_INFO << "Error: value is empty" << flush;
+        return false;
+    }
+    if (memcmp(expectedValue.data(), value->data(), expectedValue.size())) {
+        DAQDB_INFO << "Error: wrong value returned" << flush;
+        return false;
+    }
+    return true;
+}
+
+const std::string keyToStr(Key &key) {
+    FuncTestKey *fKeyPtr = reinterpret_cast<FuncTestKey *>(key.data());
+    return std::to_string(fKeyPtr->eventId);
+}
+
+const std::string keyToStr(const char *key) {
+    const FuncTestKey *fKeyPtr = reinterpret_cast<const FuncTestKey *>(key);
+    return std::to_string(fKeyPtr->eventId);
+}
+
+Value daqdb_get(KVStoreBase *kvs, const uint64_t keyId) {
+    auto key = allocKey(kvs, keyId);
     try {
-        return kvs->Get(key);
+        auto result = kvs->Get(key);
+        DAQDB_INFO << format("Get: [%1%] with size [%2%]") % keyId %
+                          result.size();
+        return result;
     } catch (OperationFailedException &e) {
         if (e.status()() == KEY_NOT_FOUND) {
             BOOST_LOG_SEV(lg::get(), bt::info)
-                << format("[%1%] not found") % key.data();
+                << format("[%1%] not found") % keyId;
         } else {
             BOOST_LOG_SEV(lg::get(), bt::info)
                 << "Error: cannot get element: " << e.status().to_string()
@@ -59,7 +86,12 @@ Value daqdb_get(KVStoreBase *kvs, const Key &key) {
     return Value();
 }
 
-void daqdb_put(KVStoreBase *kvs, Key &&key, Value &val) {
+void daqdb_put(KVStoreBase *kvs, const uint64_t keyId,
+               const std::string &value) {
+    auto key = allocKey(kvs, keyId);
+    auto val = allocValue(kvs, keyId, value);
+    DAQDB_INFO << format("Put: [%1%]") % keyId;
+
     try {
         kvs->Put(move(key), move(val));
     } catch (OperationFailedException &e) {
@@ -68,8 +100,9 @@ void daqdb_put(KVStoreBase *kvs, Key &&key, Value &val) {
     }
 }
 
-void daqdb_update(KVStoreBase *kvs, Key &key, Value &val,
+void daqdb_update(KVStoreBase *kvs, const uint64_t keyId, Value &val,
                   const UpdateOptions &options = UpdateOptions()) {
+    auto key = allocKey(kvs, keyId);
     try {
         kvs->Update(key, move(val), move(options));
     } catch (OperationFailedException &e) {
@@ -79,7 +112,9 @@ void daqdb_update(KVStoreBase *kvs, Key &key, Value &val,
     }
 }
 
-void daqdb_offload(KVStoreBase *kvs, Key &key) {
+void daqdb_offload(KVStoreBase *kvs, const uint64_t keyId) {
+    auto key = allocKey(kvs, keyId);
+    DAQDB_INFO << format("Offload: [%1%]") % keyId;
     try {
         UpdateOptions options(PrimaryKeyAttribute::LONG_TERM);
         kvs->Update(key, move(options));
@@ -90,8 +125,9 @@ void daqdb_offload(KVStoreBase *kvs, Key &key) {
     }
 }
 
-void daqdb_async_offload(KVStoreBase *kvs, Key &key,
+void daqdb_async_offload(KVStoreBase *kvs, const uint64_t keyId,
                          KVStoreBase::KVStoreBaseCallback cb) {
+    auto key = allocKey(kvs, keyId);
     try {
         UpdateOptions options(PrimaryKeyAttribute::LONG_TERM);
         kvs->UpdateAsync(key, move(options), cb);
@@ -102,9 +138,10 @@ void daqdb_async_offload(KVStoreBase *kvs, Key &key,
     }
 }
 
-bool daqdb_remove(KVStoreBase *kvs, Key &key) {
-
+bool daqdb_remove(KVStoreBase *kvs, const uint64_t keyId) {
+    auto key = allocKey(kvs, keyId);
     try {
+        DAQDB_INFO << format("Remove: [%1%]") % keyId;
         kvs->Remove(key);
     } catch (OperationFailedException &e) {
         return false;
@@ -120,8 +157,9 @@ bool daqdb_remove(KVStoreBase *kvs, Key &key) {
     return false;
 }
 
-void daqdb_async_get(KVStoreBase *kvs, const Key &key,
+void daqdb_async_get(KVStoreBase *kvs, const uint64_t keyId,
                      KVStoreBase::KVStoreBaseCallback cb) {
+    auto key = allocKey(kvs, keyId);
     try {
         GetOptions options(PrimaryKeyAttribute::EMPTY);
         return kvs->GetAsync(key, cb, move(options));
@@ -131,8 +169,11 @@ void daqdb_async_get(KVStoreBase *kvs, const Key &key,
     }
 }
 
-void daqdb_async_put(KVStoreBase *kvs, Key &&key, Value &val,
+void daqdb_async_put(KVStoreBase *kvs, const uint64_t keyId,
+                     const std::string &value,
                      KVStoreBase::KVStoreBaseCallback cb) {
+    auto key = allocKey(kvs, keyId);
+    auto val = allocValue(kvs, keyId, value);
     try {
         PutOptions options(PrimaryKeyAttribute::EMPTY);
         kvs->PutAsync(move(key), move(val), cb, move(options));
@@ -142,8 +183,9 @@ void daqdb_async_put(KVStoreBase *kvs, Key &&key, Value &val,
     }
 }
 
-void daqdb_async_update(KVStoreBase *kvs, Key &key, Value &val,
+void daqdb_async_update(KVStoreBase *kvs, const uint64_t keyId, Value &val,
                         KVStoreBase::KVStoreBaseCallback cb) {
+    auto key = allocKey(kvs, keyId);
     try {
         kvs->UpdateAsync(key, move(val), cb);
     } catch (OperationFailedException &e) {

@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -58,6 +58,14 @@ class nodeCli {
     DaqDB::Value _strToValue(const std::string &valStr);
     DaqDB::Value _allocValue(const DaqDB::Key &key, const std::string &valStr);
 
+    /**
+     * @return true if key is NOT correct
+     */
+    inline bool _isInvalidKey(const std::string &key) {
+        return ((key.size() == 0) ||
+                (key.size() > sizeof(CliNodeKey::eventId)));
+    }
+
     DaqDB::PrimaryKeyAttribute
     _getKeyAttrs(unsigned char start, const std::vector<std::string> &cmdAttrs);
     DaqDB::PrimaryKeyAttribute
@@ -66,4 +74,4 @@ class nodeCli {
     std::shared_ptr<DaqDB::KVStoreBase> _spKVStore;
     std::vector<std::string> _statusMsgs;
 };
-}
+} // namespace DaqDB

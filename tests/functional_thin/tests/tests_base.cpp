@@ -11,16 +11,16 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "boost/algorithm/string.hpp"
 
-#include "common.h"
 #include "tests.h"
 
 #include <DhtClient.h>
 #include <DhtCore.h>
+#include "../base_operations.h"
 
 using namespace std;
 using namespace DaqDB;
@@ -69,35 +69,21 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
 bool testPutGetSequence(KVStoreBase *kvs, DaqDB::Options *options) {
     bool result = true;
 
-    const string expectedVal = "daqdb";
-    const string expectedKey = "1000";
+    const string val = "daqdb";
+    const uint64_t keyId = 1000;
 
-    auto putKey = strToKey(kvs, expectedKey);
-    auto val = allocValue(kvs, putKey, expectedVal);
+    remote_put(kvs, keyId, val);
 
-    DAQDB_INFO << format("Remote Put: [%1%] = %2%") % putKey.data() %
-                      val.data();
-    remote_put(kvs, move(putKey), val);
-
-    auto key = strToKey(kvs, expectedKey, KeyValAttribute::NOT_BUFFERED);
-    auto resultVal = remote_get(kvs, key);
-    if (resultVal.data()) {
-        DAQDB_INFO << format("Remote Get result: [%1%] = %2%") % key.data() %
-                          resultVal.data();
-        if (expectedVal.compare(resultVal.data()) != 0) {
-            result = false;
-            DAQDB_INFO << "Error: wrong value returned";
-        }
-    } else {
+    auto resultVal = remote_get(kvs, keyId);
+    if (!checkValue(val, &resultVal)) {
         result = false;
-        DAQDB_INFO << "Error: no value returned";
     }
 
-    auto removeResult = remote_remove(kvs, key);
-    DAQDB_INFO << format("Remote Remove: [%1%]") % key.data();
+    auto removeResult = remote_remove(kvs, keyId);
+    DAQDB_INFO << format("Remote Remove: [%1%]") % keyId;
     if (!removeResult) {
         result = false;
-        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % keyId;
     }
 
     return result;

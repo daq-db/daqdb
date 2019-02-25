@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -22,5 +22,14 @@
 
 #include "debug.h"
 #include <config/Configuration.h>
+
+struct __attribute__((packed)) FuncTestKey {
+    FuncTestKey() : eventId(0), subdetectorId(0), runId(0) {};
+    FuncTestKey(uint64_t e, uint16_t s, uint16_t r)
+        : eventId(e), subdetectorId(s), runId(r) {}
+    uint16_t runId;
+    uint16_t subdetectorId;
+    uint64_t eventId;
+};
 
 bool initKvsOptions(DaqDB::Options &options, const std::string &configFile);

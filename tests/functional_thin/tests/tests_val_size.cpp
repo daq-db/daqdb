@@ -11,45 +11,31 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
-#include "common.h"
+#include "../base_operations.h"
 #include "tests.h"
 
 using namespace std;
 using namespace DaqDB;
 
-bool static checkValuePutGet(KVStoreBase *kvs, const string keyStr,
+bool static checkValuePutGet(KVStoreBase *kvs, uint64_t keyId,
                              size_t valueSize) {
     bool result = true;
-    auto putKey = strToKey(kvs, keyStr);
-    auto val = allocAndFillValue(kvs, putKey, valueSize);
+    auto val = generateValueStr(valueSize);
 
-    DAQDB_INFO << format("Remote Put: [%1%] with size [%2%]") % putKey.data() %
-                      val.size();
-    remote_put(kvs, move(putKey), val);
+    remote_put(kvs, keyId, val);
 
-    auto key = strToKey(kvs, keyStr, KeyValAttribute::NOT_BUFFERED);
-
-    auto resultVal = remote_get(kvs, key);
-    if (resultVal.data()) {
-        DAQDB_INFO << format("Remote Get: [%1%] with size [%2%]") % key.data() %
-                          resultVal.size();
-    }
-
-    if ((val.size() != resultVal.size()) ||
-        !memcmp(reinterpret_cast<void *>(&val),
-                reinterpret_cast<void *>(&resultVal), resultVal.size())) {
-        DAQDB_INFO << "Error: wrong value returned" << flush;
+    auto resultVal = remote_get(kvs, keyId);
+    if (!checkValue(val, &resultVal)) {
         result = false;
     }
 
-    DAQDB_INFO << format("Remote Remove: [%1%]") % key.data();
-    auto removeResult = remote_remove(kvs, key);
+    auto removeResult = remote_remove(kvs, keyId);
     if (!removeResult) {
         result = false;
-        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % key.data();
+        DAQDB_INFO << format("Error: Cannot remove a key [%1%]") % keyId;
     }
 
     return result;
@@ -58,14 +44,14 @@ bool static checkValuePutGet(KVStoreBase *kvs, const string keyStr,
 bool testValueSizes(KVStoreBase *kvs, DaqDB::Options *options) {
     bool result = true;
 
-    const string expectedKey = "200";
+    uint64_t expectedKey = 200;
 
     vector<size_t> valSizes = {8,    16,   32,   64,   127,   128,
                                129,  255,  256,  512,  1023,  1024,
                                1025, 2048, 4096, 8192, 10240, 16384};
 
     for (auto valSize : valSizes) {
-        if (!checkValuePutGet(kvs, expectedKey, valSize)) {
+        if (!checkValuePutGet(kvs, expectedKey++, valSize)) {
             return false;
         }
     }
