@@ -38,5 +38,6 @@ class MinidaqRoNode : public MinidaqNode {
     size_t _fSize = 0;
     int _id = 0;
     static thread_local int _eventId;
+    static thread_local constexpr char _data_buffer[100000] = " ";
 };
 }
