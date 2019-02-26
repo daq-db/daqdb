@@ -86,7 +86,7 @@ class DhtServer {
     std::thread *_thread;
 
     uint8_t _workerThreadsNumber;
-    std::vector<std::thread *> _workerThreads;
+    std::vector<std::thread> _workerThreads;
 };
 
 } // namespace DaqDB

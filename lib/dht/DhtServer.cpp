@@ -178,7 +178,7 @@ DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads)
 
 DhtServer::~DhtServer() {
     keepRunning = false;
-    if (state == DhtServerState::DHT_SERVER_READY && _thread != nullptr)
+    if (_thread != nullptr)
         _thread->join();
 }
 
@@ -258,8 +258,8 @@ void DhtServer::_serve(void) {
              ++threadIndex) {
             CPU_ZERO_S(size, cpuset);
             CPU_SET_S(DHT_SERVER_CPU_CORE_BASE + threadIndex, size, cpuset);
-            _workerThreads.push_back(new thread(&DhtServer::_serveWorker, this,
-                                                threadIndex, cpuset, size));
+            _workerThreads.push_back(thread(&DhtServer::_serveWorker, this,
+                                     threadIndex, cpuset, size));
         }
 
         state = DhtServerState::DHT_SERVER_READY;
@@ -269,11 +269,8 @@ void DhtServer::_serve(void) {
         }
         state = DhtServerState::DHT_SERVER_STOPPED;
 
-        while (!_workerThreads.empty()) {
-            auto workerThread = _workerThreads.back();
-            _workerThreads.pop_back();
-            workerThread->join();
-            delete workerThread;
+        for (std::thread &th : _workerThreads) {
+            th.join();
         }
 
         if (rpc) {
