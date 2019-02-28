@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 include(ExternalProject)
 
-set(DPDK_PATH ${PROJECT_SOURCE_DIR}/spdk/dpdk/build)
+set(DPDK_PATH ${PROJECT_SOURCE_DIR}/dpdk/build)
 
 ExternalProject_Add(project_erpc
 	PREFIX ${PROJECT_SOURCE_DIR}/eRPC-fork
@@ -11,7 +11,7 @@ ExternalProject_Add(project_erpc
 	CMAKE_ARGS -DPERF=ON -DTRANSPORT=${ERPC_TRANSPORT_MODE} -DLTO=OFF -DCMAKE_PREFIX_PATH=${DPDK_PATH} -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 	BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 	INSTALL_COMMAND ""
-	DEPENDS project_spdk
+	DEPENDS project_dpdk
 )
 add_library(liberpc STATIC IMPORTED GLOBAL)
 set_target_properties(liberpc PROPERTIES IMPORTED_LOCATION
