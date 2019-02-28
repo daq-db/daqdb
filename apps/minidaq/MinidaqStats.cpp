@@ -139,10 +139,10 @@ void MinidaqStats::ShowSample(const std::string &info, const MinidaqSample &s) {
     cpserr = (s.nErrCompletions * NSECS_IN_SEC) / (s.interval_ns * 1e3);
 
     std::stringstream msg;
-    msg << setw(20) << left << info << " " << setfill('0') << setw(3)
-        << std::to_string(rps) << "/" << setfill('0') << setw(3)
-        << std::to_string(cps) << "/" << setfill('0') << setw(3)
-        << std::to_string(rpserr) << "/" << setfill('0') << setw(3)
+    msg << setw(20) << left << info << " " << setw(6) << right
+        << std::to_string(rps) << "/" << setw(6)
+        << std::to_string(cps) << "/" << setw(6)
+        << std::to_string(rpserr) << "/" << setw(6)
         << std::to_string(cpserr) << std::endl;
     std::cout << msg.str();
 }
