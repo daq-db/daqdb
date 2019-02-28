@@ -54,10 +54,10 @@ bool testAsyncOperations(KVStoreBase *kvs) {
     condition_variable cv;
     bool ready = false;
 
-    daqdb_async_put(kvs, keyId, val,
-                    [&](KVStoreBase *kvs, Status status, const char *argKey,
-                        const size_t keySize, const char *value,
-                        const size_t valueSize) {
+    daqdb_async_put(
+        kvs, keyId, val,
+        [&](KVStoreBase *kvs, Status status, const char *argKey,
+            const size_t keySize, const char *value, const size_t valueSize) {
             unique_lock<mutex> lck(mtx);
             if (status.ok()) {
                 DAQDB_INFO << boost::format("PutAsync: [%1%]") %
@@ -69,7 +69,7 @@ bool testAsyncOperations(KVStoreBase *kvs) {
             }
             ready = true;
             cv.notify_all();
-    });
+        });
 
     // wait for completion
     {
@@ -83,15 +83,17 @@ bool testAsyncOperations(KVStoreBase *kvs) {
         result = false;
     }
 
-    daqdb_async_get(kvs, keyId,
-                    [&](KVStoreBase *kvs, Status status, const char *argKey,
-                        size_t keySize, const char *value, size_t valueSize) {
+    daqdb_async_get(
+        kvs, keyId,
+        [&](KVStoreBase *kvs, Status status, const char *argKey, size_t keySize,
+            const char *value, size_t valueSize) {
             unique_lock<mutex> lck(mtx);
 
             if (status.ok()) {
-                DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") %
-                                  keyToStr(argKey) % value;
-                if (!value || val.compare(value) != 0) {
+                DAQDB_INFO << boost::format("GetAsync: [%1%]") %
+                                  keyToStr(argKey);
+
+                if (!value || memcmp(val.data(), value, val.size())) {
                     DAQDB_INFO << "Error: wrong value returned" << flush;
                     result = false;
                 }
@@ -103,7 +105,7 @@ bool testAsyncOperations(KVStoreBase *kvs) {
 
             ready = true;
             cv.notify_all();
-    });
+        });
 
     // wait for completion
     {
