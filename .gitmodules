@@ -29,3 +29,8 @@
 [submodule "third-party/eRPC-fork"]
 	path = third-party/eRPC-fork
 	url = https://github.com/daq-db/eRPC.git
+	ignore = dirty
+[submodule "third-party/dpdk"]
+	path = third-party/dpdk
+	url = https://github.com/DPDK/dpdk.git
+	ignore = dirty

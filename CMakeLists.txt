@@ -73,7 +73,7 @@ add_subdirectory(${3RDPARTY})
 
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/eRPC-fork/src)
-include_directories(${3RDPARTY}/spdk/dpdk/build/include)
+include_directories(${3RDPARTY}/dpdk/build/include)
 
 file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
 	lib/dht/*.cpp lib/KVStoreBase.cpp)
