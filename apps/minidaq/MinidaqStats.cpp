@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <algorithm>
@@ -140,9 +140,8 @@ void MinidaqStats::ShowSample(const std::string &info, const MinidaqSample &s) {
 
     std::stringstream msg;
     msg << setw(20) << left << info << " " << setw(6) << right
-        << std::to_string(rps) << "/" << setw(6)
-        << std::to_string(cps) << "/" << setw(6)
-        << std::to_string(rpserr) << "/" << setw(6)
+        << std::to_string(rps) << "/" << setw(6) << std::to_string(cps) << "/"
+        << setw(6) << std::to_string(rpserr) << "/" << setw(6)
         << std::to_string(cpserr) << std::endl;
     std::cout << msg.str();
 }

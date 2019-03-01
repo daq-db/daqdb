@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <atomic>
@@ -158,7 +158,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
             stats.ShowSample(_GetType() + "_" + std::to_string(executorId), s);
             if (executorId == 0)
                 _ShowTreeStats();
-	}
+        }
         stats.RecordSample(s);
     }
 

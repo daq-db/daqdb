@@ -48,10 +48,10 @@ void TreeImpl::_initAllocClasses(const size_t allocUnitSize) {
     if (rc)
         throw OperationFailedException(Status(ALLOCATION_ERROR));
     setClassId(ALLOC_CLASS_VALUE, alloc_daqdb.class_id);
-    DAQ_DEBUG(
-        "ARTree alloc class (value) (" + std::to_string(alloc_daqdb.class_id) +
-        ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
-        " units_per_block=" + std::to_string(alloc_daqdb.units_per_block));
+    DAQ_DEBUG("ARTree alloc class (value) (" +
+              std::to_string(alloc_daqdb.class_id) + ") defined: unit_size=" +
+              std::to_string(alloc_daqdb.unit_size) + " units_per_block=" +
+              std::to_string(alloc_daqdb.units_per_block));
 
     // value wrapper
     alloc_daqdb.header_type = POBJ_HEADER_NONE;
@@ -326,10 +326,10 @@ void ARTree::Remove(const char *key) {
             pmemobj_cancel(tree->_pm_pool.get_handle(), actionValue, 1);
 
 #ifdef USE_ALLOCATION_CLASSES
-            // TODO: commented because of error in PMDK on free() of object
-            // reserved with xreserve
-            // pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
-            // pmemobj_free(valPrstPtr.raw_ptr());
+// TODO: commented because of error in PMDK on free() of object
+// reserved with xreserve
+// pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
+// pmemobj_free(valPrstPtr.raw_ptr());
 #else
             // @TODO Only one of (pmemobj_defer_free, pmemobj_free) could be
             // called.
