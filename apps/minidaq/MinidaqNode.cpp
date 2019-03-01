@@ -154,8 +154,11 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         s.interval_ns = timerSample.GetElapsed_ns();
         s.nCompletions = c.fetch_and(0ULL);
         s.nErrCompletions = c_err.fetch_and(0ULL);
-        if (_live)
+        if (_live) {
             stats.ShowSample(_GetType() + "_" + std::to_string(executorId), s);
+            if (executorId == 0)
+                _ShowTreeStats();
+	}
         stats.RecordSample(s);
     }
 
@@ -247,6 +250,15 @@ void MinidaqNode::Save(std::string &fp) {
     std::stringstream ss;
     ss << fp << "-thread-all-" << _GetType();
     _statsAll.Dump(ss.str());
+}
+
+void MinidaqNode::_ShowTreeStats() {
+    std::stringstream ss;
+    ss << "Tree stats at " << _GetType() << " threads\n"
+       << "  size: " << std::to_string(_kvs->GetTreeSize()) << "\n"
+       << "  leaves: " << std::to_string(_kvs->GetLeafCount()) << "\n"
+       << "  depth: " << std::to_string(_kvs->GetTreeDepth()) << "\n";
+    std::cout << ss.str();
 }
 
 void MinidaqNode::SaveSummary(std::string &fs, std::string &tname) {

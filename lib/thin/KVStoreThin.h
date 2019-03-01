@@ -68,6 +68,10 @@ class KVStoreThin : public KVStoreBase {
 
     virtual bool IsOffloaded(Key &key);
 
+    virtual uint64_t GetTreeSize();
+    virtual uint64_t GetLeafCount();
+    virtual uint8_t GetTreeDepth();
+
     void LogMsg(std::string msg);
 
     inline DaqDB::DhtCore *getDhtCore() { return _spDht.get(); };

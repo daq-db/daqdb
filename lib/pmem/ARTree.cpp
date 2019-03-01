@@ -24,7 +24,7 @@ namespace DaqDB {
 #define LAYOUT "artree"
 
 // Uncomment below to use PMDK allocation classes
-// #define USE_ALLOCATION_CLASSES 1
+//#define USE_ALLOCATION_CLASSES 1
 
 ARTree::ARTree(const string &_path, const size_t size,
                const size_t allocUnitSize) {

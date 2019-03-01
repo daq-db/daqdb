@@ -83,6 +83,7 @@ class MinidaqNode {
   private:
     MinidaqStats _Execute(int executorId);
     void _Affinity(int executorId);
+    void _ShowTreeStats();
 
     int _tTest_ms = 0;         // desired test duration in milliseconds
     int _tRamp_ms = 0;         // desired test ramp duration in milliseconds

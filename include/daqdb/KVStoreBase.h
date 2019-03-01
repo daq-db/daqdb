@@ -404,6 +404,10 @@ class KVStoreBase {
      *
      */
     virtual bool IsOffloaded(Key &key) = 0;
+
+    virtual uint64_t GetTreeSize() = 0;
+    virtual uint64_t GetLeafCount() = 0;
+    virtual uint8_t GetTreeDepth() = 0;
 };
 
 } // namespace DaqDB

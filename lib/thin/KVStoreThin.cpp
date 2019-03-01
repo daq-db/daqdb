@@ -180,6 +180,12 @@ void KVStoreThin::ChangeOptions(Key &key, const AllocOptions &options) {
 
 bool KVStoreThin::IsOffloaded(Key &key) { throw FUNC_NOT_SUPPORTED; }
 
+uint64_t KVStoreThin::GetTreeSize() { throw FUNC_NOT_SUPPORTED; }
+
+uint64_t KVStoreThin::GetLeafCount() { throw FUNC_NOT_SUPPORTED; }
+
+uint8_t KVStoreThin::GetTreeDepth() { throw FUNC_NOT_SUPPORTED; }
+
 std::string KVStoreThin::getProperty(const std::string &name) { return ""; }
 
 } // namespace DaqDB
