@@ -15,6 +15,7 @@
  */
 
 #include "MinidaqAroNode.h"
+#include <libpmem.h>
 
 namespace DaqDB {
 
@@ -35,7 +36,7 @@ void MinidaqAroNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
         throw;
     }
 
-    memcpy(value.data(), _data_buffer, value.size());
+    pmem_memcpy_nodrain(value.data(), _data_buffer, value.size());
 
 #ifdef WITH_INTEGRITY_CHECK
     _FillBuffer(key, value.data(), value.size());
