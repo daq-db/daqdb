@@ -15,7 +15,6 @@
  */
 
 #include "MinidaqRoNode.h"
-#include <immintrin.h>
 #include <libpmem.h>
 
 namespace DaqDB {
