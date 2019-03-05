@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "KVStore.h"
@@ -100,12 +100,13 @@ void KVStore::init() {
         new DhtServer(getDhtCore(), this, DHT_SERVER_WORKER_THREADS));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
+
+        if (_spDht->getLocalNode()->getPeerPort() > 0) {
+            _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
+            _spDht->initClient();
+        }
     } else {
         DAQ_DEBUG("Can not start DHT server");
-    }
-    if (_spDht->getLocalNode()->getPeerPort() > 0) {
-        _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
-        _spDht->initClient();
     }
 
     if (isOffloadEnabled()) {
@@ -623,16 +624,10 @@ std::string KVStore::getProperty(const std::string &name) {
     return "";
 }
 
-uint64_t KVStore::GetTreeSize() {
-    return pmem()->GetTreeSize();
-}
+uint64_t KVStore::GetTreeSize() { return pmem()->GetTreeSize(); }
 
-uint8_t KVStore::GetTreeDepth() {
-    return pmem()->GetTreeDepth();
-}
+uint8_t KVStore::GetTreeDepth() { return pmem()->GetTreeDepth(); }
 
-uint64_t KVStore::GetLeafCount() {
-    return pmem()->GetLeafCount();
-}
+uint64_t KVStore::GetLeafCount() { return pmem()->GetLeafCount(); }
 
 } // namespace DaqDB
