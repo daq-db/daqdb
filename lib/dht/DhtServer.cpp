@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "DhtServer.h"
@@ -30,9 +30,9 @@
 #define DHT_SERVER_CPU_CORE_MAX 32
 
 /**
-  * @TODO jradtke: not needed when eRPC implements configurable size of
-  * pre_resp_msgbuf
-  */
+ * @TODO jradtke: not needed when eRPC implements configurable size of
+ * pre_resp_msgbuf
+ */
 const unsigned int PRE_BUF_SIZE = 32 * 1024;
 
 namespace DaqDB {
@@ -71,9 +71,9 @@ static void erpcReqGetAnyHandler(erpc::ReqHandle *req_handle, void *ctx) {
     erpc::MsgBuffer *resp;
 
     try {
-        resp =
-            erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult) +
-                                                   serverCtx->kvs->KeySize());
+        resp = erpcPrepareMsgbuf(rpc, req_handle,
+                                 sizeof(DaqdbDhtResult) +
+                                     serverCtx->kvs->KeySize());
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
         result->msgSize = serverCtx->kvs->KeySize();
         serverCtx->kvs->GetAny(result->msg, serverCtx->kvs->KeySize());
@@ -182,11 +182,11 @@ DhtServer::~DhtServer() {
         _thread->join();
 }
 
-void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t *cpuset, size_t size) {
+void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t *cpuset,
+                             size_t size) {
     DhtServerCtx rpcCtx;
 
-    const int set_result = pthread_setaffinity_np(pthread_self(),
-                                                  size, cpuset);
+    const int set_result = pthread_setaffinity_np(pthread_self(), size, cpuset);
     if (!set_result) {
         DAQ_DEBUG("Cannot set affinity for DHT server worker[" +
                   to_string(workerId) + "]");
@@ -225,8 +225,7 @@ void DhtServer::_serve(void) {
     CPU_ZERO_S(size, cpuset);
     CPU_SET_S(DHT_SERVER_CPU_CORE_BASE, size, cpuset);
 
-    const int set_result = pthread_setaffinity_np(pthread_self(),
-                                                  size, cpuset);
+    const int set_result = pthread_setaffinity_np(pthread_self(), size, cpuset);
     if (!set_result) {
         DAQ_DEBUG("Cannot set affinity for DHT server thread");
     }
@@ -259,7 +258,7 @@ void DhtServer::_serve(void) {
             CPU_ZERO_S(size, cpuset);
             CPU_SET_S(DHT_SERVER_CPU_CORE_BASE + threadIndex, size, cpuset);
             _workerThreads.push_back(thread(&DhtServer::_serveWorker, this,
-                                     threadIndex, cpuset, size));
+                                            threadIndex, cpuset, size));
         }
 
         state = DhtServerState::DHT_SERVER_READY;
@@ -276,19 +275,22 @@ void DhtServer::_serve(void) {
         if (rpc) {
             delete rpc;
         }
+        CPU_FREE(cpuset);
     } catch (exception &e) {
         DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
-        state = DhtServerState::DHT_SERVER_ERROR;
+
         CPU_FREE(cpuset);
-        throw;
+        auto isInitFail = (state == DhtServerState::DHT_SERVER_INIT);
+        state = DhtServerState::DHT_SERVER_ERROR;
+
+        if (!isInitFail)
+            throw;
     } catch (...) {
         DAQ_DEBUG("DHT server exception: unknown");
         state = DhtServerState::DHT_SERVER_ERROR;
         CPU_FREE(cpuset);
         throw;
     }
-
-    CPU_FREE(cpuset);
 }
 
 void DhtServer::serve(void) {

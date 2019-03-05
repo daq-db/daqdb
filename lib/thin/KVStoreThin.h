@@ -11,12 +11,16 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
 
-#include <DhtCore.h>
+#ifdef DPDK
+#include <OffloadPoller.h> /* net/if.h (put before linux/if.h) */
+#endif
+
+#include <DhtCore.h> /* include linux/if.h */
 #include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
@@ -82,6 +86,10 @@ class KVStoreThin : public KVStoreBase {
 
     size_t _keySize;
     Options _options;
+
+#ifdef DPDK
+    std::unique_ptr<SpdkCore> _spSpdk;
+#endif
 
     std::unique_ptr<DhtCore> _spDht;
 };
