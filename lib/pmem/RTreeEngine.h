@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -37,10 +37,11 @@ class RTreeEngine {
     static RTreeEngine *Open(const string &path, // path to persistent pool
                              size_t size,        // size used when creating pool
                              size_t allocUnitSize); // allocation unit size
-    virtual ~RTreeEngine() {};
-    static void Close(RTreeEngine *kv);             // close storage engine
+    virtual ~RTreeEngine(){};
+    static void Close(RTreeEngine *kv); // close storage engine
 
     virtual string Engine() = 0; // engine identifier
+    virtual size_t SetKeySize(size_t req_size) = 0;
     virtual void Get(const char *key, int32_t keybytes, void **value,
                      size_t *size, uint8_t *location) = 0;
     virtual void Get(const char *key, void **value, size_t *size,

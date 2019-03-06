@@ -54,11 +54,13 @@ const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256,
                           TYPE256, TYPE256, TYPE_LEAF_COMPRESSED};
 // how many levels will be created on ARTree initialization
 const int PREALLOC_LEVELS = 1;
+
+// Size of a single level in bytes
+#define LEVEL_BYTES 1
+
 // size of table for actions for each Node
 #define ACTION_NUMBER_NODE256 (1 + 256)
 #define ACTION_NUMBER_COMPRESSED 1
-
-#define KEY_SIZE 12
 
 // Allocation class alignment
 #define ALLOC_CLASS_ALIGNMENT 0
@@ -114,7 +116,6 @@ class Node {
 class NodeLeafCompressed : public Node {
   public:
     explicit NodeLeafCompressed(int _depth, int _type) : Node(_depth, _type) {}
-    uint32_t key;
     persistent_ptr<ValueWrapper> child; // pointer to Value
 };
 
@@ -128,8 +129,8 @@ class Node256 : public Node {
 struct ARTreeRoot {
     persistent_ptr<Node256> rootNode;
     pmem::obj::mutex mutex;
-    p<int> level_bits;
     bool initialized = false;
+    size_t keySize; // bytes
 };
 
 class TreeImpl {
@@ -158,6 +159,7 @@ class ARTree : public DaqDB::RTreeEngine {
     ARTree(const string &path, const size_t size, const size_t allocUnitSize);
     virtual ~ARTree();
     string Engine() final { return "ARTree"; }
+    size_t SetKeySize(size_t req_size);
     void Get(const char *key, int32_t keybytes, void **value, size_t *size,
              uint8_t *location) final;
     void Get(const char *key, void **value, size_t *size,

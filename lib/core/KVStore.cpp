@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "KVStore.h"
@@ -87,6 +87,13 @@ void KVStore::init() {
                                             getOptions().pmem.allocUnitSize));
     if (_spRtree.get() == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
+    size_t keySize = pmem()->SetKeySize(getOptions().key.size());
+    if (keySize != getOptions().key.size()) {
+        DAQ_INFO("Requested key size of " +
+                 std::to_string(getOptions().key.size()) +
+                 +"B does not match expected " + std::to_string(keySize) + "B");
+        throw OperationFailedException(Status(NOT_SUPPORTED));
+    }
 
     _spSpdk.reset(new SpdkCore(getOptions().offload));
     if (isOffloadEnabled()) {
@@ -623,16 +630,10 @@ std::string KVStore::getProperty(const std::string &name) {
     return "";
 }
 
-uint64_t KVStore::GetTreeSize() {
-    return pmem()->GetTreeSize();
-}
+uint64_t KVStore::GetTreeSize() { return pmem()->GetTreeSize(); }
 
-uint8_t KVStore::GetTreeDepth() {
-    return pmem()->GetTreeDepth();
-}
+uint8_t KVStore::GetTreeDepth() { return pmem()->GetTreeDepth(); }
 
-uint64_t KVStore::GetLeafCount() {
-    return pmem()->GetLeafCount();
-}
+uint64_t KVStore::GetLeafCount() { return pmem()->GetLeafCount(); }
 
 } // namespace DaqDB

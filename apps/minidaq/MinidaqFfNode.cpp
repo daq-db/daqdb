@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "MinidaqFfNode.h"
@@ -80,11 +80,9 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
     int baseId = _PickSubdetector();
     bool accept = _Accept();
 
-    mKeyPtr->runId = _runId;
-
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
-        mKeyPtr->subdetectorId = baseId + i;
+        mKeyPtr->componentId = baseId + i;
         DaqDB::Value value;
         try {
             value = _kvs->Get(key);
