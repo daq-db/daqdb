@@ -108,9 +108,9 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.pmem.poolPath = pmem_path;
     options.pmem.totalSize = pmem_size;
     options.pmem.allocUnitSize = fSize;
-    options.key.field(0, sizeof(DaqDB::MinidaqKey::detectorId));
-    options.key.field(1, sizeof(DaqDB::MinidaqKey::componentId));
-    options.key.field(2, sizeof(DaqDB::MinidaqKey::eventId), true);
+    options.key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
+    options.key.field(1, sizeof(DaqDB::MinidaqKey::detectorId));
+    options.key.field(2, sizeof(DaqDB::MinidaqKey::componentId));
     options.runtime.numOfPollers = nPoolers;
     options.runtime.maxReadyKeys = maxReadyKeys;
     if (satellite) {

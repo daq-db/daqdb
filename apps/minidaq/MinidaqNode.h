@@ -27,9 +27,9 @@
 namespace DaqDB {
 
 struct __attribute__((packed)) MinidaqKey {
+    uint8_t eventId[5];
     uint8_t detectorId;
     uint16_t componentId;
-    uint8_t eventId[5];
 };
 
 class MinidaqNode {
