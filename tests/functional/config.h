@@ -23,12 +23,9 @@
 #include <daqdb/Options.h>
 
 struct __attribute__((packed)) FuncTestKey {
-    FuncTestKey() : eventId(0), subdetectorId(0), runId(0) {};
-    FuncTestKey(uint64_t e, uint16_t s, uint16_t r)
-        : eventId(e), subdetectorId(s), runId(r) {}
-    uint16_t runId;
-    uint16_t subdetectorId;
-    uint64_t eventId;
+    uint8_t eventId[5];
+    uint8_t detectorId;
+    uint16_t componentId;
 };
 
 bool initKvsOptions(DaqDB::Options &options, const std::string &configFile);
