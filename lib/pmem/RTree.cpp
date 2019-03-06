@@ -67,7 +67,7 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
               std::to_string(alloc_daqdb.units_per_block));
 }
 
-size_t RTree::SetKeySize(size_t req_size) { return KEY_SIZE; }
+size_t RTree::SetKeySize(size_t req_size) { return KEY_SIZE / BITS_IN_BYTE; }
 
 void RTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
                 uint8_t *location) {

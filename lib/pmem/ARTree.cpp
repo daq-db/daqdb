@@ -215,7 +215,7 @@ uint8_t TreeImpl::getTreeDepth(persistent_ptr<Node> current) {
 
 size_t ARTree::SetKeySize(size_t req_size) {
     tree->treeRoot->keySize =
-        (sizeof(LEVEL_TYPE) / sizeof(int) - 1) * BITS_IN_BYTE;
+        (sizeof(LEVEL_TYPE) / sizeof(int) - 1) * LEVEL_BYTES;
     /** @todo change to make it configurable at init time/
     if (!tree->treeRoot->initialized)
         tree->treeRoot->keySize = req_size;
@@ -481,9 +481,9 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
 
     while (1) {
         keyCalc =
-            (treeRoot->keySize / BITS_IN_BYTE - current->depth - 1) < 0
+            (treeRoot->keySize - current->depth - 1) < 0
                 ? 0
-                : key[treeRoot->keySize / BITS_IN_BYTE - current->depth - 1];
+                : key[treeRoot->keySize - current->depth - 1];
         std::bitset<8> x(keyCalc);
         DAQ_DEBUG("findValueInNode: current->depth= " +
                   std::to_string(current->depth) + " keyCalc=" + x.to_string());
@@ -528,22 +528,10 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                  */
                 nodeLeafCompressed->child->location = EMPTY;
                 // val->location = EMPTY;
-                // Enable the node
-                nodeLeafCompressed->key = keyCalc;
                 return nodeLeafCompressed->child;
             } else {
-                DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" +
-                          std::to_string(keyCalc) + "NodeLeafCompressed->key=" +
-                          std::to_string(nodeLeafCompressed->key));
-                if (nodeLeafCompressed->key == keyCalc) {
-                    /*val = reinterpret_cast<ValueWrapper *>(
-                        (nodeLeafCompressed->child).raw_ptr());*/
-                    DAQ_DEBUG("findValueInNode: Found");
-                    return nodeLeafCompressed->child;
-                } else {
-                    DAQ_DEBUG("findValueInNode: Not Found");
-                    return nullptr;
-                }
+               DAQ_DEBUG("findValueInNode: Found");
+               return nodeLeafCompressed->child;
             }
         }
         if (current->type == TYPE256) { // TYPE256

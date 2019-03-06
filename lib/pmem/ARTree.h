@@ -55,7 +55,9 @@ const int LEVEL_TYPE[] = {TYPE256, TYPE256, TYPE256,
 // how many levels will be created on ARTree initialization
 const int PREALLOC_LEVELS = 1;
 
-#define BITS_IN_BYTE 8
+// Size of a single level in bytes
+#define LEVEL_BYTES 1
+
 // size of table for actions for each Node
 #define ACTION_NUMBER_NODE256 (1 + 256)
 #define ACTION_NUMBER_COMPRESSED 1
@@ -114,7 +116,6 @@ class Node {
 class NodeLeafCompressed : public Node {
   public:
     explicit NodeLeafCompressed(int _depth, int _type) : Node(_depth, _type) {}
-    uint32_t key;
     persistent_ptr<ValueWrapper> child; // pointer to Value
 };
 
@@ -129,7 +130,7 @@ struct ARTreeRoot {
     persistent_ptr<Node256> rootNode;
     pmem::obj::mutex mutex;
     bool initialized = false;
-    size_t keySize; // bits
+    size_t keySize; // bytes
 };
 
 class TreeImpl {
