@@ -264,9 +264,7 @@ DaqDB::Key nodeCli::_strToKey(const std::string &key) {
 
     DaqDB::Key keyBuff = _spKVStore->AllocKey(KeyValAttribute::NOT_BUFFERED);
     CliNodeKey *cliKeyPtr = reinterpret_cast<CliNodeKey *>(keyBuff.data());
-    cliKeyPtr->runId = 0;
-    cliKeyPtr->subdetectorId = 0;
-    cliKeyPtr->eventId = 0;
+    memset(cliKeyPtr, 0, sizeof(CliNodeKey));
 
     memcpy(&(cliKeyPtr->eventId), key.data(), key.size());
     return keyBuff;

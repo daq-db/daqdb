@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <boost/filesystem.hpp>
@@ -108,9 +108,9 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.pmem.poolPath = pmem_path;
     options.pmem.totalSize = pmem_size;
     options.pmem.allocUnitSize = fSize;
-    options.key.field(0, sizeof(DaqDB::MinidaqKey::runId));
-    options.key.field(1, sizeof(DaqDB::MinidaqKey::subdetectorId));
-    options.key.field(2, sizeof(DaqDB::MinidaqKey::eventId), true);
+    options.key.field(0, sizeof(DaqDB::MinidaqKey::eventId), true);
+    options.key.field(1, sizeof(DaqDB::MinidaqKey::detectorId));
+    options.key.field(2, sizeof(DaqDB::MinidaqKey::componentId));
     options.runtime.numOfPollers = nPoolers;
     options.runtime.maxReadyKeys = maxReadyKeys;
     if (satellite) {

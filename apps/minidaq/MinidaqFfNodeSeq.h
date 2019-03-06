@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -32,6 +32,8 @@ class MinidaqFfNodeSeq : public MinidaqFfNode {
     Key _NextKey();
     std::string _GetType();
 
-    static thread_local int _eventId;
+    static thread_local uint64_t _eventId;
+    static_assert(sizeof(_eventId) >= sizeof(MinidaqKey().eventId),
+                  "Event Id field of MinidaqKey is too big");
 };
 }

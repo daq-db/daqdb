@@ -48,10 +48,10 @@ void TreeImpl::_initAllocClasses(const size_t allocUnitSize) {
     if (rc)
         throw OperationFailedException(Status(ALLOCATION_ERROR));
     setClassId(ALLOC_CLASS_VALUE, alloc_daqdb.class_id);
-    DAQ_DEBUG(
-        "ARTree alloc class (value) (" + std::to_string(alloc_daqdb.class_id) +
-        ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
-        " units_per_block=" + std::to_string(alloc_daqdb.units_per_block));
+    DAQ_DEBUG("ARTree alloc class (value) (" +
+              std::to_string(alloc_daqdb.class_id) + ") defined: unit_size=" +
+              std::to_string(alloc_daqdb.unit_size) + " units_per_block=" +
+              std::to_string(alloc_daqdb.units_per_block));
 
     // value wrapper
     alloc_daqdb.header_type = POBJ_HEADER_NONE;
@@ -213,6 +213,16 @@ uint8_t TreeImpl::getTreeDepth(persistent_ptr<Node> current) {
     return depth;
 }
 
+size_t ARTree::SetKeySize(size_t req_size) {
+    tree->treeRoot->keySize =
+        (sizeof(LEVEL_TYPE) / sizeof(int) - 1) * LEVEL_BYTES;
+    /** @todo change to make it configurable at init time/
+    if (!tree->treeRoot->initialized)
+        tree->treeRoot->keySize = req_size;
+    */
+    return tree->treeRoot->keySize;
+}
+
 void ARTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
                  uint8_t *location) {
     persistent_ptr<ValueWrapper> valPrstPtr;
@@ -326,10 +336,10 @@ void ARTree::Remove(const char *key) {
             pmemobj_cancel(tree->_pm_pool.get_handle(), actionValue, 1);
 
 #ifdef USE_ALLOCATION_CLASSES
-            // TODO: commented because of error in PMDK on free() of object
-            // reserved with xreserve
-            // pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
-            // pmemobj_free(valPrstPtr.raw_ptr());
+// TODO: commented because of error in PMDK on free() of object
+// reserved with xreserve
+// pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
+// pmemobj_free(valPrstPtr.raw_ptr());
 #else
             // @TODO Only one of (pmemobj_defer_free, pmemobj_free) could be
             // called.
@@ -391,7 +401,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                                               sizeof(Node256), VALUE);
 #endif
                 if (OID_IS_NULL(*(node256_new).raw_ptr())) {
-                    DAQ_DEBUG("reserve failed actionsCounter=" +
+                    DAQ_DEBUG("reserve Node256 failed actionsCounter=" +
                               std::to_string(actionsCounter));
                     alloc_err = true;
                     break;
@@ -416,8 +426,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
 #endif
 
                 if (OID_IS_NULL(*(nodeLeafCompressed_new).raw_ptr())) {
-                    DAQ_DEBUG("reserve failed actionsCounter=" +
-                              std::to_string(actionsCounter));
+                    DAQ_DEBUG(
+                        "reserve nodeLeafCompressed failed actionsCounter=" +
+                        std::to_string(actionsCounter));
                     alloc_err = true;
                     break;
                 }
@@ -425,8 +436,6 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 nodeLeafCompressed_new->depth = depth;
                 nodeLeafCompressed_new->type = TYPE_LEAF_COMPRESSED;
                 nodeLeafCompressed_new->parent = node;
-                // Temporarily disable the node
-                nodeLeafCompressed_new->key = -1;
                 children[i] = nodeLeafCompressed_new;
             }
 
@@ -469,10 +478,8 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
     // ValueWrapper *val;
 
     while (1) {
-        keyCalc = key[KEY_SIZE - current->depth - 1];
-        std::bitset<8> x(keyCalc);
         DAQ_DEBUG("findValueInNode: current->depth= " +
-                  std::to_string(current->depth) + " keyCalc=" + x.to_string());
+                  std::to_string(current->depth));
         if (current->depth == ((sizeof(LEVEL_TYPE) / sizeof(int) - 1))) {
             // Node Compressed
             nodeLeafCompressed = current;
@@ -493,8 +500,9 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
 #endif
 
                 if (OID_IS_NULL(*(nodeLeafCompressed->child).raw_ptr())) {
-                    DAQ_DEBUG("reserve failed actionsCounter=" +
-                              std::to_string(actionsCounter));
+                    DAQ_DEBUG(
+                        "reserve NodeLeafCompressed failed actionsCounter=" +
+                        std::to_string(actionsCounter));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
                 // std::cout << "valueWrapper off="
@@ -513,24 +521,17 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                  */
                 nodeLeafCompressed->child->location = EMPTY;
                 // val->location = EMPTY;
-                // Enable the node
-                nodeLeafCompressed->key = keyCalc;
                 return nodeLeafCompressed->child;
             } else {
-                DAQ_DEBUG("findValueInNode: not allocate, keyCalc=" +
-                          std::to_string(keyCalc) + "NodeLeafCompressed->key=" +
-                          std::to_string(nodeLeafCompressed->key));
-                if (nodeLeafCompressed->key == keyCalc) {
-                    /*val = reinterpret_cast<ValueWrapper *>(
-                        (nodeLeafCompressed->child).raw_ptr());*/
-                    DAQ_DEBUG("findValueInNode: Found");
-                    return nodeLeafCompressed->child;
-                } else {
-                    DAQ_DEBUG("findValueInNode: Not Found");
-                    return nullptr;
-                }
+                DAQ_DEBUG("findValueInNode: Found");
+                return nodeLeafCompressed->child;
             }
         }
+        keyCalc = (treeRoot->keySize - current->depth - 1) < 0
+                      ? 0
+                      : key[treeRoot->keySize - current->depth - 1];
+        std::bitset<8> x(keyCalc);
+        DAQ_DEBUG("findValueInNode: keyCalc=" + x.to_string());
         if (current->type == TYPE256) { // TYPE256
             node256 = current;
             if (!allocate && node256->children[keyCalc]) {

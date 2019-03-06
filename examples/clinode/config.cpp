@@ -36,9 +36,9 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;
     options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
 
-    options.key.field(0, sizeof(CliNodeKey::runId));
-    options.key.field(1, sizeof(CliNodeKey::subdetectorId));
-    options.key.field(2, sizeof(CliNodeKey::eventId), true);
+    options.key.field(0, sizeof(CliNodeKey::eventId), true);
+    options.key.field(1, sizeof(CliNodeKey::detectorId));
+    options.key.field(2, sizeof(CliNodeKey::componentId));
 
     options.offload.allocUnitSize = DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE;
 

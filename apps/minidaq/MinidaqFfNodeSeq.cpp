@@ -11,14 +11,14 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "MinidaqFfNodeSeq.h"
 
 namespace DaqDB {
 
-thread_local int MinidaqFfNodeSeq::_eventId;
+thread_local uint64_t MinidaqFfNodeSeq::_eventId;
 
 MinidaqFfNodeSeq::MinidaqFfNodeSeq(KVStoreBase *kvs) : MinidaqFfNode(kvs) {}
 
@@ -35,9 +35,9 @@ Key MinidaqFfNodeSeq::_NextKey() {
                                  ? AllocOptions(KeyValAttribute::NOT_BUFFERED)
                                  : AllocOptions(KeyValAttribute::KVS_BUFFERED));
     MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
-    mKeyPtr->runId = _runId;
-    mKeyPtr->subdetectorId = _baseId;
-    mKeyPtr->eventId = _eventId;
+    mKeyPtr->detectorId = 0;
+    mKeyPtr->componentId = _baseId;
+    memcpy(&mKeyPtr->eventId, &_eventId, sizeof(mKeyPtr->eventId));
     _eventId += _nTh;
     return key;
 }
@@ -51,7 +51,7 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
 
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
-        mKeyPtr->subdetectorId = baseId + i;
+        mKeyPtr->componentId = baseId + i;
         DaqDB::Value value;
         nRetries = 0;
         while (nRetries < _maxRetries) {

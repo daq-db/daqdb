@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #ifndef LIB_STORE_RTREE_H_
@@ -46,6 +46,7 @@ using namespace pmem::obj;
 #define ALLOC_CLASS_ALIGNMENT 0
 // Units per allocation block.
 #define ALLOC_CLASS_UNITS_PER_BLOCK 1000
+#define BITS_IN_BYTE 8
 
 enum OBJECT_TYPES { VALUE, IOV };
 
@@ -107,6 +108,7 @@ class RTree : public DaqDB::RTreeEngine {
     RTree(const string &path, const size_t size, const size_t allocUnitSize);
     virtual ~RTree();
     string Engine() final { return "RTree"; }
+    size_t SetKeySize(size_t req_size);
     void Get(const char *key, int32_t keybytes, void **value, size_t *size,
              uint8_t *location) final;
     void Get(const char *key, void **value, size_t *size,

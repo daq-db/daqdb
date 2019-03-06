@@ -31,9 +31,8 @@ Value allocValue(KVStoreBase *kvs, const uint64_t keyId, const string &value) {
 Key allocKey(KVStoreBase *kvs, const uint64_t id) {
     Key keyBuff = kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
     FuncTestKey *fKeyPtr = reinterpret_cast<FuncTestKey *>(keyBuff.data());
-    fKeyPtr->runId = 0;
-    fKeyPtr->subdetectorId = 0;
-    fKeyPtr->eventId = id;
+    memset(fKeyPtr, 0, sizeof(FuncTestKey));
+    memcpy(&fKeyPtr->eventId, &id, sizeof(fKeyPtr->eventId));
     return keyBuff;
 }
 
@@ -58,12 +57,24 @@ bool checkValue(const string &expectedValue, Value *value) {
 
 const std::string keyToStr(Key &key) {
     FuncTestKey *fKeyPtr = reinterpret_cast<FuncTestKey *>(key.data());
-    return std::to_string(fKeyPtr->eventId);
+    std::stringstream ss;
+    ss << "0x";
+    for (int i = (sizeof(fKeyPtr->eventId) / sizeof(fKeyPtr->eventId[0])) - 1;
+         i >= 0; i--)
+        ss << std::hex << static_cast<unsigned int>(fKeyPtr->eventId[i]);
+
+    return ss.str();
 }
 
 const std::string keyToStr(const char *key) {
     const FuncTestKey *fKeyPtr = reinterpret_cast<const FuncTestKey *>(key);
-    return std::to_string(fKeyPtr->eventId);
+    std::stringstream ss;
+    ss << "0x";
+    for (int i = (sizeof(fKeyPtr->eventId) / sizeof(fKeyPtr->eventId[0])) - 1;
+         i >= 0; i--)
+        ss << std::hex << static_cast<unsigned int>(fKeyPtr->eventId[i]);
+
+    return ss.str();
 }
 
 Value daqdb_get(KVStoreBase *kvs, const uint64_t keyId) {
