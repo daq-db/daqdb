@@ -18,7 +18,7 @@
 
 namespace DaqDB {
 
-thread_local int MinidaqRoNode::_eventId;
+thread_local uint64_t MinidaqRoNode::_eventId;
 thread_local constexpr char MinidaqRoNode::_data_buffer [100000];
 
 MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
@@ -34,9 +34,9 @@ Key MinidaqRoNode::_NextKey() {
                                  ? AllocOptions(KeyValAttribute::NOT_BUFFERED)
                                  : AllocOptions(KeyValAttribute::KVS_BUFFERED));
     MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
-    mKeyPtr->runId = _runId;
-    mKeyPtr->subdetectorId = _id;
-    mKeyPtr->eventId = _eventId;
+    mKeyPtr->detectorId = 0;
+    mKeyPtr->componentId = _id;
+    memcpy(&mKeyPtr->eventId, &_eventId, sizeof(mKeyPtr->eventId));
     _eventId += _nTh;
     return key;
 }

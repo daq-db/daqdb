@@ -58,7 +58,7 @@ const int PREALLOC_LEVELS = 1;
 #define ACTION_NUMBER_NODE256 (1 + 256)
 #define ACTION_NUMBER_COMPRESSED 1
 
-#define KEY_SIZE 12
+#define KEY_SIZE 8
 
 // Allocation class alignment
 #define ALLOC_CLASS_ALIGNMENT 0

@@ -37,7 +37,9 @@ class MinidaqRoNode : public MinidaqNode {
 
     size_t _fSize = 0;
     int _id = 0;
-    static thread_local int _eventId;
+    static thread_local uint64_t _eventId;
+    static_assert(sizeof(_eventId) >= sizeof(MinidaqKey().eventId),
+                  "Event Id field of MinidaqKey is too big");
     static thread_local constexpr char _data_buffer[100000] = " ";
 };
 }

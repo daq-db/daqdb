@@ -27,12 +27,9 @@
 namespace DaqDB {
 
 struct __attribute__((packed)) MinidaqKey {
-    MinidaqKey() : eventId(0), subdetectorId(0), runId(0){};
-    MinidaqKey(uint64_t e, uint16_t s, uint16_t r)
-        : eventId(e), subdetectorId(s), runId(r) {}
-    uint16_t runId;
-    uint16_t subdetectorId;
-    uint64_t eventId;
+    uint8_t detectorId;
+    uint16_t componentId;
+    uint8_t eventId[5];
 };
 
 class MinidaqNode {
@@ -72,7 +69,6 @@ class MinidaqNode {
     virtual std::string _GetType() = 0;
 
     KVStoreBase *_kvs;
-    int _runId = 599;
     int _nTh = 1;            // number of worker threads
     bool _localOnly = false; // single-node benchmark
 #ifdef WITH_INTEGRITY_CHECK

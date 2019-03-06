@@ -32,6 +32,8 @@ class MinidaqFfNodeSeq : public MinidaqFfNode {
     Key _NextKey();
     std::string _GetType();
 
-    static thread_local int _eventId;
+    static thread_local uint64_t _eventId;
+    static_assert(sizeof(_eventId) >= sizeof(MinidaqKey().eventId),
+                  "Event Id field of MinidaqKey is too big");
 };
 }

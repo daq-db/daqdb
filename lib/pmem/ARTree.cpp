@@ -391,7 +391,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                                               sizeof(Node256), VALUE);
 #endif
                 if (OID_IS_NULL(*(node256_new).raw_ptr())) {
-                    DAQ_DEBUG("reserve failed actionsCounter=" +
+                    DAQ_DEBUG("reserve Node256 failed actionsCounter=" +
                               std::to_string(actionsCounter));
                     alloc_err = true;
                     break;
@@ -416,7 +416,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
 #endif
 
                 if (OID_IS_NULL(*(nodeLeafCompressed_new).raw_ptr())) {
-                    DAQ_DEBUG("reserve failed actionsCounter=" +
+                    DAQ_DEBUG("reserve nodeLeafCompressed failed actionsCounter=" +
                               std::to_string(actionsCounter));
                     alloc_err = true;
                     break;
@@ -469,7 +469,8 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
     // ValueWrapper *val;
 
     while (1) {
-        keyCalc = key[KEY_SIZE - current->depth - 1];
+        keyCalc = (KEY_SIZE - current->depth - 1) < 0 ?
+                  0 : key[KEY_SIZE - current->depth - 1];
         std::bitset<8> x(keyCalc);
         DAQ_DEBUG("findValueInNode: current->depth= " +
                   std::to_string(current->depth) + " keyCalc=" + x.to_string());
@@ -493,7 +494,7 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
 #endif
 
                 if (OID_IS_NULL(*(nodeLeafCompressed->child).raw_ptr())) {
-                    DAQ_DEBUG("reserve failed actionsCounter=" +
+                    DAQ_DEBUG("reserve NodeLeafCompressed failed actionsCounter=" +
                               std::to_string(actionsCounter));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
