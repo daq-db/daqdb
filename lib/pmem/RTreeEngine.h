@@ -41,6 +41,7 @@ class RTreeEngine {
     static void Close(RTreeEngine *kv);             // close storage engine
 
     virtual string Engine() = 0; // engine identifier
+    virtual size_t SetKeySize(size_t req_size) = 0;
     virtual void Get(const char *key, int32_t keybytes, void **value,
                      size_t *size, uint8_t *location) = 0;
     virtual void Get(const char *key, void **value, size_t *size,

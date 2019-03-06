@@ -87,6 +87,10 @@ void KVStore::init() {
                                             getOptions().pmem.allocUnitSize));
     if (_spRtree.get() == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
+    if (pmem()->SetKeySize(getOptions().key.size()) != getOptions().key.size()) {
+        DAQ_INFO("Unsupported key size.");
+        throw OperationFailedException(Status(NOT_SUPPORTED));
+    }
 
     _spSpdk.reset(new SpdkCore(getOptions().offload));
     if (isOffloadEnabled()) {

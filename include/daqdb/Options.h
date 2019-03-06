@@ -110,6 +110,13 @@ struct KeyFieldDescriptor {
 struct KeyDescriptor {
     size_t nfields() const { return _fields.size(); }
 
+    size_t size() const {
+        size_t size = 0; 
+        for (auto& f: _fields)
+            size += f.size;
+        return size;
+    }
+
     void field(size_t idx, size_t size, bool isPrimary = false) {
         if (nfields() <= idx)
             _fields.resize(idx + 1);

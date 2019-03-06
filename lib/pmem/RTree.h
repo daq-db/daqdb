@@ -107,6 +107,7 @@ class RTree : public DaqDB::RTreeEngine {
     RTree(const string &path, const size_t size, const size_t allocUnitSize);
     virtual ~RTree();
     string Engine() final { return "RTree"; }
+    size_t SetKeySize(size_t req_size);
     void Get(const char *key, int32_t keybytes, void **value, size_t *size,
              uint8_t *location) final;
     void Get(const char *key, void **value, size_t *size,
