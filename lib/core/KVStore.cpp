@@ -89,8 +89,9 @@ void KVStore::init() {
         throw OperationFailedException(errno, ::pmemobj_errormsg());
     size_t keySize = pmem()->SetKeySize(getOptions().key.size());
     if (keySize != getOptions().key.size()) {
-        DAQ_INFO("Requested key size of " + std::to_string(getOptions().key.size()) +
-                 + "B does not match expected " + std::to_string(keySize) + "B");
+        DAQ_INFO("Requested key size of " +
+                 std::to_string(getOptions().key.size()) +
+                 +"B does not match expected " + std::to_string(keySize) + "B");
         throw OperationFailedException(Status(NOT_SUPPORTED));
     }
 

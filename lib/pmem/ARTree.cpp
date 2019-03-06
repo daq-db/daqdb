@@ -523,14 +523,13 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                 // val->location = EMPTY;
                 return nodeLeafCompressed->child;
             } else {
-               DAQ_DEBUG("findValueInNode: Found");
-               return nodeLeafCompressed->child;
+                DAQ_DEBUG("findValueInNode: Found");
+                return nodeLeafCompressed->child;
             }
         }
-        keyCalc =
-            (treeRoot->keySize - current->depth - 1) < 0
-                ? 0
-                : key[treeRoot->keySize - current->depth - 1];
+        keyCalc = (treeRoot->keySize - current->depth - 1) < 0
+                      ? 0
+                      : key[treeRoot->keySize - current->depth - 1];
         std::bitset<8> x(keyCalc);
         DAQ_DEBUG("findValueInNode: keyCalc=" + x.to_string());
         if (current->type == TYPE256) { // TYPE256
