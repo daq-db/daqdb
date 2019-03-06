@@ -31,7 +31,7 @@ Value allocValue(KVStoreBase *kvs, const uint64_t keyId, const string &value) {
 Key allocKey(KVStoreBase *kvs, const uint64_t id) {
     Key keyBuff = kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
     FuncTestKey *fKeyPtr = reinterpret_cast<FuncTestKey *>(keyBuff.data());
-    memset(&fKeyPtr, 0, sizeof(FuncTestKey));
+    memset(fKeyPtr, 0, sizeof(FuncTestKey));
     memcpy(&fKeyPtr->eventId, &id, sizeof(fKeyPtr->eventId));
     return keyBuff;
 }
