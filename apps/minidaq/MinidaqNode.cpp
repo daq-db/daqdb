@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <atomic>
@@ -262,7 +262,8 @@ char MinidaqNode::_GetBufferByte(const Key &key, size_t i) {
     const MinidaqKey *mKeyPtr =
         reinterpret_cast<const MinidaqKey *>(key.data());
     const char *eventId = reinterpret_cast<const char *>(&mKeyPtr->eventId);
-    return *(eventId + (i % (sizeof(mKeyPtr->eventId) / sizeof(mKeyPtr->eventId[0]))));
+    return *(eventId +
+             (i % (sizeof(mKeyPtr->eventId) / sizeof(mKeyPtr->eventId[0]))));
 }
 
 void MinidaqNode::_FillBuffer(const Key &key, char *buf, size_t s) {
@@ -288,10 +289,14 @@ bool MinidaqNode::_CheckBuffer(const Key &key, const char *buf, size_t s) {
                 err = true;
                 msg << "Integrity check failed (" << _GetType()
                     << ") EventId=0x";
-                for (int j = (sizeof(mKeyPtr->eventId) / sizeof(mKeyPtr->eventId[0])) - 1;
+                for (int j = (sizeof(mKeyPtr->eventId) /
+                              sizeof(mKeyPtr->eventId[0])) -
+                             1;
                      j >= 0; j--)
-                    msg << std::hex << static_cast<unsigned int>(mKeyPtr->eventId[j]); 
-                msg << std::dec << " SubdetectorId=" << mKeyPtr->componentId << std::endl;
+                    msg << std::hex
+                        << static_cast<unsigned int>(mKeyPtr->eventId[j]);
+                msg << std::dec << " SubdetectorId=" << mKeyPtr->componentId
+                    << std::endl;
                 _nIntegrityErrors++;
             }
             msg << "  buf[" << i << "] = "

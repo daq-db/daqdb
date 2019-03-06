@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "MinidaqRoNode.h"
@@ -19,7 +19,7 @@
 namespace DaqDB {
 
 thread_local uint64_t MinidaqRoNode::_eventId;
-thread_local constexpr char MinidaqRoNode::_data_buffer [100000];
+thread_local constexpr char MinidaqRoNode::_data_buffer[100000];
 
 MinidaqRoNode::MinidaqRoNode(KVStoreBase *kvs) : MinidaqNode(kvs) {}
 
