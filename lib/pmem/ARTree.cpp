@@ -214,7 +214,8 @@ uint8_t TreeImpl::getTreeDepth(persistent_ptr<Node> current) {
 }
 
 size_t ARTree::SetKeySize(size_t req_size) {
-    tree->treeRoot->keySize = (sizeof(LEVEL_TYPE) / sizeof(int) - 1) * BITS_IN_BYTE;
+    tree->treeRoot->keySize =
+        (sizeof(LEVEL_TYPE) / sizeof(int) - 1) * BITS_IN_BYTE;
     /** @todo change to make it configurable at init time/
     if (!tree->treeRoot->initialized)
         tree->treeRoot->keySize = req_size;
@@ -479,9 +480,10 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
     // ValueWrapper *val;
 
     while (1) {
-        keyCalc = (treeRoot->keySize / BITS_IN_BYTE - current->depth - 1) < 0
-                      ? 0
-                      : key[treeRoot->keySize / BITS_IN_BYTE - current->depth - 1];
+        keyCalc =
+            (treeRoot->keySize / BITS_IN_BYTE - current->depth - 1) < 0
+                ? 0
+                : key[treeRoot->keySize / BITS_IN_BYTE - current->depth - 1];
         std::bitset<8> x(keyCalc);
         DAQ_DEBUG("findValueInNode: current->depth= " +
                   std::to_string(current->depth) + " keyCalc=" + x.to_string());

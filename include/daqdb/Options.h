@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -111,8 +111,8 @@ struct KeyDescriptor {
     size_t nfields() const { return _fields.size(); }
 
     size_t size() const {
-        size_t size = 0; 
-        for (auto& f: _fields)
+        size_t size = 0;
+        for (auto &f : _fields)
             size += f.size;
         return size;
     }
