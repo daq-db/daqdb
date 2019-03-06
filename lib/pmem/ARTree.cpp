@@ -436,8 +436,6 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 nodeLeafCompressed_new->depth = depth;
                 nodeLeafCompressed_new->type = TYPE_LEAF_COMPRESSED;
                 nodeLeafCompressed_new->parent = node;
-                // Temporarily disable the node
-                nodeLeafCompressed_new->key = -1;
                 children[i] = nodeLeafCompressed_new;
             }
 
@@ -480,13 +478,8 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
     // ValueWrapper *val;
 
     while (1) {
-        keyCalc =
-            (treeRoot->keySize - current->depth - 1) < 0
-                ? 0
-                : key[treeRoot->keySize - current->depth - 1];
-        std::bitset<8> x(keyCalc);
         DAQ_DEBUG("findValueInNode: current->depth= " +
-                  std::to_string(current->depth) + " keyCalc=" + x.to_string());
+                  std::to_string(current->depth));
         if (current->depth == ((sizeof(LEVEL_TYPE) / sizeof(int) - 1))) {
             // Node Compressed
             nodeLeafCompressed = current;
@@ -534,6 +527,12 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                return nodeLeafCompressed->child;
             }
         }
+        keyCalc =
+            (treeRoot->keySize - current->depth - 1) < 0
+                ? 0
+                : key[treeRoot->keySize - current->depth - 1];
+        std::bitset<8> x(keyCalc);
+        DAQ_DEBUG("findValueInNode: keyCalc=" + x.to_string());
         if (current->type == TYPE256) { // TYPE256
             node256 = current;
             if (!allocate && node256->children[keyCalc]) {
