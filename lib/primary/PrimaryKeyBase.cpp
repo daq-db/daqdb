@@ -11,13 +11,20 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <Logger.h>
 #include <PrimaryKeyBase.h>
 
 namespace DaqDB {
+
+static uint64_t modulo(const uint8_t *arr, int size, uint64_t div) {
+    uint64_t val = 0;
+    while (--size >= 0)
+        val |= arr[size] << size;
+    return val % div;
+}
 
 PrimaryKeyBase::PrimaryKeyBase(const DaqDB::Options &options)
     : _keySize(0), _pKeySize(0), _pKeyOffset(0) {
@@ -35,10 +42,10 @@ PrimaryKeyBase::PrimaryKeyBase(const DaqDB::Options &options)
     DAQ_INFO("  Primary key size: " + std::to_string(_pKeySize));
     DAQ_INFO("  Primary key offset: " + std::to_string(_pKeyOffset));
 
-    _localKeyValue = options.dht.id;
-    _localKeyMask = (1U << options.dht.neighbors.size()) - 1;
-    DAQ_INFO("  Local key value: " + std::to_string(_localKeyValue));
-    DAQ_INFO("  Local key mask: " + std::to_string(_localKeyMask));
+    _localNodeId = options.dht.id;
+    _nNodes = options.dht.neighbors.size();
+    DAQ_INFO("  Local node ID: " + std::to_string(_localNodeId));
+    DAQ_INFO("  Total number of nodes: " + std::to_string(_nNodes));
     if (_pKeySize > sizeof(uint64_t))
         throw OperationFailedException(NOT_SUPPORTED);
 }
@@ -52,9 +59,12 @@ void PrimaryKeyBase::enqueueNext(const Key &Key) {
 }
 
 bool PrimaryKeyBase::isLocal(const Key &key) {
-    const uint64_t *pKeyPtr =
-        reinterpret_cast<const uint64_t *>(key.data() + _pKeyOffset);
-    return ((*pKeyPtr & _localKeyMask) == _localKeyValue);
+    bool local = false;
+    const uint8_t *pKeyPtr =
+        reinterpret_cast<const uint8_t *>(key.data() + _pKeyOffset);
+    local = modulo(pKeyPtr, _pKeySize, _nNodes) == _localNodeId;
+    DAQ_DEBUG("Primary key is local: " + std::to_string(local));
+    return local;
 }
 
 } // namespace DaqDB
