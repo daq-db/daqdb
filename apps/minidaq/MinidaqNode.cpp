@@ -261,7 +261,7 @@ void MinidaqNode::Save(std::string &fp) {
 
 void MinidaqNode::ShowTreeStats() {
     std::stringstream ss;
-    ss << "Tree stats at " << _GetType() << " threads\n"
+    ss << "Tree stats\n"
        << "  size: " << std::to_string(_kvs->GetTreeSize()) << "\n"
        << "  leaves: " << std::to_string(_kvs->GetLeafCount()) << "\n"
        << "  depth: " << std::to_string(_kvs->GetTreeDepth()) << "\n";
