@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <Logger.h>
@@ -19,7 +19,7 @@
 
 namespace DaqDB {
 
-static uint64_t modulo(const uint8_t* arr, int size, uint64_t div) {
+static uint64_t modulo(const uint8_t *arr, int size, uint64_t div) {
     uint64_t val = 0;
     while (--size >= 0)
         val |= arr[size] << size;
@@ -42,7 +42,7 @@ PrimaryKeyBase::PrimaryKeyBase(const DaqDB::Options &options)
     DAQ_INFO("  Primary key size: " + std::to_string(_pKeySize));
     DAQ_INFO("  Primary key offset: " + std::to_string(_pKeyOffset));
 
-    _localNodeId  = options.dht.id;
+    _localNodeId = options.dht.id;
     _nNodes = options.dht.neighbors.size();
     DAQ_INFO("  Local node ID: " + std::to_string(_localNodeId));
     DAQ_INFO("  Total number of nodes: " + std::to_string(_nNodes));
