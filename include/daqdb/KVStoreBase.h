@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 /**
@@ -404,6 +404,10 @@ class KVStoreBase {
      *
      */
     virtual bool IsOffloaded(Key &key) = 0;
+
+    virtual uint64_t GetTreeSize() = 0;
+    virtual uint64_t GetLeafCount() = 0;
+    virtual uint8_t GetTreeDepth() = 0;
 };
 
 } // namespace DaqDB

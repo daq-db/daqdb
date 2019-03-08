@@ -192,9 +192,17 @@ void MinidaqNode::Run() {
     }
 }
 
-void MinidaqNode::Wait() {
+bool MinidaqNode::Wait(int ms) {
+    std::future_status status;
+
     for (const auto &f : _futureVec) {
-        f.wait();
+        if (!ms) {
+            f.wait();
+        } else {
+            status = f.wait_for(std::chrono::milliseconds(ms));
+            if (status != std::future_status::ready)
+                return false;
+        }
     }
 
     for (auto &f : _futureVec) {
@@ -205,6 +213,8 @@ void MinidaqNode::Wait() {
     _statsReady = true;
 
     std::cout << "Done!" << std::endl;
+
+    return true;
 }
 
 void MinidaqNode::Show() {
@@ -247,6 +257,15 @@ void MinidaqNode::Save(std::string &fp) {
     std::stringstream ss;
     ss << fp << "-thread-all-" << _GetType();
     _statsAll.Dump(ss.str());
+}
+
+void MinidaqNode::ShowTreeStats() {
+    std::stringstream ss;
+    ss << "Tree stats\n"
+       << "  size: " << std::to_string(_kvs->GetTreeSize()) << "\n"
+       << "  leaves: " << std::to_string(_kvs->GetLeafCount()) << "\n"
+       << "  depth: " << std::to_string(_kvs->GetTreeDepth()) << "\n";
+    std::cout << ss.str();
 }
 
 void MinidaqNode::SaveSummary(std::string &fs, std::string &tname) {

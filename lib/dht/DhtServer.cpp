@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "DhtServer.h"
@@ -182,11 +182,11 @@ DhtServer::~DhtServer() {
         _thread->join();
 }
 
-void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t *cpuset, size_t size) {
+void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t *cpuset,
+                             size_t size) {
     DhtServerCtx rpcCtx;
 
-    const int set_result = pthread_setaffinity_np(pthread_self(),
-                                                  size, cpuset);
+    const int set_result = pthread_setaffinity_np(pthread_self(), size, cpuset);
     if (!set_result) {
         DAQ_DEBUG("Cannot set affinity for DHT server worker[" +
                   to_string(workerId) + "]");
@@ -225,8 +225,7 @@ void DhtServer::_serve(void) {
     CPU_ZERO_S(size, cpuset);
     CPU_SET_S(DHT_SERVER_CPU_CORE_BASE, size, cpuset);
 
-    const int set_result = pthread_setaffinity_np(pthread_self(),
-                                                  size, cpuset);
+    const int set_result = pthread_setaffinity_np(pthread_self(), size, cpuset);
     if (!set_result) {
         DAQ_DEBUG("Cannot set affinity for DHT server thread");
     }
@@ -259,7 +258,7 @@ void DhtServer::_serve(void) {
             CPU_ZERO_S(size, cpuset);
             CPU_SET_S(DHT_SERVER_CPU_CORE_BASE + threadIndex, size, cpuset);
             _workerThreads.push_back(thread(&DhtServer::_serveWorker, this,
-                                     threadIndex, cpuset, size));
+                                            threadIndex, cpuset, size));
         }
 
         state = DhtServerState::DHT_SERVER_READY;

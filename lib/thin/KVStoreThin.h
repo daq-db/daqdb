@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -67,6 +67,10 @@ class KVStoreThin : public KVStoreBase {
     virtual void ChangeOptions(Key &key, const AllocOptions &options);
 
     virtual bool IsOffloaded(Key &key);
+
+    virtual uint64_t GetTreeSize();
+    virtual uint64_t GetLeafCount();
+    virtual uint8_t GetTreeDepth();
 
     void LogMsg(std::string msg);
 

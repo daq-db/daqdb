@@ -24,7 +24,7 @@ namespace DaqDB {
 #define LAYOUT "artree"
 
 // Uncomment below to use PMDK allocation classes
-// #define USE_ALLOCATION_CLASSES 1
+//#define USE_ALLOCATION_CLASSES 1
 
 ARTree::ARTree(const string &_path, const size_t size,
                const size_t allocUnitSize) {
@@ -527,9 +527,7 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                 return nodeLeafCompressed->child;
             }
         }
-        keyCalc = (treeRoot->keySize - current->depth - 1) < 0
-                      ? 0
-                      : key[treeRoot->keySize - current->depth - 1];
+        keyCalc = key[treeRoot->keySize - current->depth - 1];
         std::bitset<8> x(keyCalc);
         DAQ_DEBUG("findValueInNode: keyCalc=" + x.to_string());
         if (current->type == TYPE256) { // TYPE256

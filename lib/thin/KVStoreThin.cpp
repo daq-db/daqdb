@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "KVStoreThin.h"
@@ -179,6 +179,12 @@ void KVStoreThin::ChangeOptions(Key &key, const AllocOptions &options) {
 }
 
 bool KVStoreThin::IsOffloaded(Key &key) { throw FUNC_NOT_SUPPORTED; }
+
+uint64_t KVStoreThin::GetTreeSize() { throw FUNC_NOT_SUPPORTED; }
+
+uint64_t KVStoreThin::GetLeafCount() { throw FUNC_NOT_SUPPORTED; }
+
+uint8_t KVStoreThin::GetTreeDepth() { throw FUNC_NOT_SUPPORTED; }
 
 std::string KVStoreThin::getProperty(const std::string &name) { return ""; }
 
