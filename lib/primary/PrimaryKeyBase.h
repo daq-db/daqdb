@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -31,13 +31,13 @@ class PrimaryKeyBase : public DaqDB::PrimaryKeyEngine {
     bool isLocal(const Key &key);
 
   protected:
-    size_t _keySize;
-    size_t _pKeySize;
-    size_t _pKeyOffset;
+    int _keySize;
+    int _pKeySize;
+    int _pKeyOffset;
 
   private:
-    uint32_t _localKeyMask;
-    uint32_t _localKeyValue;
+    uint32_t _localNodeId;
+    uint32_t _nNodes;
 };
 
 } // namespace DaqDB
