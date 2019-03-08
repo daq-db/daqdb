@@ -38,7 +38,7 @@ class MinidaqNode {
     virtual ~MinidaqNode();
 
     void Run();
-    void Wait();
+    bool Wait(int ms);
     void Show();
     void Save(std::string &fp);
     void SaveSummary(std::string &fs, std::string &tname);
@@ -55,6 +55,7 @@ class MinidaqNode {
     void SetLive(bool live);
     void SetLocalOnly(bool local);
     int GetThreads();
+    void ShowTreeStats();
 
   protected:
     virtual void _Task(Key &&key, std::atomic<std::uint64_t> &cnt,
@@ -79,7 +80,6 @@ class MinidaqNode {
   private:
     MinidaqStats _Execute(int executorId);
     void _Affinity(int executorId);
-    void _ShowTreeStats();
 
     int _tTest_ms = 0;         // desired test duration in milliseconds
     int _tRamp_ms = 0;         // desired test ramp duration in milliseconds

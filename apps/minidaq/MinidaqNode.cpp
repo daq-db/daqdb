@@ -154,11 +154,8 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
         s.interval_ns = timerSample.GetElapsed_ns();
         s.nCompletions = c.fetch_and(0ULL);
         s.nErrCompletions = c_err.fetch_and(0ULL);
-        if (_live) {
+        if (_live)
             stats.ShowSample(_GetType() + "_" + std::to_string(executorId), s);
-            if (executorId == 0)
-                _ShowTreeStats();
-        }
         stats.RecordSample(s);
     }
 
@@ -195,9 +192,17 @@ void MinidaqNode::Run() {
     }
 }
 
-void MinidaqNode::Wait() {
+bool MinidaqNode::Wait(int ms) {
+    std::future_status status;
+
     for (const auto &f : _futureVec) {
-        f.wait();
+        if (!ms) {
+            f.wait();
+        } else {
+            status = f.wait_for(std::chrono::milliseconds(ms));
+            if (status != std::future_status::ready)
+                return false;
+        }
     }
 
     for (auto &f : _futureVec) {
@@ -208,6 +213,8 @@ void MinidaqNode::Wait() {
     _statsReady = true;
 
     std::cout << "Done!" << std::endl;
+
+    return true;
 }
 
 void MinidaqNode::Show() {
@@ -252,7 +259,7 @@ void MinidaqNode::Save(std::string &fp) {
     _statsAll.Dump(ss.str());
 }
 
-void MinidaqNode::_ShowTreeStats() {
+void MinidaqNode::ShowTreeStats() {
     std::stringstream ss;
     ss << "Tree stats at " << _GetType() << " threads\n"
        << "  size: " << std::to_string(_kvs->GetTreeSize()) << "\n"
