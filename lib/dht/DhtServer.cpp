@@ -25,14 +25,18 @@
 #include <Logger.h>
 #include <rpc.h>
 
+#ifdef LOOPBACK_DHT_SERVER
+#include "DhtServerLoopback.h"
+#endif
+
 /** @TODO jradtke: should be taken from configuration file */
 #define DHT_SERVER_CPU_CORE_BASE 5
 #define DHT_SERVER_CPU_CORE_MAX 32
 
 /**
-  * @TODO jradtke: not needed when eRPC implements configurable size of
-  * pre_resp_msgbuf
-  */
+ * @TODO jradtke: not needed when eRPC implements configurable size of
+ * pre_resp_msgbuf
+ */
 const unsigned int PRE_BUF_SIZE = 32 * 1024;
 
 namespace DaqDB {
@@ -71,9 +75,9 @@ static void erpcReqGetAnyHandler(erpc::ReqHandle *req_handle, void *ctx) {
     erpc::MsgBuffer *resp;
 
     try {
-        resp =
-            erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult) +
-                                                   serverCtx->kvs->KeySize());
+        resp = erpcPrepareMsgbuf(rpc, req_handle,
+                                 sizeof(DaqdbDhtResult) +
+                                     serverCtx->kvs->KeySize());
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
         result->msgSize = serverCtx->kvs->KeySize();
         serverCtx->kvs->GetAny(result->msg, serverCtx->kvs->KeySize());
@@ -233,6 +237,7 @@ void DhtServer::_serve(void) {
     _spServerNexus.reset(
         new erpc::Nexus(_dhtCore->getLocalNode()->getUri(), 0, 0));
 
+#ifndef LOOPBACK_DHT_SERVER
     _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GET),
         erpcReqGetHandler);
@@ -245,6 +250,20 @@ void DhtServer::_serve(void) {
     _spServerNexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_REMOVE),
         erpcReqRemoveHandler);
+#else
+    _spServerNexus->register_req_func(
+        static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GET),
+        erpcLoopbackReqGetHandler);
+    _spServerNexus->register_req_func(
+        static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GETANY),
+        erpcLoopbackReqGetAnyHandler);
+    _spServerNexus->register_req_func(
+        static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_PUT),
+        erpcLoopbackReqPutHandler);
+    _spServerNexus->register_req_func(
+        static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_REMOVE),
+        erpcLoopbackReqRemoveHandler);
+#endif
 
     try {
         DhtServerCtx rpcCtx;
