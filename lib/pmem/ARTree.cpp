@@ -230,11 +230,13 @@ void ARTree::Get(const char *key, int32_t keybytes, void **value, size_t *size,
 
 void ARTree::Get(const char *key, void **value, size_t *size,
                  uint8_t *location) {
-    persistent_ptr<ValueWrapper> valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr =
+        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     if (valPrstPtr == nullptr)
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     // std::cout << "Get off=" << (*valPrstPtr.raw_ptr()).off << std::endl;
-    if (valPrstPtr->location == PMEM && valPrstPtr->locationVolatile.get().value != EMPTY) {
+    if (valPrstPtr->location == PMEM &&
+        valPrstPtr->locationVolatile.get().value != EMPTY) {
         *value = valPrstPtr->locationPtr.value.get();
         *location = valPrstPtr->location;
     } else if (valPrstPtr->location == DISK) {
@@ -261,7 +263,8 @@ uint64_t ARTree::GetLeafCount() {
 void ARTree::Put(const char *key, // copy value from std::string
                  char *value) {
     // printKey(key);
-    persistent_ptr<ValueWrapper> valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
+    persistent_ptr<ValueWrapper> valPrstPtr =
+        tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     if (valPrstPtr == nullptr)
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     if (!tree->treeRoot->initialized) {
@@ -298,7 +301,8 @@ void ARTree::Remove(const char *key) {
         removeFromParent(valPrstPtr);
         if (_isLocationReservedNotPublished(valPrstPtr)) {
             valPrstPtr->location = EMPTY;
-            pmemobj_cancel(tree->_pm_pool.get_handle(), &valPrstPtr->actionValue, 1);
+            pmemobj_cancel(tree->_pm_pool.get_handle(),
+                           &valPrstPtr->actionValue, 1);
 
 #ifdef USE_ALLOCATION_CLASSES
 // TODO: commented because of error in PMDK on free() of object
@@ -375,7 +379,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                                                // incremented during PUT
                 node256_new->parent = node;
                 for (int j = 0; j < NODE_SIZE[node256_new->type]; j++)
-                      node256_new->children[j] = nullptr;
+                    node256_new->children[j] = nullptr;
                 children[i] = node256_new;
             } else if (LEVEL_TYPE[depth] == TYPE_LEAF_COMPRESSED) {
 #ifdef USE_ALLOCATION_CLASSES
@@ -548,7 +552,8 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
             tree->treeRoot->rootNode->nodeMutex);
     }
     if (tree->treeRoot->rootNode) {
-        persistent_ptr<ValueWrapper> valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, true);
+        persistent_ptr<ValueWrapper> valPrstPtr =
+            tree->findValueInNode(tree->treeRoot->rootNode, key, true);
         if (valPrstPtr == nullptr || valPrstPtr->location != EMPTY)
             throw OperationFailedException(Status(ALLOCATION_ERROR));
 
@@ -557,7 +562,8 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
             tree->_pm_pool.get_handle(), &valPrstPtr->actionValue, size, VALUE,
             POBJ_CLASS_ID(tree->getClassId(ALLOC_CLASS_VALUE)));
 #else
-        valPrstPtr->locationPtr.value = pmemobj_reserve(tree->_pm_pool.get_handle(), &valPrstPtr->actionValue, size, VALUE);
+        valPrstPtr->locationPtr.value = pmemobj_reserve(
+            tree->_pm_pool.get_handle(), &valPrstPtr->actionValue, size, VALUE);
 #endif
         if (valPrstPtr->locationPtr.value == nullptr) {
             throw OperationFailedException(Status(ALLOCATION_ERROR));

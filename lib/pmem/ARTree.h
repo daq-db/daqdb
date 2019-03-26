@@ -83,8 +83,7 @@ struct locationWrapper {
 class Node;
 
 struct ValueWrapper {
-    explicit ValueWrapper()
-        : actionUpdate(nullptr), location(EMPTY) {}
+    explicit ValueWrapper() : actionUpdate(nullptr), location(EMPTY) {}
     p<int> location;
     union locationPtr {
         persistent_ptr<char> value; // for location == PMEM
@@ -180,7 +179,8 @@ class ARTree : public DaqDB::RTreeEngine {
     void removeFromParent(persistent_ptr<ValueWrapper> valPrstPtr);
 
   private:
-    inline bool _isLocationReservedNotPublished(persistent_ptr<ValueWrapper> valPrstPtr) {
+    inline bool
+    _isLocationReservedNotPublished(persistent_ptr<ValueWrapper> valPrstPtr) {
         return (valPrstPtr->location == PMEM &&
                 valPrstPtr->locationVolatile.get().value != EMPTY);
     }
