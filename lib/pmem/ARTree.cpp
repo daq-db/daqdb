@@ -24,7 +24,7 @@ namespace DaqDB {
 #define LAYOUT "artree"
 
 // Uncomment below to use PMDK allocation classes
-//#define USE_ALLOCATION_CLASSES 1
+#define USE_ALLOCATION_CLASSES 1
 
 ARTree::ARTree(const string &_path, const size_t size,
                const size_t allocUnitSize) {
@@ -148,7 +148,7 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
         status = pmemobj_publish(_pm_pool.get_handle(), _actionsArray,
                                  _actionsCounter);
         if (status != 0) {
-            DAQ_DEBUG("Error on publish = " + std::to_string(status));
+            DAQ_CRITICAL("Error on publish = " + std::to_string(status));
         }
         _actionsCounter = 0;
         DAQ_DEBUG("root created");
@@ -303,21 +303,7 @@ void ARTree::Remove(const char *key) {
             valPrstPtr->location = EMPTY;
             pmemobj_cancel(tree->_pm_pool.get_handle(),
                            &valPrstPtr->actionValue, 1);
-
-#ifdef USE_ALLOCATION_CLASSES
-// TODO: commented because of error in PMDK on free() of object
-// reserved with xreserve
-// pmemobj_defer_free(tree->_pm_pool.get_handle(),(*valPrstPtr.raw_ptr()),&actionsArray[actionsCounter]);
-// pmemobj_free(valPrstPtr.raw_ptr());
-#else
-            // @TODO Only one of (pmemobj_defer_free, pmemobj_free) could be
-            // called.
-
-            // pmemobj_defer_free(tree->_pm_pool.get_handle(),
-            //                   (*valPrstPtr.raw_ptr()), &actionValue[0]);
-
             pmemobj_free(valPrstPtr.raw_ptr());
-#endif
         } else if (valPrstPtr->location == DISK) {
             // TODO: jradtke need to confirm if no extra action required here
             valPrstPtr->location = EMPTY;
@@ -367,8 +353,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                                               sizeof(Node256), VALUE);
 #endif
                 if (node256_new == nullptr) {
-                    DAQ_DEBUG("reserve Node256 failed actionsCounter=" +
-                              std::to_string(actionsCounter));
+                    DAQ_CRITICAL("reserve Node256 failed actionsCounter=" +
+                                 std::to_string(actionsCounter) + " with " +
+                                 std::string(strerror(errno)));
                     alloc_err = true;
                     break;
                 }
@@ -394,9 +381,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
 #endif
 
                 if (nodeLeafCompressed_new == nullptr) {
-                    DAQ_DEBUG(
+                    DAQ_CRITICAL(
                         "reserve nodeLeafCompressed failed actionsCounter=" +
-                        std::to_string(actionsCounter));
+                        std::to_string(actionsCounter) + " with " + std::string(strerror(errno)));
                     alloc_err = true;
                     break;
                 }
@@ -467,9 +454,8 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
 #endif
 
                 if (valPrstPtr == nullptr) {
-                    DAQ_DEBUG(
-                        "reserve NodeLeafCompressed failed actionsCounter=" +
-                        std::to_string(actionsCounter));
+                    DAQ_CRITICAL("reserve ValueWrapper failed with " +
+                                 std::string(strerror(errno)));
                     throw OperationFailedException(Status(ALLOCATION_ERROR));
                 }
                 // std::cout << "valueWrapper off="
@@ -566,6 +552,7 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
             tree->_pm_pool.get_handle(), &valPrstPtr->actionValue, size, VALUE);
 #endif
         if (valPrstPtr->locationPtr.value == nullptr) {
+	    DAQ_CRITICAL("reserve Value failed with " + std::string(strerror(errno)));
             throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
         valPrstPtr->size = size;

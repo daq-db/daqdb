@@ -65,7 +65,7 @@ const int PREALLOC_LEVELS = 1;
 // Allocation class alignment
 #define ALLOC_CLASS_ALIGNMENT 0
 // Units per allocation block.
-#define ALLOC_CLASS_UNITS_PER_BLOCK 100000
+#define ALLOC_CLASS_UNITS_PER_BLOCK 100
 enum ALLOC_CLASS {
     ALLOC_CLASS_VALUE,
     ALLOC_CLASS_VALUE_WRAPPER,
