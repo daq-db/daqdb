@@ -65,7 +65,7 @@ const int PREALLOC_LEVELS = 1;
 // Allocation class alignment
 #define ALLOC_CLASS_ALIGNMENT 0
 // Units per allocation block.
-#define ALLOC_CLASS_UNITS_PER_BLOCK 100000
+#define ALLOC_CLASS_UNITS_PER_BLOCK 100
 enum ALLOC_CLASS {
     ALLOC_CLASS_VALUE,
     ALLOC_CLASS_VALUE_WRAPPER,
@@ -83,8 +83,7 @@ struct locationWrapper {
 class Node;
 
 struct ValueWrapper {
-    explicit ValueWrapper()
-        : actionValue(nullptr), actionUpdate(nullptr), location(EMPTY) {}
+    explicit ValueWrapper() : actionUpdate(nullptr), location(EMPTY) {}
     p<int> location;
     union locationPtr {
         persistent_ptr<char> value; // for location == PMEM
@@ -93,7 +92,7 @@ struct ValueWrapper {
     } locationPtr;
     p<size_t> size;
     v<locationWrapper> locationVolatile;
-    struct pobj_action *actionValue;
+    struct pobj_action actionValue;
     struct pobj_action *actionUpdate;
     persistent_ptr<Node> parent; // pointer to parent, needed for removal
 };
@@ -177,12 +176,13 @@ class ARTree : public DaqDB::RTreeEngine {
     void UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) final;
     void printKey(const char *key);
     void decrementParent(persistent_ptr<Node> node);
-    void removeFromParent(ValueWrapper *val);
+    void removeFromParent(persistent_ptr<ValueWrapper> valPrstPtr);
 
   private:
-    inline bool _isLocationReservedNotPublished(ValueWrapper *val) {
-        return (val->location == PMEM &&
-                val->locationVolatile.get().value != EMPTY);
+    inline bool
+    _isLocationReservedNotPublished(persistent_ptr<ValueWrapper> valPrstPtr) {
+        return (valPrstPtr->location == PMEM &&
+                valPrstPtr->locationVolatile.get().value != EMPTY);
     }
 
     TreeImpl *tree;

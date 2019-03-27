@@ -239,7 +239,7 @@ int main(int argc, const char *argv[]) {
         "test-name", po::value<std::string>(&tname), "Test name.")(
         "n-poolers",
         po::value<int>(&nPoolers)->default_value(MINIDAQ_DEFAULT_N_POOLERS),
-        "Total number of FogKV pooler threads.")(
+        "Total number of DaqDB pooler threads.")(
         "base-core-id",
         po::value<int>(&bCoreId)->default_value(MINIDAQ_DEFAULT_BASE_CORE_ID),
         "Base core ID for minidaq worker threads.")(
@@ -343,7 +343,7 @@ int main(int argc, const char *argv[]) {
     }
 
     try {
-        std::cout << "### Opening FogKV..." << endl;
+        std::cout << "### Opening DaqDB..." << endl;
         auto kvs = openKVS();
         std::cout << "### Done." << endl;
         std::vector<std::unique_ptr<DaqDB::MinidaqNode>>
