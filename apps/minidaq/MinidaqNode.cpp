@@ -128,8 +128,6 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
     c = 0;
     c_err = 0;
     while (!timerTest.IsExpired()) {
-        // Timer precision per iteration
-        auto avg_r = (s.nRequests + 10) / 10;
         s.Reset();
         timerSample.Restart_us(_tIter_us);
         do {
@@ -147,8 +145,7 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
                 if (_stopOnError)
                     _stopped = true;
             }
-        } while (!_stopped &&
-                 ((s.nRequests % avg_r) || !timerSample.IsExpired()));
+        } while (!_stopped && !timerSample.IsExpired());
         if (_stopped)
             break;
         s.interval_ns = timerSample.GetElapsed_ns();
