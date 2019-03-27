@@ -383,7 +383,8 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
                 if (nodeLeafCompressed_new == nullptr) {
                     DAQ_CRITICAL(
                         "reserve nodeLeafCompressed failed actionsCounter=" +
-                        std::to_string(actionsCounter) + " with " + std::string(strerror(errno)));
+                        std::to_string(actionsCounter) + " with " +
+                        std::string(strerror(errno)));
                     alloc_err = true;
                     break;
                 }
@@ -552,7 +553,8 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
             tree->_pm_pool.get_handle(), &valPrstPtr->actionValue, size, VALUE);
 #endif
         if (valPrstPtr->locationPtr.value == nullptr) {
-	    DAQ_CRITICAL("reserve Value failed with " + std::string(strerror(errno)));
+            DAQ_CRITICAL("reserve Value failed with " +
+                         std::string(strerror(errno)));
             throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
         valPrstPtr->size = size;
