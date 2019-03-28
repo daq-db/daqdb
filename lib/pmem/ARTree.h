@@ -143,7 +143,7 @@ class TreeImpl {
                                                  bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
-    void setClassId(enum ALLOC_CLASS c, unsigned id);
+    void setClassId(enum ALLOC_CLASS c, size_t unit_size);
     unsigned getClassId(enum ALLOC_CLASS c);
     uint64_t getTreeSize(persistent_ptr<Node> current, bool leavesOnly = false);
     uint8_t getTreeDepth(persistent_ptr<Node> current);
