@@ -287,7 +287,8 @@ void ARTree::Remove(const char *key) {
         if (_isLocationReservedNotPublished(valPrstPtr)) {
             valPrstPtr->location = EMPTY;
             pmemobj_cancel(tree->_pm_pool.get_handle(),
-                           &valPrstPtr->actionValue, 1);
+                           valPrstPtr->actionValue, 1);
+            delete valPrstPtr->actionValue;
             pmemobj_free(valPrstPtr.raw_ptr());
         } else if (valPrstPtr->location == DISK) {
             // TODO: jradtke need to confirm if no extra action required here
@@ -528,14 +529,15 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
             tree->findValueInNode(tree->treeRoot->rootNode, key, true);
         if (valPrstPtr == nullptr || valPrstPtr->location != EMPTY)
             throw OperationFailedException(Status(ALLOCATION_ERROR));
+        valPrstPtr->actionValue = new struct pobj_action;
 
 #ifdef USE_ALLOCATION_CLASSES
         valPrstPtr->locationPtr.value = pmemobj_xreserve(
-            tree->_pm_pool.get_handle(), &valPrstPtr->actionValue, size, VALUE,
+            tree->_pm_pool.get_handle(), valPrstPtr->actionValue, size, VALUE,
             POBJ_CLASS_ID(tree->getClassId(ALLOC_CLASS_VALUE)));
 #else
         valPrstPtr->locationPtr.value = pmemobj_reserve(
-            tree->_pm_pool.get_handle(), &valPrstPtr->actionValue, size, VALUE);
+            tree->_pm_pool.get_handle(), valPrstPtr->actionValue, size, VALUE);
 #endif
         if (valPrstPtr->locationPtr.value == nullptr) {
             DAQ_CRITICAL("reserve Value failed with " +
@@ -592,7 +594,7 @@ void ARTree::UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) {
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
                       DISK);
     pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 3);
-    pmemobj_cancel(tree->_pm_pool.get_handle(), &val->actionValue, 1);
+    pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
     delete[] val->actionUpdate;
     val->actionUpdate = nullptr;
 }
