@@ -83,7 +83,8 @@ struct locationWrapper {
 class Node;
 
 struct ValueWrapper {
-    explicit ValueWrapper() : actionUpdate(nullptr), location(EMPTY) {}
+    explicit ValueWrapper()
+        : actionValue(nullptr), actionUpdate(nullptr), location(EMPTY) {}
     p<int> location;
     union locationPtr {
         persistent_ptr<char> value; // for location == PMEM
@@ -92,7 +93,7 @@ struct ValueWrapper {
     } locationPtr;
     p<size_t> size;
     v<locationWrapper> locationVolatile;
-    struct pobj_action actionValue;
+    struct pobj_action *actionValue;
     struct pobj_action *actionUpdate;
     persistent_ptr<Node> parent; // pointer to parent, needed for removal
 };
@@ -143,7 +144,7 @@ class TreeImpl {
                                                  bool allocate);
     ARTreeRoot *treeRoot;
     pool<ARTreeRoot> _pm_pool;
-    void setClassId(enum ALLOC_CLASS c, unsigned id);
+    void setClassId(enum ALLOC_CLASS c, size_t unit_size);
     unsigned getClassId(enum ALLOC_CLASS c);
     uint64_t getTreeSize(persistent_ptr<Node> current, bool leavesOnly = false);
     uint8_t getTreeDepth(persistent_ptr<Node> current);
