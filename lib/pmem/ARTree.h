@@ -83,7 +83,8 @@ struct locationWrapper {
 class Node;
 
 struct ValueWrapper {
-    explicit ValueWrapper() : actionValue(nullptr), actionUpdate(nullptr), location(EMPTY) {}
+    explicit ValueWrapper()
+        : actionValue(nullptr), actionUpdate(nullptr), location(EMPTY) {}
     p<int> location;
     union locationPtr {
         persistent_ptr<char> value; // for location == PMEM

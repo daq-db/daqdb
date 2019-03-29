@@ -39,7 +39,8 @@ void TreeImpl::_initAllocClasses(const size_t allocUnitSize) {
     setClassId(ALLOC_CLASS_VALUE, allocUnitSize);
     setClassId(ALLOC_CLASS_VALUE_WRAPPER, sizeof(struct ValueWrapper));
     setClassId(ALLOC_CLASS_NODE256, sizeof(struct Node256));
-    setClassId(ALLOC_CLASS_NODE_LEAF_COMPRESSED, sizeof(struct NodeLeafCompressed));
+    setClassId(ALLOC_CLASS_NODE_LEAF_COMPRESSED,
+               sizeof(struct NodeLeafCompressed));
 }
 
 void TreeImpl::setClassId(enum ALLOC_CLASS c, size_t unit_size) {
@@ -47,25 +48,28 @@ void TreeImpl::setClassId(enum ALLOC_CLASS c, size_t unit_size) {
 
     d.units_per_block = ALLOC_CLASS_UNITS_PER_BLOCK;
     d.alignment = ALLOC_CLASS_ALIGNMENT;
-    d.header_type =  (c == ALLOC_CLASS_VALUE) ? POBJ_HEADER_COMPACT : POBJ_HEADER_NONE;
+    d.header_type =
+        (c == ALLOC_CLASS_VALUE) ? POBJ_HEADER_COMPACT : POBJ_HEADER_NONE;
     d.unit_size = unit_size;
 
     DAQ_DEBUG("ARTree alloc class (" + std::to_string(c) + ") unit_size=" +
               std::to_string(d.unit_size) + " units_per_block=" +
               std::to_string(d.units_per_block));
-    int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc", &d);
+    int rc =
+        pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc", &d);
     if (rc) {
         DAQ_DEBUG("ARTree alloc class init failed: " +
                   std::string(strerror(errno)) + ". Dumping existing classes");
         for (int i = 0; i < 255; i++) {
             d = {};
-	    std::string class_s = "heap.alloc_class." + std::to_string(i) + ".desc";
+            std::string class_s =
+                "heap.alloc_class." + std::to_string(i) + ".desc";
             rc = pmemobj_ctl_get(_pm_pool.get_handle(), class_s.c_str(), &d);
             if (rc)
                 continue;
-            DAQ_DEBUG("ARTree alloc class (" + std::to_string(d.class_id) + ") unit_size=" +
-                      std::to_string(d.unit_size) + " units_per_block=" +
-                      std::to_string(d.units_per_block));
+            DAQ_DEBUG("ARTree alloc class (" + std::to_string(d.class_id) +
+                      ") unit_size=" + std::to_string(d.unit_size) +
+                      " units_per_block=" + std::to_string(d.units_per_block));
             if (errno == EINVAL && d.unit_size == unit_size) {
                 DAQ_DEBUG("Reusing exisiting alloc class");
                 rc = 0;
@@ -77,8 +81,7 @@ void TreeImpl::setClassId(enum ALLOC_CLASS c, size_t unit_size) {
             throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
     }
-    DAQ_DEBUG("ARTree alloc class defined, id= " +
-              std::to_string(d.class_id));
+    DAQ_DEBUG("ARTree alloc class defined, id= " + std::to_string(d.class_id));
     _allocClasses[c] = d.class_id;
 }
 
@@ -286,8 +289,8 @@ void ARTree::Remove(const char *key) {
         removeFromParent(valPrstPtr);
         if (_isLocationReservedNotPublished(valPrstPtr)) {
             valPrstPtr->location = EMPTY;
-            pmemobj_cancel(tree->_pm_pool.get_handle(),
-                           valPrstPtr->actionValue, 1);
+            pmemobj_cancel(tree->_pm_pool.get_handle(), valPrstPtr->actionValue,
+                           1);
             delete valPrstPtr->actionValue;
             pmemobj_free(valPrstPtr.raw_ptr());
         } else if (valPrstPtr->location == DISK) {
