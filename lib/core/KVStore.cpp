@@ -25,6 +25,7 @@
 #include <DhtUtils.h>
 #include <Logger.h>
 #include <daqdb/Types.h>
+#include <libpmem.h>
 
 /** @TODO jradtke: should be taken from configuration file */
 #define POLLER_CPU_CORE_BASE 1
@@ -238,7 +239,7 @@ void KVStore::Get(const char *key, size_t keySize, char *value,
                       std::to_string(pValSize));
             throw OperationFailedException(ALLOCATION_ERROR);
         }
-        std::memcpy(value, pVal, pValSize);
+        pmem_memcpy_nodrain(value, pVal, pValSize);
         *valueSize = pValSize;
     } else if (location == DISK) {
         _getOffloaded(key, keySize, value, valueSize);
@@ -260,7 +261,7 @@ void KVStore::Get(const char *key, size_t keySize, char **value,
         *value = new char[pValSize];
         if (!value)
             throw OperationFailedException(ALLOCATION_ERROR);
-        std::memcpy(*value, pVal, pValSize);
+        pmem_memcpy_nodrain(*value, pVal, pValSize);
         *valueSize = pValSize;
     } else if (location == DISK) {
         _getOffloaded(key, keySize, value, valueSize);
