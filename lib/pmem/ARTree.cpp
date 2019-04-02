@@ -38,7 +38,8 @@ ARTree::~ARTree() {
 void TreeImpl::_initAllocClasses(const size_t allocUnitSize) {
     setClassId(ALLOC_CLASS_VALUE, allocUnitSize);
     setClassId(ALLOC_CLASS_VALUE_WRAPPER, sizeof(struct ValueWrapper));
-    setClassId(ALLOC_CLASS_NODE256, NODE_SIZE[TYPE256] * sizeof(struct Node256));
+    setClassId(ALLOC_CLASS_NODE256,
+               NODE_SIZE[TYPE256] * sizeof(struct Node256));
     setClassId(ALLOC_CLASS_NODE_LEAF_COMPRESSED,
                NODE_SIZE[TYPE256] * sizeof(struct NodeLeafCompressed));
 }
@@ -339,9 +340,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
             NODE_SIZE[node->type] * sizeof(Node256), VALUE,
             POBJ_CLASS_ID(getClassId(ALLOC_CLASS_NODE256)));
 #else
-        node256_new = pmemobj_reserve(_pm_pool.get_handle(),
-                                      &(actionsArray[actionsCounter]),
-                                      NODE_SIZE[node->type] * sizeof(Node256), VALUE);
+        node256_new = pmemobj_reserve(
+            _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
+            NODE_SIZE[node->type] * sizeof(Node256), VALUE);
 #endif
         if (node256_new == nullptr) {
             DAQ_CRITICAL("reserve Node256 failed actionsCounter=" +
@@ -372,10 +373,9 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
 #endif
 
         if (nodeLeafCompressed_new == nullptr) {
-            DAQ_CRITICAL(
-                "reserve nodeLeafCompressed failed actionsCounter=" +
-                std::to_string(actionsCounter) + " with " +
-                std::string(strerror(errno)));
+            DAQ_CRITICAL("reserve nodeLeafCompressed failed actionsCounter=" +
+                         std::to_string(actionsCounter) + " with " +
+                         std::string(strerror(errno)));
             throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
         for (i = 0; i < NODE_SIZE[node->type]; i++) {
@@ -390,8 +390,8 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
 
     if (levelsToAllocate > 0) {
         /** @todo handle exceptions */
-        allocateFullLevels(node256->children[i], levelsToAllocate,
-                           actionsArray, actionsCounter);
+        allocateFullLevels(node256->children[i], levelsToAllocate, actionsArray,
+                           actionsCounter);
     }
     actionsCounter = 1;
 }
