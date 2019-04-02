@@ -38,9 +38,10 @@ ARTree::~ARTree() {
 void TreeImpl::_initAllocClasses(const size_t allocUnitSize) {
     setClassId(ALLOC_CLASS_VALUE, allocUnitSize);
     setClassId(ALLOC_CLASS_VALUE_WRAPPER, sizeof(struct ValueWrapper));
-    setClassId(ALLOC_CLASS_NODE256, sizeof(struct Node256));
+    setClassId(ALLOC_CLASS_NODE256,
+               NODE_SIZE[TYPE256] * sizeof(struct Node256));
     setClassId(ALLOC_CLASS_NODE_LEAF_COMPRESSED,
-               sizeof(struct NodeLeafCompressed));
+               NODE_SIZE[TYPE256] * sizeof(struct NodeLeafCompressed));
 }
 
 void TreeImpl::setClassId(enum ALLOC_CLASS c, size_t unit_size) {
@@ -327,81 +328,72 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
     levelsToAllocate--;
     int i;
 
-    if (node->type == TYPE256) {
-        for (i = 0; i < NODE_SIZE[node->type]; i++) {
-            node256 = node;
-            if (LEVEL_TYPE[depth] == TYPE256) {
-#ifdef USE_ALLOCATION_CLASSES
-                node256_new = pmemobj_xreserve(
-                    _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
-                    sizeof(Node256), VALUE,
-                    POBJ_CLASS_ID(getClassId(ALLOC_CLASS_NODE256)));
-#else
-                node256_new = pmemobj_reserve(_pm_pool.get_handle(),
-                                              &(actionsArray[actionsCounter]),
-                                              sizeof(Node256), VALUE);
-#endif
-                if (node256_new == nullptr) {
-                    DAQ_CRITICAL("reserve Node256 failed actionsCounter=" +
-                                 std::to_string(actionsCounter) + " with " +
-                                 std::string(strerror(errno)));
-                    alloc_err = true;
-                    break;
-                }
-                actionsCounter++;
-                node256_new->depth = depth;
-                node256_new->type = TYPE256;
-                node256_new->refCounter = 256; // TODO: check if it shouldn't be
-                                               // incremented during PUT
-                node256_new->parent = node;
-                for (int j = 0; j < NODE_SIZE[node256_new->type]; j++)
-                    node256_new->children[j] = nullptr;
-                children[i] = node256_new;
-            } else if (LEVEL_TYPE[depth] == TYPE_LEAF_COMPRESSED) {
-#ifdef USE_ALLOCATION_CLASSES
-                nodeLeafCompressed_new = pmemobj_xreserve(
-                    _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
-                    sizeof(NodeLeafCompressed), VALUE,
-                    POBJ_CLASS_ID(getClassId(ALLOC_CLASS_NODE256)));
-#else
-                nodeLeafCompressed_new = pmemobj_reserve(
-                    _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
-                    sizeof(NodeLeafCompressed), VALUE);
-#endif
+    if (node->type != TYPE256)
+        return;
 
-                if (nodeLeafCompressed_new == nullptr) {
-                    DAQ_CRITICAL(
-                        "reserve nodeLeafCompressed failed actionsCounter=" +
-                        std::to_string(actionsCounter) + " with " +
-                        std::string(strerror(errno)));
-                    alloc_err = true;
-                    break;
-                }
-                actionsCounter++;
-                nodeLeafCompressed_new->depth = depth;
-                nodeLeafCompressed_new->type = TYPE_LEAF_COMPRESSED;
-                nodeLeafCompressed_new->parent = node;
-                nodeLeafCompressed_new->child = nullptr;
-                children[i] = nodeLeafCompressed_new;
-            }
+    node256 = node;
 
-            if (levelsToAllocate > 0) {
-                /** @todo handle exceptions */
-                allocateFullLevels(node256->children[i], levelsToAllocate,
-                                   actionsArray, actionsCounter);
-            }
-        }
-        if (alloc_err) {
-            if (actionsCounter)
-                pmemobj_cancel(_pm_pool.get_handle(), actionsArray,
-                               actionsCounter);
-            actionsCounter = 0;
+    if (LEVEL_TYPE[depth] == TYPE256) {
+#ifdef USE_ALLOCATION_CLASSES
+        node256_new = pmemobj_xreserve(
+            _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
+            NODE_SIZE[node->type] * sizeof(Node256), VALUE,
+            POBJ_CLASS_ID(getClassId(ALLOC_CLASS_NODE256)));
+#else
+        node256_new = pmemobj_reserve(
+            _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
+            NODE_SIZE[node->type] * sizeof(Node256), VALUE);
+#endif
+        if (node256_new == nullptr) {
+            DAQ_CRITICAL("reserve Node256 failed actionsCounter=" +
+                         std::to_string(actionsCounter) + " with " +
+                         std::string(strerror(errno)));
             throw OperationFailedException(Status(ALLOCATION_ERROR));
         }
-        for (int i = 0; i < NODE_SIZE[node->type]; i++) {
-            node256->children[i] = children[i];
+        for (i = 0; i < NODE_SIZE[node->type]; i++) {
+            node256_new->depth = depth;
+            node256_new->type = TYPE256;
+            node256_new->refCounter = 256; // TODO: check if it shouldn't be
+                                           // incremented during PUT
+            node256_new->parent = node;
+            memset(node256_new->children, 0, sizeof(node256_new->children));
+            node256->children[i] = node256_new;
+            node256_new++;
+        }
+    } else if (LEVEL_TYPE[depth] == TYPE_LEAF_COMPRESSED) {
+#ifdef USE_ALLOCATION_CLASSES
+        nodeLeafCompressed_new = pmemobj_xreserve(
+            _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
+            NODE_SIZE[node->type] * sizeof(NodeLeafCompressed), VALUE,
+            POBJ_CLASS_ID(getClassId(ALLOC_CLASS_NODE_LEAF_COMPRESSED)));
+#else
+        nodeLeafCompressed_new = pmemobj_reserve(
+            _pm_pool.get_handle(), &(actionsArray[actionsCounter]),
+            NODE_SIZE[node->type] * sizeof(NodeLeafCompressed), VALUE);
+#endif
+
+        if (nodeLeafCompressed_new == nullptr) {
+            DAQ_CRITICAL("reserve nodeLeafCompressed failed actionsCounter=" +
+                         std::to_string(actionsCounter) + " with " +
+                         std::string(strerror(errno)));
+            throw OperationFailedException(Status(ALLOCATION_ERROR));
+        }
+        for (i = 0; i < NODE_SIZE[node->type]; i++) {
+            nodeLeafCompressed_new->depth = depth;
+            nodeLeafCompressed_new->type = TYPE_LEAF_COMPRESSED;
+            nodeLeafCompressed_new->parent = node;
+            nodeLeafCompressed_new->child = nullptr;
+            node256->children[i] = nodeLeafCompressed_new;
+            nodeLeafCompressed_new++;
         }
     }
+
+    if (levelsToAllocate > 0) {
+        /** @todo handle exceptions */
+        allocateFullLevels(node256->children[i], levelsToAllocate, actionsArray,
+                           actionsCounter);
+    }
+    actionsCounter = 1;
 }
 
 /*
