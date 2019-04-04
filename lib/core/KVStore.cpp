@@ -108,12 +108,13 @@ void KVStore::init() {
         new DhtServer(getDhtCore(), this, DHT_SERVER_WORKER_THREADS));
     if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
         DAQ_DEBUG("DHT server started successfully");
+
+        if (_spDht->getLocalNode()->getPeerPort() > 0) {
+            _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
+            _spDht->initClient();
+        }
     } else {
         DAQ_DEBUG("Can not start DHT server");
-    }
-    if (_spDht->getLocalNode()->getPeerPort() > 0) {
-        _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
-        _spDht->initClient();
     }
 
     if (isOffloadEnabled()) {

@@ -18,9 +18,9 @@
 
 #include "tests.h"
 
+#include "../base_operations.h"
 #include <DhtClient.h>
 #include <DhtCore.h>
-#include "../base_operations.h"
 
 using namespace std;
 using namespace DaqDB;

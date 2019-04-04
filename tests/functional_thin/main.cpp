@@ -91,11 +91,13 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
+#ifndef DPDK
     if (!executeTest("testRemotePeerConnect", testRemotePeerConnect, nullptr,
                      &options)) {
         DAQDB_INFO << "Cannot connect to peer node" << endl;
         return -1;
     }
+#endif
 
     unique_ptr<DaqDB::KVStoreBase> spKVStore;
     try {

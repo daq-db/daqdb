@@ -294,19 +294,22 @@ void DhtServer::_serve(void) {
         if (rpc) {
             delete rpc;
         }
+        CPU_FREE(cpuset);
     } catch (exception &e) {
         DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
-        state = DhtServerState::DHT_SERVER_ERROR;
+
         CPU_FREE(cpuset);
-        throw;
+        auto isInitFail = (state == DhtServerState::DHT_SERVER_INIT);
+        state = DhtServerState::DHT_SERVER_ERROR;
+
+        if (!isInitFail)
+            throw;
     } catch (...) {
         DAQ_DEBUG("DHT server exception: unknown");
         state = DhtServerState::DHT_SERVER_ERROR;
         CPU_FREE(cpuset);
         throw;
     }
-
-    CPU_FREE(cpuset);
 }
 
 void DhtServer::serve(void) {

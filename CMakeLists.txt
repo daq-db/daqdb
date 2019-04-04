@@ -80,16 +80,33 @@ add_subdirectory(${3RDPARTY})
 
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
 include_directories(${3RDPARTY}/eRPC-fork/src)
-include_directories(${3RDPARTY}/spdk/dpdk/build/include)
-
-file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
-	lib/dht/*.cpp lib/KVStoreBase.cpp)
-list(FILTER DAQDB_THIN_SOURCES EXCLUDE REGEX "lib/dht/.*Server.*\.cpp$")
+include_directories(${3RDPARTY}/dpdk/build/include)
 include_directories(lib/common lib/dht lib/thin)
 include_directories(${HDRHISTOGRAM_INCLUDES_EXPORT})
-add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
+
+if(ERPC_RAW_TRANSPORT)
+	file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
+		lib/dht/*.cpp lib/KVStoreBase.cpp)
+	list(FILTER DAQDB_THIN_SOURCES EXCLUDE REGEX "lib/dht/.*Server.*\.cpp$")
+
+	add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
+	target_link_libraries(daqdb_thin ${Boost_LIBRARIES} libconfig ${ERPC_LIBS})
+
+else(ERPC_RAW_TRANSPORT)
+	include_directories(lib/offload lib/pmem lib/core lib/spdk lib/primary
+		lib/spdk ${3RDPARTY}/spdk/include)
+
+	file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
+		lib/dht/*.cpp lib/KVStoreBase.cpp lib/spdk/*.cpp)
+	list(FILTER DAQDB_THIN_SOURCES EXCLUDE REGEX "lib/dht/.*Server.*\.cpp$")
+	set(Spdk_LIBRARIES -Wl,--whole-archive spdk -Wl,--no-whole-archive pthread
+		rt uuid)
+	
+	add_library(daqdb_thin SHARED ${DAQDB_THIN_SOURCES})
+	target_link_libraries(daqdb_thin ${Spdk_LIBRARIES} ${Boost_LIBRARIES} libconfig ${ERPC_LIBS})
+endif(ERPC_RAW_TRANSPORT)
+
 target_compile_definitions(daqdb_thin PRIVATE THIN_LIB=1)
-target_link_libraries(daqdb_thin ${Boost_LIBRARIES} libconfig ${ERPC_LIBS})
 
 if(NOT THIN_LIB)
 	include_directories(${3RDPARTY}/pmdk/src/include)

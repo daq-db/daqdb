@@ -16,7 +16,11 @@
 
 #pragma once
 
-#include <DhtCore.h>
+#ifdef DPDK
+#include <OffloadPoller.h> /* net/if.h (put before linux/if.h) */
+#endif
+
+#include <DhtCore.h> /* include linux/if.h */
 #include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
@@ -86,6 +90,10 @@ class KVStoreThin : public KVStoreBase {
 
     size_t _keySize;
     Options _options;
+
+#ifdef DPDK
+    std::unique_ptr<SpdkCore> _spSpdk;
+#endif
 
     std::unique_ptr<DhtCore> _spDht;
 };

@@ -40,6 +40,10 @@ void KVStoreThin::init() {
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
 
+#ifdef DPDK
+    _spSpdk.reset(new SpdkCore(getOptions().offload));
+#endif
+
     _spDht.reset(new DhtCore(getOptions().dht));
     _spDht->initNexus();
     _spDht->initClient();
