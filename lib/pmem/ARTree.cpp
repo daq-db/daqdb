@@ -53,9 +53,9 @@ void TreeImpl::setClassId(enum ALLOC_CLASS c, size_t unit_size) {
         (c == ALLOC_CLASS_VALUE) ? POBJ_HEADER_COMPACT : POBJ_HEADER_NONE;
     d.unit_size = unit_size;
 
-    DAQ_DEBUG("ARTree alloc class (" + std::to_string(c) + ") unit_size=" +
-              std::to_string(d.unit_size) + " units_per_block=" +
-              std::to_string(d.units_per_block));
+    DAQ_DEBUG("ARTree alloc class (" + std::to_string(c) +
+              ") unit_size=" + std::to_string(d.unit_size) +
+              " units_per_block=" + std::to_string(d.units_per_block));
     int rc =
         pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc", &d);
     if (rc) {
@@ -79,7 +79,7 @@ void TreeImpl::setClassId(enum ALLOC_CLASS c, size_t unit_size) {
         }
         if (rc) {
             DAQ_CRITICAL("ARTree failed to allocate custom class");
-            throw OperationFailedException(Status(ALLOCATION_ERROR));
+            throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
         }
     }
     DAQ_DEBUG("ARTree alloc class defined, id= " + std::to_string(d.class_id));
@@ -124,7 +124,7 @@ TreeImpl::TreeImpl(const string &path, const size_t size,
 #endif
 
         if (OID_IS_NULL(*(treeRoot->rootNode).raw_ptr()))
-            throw OperationFailedException(Status(ALLOCATION_ERROR));
+            throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
         treeRoot->initialized = false;
         int status = pmemobj_publish(_pm_pool.get_handle(), _actionsArray,
                                      _actionsCounter);
@@ -348,7 +348,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
             DAQ_CRITICAL("reserve Node256 failed actionsCounter=" +
                          std::to_string(actionsCounter) + " with " +
                          std::string(strerror(errno)));
-            throw OperationFailedException(Status(ALLOCATION_ERROR));
+            throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
         }
         for (i = 0; i < NODE_SIZE[node->type]; i++) {
             node256_new->depth = depth;
@@ -376,7 +376,7 @@ void TreeImpl::allocateFullLevels(persistent_ptr<Node> node,
             DAQ_CRITICAL("reserve nodeLeafCompressed failed actionsCounter=" +
                          std::to_string(actionsCounter) + " with " +
                          std::string(strerror(errno)));
-            throw OperationFailedException(Status(ALLOCATION_ERROR));
+            throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
         }
         for (i = 0; i < NODE_SIZE[node->type]; i++) {
             nodeLeafCompressed_new->depth = depth;
@@ -438,7 +438,8 @@ TreeImpl::findValueInNode(persistent_ptr<Node> current, const char *_key,
                 if (valPrstPtr == nullptr) {
                     DAQ_CRITICAL("reserve ValueWrapper failed with " +
                                  std::string(strerror(errno)));
-                    throw OperationFailedException(Status(ALLOCATION_ERROR));
+                    throw OperationFailedException(
+                        Status(PMEM_ALLOCATION_ERROR));
                 }
                 // std::cout << "valueWrapper off="
                 //          << (*nodeLeafCompressed->child.raw_ptr()).off
@@ -523,7 +524,7 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
         persistent_ptr<ValueWrapper> valPrstPtr =
             tree->findValueInNode(tree->treeRoot->rootNode, key, true);
         if (valPrstPtr == nullptr || valPrstPtr->location != EMPTY)
-            throw OperationFailedException(Status(ALLOCATION_ERROR));
+            throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
         valPrstPtr->actionValue = new struct pobj_action;
 
 #ifdef USE_ALLOCATION_CLASSES
@@ -537,7 +538,7 @@ void ARTree::AllocValueForKey(const char *key, size_t size, char **value) {
         if (valPrstPtr->locationPtr.value == nullptr) {
             DAQ_CRITICAL("reserve Value failed with " +
                          std::string(strerror(errno)));
-            throw OperationFailedException(Status(ALLOCATION_ERROR));
+            throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
         }
         valPrstPtr->size = size;
         *value = valPrstPtr->locationPtr.value.get();
@@ -565,7 +566,7 @@ void ARTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
     if (OID_IS_NULL(poid)) {
         delete val->actionUpdate;
         val->actionUpdate = nullptr;
-        throw OperationFailedException(Status(ALLOCATION_ERROR));
+        throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
     }
     *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
 }

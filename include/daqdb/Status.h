@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -27,7 +27,10 @@ enum StatusCode : long {
 
     _MAX_ERRNO = std::numeric_limits<int>::max(),
     KEY_NOT_FOUND,
-    ALLOCATION_ERROR,
+    BAD_KEY_FORMAT,
+    PMEM_ALLOCATION_ERROR,
+    DHT_ALLOCATION_ERROR,
+    SPDK_ALLOCATION_ERROR,
     OFFLOAD_DISABLED_ERROR,
     QUEUE_FULL_ERROR,
     DHT_DISABLED_ERROR,

@@ -59,12 +59,12 @@ Tree::Tree(const string &path, const size_t size, const size_t allocUnitSize) {
     int rc = pmemobj_ctl_set(_pm_pool.get_handle(), "heap.alloc_class.new.desc",
                              &alloc_daqdb);
     if (rc)
-        throw OperationFailedException(Status(ALLOCATION_ERROR));
+        throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
     alloc_class = alloc_daqdb.class_id;
-    DAQ_DEBUG("RTree New allocation class (" + std::to_string(alloc_class) +
-              ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
-              " units_per_block=" +
-              std::to_string(alloc_daqdb.units_per_block));
+    DAQ_DEBUG(
+        "RTree New allocation class (" + std::to_string(alloc_class) +
+        ") defined: unit_size=" + std::to_string(alloc_daqdb.unit_size) +
+        " units_per_block=" + std::to_string(alloc_daqdb.units_per_block));
 }
 
 size_t RTree::SetKeySize(size_t req_size) { return KEY_SIZE / BITS_IN_BYTE; }
@@ -146,7 +146,7 @@ void RTree::AllocValueForKey(const char *key, size_t size, char **value) {
     if (OID_IS_NULL(poid)) {
         delete val->actionValue;
         val->actionValue = nullptr;
-        throw OperationFailedException(Status(ALLOCATION_ERROR));
+        throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
     }
     val->locationPtr.value = reinterpret_cast<char *>(pmemobj_direct(poid));
     val->size = size;
@@ -167,7 +167,7 @@ void RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV, size_t size) {
     if (OID_IS_NULL(poid)) {
         delete val->actionUpdate;
         val->actionUpdate = nullptr;
-        throw OperationFailedException(Status(ALLOCATION_ERROR));
+        throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
     }
     *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
 }
@@ -246,4 +246,4 @@ ValueWrapper *Tree::findValueInNode(persistent_ptr<Node> current,
 
     return val;
 }
-}
+} // namespace DaqDB

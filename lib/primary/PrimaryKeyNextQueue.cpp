@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <Logger.h>
@@ -28,7 +28,7 @@ PrimaryKeyNextQueue::PrimaryKeyNextQueue(const DaqDB::Options &options)
                          SPDK_ENV_SOCKET_ID_ANY);
     if (!_readyKeys) {
         DAQ_CRITICAL("Cannnot create SPDK ring for ready keys");
-        throw OperationFailedException(ALLOCATION_ERROR);
+        throw OperationFailedException(SPDK_ALLOCATION_ERROR);
     }
 }
 

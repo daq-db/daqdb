@@ -259,7 +259,7 @@ void nodeCli::_cmdGetAsync(const std::string &strLine) {
 
 DaqDB::Key nodeCli::_strToKey(const std::string &key) {
     if (_isInvalidKey(key)) {
-        throw DaqDB::OperationFailedException(ALLOCATION_ERROR);
+        throw DaqDB::OperationFailedException(BAD_KEY_FORMAT);
     }
 
     DaqDB::Key keyBuff = _spKVStore->AllocKey(KeyValAttribute::NOT_BUFFERED);

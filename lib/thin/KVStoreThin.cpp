@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <cerrno>
+
 #include "KVStoreThin.h"
 #include <Logger.h>
 
@@ -134,7 +136,7 @@ void KVStoreThin::RemoveRange(const Key &beg, const Key &end) {
 Value KVStoreThin::Alloc(const Key &key, size_t size,
                          const AllocOptions &options) {
     if (size == 0)
-        throw OperationFailedException(ALLOCATION_ERROR);
+        throw OperationFailedException(EINVAL);
     if (options.attr & KeyValAttribute::KVS_BUFFERED) {
         return dhtClient()->alloc(key, size);
     } else {
