@@ -47,7 +47,7 @@ trap kill_server SIGINT SIGTERM
 echo "Starting server ..."
 run_server
 
-sleep 10
+sleep 15
 
 echo "Executing tests"
 run_functests_thin
