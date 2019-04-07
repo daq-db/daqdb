@@ -23,8 +23,8 @@ logging_level = "DEBUG";
 //******************************* DHT SECTION ********************************
 //*****************************************************************************
 
-dht_key_mask_length = 1;
-dht_key_mask_offset = 0;
+dht_key_mask_length = 2;
+dht_key_mask_offset = 6;
 neighbors : ({
     ip = "localhost";
     port = 31850;

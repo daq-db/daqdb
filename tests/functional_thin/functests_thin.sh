@@ -44,10 +44,10 @@ fi
 
 trap kill_server SIGINT SIGTERM
 
-echo "Starting server"
+echo "Starting server ..."
 run_server
 
-sleep 3
+sleep 10
 
 echo "Executing tests"
 run_functests_thin
