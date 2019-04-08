@@ -16,6 +16,7 @@
 
 #include "DhtServer.h"
 
+#include <cerrno>
 #include <iostream>
 #include <sstream>
 
@@ -223,7 +224,7 @@ void DhtServer::_serve(void) {
     if (!cpuset) {
         state = DhtServerState::DHT_SERVER_ERROR;
         DAQ_DEBUG("Cannot allocate cpuset");
-        throw OperationFailedException(ALLOCATION_ERROR);
+        throw OperationFailedException(ENOMEM);
     }
 
     CPU_ZERO_S(size, cpuset);

@@ -17,6 +17,7 @@
 #include "KVStore.h"
 
 #include <boost/filesystem.hpp>
+#include <cerrno>
 #include <chrono>
 #include <condition_variable>
 #include <sstream>
@@ -230,14 +231,14 @@ void KVStore::Get(const char *key, size_t keySize, char *value,
     pmem()->Get(key, reinterpret_cast<void **>(&pVal), &pValSize, &location);
     if (!value) {
         DAQ_DEBUG("Error on get: value buffer is null");
-        throw OperationFailedException(ALLOCATION_ERROR);
+        throw OperationFailedException(PMEM_ALLOCATION_ERROR);
     }
     if (location == PMEM) {
         if (*valueSize < pValSize) {
             DAQ_DEBUG("Error on get: buffer size " +
                       std::to_string(*valueSize) + " < value size " +
                       std::to_string(pValSize));
-            throw OperationFailedException(ALLOCATION_ERROR);
+            throw OperationFailedException(EINVAL);
         }
         pmem_memcpy_nodrain(value, pVal, pValSize);
         *valueSize = pValSize;
@@ -256,11 +257,11 @@ void KVStore::Get(const char *key, size_t keySize, char **value,
 
     pmem()->Get(key, reinterpret_cast<void **>(&pVal), &pValSize, &location);
     if (!value)
-        throw OperationFailedException(ALLOCATION_ERROR);
+        throw OperationFailedException(PMEM_ALLOCATION_ERROR);
     if (location == PMEM) {
         *value = new char[pValSize];
         if (!value)
-            throw OperationFailedException(ALLOCATION_ERROR);
+            throw OperationFailedException(ENOMEM);
         pmem_memcpy_nodrain(*value, pVal, pValSize);
         *valueSize = pValSize;
     } else if (location == DISK) {

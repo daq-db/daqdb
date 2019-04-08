@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <boost/format.hpp>
@@ -250,7 +250,7 @@ bool DhtClient::ping(DhtNode &node) {
 Key DhtClient::allocKey(size_t keySize) {
     DAQ_DEBUG("Key alloc requested from DhtClient");
     if (_reqMsgBufInUse)
-        throw OperationFailedException(Status(ALLOCATION_ERROR));
+        throw OperationFailedException(Status(DHT_ALLOCATION_ERROR));
     _reqMsgBufInUse = true;
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
     // todo keySize is known, we don't need to send it
@@ -271,7 +271,7 @@ erpc::MsgBuffer *DhtClient::getRespMsgBuf() { return _respMsgBuf.get(); }
 Value DhtClient::alloc(const Key &key, size_t size) {
     DAQ_DEBUG("Value alloc requested from DhtClient");
     if (_reqMsgBufValInUse)
-        throw OperationFailedException(Status(ALLOCATION_ERROR));
+        throw OperationFailedException(Status(DHT_ALLOCATION_ERROR));
     _reqMsgBufValInUse = true;
     DaqdbDhtMsg *msg = reinterpret_cast<DaqdbDhtMsg *>(_reqMsgBuf.get()->buf);
     // todo add size asserts
