@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <boost/filesystem.hpp>
@@ -24,8 +24,6 @@
 using namespace std;
 
 namespace bf = boost::filesystem;
-
-using namespace std;
 
 namespace DaqDB {
 
@@ -175,10 +173,10 @@ DhtNode *DhtCore::getHostForKey(Key key) {
     if (getLocalNode()->getMaskLength() > 0) {
         auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
                                 getLocalNode()->getMaskOffset());
-        DAQ_DEBUG("keyHash:" + std::to_string(keyHash) + " maskLen:" +
-                  std::to_string(getLocalNode()->getMaskLength()) +
-                  " maskOffset:" +
-                  std::to_string(getLocalNode()->getMaskOffset()));
+        DAQ_DEBUG(
+            "keyHash:" + std::to_string(keyHash) +
+            " maskLen:" + std::to_string(getLocalNode()->getMaskLength()) +
+            " maskOffset:" + std::to_string(getLocalNode()->getMaskOffset()));
         for (auto rangeAndHost : _rangeToHost) {
             auto range = rangeAndHost.first;
             DAQ_DEBUG("Node " + rangeAndHost.second->getUri() + " serving " +

@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "daqdb/KVStoreBase.h"
@@ -33,7 +33,7 @@ struct Key {
 
 // ![key_struct]
 
-int KVStoreBaseExample() {
+void KVStoreBaseExample() {
     // Open KV store
     //! [open]
     DaqDB::Options options;
@@ -102,7 +102,6 @@ int KVStoreBaseExample() {
                               // error
                               return;
                           }
-
                       });
     } catch (...) {
         // error
@@ -154,7 +153,6 @@ int KVStoreBaseExample() {
                           [&](DaqDB::KVStoreBase *kvs, DaqDB::Status status,
                               const char *key, size_t keySize,
                               const char *value, size_t valueSize) {
-
                               if (!status.ok()) {
                                   // error
                                   return;
