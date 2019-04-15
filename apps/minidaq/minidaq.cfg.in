@@ -19,7 +19,7 @@ neighbors :
         local = 1;
     },
     {
-        // Storage noge
+        // Storage node
         ip = "10.102.108.55";
         port = 31851;
         keys = { start = "0", end = "255"}
