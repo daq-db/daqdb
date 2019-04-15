@@ -35,8 +35,8 @@ Key MinidaqRoNode::_NextKey() {
                                  ? AllocOptions(KeyValAttribute::NOT_BUFFERED)
                                  : AllocOptions(KeyValAttribute::KVS_BUFFERED));
     MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
-    mKeyPtr->detectorId = 0;
-    mKeyPtr->componentId = _id;
+    mKeyPtr->detectorId = _id;
+    mKeyPtr->componentId = 0;
     memcpy(&mKeyPtr->eventId, &_eventId, sizeof(mKeyPtr->eventId));
     _eventId += _nTh;
     return key;
