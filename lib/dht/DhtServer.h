@@ -78,7 +78,7 @@ class DhtServer {
 
   private:
     void _serve(void);
-    void _serveWorker(unsigned int workerId, cpu_set_t *cpuset, size_t size);
+    void _serveWorker(unsigned int workerId);
 
     std::unique_ptr<erpc::Nexus> _spServerNexus;
     KVStore *_kvs;
