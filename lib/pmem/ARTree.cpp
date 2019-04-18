@@ -283,7 +283,7 @@ void ARTree::decrementParent(persistent_ptr<Node256> node, const char *key) {
 
         decrementParent(node->parent, key);
         if (node->parent && node->parent->refCounter == 0) {
-            persistent_ptr<Node256> nodeParent;
+            persistent_ptr<Node256> nodeParent = node->parent;
             pmemobj_free(nodeParent->children[0].raw_ptr());
         }
     }
