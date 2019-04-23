@@ -31,7 +31,7 @@
 #endif
 
 /** @TODO jradtke: should be taken from configuration file */
-#define DHT_SERVER_CPU_CORE_BASE 2
+#define DHT_SERVER_CPU_CORE_BASE 0
 
 /**
  * @TODO jradtke: not needed when eRPC implements configurable size of

@@ -29,7 +29,7 @@
 #include <libpmem.h>
 
 /** @TODO jradtke: should be taken from configuration file */
-#define POLLER_CPU_CORE_BASE 1
+#define POLLER_CPU_CORE_BASE 0
 /** @TODO jradtke: should be taken from configuration file */
 #define DHT_SERVER_WORKER_THREADS 3
 
@@ -66,7 +66,7 @@ KVStore::~KVStore() {
 
 void KVStore::init() {
     auto pollerCount = getOptions().runtime.numOfPollers;
-    auto coreUsed = 0;
+    auto coreUsed = DHT_SERVER_WORKER_THREADS + 1;
 
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
