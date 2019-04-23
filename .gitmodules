@@ -4,7 +4,7 @@
 	ignore = dirty
 [submodule "third-party/pmdk"]
 	path = third-party/pmdk
-	url = https://github.com/pbalcer/nvml.git
+	url = https://github.com/pmem/pmdk.git
 	ignore = dirty
 [submodule "third-party/HdrHistogram_c"]
 	path = third-party/HdrHistogram_c
@@ -29,3 +29,4 @@
 [submodule "third-party/eRPC-fork"]
 	path = third-party/eRPC-fork
 	url = https://github.com/daq-db/eRPC.git
+	ignore = dirty
