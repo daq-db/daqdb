@@ -82,7 +82,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
 
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
-        mKeyPtr->componentId = baseId + i;
+        mKeyPtr->detectorId = baseId + i;
         DaqDB::Value value;
         try {
             value = _kvs->Get(key);

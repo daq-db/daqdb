@@ -8,15 +8,20 @@
  * key_mask
  * neighbors
  */
-dht_key_mask_length = 0;
-dht_key_mask_offset = 0;
+dht_key_mask_length = 1;
+dht_key_mask_offset = 5;
 neighbors :
 (
     {
-        // local
-        ip = "localhost";
+        // Local node
+        ip = "10.102.108.53";
         port = 31851;
-        peerPort = 31852;
         local = 1;
+    },
+    {
+        // Storage node
+        ip = "10.102.108.55";
+        port = 31851;
+        keys = { start = "0", end = "255"}
     },
 );

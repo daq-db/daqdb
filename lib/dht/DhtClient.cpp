@@ -119,8 +119,7 @@ DhtClient::~DhtClient() {
     }
 }
 
-bool DhtClient::_initializeNode(DhtNode *node) {
-    auto result = true;
+void DhtClient::_initializeNode(DhtNode *node) {
     erpc::Rpc<erpc::CTransport> *rpc =
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     auto serverUri = boost::str(boost::format("%1%:%2%") % node->getIp() %
@@ -137,9 +136,8 @@ bool DhtClient::_initializeNode(DhtNode *node) {
         node->setSessionId(sessionNum);
     } else {
         DAQ_DEBUG("Cannot connect to: " + serverUri);
-        result = false;
+        throw OperationFailedException(Status(StatusCode::DHT_CONNECT_ERROR));
     }
-    return result;
 }
 
 void DhtClient::initialize(DhtCore *dhtCore) {
@@ -155,9 +153,8 @@ void DhtClient::initialize(DhtCore *dhtCore) {
         _dhtCore->registerClient(this);
 
         auto neighbors = _dhtCore->getNeighbors();
-        for (DhtNode *neighbor : *neighbors) {
+        for (DhtNode *neighbor : *neighbors)
             _initializeNode(neighbor);
-        }
         _reqMsgBuf = std::make_unique<erpc::MsgBuffer>(
             rpc->alloc_msg_buffer_or_die(ERPC_MAX_REQUEST_SIZE));
         _respMsgBuf = std::make_unique<erpc::MsgBuffer>(
@@ -239,11 +236,8 @@ bool DhtClient::ping(DhtNode &node) {
     if (node.getSessionId() != ERPC_SESSION_NOT_SET) {
         return rpc->is_connected(node.getSessionId());
     } else {
-        if (_initializeNode(&node)) {
-            return rpc->is_connected(node.getSessionId());
-        } else {
-            return false;
-        }
+        _initializeNode(&node);
+        return true;
     }
 }
 

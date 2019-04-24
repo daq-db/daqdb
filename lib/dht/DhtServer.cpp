@@ -31,8 +31,7 @@
 #endif
 
 /** @TODO jradtke: should be taken from configuration file */
-#define DHT_SERVER_CPU_CORE_BASE 5
-#define DHT_SERVER_CPU_CORE_MAX 32
+#define DHT_SERVER_CPU_CORE_BASE 0
 
 /**
  * @TODO jradtke: not needed when eRPC implements configurable size of
@@ -187,14 +186,16 @@ DhtServer::~DhtServer() {
         _thread->join();
 }
 
-void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t *cpuset,
-                             size_t size) {
+void DhtServer::_serveWorker(unsigned int workerId) {
     DhtServerCtx rpcCtx;
 
-    const int set_result = pthread_setaffinity_np(pthread_self(), size, cpuset);
-    if (!set_result) {
-        DAQ_DEBUG("Cannot set affinity for DHT server worker[" +
-                  to_string(workerId) + "]");
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(DHT_SERVER_CPU_CORE_BASE + workerId, &cpuset);
+    const int set_result = pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+    if (set_result) {
+        DAQ_CRITICAL("Cannot set affinity for DHT server worker[" +
+                     to_string(workerId) + "]");
     }
 
     try {
@@ -219,20 +220,13 @@ void DhtServer::_serveWorker(unsigned int workerId, cpu_set_t *cpuset,
 
 void DhtServer::_serve(void) {
 
-    size_t size = CPU_ALLOC_SIZE(DHT_SERVER_CPU_CORE_MAX);
-    cpu_set_t *cpuset = CPU_ALLOC(DHT_SERVER_CPU_CORE_MAX);
-    if (!cpuset) {
-        state = DhtServerState::DHT_SERVER_ERROR;
-        DAQ_DEBUG("Cannot allocate cpuset");
-        throw OperationFailedException(ENOMEM);
-    }
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(DHT_SERVER_CPU_CORE_BASE, &cpuset);
 
-    CPU_ZERO_S(size, cpuset);
-    CPU_SET_S(DHT_SERVER_CPU_CORE_BASE, size, cpuset);
-
-    const int set_result = pthread_setaffinity_np(pthread_self(), size, cpuset);
-    if (!set_result) {
-        DAQ_DEBUG("Cannot set affinity for DHT server thread");
+    const int set_result = pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+    if (set_result) {
+        DAQ_CRITICAL("Cannot set affinity for DHT server thread");
     }
 
     _spServerNexus.reset(
@@ -275,10 +269,8 @@ void DhtServer::_serve(void) {
 
         for (uint8_t threadIndex = 1; threadIndex <= _workerThreadsNumber;
              ++threadIndex) {
-            CPU_ZERO_S(size, cpuset);
-            CPU_SET_S(DHT_SERVER_CPU_CORE_BASE + threadIndex, size, cpuset);
             _workerThreads.push_back(thread(&DhtServer::_serveWorker, this,
-                                            threadIndex, cpuset, size));
+                                            threadIndex));
         }
 
         state = DhtServerState::DHT_SERVER_READY;
@@ -298,16 +290,12 @@ void DhtServer::_serve(void) {
     } catch (exception &e) {
         DAQ_DEBUG("DHT server exception: " + std::string(e.what()));
         state = DhtServerState::DHT_SERVER_ERROR;
-        CPU_FREE(cpuset);
         throw;
     } catch (...) {
         DAQ_DEBUG("DHT server exception: unknown");
         state = DhtServerState::DHT_SERVER_ERROR;
-        CPU_FREE(cpuset);
         throw;
     }
-
-    CPU_FREE(cpuset);
 }
 
 void DhtServer::serve(void) {
