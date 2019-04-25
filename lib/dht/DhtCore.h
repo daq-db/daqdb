@@ -33,6 +33,9 @@
 #define ERPC_MAX_REQUEST_SIZE ((16 * 1024) + ERPC_DAQDB_METADATA_SIZE)
 #define ERPC_MAX_RESPONSE_SIZE ((16 * 1024) + ERPC_DAQDB_METADATA_SIZE)
 
+/** @TODO jradtke: should be taken from configuration file */
+#define DHT_SERVER_WORKER_THREADS 3
+
 namespace DaqDB {
 class DhtCore {
   public:
@@ -94,6 +97,7 @@ class DhtCore {
 
     DhtOptions options;
     std::atomic<int> numberOfClients;
+    std::atomic<int> numberOfClientThreads;
 
   private:
     void _initNeighbors(void);

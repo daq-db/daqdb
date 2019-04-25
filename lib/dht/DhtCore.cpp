@@ -38,13 +38,13 @@ const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
 #define DEFAULT_DHT_MASK_LENGTH 1
 #define DEFAULT_DHT_MASK_OFFSET 0
 
-DhtCore::DhtCore() : numberOfClients(0) {}
+DhtCore::DhtCore() : numberOfClients(0), numberOfClientThreads(0) {}
 
 DhtCore::DhtCore(const DaqDB::DhtCore &dhtCore)
-    : options(dhtCore.options), numberOfClients(0) {}
+    : options(dhtCore.options), numberOfClients(0), numberOfClientThreads(0) {}
 
 DhtCore::DhtCore(DhtOptions dhtOptions)
-    : options(dhtOptions), numberOfClients(0) {
+    : options(dhtOptions), numberOfClients(0), numberOfClientThreads(0) {
     _initNeighbors();
     _initRangeToHost();
 }
@@ -67,7 +67,9 @@ void DhtCore::initNexus(unsigned int port) {
 }
 
 void DhtCore::initClient() {
-    _threadDhtClient = new DhtClient();
+    auto now = std::chrono::system_clock::now();
+    auto ms = now.time_since_epoch();
+    _threadDhtClient = new DhtClient(ms.count() % (DHT_SERVER_WORKER_THREADS + 1));
     _threadDhtClient->initialize(this);
     if (getClient()->state == DhtClientState::DHT_CLIENT_READY) {
         DAQ_DEBUG("New DHT client started successfully");

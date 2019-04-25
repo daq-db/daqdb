@@ -52,6 +52,7 @@ class DhtCore;
 class DhtClient {
   public:
     DhtClient();
+    DhtClient(uint8_t remotRpcIdBase);
     virtual ~DhtClient();
 
     /**
@@ -198,5 +199,6 @@ class DhtClient {
     std::unique_ptr<erpc::MsgBuffer> _respMsgBuf;
     bool _reqMsgBufInUse = false;
     bool _reqMsgBufValInUse = false;
+    uint8_t _remoteRpcId = 0;
 };
 } // namespace DaqDB
