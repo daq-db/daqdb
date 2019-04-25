@@ -69,7 +69,8 @@ void DhtCore::initNexus(unsigned int port) {
 void DhtCore::initClient() {
     auto now = std::chrono::system_clock::now();
     auto ms = now.time_since_epoch();
-    _threadDhtClient = new DhtClient(ms.count() % (DHT_SERVER_WORKER_THREADS + 1));
+    _threadDhtClient =
+        new DhtClient(ms.count() % (DHT_SERVER_WORKER_THREADS + 1));
     _threadDhtClient->initialize(this);
     if (getClient()->state == DhtClientState::DHT_CLIENT_READY) {
         DAQ_DEBUG("New DHT client started successfully");
@@ -175,10 +176,10 @@ DhtNode *DhtCore::getHostForKey(Key key) {
     if (getLocalNode()->getMaskLength() > 0) {
         auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
                                 getLocalNode()->getMaskOffset());
-        DAQ_DEBUG(
-            "keyHash:" + std::to_string(keyHash) +
-            " maskLen:" + std::to_string(getLocalNode()->getMaskLength()) +
-            " maskOffset:" + std::to_string(getLocalNode()->getMaskOffset()));
+        DAQ_DEBUG("keyHash:" + std::to_string(keyHash) + " maskLen:" +
+                  std::to_string(getLocalNode()->getMaskLength()) +
+                  " maskOffset:" +
+                  std::to_string(getLocalNode()->getMaskOffset()));
         for (auto rangeAndHost : _rangeToHost) {
             auto range = rangeAndHost.first;
             DAQ_DEBUG("Node " + rangeAndHost.second->getUri() + " serving " +
