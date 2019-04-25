@@ -52,7 +52,6 @@ class DhtCore;
 class DhtClient {
   public:
     DhtClient();
-    DhtClient(uint8_t remotRpcIdBase);
     virtual ~DhtClient();
 
     /**

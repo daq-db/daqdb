@@ -98,10 +98,12 @@ class DhtCore {
     DhtOptions options;
     std::atomic<int> numberOfClients;
     std::atomic<int> numberOfClientThreads;
+    uint64_t randomSeed = 0;
 
   private:
     void _initNeighbors(void);
     void _initRangeToHost(void);
+    void _initSeed(void);
 
     uint64_t _genHash(const char *key, uint64_t maskLength,
                       uint64_t maskOffset);

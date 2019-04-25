@@ -45,6 +45,7 @@ DhtCore::DhtCore(const DaqDB::DhtCore &dhtCore)
 
 DhtCore::DhtCore(DhtOptions dhtOptions)
     : options(dhtOptions), numberOfClients(0), numberOfClientThreads(0) {
+    _initSeed();
     _initNeighbors();
     _initRangeToHost();
 }
@@ -62,15 +63,19 @@ DhtCore::~DhtCore() {
     }
 }
 
+void DhtCore::_initSeed() {
+    auto now = std::chrono::system_clock::now();
+    auto now_us = std::chrono::time_point_cast<std::chrono::microseconds>(now);
+    auto us = now.time_since_epoch();
+    randomSeed = us.count();
+}
+
 void DhtCore::initNexus(unsigned int port) {
     _spNexus.reset(new erpc::Nexus(getLocalNode()->getUri(port), 0, 0));
 }
 
 void DhtCore::initClient() {
-    auto now = std::chrono::system_clock::now();
-    auto ms = now.time_since_epoch();
-    _threadDhtClient =
-        new DhtClient(ms.count() % (DHT_SERVER_WORKER_THREADS + 1));
+    _threadDhtClient = new DhtClient();
     _threadDhtClient->initialize(this);
     if (getClient()->state == DhtClientState::DHT_CLIENT_READY) {
         DAQ_DEBUG("New DHT client started successfully");
