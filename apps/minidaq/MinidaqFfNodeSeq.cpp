@@ -35,8 +35,8 @@ Key MinidaqFfNodeSeq::_NextKey() {
                                  ? AllocOptions(KeyValAttribute::NOT_BUFFERED)
                                  : AllocOptions(KeyValAttribute::KVS_BUFFERED));
     MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
-    mKeyPtr->detectorId = 0;
-    mKeyPtr->componentId = _baseId;
+    mKeyPtr->detectorId = _baseId;
+    mKeyPtr->componentId = 0;
     memcpy(&mKeyPtr->eventId, &_eventId, sizeof(mKeyPtr->eventId));
     _eventId += _nTh;
     return key;
@@ -51,7 +51,7 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
 
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
-        mKeyPtr->componentId = baseId + i;
+        mKeyPtr->detectorId = baseId + i;
         DaqDB::Value value;
         nRetries = 0;
         while (nRetries < _maxRetries) {
