@@ -124,8 +124,9 @@ void DhtClient::_initializeNode(DhtNode *node) {
         reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
     auto serverUri = boost::str(boost::format("%1%:%2%") % node->getIp() %
                                 to_string(node->getPort()));
-    DAQ_DEBUG("Connecting to " + serverUri);
-    auto sessionNum = rpc->create_session(serverUri, 0);
+    DAQ_DEBUG("Connecting to " + serverUri + ":" +
+              std::to_string(_remoteRpcId));
+    auto sessionNum = rpc->create_session(serverUri, _remoteRpcId);
     DAQ_DEBUG("Session " + std::to_string(sessionNum) + " created");
 
     auto numberOfRetries = WAIT_FOR_NEIGHBOUR_RETRIES;
@@ -145,6 +146,9 @@ void DhtClient::initialize(DhtCore *dhtCore) {
     _dhtCore = dhtCore;
     _nexus = _dhtCore->getNexus();
     erpc::Rpc<erpc::CTransport> *rpc;
+
+    int i = _dhtCore->numberOfClientThreads++;
+    _remoteRpcId = (dhtCore->randomSeed + i) % (DHT_SERVER_WORKER_THREADS + 1);
 
     try {
         rpc = new erpc::Rpc<erpc::CTransport>(

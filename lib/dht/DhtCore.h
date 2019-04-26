@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #pragma once
@@ -32,6 +32,9 @@
 #define ERPC_DAQDB_METADATA_SIZE 64
 #define ERPC_MAX_REQUEST_SIZE ((16 * 1024) + ERPC_DAQDB_METADATA_SIZE)
 #define ERPC_MAX_RESPONSE_SIZE ((16 * 1024) + ERPC_DAQDB_METADATA_SIZE)
+
+/** @TODO jradtke: should be taken from configuration file */
+#define DHT_SERVER_WORKER_THREADS 3
 
 namespace DaqDB {
 class DhtCore {
@@ -94,10 +97,13 @@ class DhtCore {
 
     DhtOptions options;
     std::atomic<int> numberOfClients;
+    std::atomic<int> numberOfClientThreads;
+    uint64_t randomSeed = 0;
 
   private:
     void _initNeighbors(void);
     void _initRangeToHost(void);
+    void _initSeed(void);
 
     uint64_t _genHash(const char *key, uint64_t maskLength,
                       uint64_t maskOffset);

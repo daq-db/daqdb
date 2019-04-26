@@ -38,13 +38,14 @@ const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
 #define DEFAULT_DHT_MASK_LENGTH 1
 #define DEFAULT_DHT_MASK_OFFSET 0
 
-DhtCore::DhtCore() : numberOfClients(0) {}
+DhtCore::DhtCore() : numberOfClients(0), numberOfClientThreads(0) {}
 
 DhtCore::DhtCore(const DaqDB::DhtCore &dhtCore)
-    : options(dhtCore.options), numberOfClients(0) {}
+    : options(dhtCore.options), numberOfClients(0), numberOfClientThreads(0) {}
 
 DhtCore::DhtCore(DhtOptions dhtOptions)
-    : options(dhtOptions), numberOfClients(0) {
+    : options(dhtOptions), numberOfClients(0), numberOfClientThreads(0) {
+    _initSeed();
     _initNeighbors();
     _initRangeToHost();
 }
@@ -60,6 +61,13 @@ DhtCore::~DhtCore() {
         _registeredDhtClients.pop_back();
         delete dhtClient;
     }
+}
+
+void DhtCore::_initSeed() {
+    auto now = std::chrono::system_clock::now();
+    auto now_us = std::chrono::time_point_cast<std::chrono::microseconds>(now);
+    auto us = now.time_since_epoch();
+    randomSeed = us.count();
 }
 
 void DhtCore::initNexus(unsigned int port) {
@@ -173,10 +181,10 @@ DhtNode *DhtCore::getHostForKey(Key key) {
     if (getLocalNode()->getMaskLength() > 0) {
         auto keyHash = _genHash(key.data(), getLocalNode()->getMaskLength(),
                                 getLocalNode()->getMaskOffset());
-        DAQ_DEBUG(
-            "keyHash:" + std::to_string(keyHash) +
-            " maskLen:" + std::to_string(getLocalNode()->getMaskLength()) +
-            " maskOffset:" + std::to_string(getLocalNode()->getMaskOffset()));
+        DAQ_DEBUG("keyHash:" + std::to_string(keyHash) + " maskLen:" +
+                  std::to_string(getLocalNode()->getMaskLength()) +
+                  " maskOffset:" +
+                  std::to_string(getLocalNode()->getMaskOffset()));
         for (auto rangeAndHost : _rangeToHost) {
             auto range = rangeAndHost.first;
             DAQ_DEBUG("Node " + rangeAndHost.second->getUri() + " serving " +
