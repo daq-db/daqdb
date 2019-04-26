@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <config/Configuration.h>
@@ -72,11 +72,19 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.mode = OperationalMode::STORAGE;
     }
 
+    unsigned int numOfDhtThreads;
+    if (cfg.lookupValue("runtime_dht_threads", numOfDhtThreads))
+        options.runtime.numOfDhtThreads = numOfDhtThreads;
+    unsigned int baseCoreId;
+    if (cfg.lookupValue("runtime_base_core_id", baseCoreId))
+        options.runtime.baseCoreId = baseCoreId;
+
     int offloadAllocUnitSize;
     if (cfg.lookupValue("offload_unit_alloc_size", offloadAllocUnitSize))
         options.offload.allocUnitSize = offloadAllocUnitSize;
     cfg.lookupValue("offload_nvme_addr", options.offload.nvmeAddr);
     cfg.lookupValue("offload_nvme_name", options.offload.nvmeName);
+
     int maskLength = 0;
     int maskOffset = 0;
     cfg.lookupValue("dht_key_mask_length", maskLength);

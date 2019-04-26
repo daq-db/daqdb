@@ -32,9 +32,6 @@ thread_local DhtClient *DhtCore::_threadDhtClient = nullptr;
 const string DEFAULT_ERPC_SERVER_IP = "localhost";
 const unsigned short DEFAULT_ERPC_SERVER_PORT = 31850;
 
-const size_t DEFAULT_ERPC_NUMA_NODE = 0;
-const size_t DEFAULT_ERPC_NUM_OF_THREADS = 0;
-
 #define DEFAULT_DHT_MASK_LENGTH 1
 #define DEFAULT_DHT_MASK_OFFSET 0
 

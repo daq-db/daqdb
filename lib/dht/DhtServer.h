@@ -44,7 +44,8 @@ struct DhtServerCtx {
 
 class DhtServer {
   public:
-    DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads = 0);
+    DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads = 1,
+              uint8_t baseCoreId = 0);
     ~DhtServer();
 
     /**
@@ -86,6 +87,7 @@ class DhtServer {
     std::thread *_thread;
 
     uint8_t _workerThreadsNumber;
+    uint8_t _baseCoreId;
     std::vector<std::thread> _workerThreads;
 };
 
