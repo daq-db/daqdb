@@ -41,6 +41,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_THREADS_ARO 0
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
+#define MINIDAQ_DEFAULT_N_THREADS_DHT 1
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
 #define MINIDAQ_DEFAULT_N_POOLERS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
@@ -48,8 +49,8 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_SERVER false
 #define MINIDAQ_DEFAULT_ACCEPT_LEVEL 0.5
 #define MINIDAQ_DEFAULT_DELAY 0
-#define MINIDAQ_DEFAULT_BASE_CORE_ID 10
-#define MINIDAQ_DEFAULT_N_CORES 10
+#define MINIDAQ_DEFAULT_BASE_CORE_ID 0
+#define MINIDAQ_DEFAULT_N_CORES 24
 #define MINIDAQ_DEFAULT_LOG false
 #define MINIDAQ_DEFAULT_COLLECTOR_DELAY_US 100
 #define MINIDAQ_DEFAULT_ITERATIONS 0
@@ -74,7 +75,9 @@ int tTest_ms;
 int tRamp_ms;
 int delay;
 int nCores;
+int nCoresUsed = 0;
 int bCoreId;
+int nDhtThreads;
 int maxReadyKeys;
 size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
@@ -112,6 +115,14 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.key.field(1, sizeof(DaqDB::MinidaqKey::detectorId));
     options.key.field(2, sizeof(DaqDB::MinidaqKey::componentId));
     options.runtime.numOfPollers = nPoolers;
+    nCoresUsed += nPoolers;
+    options.runtime.numOfDhtThreads = nDhtThreads;
+    nCoresUsed += nDhtThreads;
+    if (nCoresUsed > nCores) {
+        std::cout << "Not enough CPU cores." << endl;
+        exit(1);
+    }
+    options.runtime.baseCoreId = bCoreId;
     options.runtime.maxReadyKeys = maxReadyKeys;
     if (satellite) {
         options.mode = DaqDB::OperationalMode::SATELLITE;
@@ -139,8 +150,6 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
 
 static void
 runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
-    int nCoresUsed = 0;
-
     if (!nodes.size())
         return;
 
@@ -240,15 +249,19 @@ int main(int argc, const char *argv[]) {
         "n-poolers",
         po::value<int>(&nPoolers)->default_value(MINIDAQ_DEFAULT_N_POOLERS),
         "Total number of DaqDB pooler threads.")(
+        "n-dht-threads", po::value<int>(&nDhtThreads)
+                             ->default_value(MINIDAQ_DEFAULT_N_THREADS_DHT),
+        "Total number of DaqDB DHT threads.")(
         "base-core-id",
         po::value<int>(&bCoreId)->default_value(MINIDAQ_DEFAULT_BASE_CORE_ID),
-        "Base core ID for minidaq worker threads.")(
+        "Base core ID for DAQDB and minidaq worker threads.")(
         "n-cores",
         po::value<int>(&nCores)->default_value(MINIDAQ_DEFAULT_N_CORES),
-        "Number of cores for minidaq worker threads.")(
-        "max-ready-keys", po::value<int>(&maxReadyKeys)
-                              ->default_value(MINIDAQ_DEFAULT_MAX_READY_KEYS),
-        "Size of the queue holding keys ready for collecting.")(
+        "Total number of cores available for DAQDB and minidaq worker "
+        "threads.")("max-ready-keys",
+                    po::value<int>(&maxReadyKeys)
+                        ->default_value(MINIDAQ_DEFAULT_MAX_READY_KEYS),
+                    "Size of the queue holding keys ready for collecting.")(
         "start-delay",
         po::value<int>(&delay)->default_value(MINIDAQ_DEFAULT_DELAY),
         "Delays start of the test on each worker thread.")(
@@ -383,6 +396,7 @@ int main(int argc, const char *argv[]) {
         if (!isParallel) {
             runBenchmark(nodes);
             nodes.clear();
+            nCoresUsed -= (nRoTh + nAroTh);
         }
 
         if (nFfTh) {
