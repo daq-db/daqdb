@@ -30,9 +30,6 @@
 #include "DhtServerLoopback.h"
 #endif
 
-/** @TODO jradtke: should be taken from configuration file */
-#define DHT_SERVER_CPU_CORE_BASE 0
-
 /**
  * @TODO jradtke: not needed when eRPC implements configurable size of
  * pre_resp_msgbuf
@@ -75,9 +72,9 @@ static void erpcReqGetAnyHandler(erpc::ReqHandle *req_handle, void *ctx) {
     erpc::MsgBuffer *resp;
 
     try {
-        resp = erpcPrepareMsgbuf(rpc, req_handle,
-                                 sizeof(DaqdbDhtResult) +
-                                     serverCtx->kvs->KeySize());
+        resp =
+            erpcPrepareMsgbuf(rpc, req_handle, sizeof(DaqdbDhtResult) +
+                                                   serverCtx->kvs->KeySize());
         DaqdbDhtResult *result = reinterpret_cast<DaqdbDhtResult *>(resp->buf);
         result->msgSize = serverCtx->kvs->KeySize();
         serverCtx->kvs->GetAny(result->msg, serverCtx->kvs->KeySize());
@@ -174,9 +171,11 @@ static void erpcReqRemoveHandler(erpc::ReqHandle *req_handle, void *ctx) {
     DAQ_DEBUG("Response enqueued");
 }
 
-DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads)
+DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads,
+                     uint8_t baseCoreId)
     : state(DhtServerState::DHT_SERVER_INIT), _dhtCore(dhtCore), _kvs(kvs),
-      _thread(nullptr), _workerThreadsNumber(numWorkerThreads) {
+      _thread(nullptr), _workerThreadsNumber(numWorkerThreads),
+      _baseCoreId(baseCoreId) {
     serve();
 }
 
@@ -191,8 +190,9 @@ void DhtServer::_serveWorker(unsigned int workerId) {
 
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    CPU_SET(DHT_SERVER_CPU_CORE_BASE + workerId, &cpuset);
-    const int set_result = pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+    CPU_SET(_baseCoreId + workerId, &cpuset);
+    const int set_result =
+        pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
     if (set_result) {
         DAQ_CRITICAL("Cannot set affinity for DHT server worker[" +
                      to_string(workerId) + "]");
@@ -222,9 +222,10 @@ void DhtServer::_serve(void) {
 
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    CPU_SET(DHT_SERVER_CPU_CORE_BASE, &cpuset);
+    CPU_SET(_baseCoreId, &cpuset);
 
-    const int set_result = pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+    const int set_result =
+        pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
     if (set_result) {
         DAQ_CRITICAL("Cannot set affinity for DHT server thread");
     }
@@ -267,10 +268,10 @@ void DhtServer::_serve(void) {
         rpcCtx.kvs = _kvs;
         rpcCtx.rpc = rpc;
 
-        for (uint8_t threadIndex = 1; threadIndex <= _workerThreadsNumber;
+        for (uint8_t threadIndex = 1; threadIndex < _workerThreadsNumber;
              ++threadIndex) {
-            _workerThreads.push_back(thread(&DhtServer::_serveWorker, this,
-                                            threadIndex));
+            _workerThreads.push_back(
+                thread(&DhtServer::_serveWorker, this, threadIndex));
         }
 
         state = DhtServerState::DHT_SERVER_READY;

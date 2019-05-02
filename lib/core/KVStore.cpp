@@ -28,9 +28,6 @@
 #include <daqdb/Types.h>
 #include <libpmem.h>
 
-/** @TODO jradtke: should be taken from configuration file */
-#define POLLER_CPU_CORE_BASE 0
-
 using namespace std::chrono_literals;
 namespace bf = boost::filesystem;
 
@@ -64,7 +61,9 @@ KVStore::~KVStore() {
 
 void KVStore::init() {
     auto pollerCount = getOptions().runtime.numOfPollers;
-    auto coreUsed = DHT_SERVER_WORKER_THREADS + 1;
+    auto dhtCount = getOptions().runtime.numOfDhtThreads;
+    auto baseCoreId = getOptions().runtime.baseCoreId;
+    auto coresUsed = 0;
 
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
@@ -103,12 +102,15 @@ void KVStore::init() {
     }
 
     _spDht.reset(new DhtCore(getOptions().dht));
-    _spDhtServer.reset(
-        new DhtServer(getDhtCore(), this, DHT_SERVER_WORKER_THREADS));
-    if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
-        DAQ_DEBUG("DHT server started successfully");
-    } else {
-        DAQ_DEBUG("Can not start DHT server");
+    if (dhtCount) {
+        _spDhtServer.reset(
+            new DhtServer(getDhtCore(), this, dhtCount, baseCoreId));
+        if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
+            DAQ_DEBUG("DHT server started successfully");
+        } else {
+            DAQ_DEBUG("Can not start DHT server");
+        }
+        coresUsed += dhtCount;
     }
     if (_spDht->getLocalNode()->getPeerPort() > 0) {
         _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
@@ -116,15 +118,14 @@ void KVStore::init() {
     }
 
     if (isOffloadEnabled()) {
-        _spOffloadPoller.reset(new DaqDB::OffloadPoller(
-            pmem(), getSpdkCore(), POLLER_CPU_CORE_BASE + coreUsed));
-        coreUsed++;
+        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(),
+                                                        baseCoreId + dhtCount));
         _spOffloadPoller->initFreeList();
+        coresUsed++;
     }
 
-    for (auto index = coreUsed; index < pollerCount + coreUsed; index++) {
-        auto rqstPoller =
-            new DaqDB::PmemPoller(pmem(), POLLER_CPU_CORE_BASE + index);
+    for (auto index = coresUsed; index < pollerCount + coresUsed; index++) {
+        auto rqstPoller = new DaqDB::PmemPoller(pmem(), baseCoreId + index);
         if (isOffloadEnabled())
             rqstPoller->offloadPoller = _spOffloadPoller.get();
         _rqstPollers.push_back(rqstPoller);

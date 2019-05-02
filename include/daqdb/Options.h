@@ -146,7 +146,9 @@ struct OffloadOptions {
 struct RuntimeOptions {
     std::function<void(std::string)> logFunc = nullptr;
     std::function<void()> shutdownFunc = nullptr;
+    unsigned short baseCoreId = 0;
     unsigned short numOfPollers = 1;
+    unsigned short numOfDhtThreads = 1;
     size_t maxReadyKeys = 0;
 };
 
