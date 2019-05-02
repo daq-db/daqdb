@@ -63,6 +63,7 @@ void KVStore::init() {
     auto pollerCount = getOptions().runtime.numOfPollers;
     auto dhtCount = getOptions().runtime.numOfDhtThreads;
     auto baseCoreId = getOptions().runtime.baseCoreId;
+    auto coresUsed = 0;
 
     if (getOptions().runtime.logFunc)
         gLog.setLogFunc(getOptions().runtime.logFunc);
@@ -109,6 +110,7 @@ void KVStore::init() {
         } else {
             DAQ_DEBUG("Can not start DHT server");
         }
+        coresUsed += dhtCount;
     }
     if (_spDht->getLocalNode()->getPeerPort() > 0) {
         _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
@@ -119,10 +121,10 @@ void KVStore::init() {
         _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(),
                                                         baseCoreId + dhtCount));
         _spOffloadPoller->initFreeList();
-        dhtCount++;
+        coresUsed++;
     }
 
-    for (auto index = dhtCount; index < pollerCount + dhtCount; index++) {
+    for (auto index = coresUsed; index < pollerCount + coresUsed; index++) {
         auto rqstPoller = new DaqDB::PmemPoller(pmem(), baseCoreId + index);
         if (isOffloadEnabled())
             rqstPoller->offloadPoller = _spOffloadPoller.get();
