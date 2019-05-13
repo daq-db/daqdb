@@ -38,16 +38,14 @@ bool testDhtConnect(KVStoreBase *kvs) {
     local.ip = "localhost";
     local.port = TESTCLIENT_PORT;
     local.local = true;
-    local.keyRange.maskLength = 8;
-    local.keyRange.maskOffset = 0;
+    options.maskLength = 8;
+    options.maskOffset = 0;
 
     DhtNeighbor neighbor;
     neighbor.ip = "localhost";
     neighbor.port = 31850;
     neighbor.keyRange.start = "0";
     neighbor.keyRange.end = "255";
-    local.keyRange.maskLength = 8;
-    local.keyRange.maskOffset = 0;
 
     options.neighbors.push_back(&local);
     options.neighbors.push_back(&neighbor);

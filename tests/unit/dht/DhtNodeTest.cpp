@@ -57,28 +57,6 @@ BOOST_AUTO_TEST_CASE(TestNodeAddr) {
     delete dhtNode;
 }
 
-BOOST_AUTO_TEST_CASE(TestMaskLengthSetting) {
-    DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
-    unsigned short expectedLength = 24;
-
-    dhtNode->setMaskLength(expectedLength);
-
-    BOOST_CHECK_EQUAL(dhtNode->getMaskLength(), expectedLength);
-
-    delete dhtNode;
-}
-
-BOOST_AUTO_TEST_CASE(TestMaskOffsetSetting) {
-    DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
-    unsigned short expectedOffset = 5;
-
-    dhtNode->setMaskOffset(expectedOffset);
-
-    BOOST_CHECK_EQUAL(dhtNode->getMaskOffset(), expectedOffset);
-
-    delete dhtNode;
-}
-
 BOOST_AUTO_TEST_CASE(TestStartSetting) {
     DaqDB::DhtNode *dhtNode = new DaqDB::DhtNode();
     unsigned int expectedStart = 5;
