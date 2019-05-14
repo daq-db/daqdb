@@ -51,6 +51,8 @@ KVStore::~KVStore() {
     _spRtree.reset();
 
     _spPKey.reset();
+    _spDhtServer.reset();
+    _spDht.reset();
 
     for (auto index = 0; index < _rqstPollers.size(); index++) {
         delete _rqstPollers.at(index);
