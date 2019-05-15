@@ -16,7 +16,6 @@ neighbors : (
                     ip = "10.10.10.53";
                     port = 31850;
                     local = 1;
-                    keys = { start = "0", end = "100" }
                 },
                 {
                     // Storage node
