@@ -72,9 +72,6 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.mode = OperationalMode::STORAGE;
     }
 
-    unsigned int numOfDhtThreads;
-    if (cfg.lookupValue("runtime_dht_threads", numOfDhtThreads))
-        options.runtime.numOfDhtThreads = numOfDhtThreads;
     unsigned int baseCoreId;
     if (cfg.lookupValue("runtime_base_core_id", baseCoreId))
         options.runtime.baseCoreId = baseCoreId;
@@ -87,10 +84,13 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
 
     int maskLength;
     int maskOffset;
+    unsigned int numOfDhtThreads;
     if (cfg.lookupValue("dht_key_mask_length", maskLength))
         options.dht.maskLength = maskLength;
     if (cfg.lookupValue("dht_key_mask_offset", maskOffset))
         options.dht.maskOffset = maskOffset;
+    if (cfg.lookupValue("runtime_dht_threads", numOfDhtThreads))
+        options.dht.numOfDhtThreads = numOfDhtThreads;
 
     try {
         const libconfig::Setting &neighbors = cfg.lookup("neighbors");

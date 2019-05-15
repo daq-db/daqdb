@@ -61,7 +61,7 @@ KVStore::~KVStore() {
 
 void KVStore::init() {
     auto pollerCount = getOptions().runtime.numOfPollers;
-    auto dhtCount = getOptions().runtime.numOfDhtThreads;
+    auto dhtCount = getOptions().dht.numOfDhtThreads;
     auto baseCoreId = getOptions().runtime.baseCoreId;
     auto coresUsed = 0;
 

@@ -105,9 +105,8 @@ static void clbRemove(void *ctxClient, void *ioCtx) {
     reqCtx->ready = true;
 }
 
-DhtClient::DhtClient(uint8_t numServerThreads)
+DhtClient::DhtClient()
     : _dhtCore(nullptr), _clientRpc(nullptr), _nexus(nullptr),
-      _numServerThreads(numServerThreads),
       state(DhtClientState::DHT_CLIENT_INIT) {}
 
 DhtClient::~DhtClient() {
@@ -149,11 +148,11 @@ void DhtClient::initialize(DhtCore *dhtCore) {
     erpc::Rpc<erpc::CTransport> *rpc;
 
     int i = _dhtCore->numberOfClientThreads++;
-    _remoteRpcId = (dhtCore->randomSeed + i) % _numServerThreads;
+    _remoteRpcId = (dhtCore->randomSeed + i) % dhtCore->getDhtThreadsCount();
 
     try {
         rpc = new erpc::Rpc<erpc::CTransport>(
-            _nexus, this, ++_dhtCore->nextSessionId, sm_handler);
+            _nexus, this, ++_dhtCore->nextRpcId, sm_handler);
         _clientRpc = rpc;
         _dhtCore->registerClient(this);
 

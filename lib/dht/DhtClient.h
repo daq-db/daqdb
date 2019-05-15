@@ -51,7 +51,7 @@ struct DhtReqCtx {
 class DhtCore;
 class DhtClient {
   public:
-    DhtClient(uint8_t numServerThreads = 1);
+    DhtClient();
     virtual ~DhtClient();
 
     /**
@@ -199,6 +199,5 @@ class DhtClient {
     bool _reqMsgBufInUse = false;
     bool _reqMsgBufValInUse = false;
     uint8_t _remoteRpcId = 0;
-    uint8_t _numServerThreads;
 };
 } // namespace DaqDB

@@ -116,7 +116,7 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.key.field(2, sizeof(DaqDB::MinidaqKey::componentId));
     options.runtime.numOfPollers = nPoolers;
     nCoresUsed += nPoolers;
-    options.runtime.numOfDhtThreads = nDhtThreads;
+    options.dht.numOfDhtThreads = nDhtThreads;
     nCoresUsed += nDhtThreads;
     if (nCoresUsed > nCores) {
         std::cout << "Not enough CPU cores." << endl;

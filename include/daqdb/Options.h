@@ -148,7 +148,6 @@ struct RuntimeOptions {
     std::function<void()> shutdownFunc = nullptr;
     unsigned short baseCoreId = 0;
     unsigned short numOfPollers = 1;
-    unsigned short numOfDhtThreads = 1;
     size_t maxReadyKeys = 0;
 };
 
@@ -166,6 +165,7 @@ struct DhtNeighbor {
 
 struct DhtOptions {
     NodeId id = 0;
+    unsigned short numOfDhtThreads = 1;
     unsigned int maskLength = 0;
     unsigned int maskOffset = 0;
     std::vector<DhtNeighbor *> neighbors;

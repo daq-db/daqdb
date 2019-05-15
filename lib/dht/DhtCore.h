@@ -69,6 +69,8 @@ class DhtCore {
 
     inline erpc::Nexus *getNexus() { return _spNexus.get(); }
 
+    inline uint8_t getDhtThreadsCount() { return options.numOfDhtThreads; };
+
     void initNexus();
 
     /**
@@ -93,7 +95,7 @@ class DhtCore {
     void registerClient(DhtClient *dhtClient);
 
     DhtOptions options;
-    std::atomic<int> nextSessionId;
+    std::atomic<int> nextRpcId;
     std::atomic<int> numberOfClientThreads;
     uint64_t randomSeed = 0;
 

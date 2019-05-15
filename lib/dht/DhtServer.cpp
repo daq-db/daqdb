@@ -176,7 +176,7 @@ DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads,
     : state(DhtServerState::DHT_SERVER_INIT), _dhtCore(dhtCore), _kvs(kvs),
       _thread(nullptr), _workerThreadsNumber(numWorkerThreads),
       _baseCoreId(baseCoreId) {
-    _dhtCore->nextSessionId = numWorkerThreads;
+    _dhtCore->nextRpcId = numWorkerThreads;
     serve();
 }
 
