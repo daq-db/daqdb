@@ -112,6 +112,7 @@ void KVStore::init() {
             DAQ_DEBUG("Can not start DHT server");
         }
         coresUsed += dhtCount;
+        _spDht->initClient();
     }
 
     if (isOffloadEnabled()) {
