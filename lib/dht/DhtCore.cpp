@@ -32,13 +32,13 @@ thread_local DhtClient *DhtCore::_threadDhtClient = nullptr;
 const string DEFAULT_ERPC_SERVER_IP = "localhost";
 const unsigned short DEFAULT_ERPC_SERVER_PORT = 31850;
 
-DhtCore::DhtCore() : numberOfClients(0), numberOfClientThreads(0) {}
+DhtCore::DhtCore() : nextSessionId(0), numberOfClientThreads(0) {}
 
 DhtCore::DhtCore(const DaqDB::DhtCore &dhtCore)
-    : options(dhtCore.options), numberOfClients(0), numberOfClientThreads(0) {}
+    : options(dhtCore.options), nextSessionId(0), numberOfClientThreads(0) {}
 
 DhtCore::DhtCore(DhtOptions dhtOptions)
-    : options(dhtOptions), numberOfClients(0), numberOfClientThreads(0),
+    : options(dhtOptions), nextSessionId(0), numberOfClientThreads(0),
       _maskLength(dhtOptions.maskLength), _maskOffset(dhtOptions.maskOffset) {
 
     /** @todo add offset vs key length check */

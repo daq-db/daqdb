@@ -93,7 +93,7 @@ class DhtCore {
     void registerClient(DhtClient *dhtClient);
 
     DhtOptions options;
-    std::atomic<int> numberOfClients;
+    std::atomic<int> nextSessionId;
     std::atomic<int> numberOfClientThreads;
     uint64_t randomSeed = 0;
 

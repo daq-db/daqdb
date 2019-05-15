@@ -153,7 +153,7 @@ void DhtClient::initialize(DhtCore *dhtCore) {
 
     try {
         rpc = new erpc::Rpc<erpc::CTransport>(
-            _nexus, this, ++_dhtCore->numberOfClients, sm_handler);
+            _nexus, this, ++_dhtCore->nextSessionId, sm_handler);
         _clientRpc = rpc;
         _dhtCore->registerClient(this);
 
