@@ -199,8 +199,8 @@ void DhtServer::_serveWorker(unsigned int workerId) {
     }
 
     try {
-        erpc::Rpc<erpc::CTransport> *rpc = new erpc::Rpc<erpc::CTransport>(
-            _nexus, &rpcCtx, workerId, nullptr);
+        erpc::Rpc<erpc::CTransport> *rpc =
+            new erpc::Rpc<erpc::CTransport>(_nexus, &rpcCtx, workerId, nullptr);
         rpcCtx.kvs = _kvs;
         rpcCtx.rpc = rpc;
         while (keepRunning) {
@@ -262,8 +262,8 @@ void DhtServer::_serve(void) {
 
     try {
         DhtServerCtx rpcCtx;
-        erpc::Rpc<erpc::CTransport> *rpc = new erpc::Rpc<erpc::CTransport>(
-            _nexus, &rpcCtx, 0, nullptr);
+        erpc::Rpc<erpc::CTransport> *rpc =
+            new erpc::Rpc<erpc::CTransport>(_nexus, &rpcCtx, 0, nullptr);
         rpcCtx.kvs = _kvs;
         rpcCtx.rpc = rpc;
 

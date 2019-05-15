@@ -166,8 +166,8 @@ DhtNode *DhtCore::getHostAny() {
 }
 
 DhtNode *DhtCore::getHostForKey(Key key) {
-    DAQ_DEBUG("maskLen:" + std::to_string(_maskLength) +
-              " maskOffset:" + std::to_string(_maskOffset));
+    DAQ_DEBUG("maskLen:" + std::to_string(_maskLength) + " maskOffset:" +
+              std::to_string(_maskOffset));
     if (_maskLength <= 0)
         throw OperationFailedException(Status(KEY_NOT_FOUND));
     auto keyHash = _genHash(key.data());

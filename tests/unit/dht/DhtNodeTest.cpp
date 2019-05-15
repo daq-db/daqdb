@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "../../lib/dht/DhtNode.h"
@@ -51,8 +51,8 @@ BOOST_AUTO_TEST_CASE(TestNodeAddr) {
     BOOST_CHECK(dhtNode->getIp() == expectedId);
     BOOST_CHECK_EQUAL(dhtNode->getPort(), expectedPort);
 
-    BOOST_CHECK(dhtNode->getUri() == expectedId + ":" + 
-                std::to_string(expectedPort));
+    BOOST_CHECK(dhtNode->getUri() ==
+                expectedId + ":" + std::to_string(expectedPort));
 
     delete dhtNode;
 }
