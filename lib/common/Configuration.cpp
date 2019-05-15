@@ -107,11 +107,6 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
                 dhtNeighbor->keyRange.end = "";
             }
             try {
-                dhtNeighbor->peerPort = (unsigned int)(neighbor["peerPort"]);
-            } catch (SettingNotFoundException &e) {
-                dhtNeighbor->peerPort = 0;
-            }
-            try {
                 dhtNeighbor->local = ((unsigned int)(neighbor["local"]) > 0);
             } catch (SettingNotFoundException &e) {
                 dhtNeighbor->local = false;

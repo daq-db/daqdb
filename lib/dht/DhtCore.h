@@ -69,7 +69,7 @@ class DhtCore {
 
     inline erpc::Nexus *getNexus() { return _spNexus.get(); }
 
-    void initNexus(unsigned int portOffset = 0);
+    void initNexus();
 
     /**
      * Gets DhtClient for caller thread.

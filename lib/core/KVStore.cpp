@@ -101,8 +101,9 @@ void KVStore::init() {
         DAQ_DEBUG("SPDK offload functionality is disabled");
     }
 
-    _spDht.reset(new DhtCore(getOptions().dht));
     if (dhtCount) {
+        _spDht.reset(new DhtCore(getOptions().dht));
+        _spDht->initNexus();
         _spDhtServer.reset(
             new DhtServer(getDhtCore(), this, dhtCount, baseCoreId));
         if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
@@ -111,10 +112,6 @@ void KVStore::init() {
             DAQ_DEBUG("Can not start DHT server");
         }
         coresUsed += dhtCount;
-    }
-    if (_spDht->getLocalNode()->getPeerPort() > 0) {
-        _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
-        _spDht->initClient();
     }
 
     if (isOffloadEnabled()) {

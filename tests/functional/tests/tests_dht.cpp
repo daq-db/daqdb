@@ -57,7 +57,7 @@ bool testDhtConnect(KVStoreBase *kvs) {
     }
 
     auto core = new DhtCore(options);
-    core->initNexus(TESTCLIENT_PORT);
+    core->initNexus();
     core->initClient();
     if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
         DAQDB_INFO << "DHT client started successfully" << flush;

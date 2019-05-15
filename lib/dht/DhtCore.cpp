@@ -30,8 +30,7 @@ namespace DaqDB {
 thread_local DhtClient *DhtCore::_threadDhtClient = nullptr;
 
 const string DEFAULT_ERPC_SERVER_IP = "localhost";
-const unsigned short DEFAULT_ERPC_SERVER_PORT = 31851;
-const unsigned short DEFAULT_ERPC_PEER_PORT = 31850;
+const unsigned short DEFAULT_ERPC_SERVER_PORT = 31850;
 
 DhtCore::DhtCore() : numberOfClients(0), numberOfClientThreads(0) {}
 
@@ -71,8 +70,8 @@ void DhtCore::_initSeed() {
     randomSeed = us.count();
 }
 
-void DhtCore::initNexus(unsigned int port) {
-    _spNexus.reset(new erpc::Nexus(getLocalNode()->getUri(port), 0, 0));
+void DhtCore::initNexus() {
+    _spNexus.reset(new erpc::Nexus(getLocalNode()->getUri(), 0, 0));
 }
 
 void DhtCore::initClient() {
@@ -113,7 +112,6 @@ void DhtCore::_initNeighbors(void) {
 
         dhtNode->setIp(option->ip);
         dhtNode->setPort(option->port);
-        dhtNode->setPeerPort(option->peerPort);
         dhtNode->state = DhtNodeState::NODE_INIT;
 
         try {
@@ -136,7 +134,6 @@ void DhtCore::_initNeighbors(void) {
         auto dhtNode = new DhtNode();
         dhtNode->setIp(DEFAULT_ERPC_SERVER_IP);
         dhtNode->setPort(DEFAULT_ERPC_SERVER_PORT);
-        dhtNode->setPeerPort(DEFAULT_ERPC_PEER_PORT);
         dhtNode->state = DhtNodeState::NODE_READY;
         _spLocalNode.reset(dhtNode);
     }
