@@ -176,6 +176,7 @@ DhtServer::DhtServer(DhtCore *dhtCore, KVStore *kvs, uint8_t numWorkerThreads,
     : state(DhtServerState::DHT_SERVER_INIT), _dhtCore(dhtCore), _kvs(kvs),
       _thread(nullptr), _workerThreadsNumber(numWorkerThreads),
       _baseCoreId(baseCoreId) {
+    _dhtCore->nextRpcId = numWorkerThreads;
     serve();
 }
 
@@ -199,8 +200,8 @@ void DhtServer::_serveWorker(unsigned int workerId) {
     }
 
     try {
-        erpc::Rpc<erpc::CTransport> *rpc = new erpc::Rpc<erpc::CTransport>(
-            _spServerNexus.get(), &rpcCtx, workerId, nullptr);
+        erpc::Rpc<erpc::CTransport> *rpc =
+            new erpc::Rpc<erpc::CTransport>(_nexus, &rpcCtx, workerId, nullptr);
         rpcCtx.kvs = _kvs;
         rpcCtx.rpc = rpc;
         while (keepRunning) {
@@ -230,41 +231,40 @@ void DhtServer::_serve(void) {
         DAQ_CRITICAL("Cannot set affinity for DHT server thread");
     }
 
-    _spServerNexus.reset(
-        new erpc::Nexus(_dhtCore->getLocalNode()->getUri(), 0, 0));
+    _nexus = _dhtCore->getNexus();
 
 #ifndef LOOPBACK_DHT_SERVER
-    _spServerNexus->register_req_func(
+    _nexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GET),
         erpcReqGetHandler);
-    _spServerNexus->register_req_func(
+    _nexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GETANY),
         erpcReqGetAnyHandler);
-    _spServerNexus->register_req_func(
+    _nexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_PUT),
         erpcReqPutHandler);
-    _spServerNexus->register_req_func(
+    _nexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_REMOVE),
         erpcReqRemoveHandler);
 #else
-    _spServerNexus->register_req_func(
+    _nexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GET),
         erpcLoopbackReqGetHandler);
-    _spServerNexus->register_req_func(
+    _nexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_GETANY),
         erpcLoopbackReqGetAnyHandler);
-    _spServerNexus->register_req_func(
+    _nexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_PUT),
         erpcLoopbackReqPutHandler);
-    _spServerNexus->register_req_func(
+    _nexus->register_req_func(
         static_cast<unsigned int>(ErpRequestType::ERP_REQUEST_REMOVE),
         erpcLoopbackReqRemoveHandler);
 #endif
 
     try {
         DhtServerCtx rpcCtx;
-        erpc::Rpc<erpc::CTransport> *rpc = new erpc::Rpc<erpc::CTransport>(
-            _spServerNexus.get(), &rpcCtx, 0, nullptr);
+        erpc::Rpc<erpc::CTransport> *rpc =
+            new erpc::Rpc<erpc::CTransport>(_nexus, &rpcCtx, 0, nullptr);
         rpcCtx.kvs = _kvs;
         rpcCtx.rpc = rpc;
 

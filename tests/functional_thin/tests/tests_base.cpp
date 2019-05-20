@@ -18,9 +18,9 @@
 
 #include "tests.h"
 
+#include "../base_operations.h"
 #include <DhtClient.h>
 #include <DhtCore.h>
-#include "../base_operations.h"
 
 using namespace std;
 using namespace DaqDB;
@@ -29,12 +29,12 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
     bool result = true;
 
     DhtOptions clientOptions;
+    clientOptions.maskLength = 1;
+    clientOptions.maskOffset = 0;
     for (auto node : options->dht.neighbors) {
         if (node->local) {
             auto local = new DhtNeighbor();
             local->ip = node->ip;
-            local->keyRange.maskLength = 1;
-            local->keyRange.maskOffset = 0;
             local->port = node->port + 1;
             local->local = true;
             clientOptions.neighbors.push_back(local);
@@ -44,7 +44,7 @@ bool testRemotePeerConnect(KVStoreBase *kvs, DaqDB::Options *options) {
     }
 
     auto core = new DhtCore(clientOptions);
-    core->initNexus(core->getLocalNode()->getPort());
+    core->initNexus();
     core->initClient();
     if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
         DAQDB_INFO << "DHT client started successfully" << flush;

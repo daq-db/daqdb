@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <boost/filesystem.hpp>
@@ -38,16 +38,14 @@ bool testDhtConnect(KVStoreBase *kvs) {
     local.ip = "localhost";
     local.port = TESTCLIENT_PORT;
     local.local = true;
-    local.keyRange.maskLength = 8;
-    local.keyRange.maskOffset = 0;
+    options.maskLength = 8;
+    options.maskOffset = 0;
 
     DhtNeighbor neighbor;
     neighbor.ip = "localhost";
     neighbor.port = 31850;
     neighbor.keyRange.start = "0";
     neighbor.keyRange.end = "255";
-    local.keyRange.maskLength = 8;
-    local.keyRange.maskOffset = 0;
 
     options.neighbors.push_back(&local);
     options.neighbors.push_back(&neighbor);
@@ -59,7 +57,7 @@ bool testDhtConnect(KVStoreBase *kvs) {
     }
 
     auto core = new DhtCore(options);
-    core->initNexus(TESTCLIENT_PORT);
+    core->initNexus();
     core->initClient();
     if (core->getClient()->state == DhtClientState::DHT_CLIENT_READY) {
         DAQDB_INFO << "DHT client started successfully" << flush;

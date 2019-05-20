@@ -116,8 +116,8 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.key.field(2, sizeof(DaqDB::MinidaqKey::componentId));
     options.runtime.numOfPollers = nPoolers;
     nCoresUsed += nPoolers;
-    options.runtime.numOfDhtThreads = nDhtThreads;
-    if (!satellite){
+    options.dht.numOfDhtThreads = nDhtThreads;
+    if (!satellite) {
         nCoresUsed += nDhtThreads;
     }
     if (nCoresUsed > nCores) {
@@ -128,16 +128,13 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.runtime.maxReadyKeys = maxReadyKeys;
     if (satellite) {
         options.mode = DaqDB::OperationalMode::SATELLITE;
-
     } else {
         options.mode = DaqDB::OperationalMode::STORAGE;
         if (!options.dht.neighbors.size()) {
             localDht.reset(new DaqDB::DhtNeighbor);
             localDht->ip = "localhost";
-            localDht->port = 31851;
+            localDht->port = 31850;
             localDht->local = true;
-            localDht->keyRange.maskLength = 0;
-            localDht->keyRange.maskOffset = 0;
             options.dht.neighbors.push_back(localDht.get());
             singleNode = true;
         }

@@ -69,7 +69,9 @@ class DhtCore {
 
     inline erpc::Nexus *getNexus() { return _spNexus.get(); }
 
-    void initNexus(unsigned int portOffset = 0);
+    inline uint8_t getDhtThreadsCount() { return options.numOfDhtThreads; };
+
+    void initNexus();
 
     /**
      * Gets DhtClient for caller thread.
@@ -93,7 +95,7 @@ class DhtCore {
     void registerClient(DhtClient *dhtClient);
 
     DhtOptions options;
-    std::atomic<int> numberOfClients;
+    std::atomic<int> nextRpcId;
     std::atomic<int> numberOfClientThreads;
     uint64_t randomSeed = 0;
 
@@ -102,8 +104,7 @@ class DhtCore {
     void _initRangeToHost(void);
     void _initSeed(void);
 
-    uint64_t _genHash(const char *key, uint64_t maskLength,
-                      uint64_t maskOffset);
+    uint64_t _genHash(const char *key);
 
     /**
      * Separated DhtClient for each thread is required because of eRpc
@@ -120,6 +121,8 @@ class DhtCore {
     std::unique_ptr<DhtNode> _spLocalNode;
     std::vector<DhtNode *> _neighbors;
     RangeToHost _rangeToHost;
+    unsigned int _maskLength = 0;
+    unsigned int _maskOffset = 0;
 };
 
 } // namespace DaqDB

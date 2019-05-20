@@ -148,13 +148,10 @@ struct RuntimeOptions {
     std::function<void()> shutdownFunc = nullptr;
     unsigned short baseCoreId = 0;
     unsigned short numOfPollers = 1;
-    unsigned short numOfDhtThreads = 1;
     size_t maxReadyKeys = 0;
 };
 
 struct DhtKeyRange {
-    unsigned int maskLength = 0;
-    unsigned int maskOffset = 0;
     std::string start = "";
     std::string end = "";
 };
@@ -162,18 +159,15 @@ struct DhtKeyRange {
 struct DhtNeighbor {
     std::string ip;
     unsigned short port = 0;
-    /**
-     * Second port is used for additional eRPC channel that is used for
-     * communication between storage nodes.
-     * Should be set only for local node.
-     */
-    unsigned short peerPort = 0;
     bool local = false;
     DhtKeyRange keyRange;
 };
 
 struct DhtOptions {
     NodeId id = 0;
+    unsigned short numOfDhtThreads = 1;
+    unsigned int maskLength = 0;
+    unsigned int maskOffset = 0;
     std::vector<DhtNeighbor *> neighbors;
 };
 

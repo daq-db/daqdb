@@ -51,6 +51,8 @@ KVStore::~KVStore() {
     _spRtree.reset();
 
     _spPKey.reset();
+    _spDhtServer.reset();
+    _spDht.reset();
 
     for (auto index = 0; index < _rqstPollers.size(); index++) {
         delete _rqstPollers.at(index);
@@ -61,7 +63,7 @@ KVStore::~KVStore() {
 
 void KVStore::init() {
     auto pollerCount = getOptions().runtime.numOfPollers;
-    auto dhtCount = getOptions().runtime.numOfDhtThreads;
+    auto dhtCount = getOptions().dht.numOfDhtThreads;
     auto baseCoreId = getOptions().runtime.baseCoreId;
     auto coresUsed = 0;
 
@@ -103,6 +105,7 @@ void KVStore::init() {
 
     _spDht.reset(new DhtCore(getOptions().dht));
     if (dhtCount) {
+        _spDht->initNexus();
         _spDhtServer.reset(
             new DhtServer(getDhtCore(), this, dhtCount, baseCoreId));
         if (_spDhtServer->state == DhtServerState::DHT_SERVER_READY) {
@@ -111,9 +114,6 @@ void KVStore::init() {
             DAQ_DEBUG("Can not start DHT server");
         }
         coresUsed += dhtCount;
-    }
-    if (_spDht->getLocalNode()->getPeerPort() > 0) {
-        _spDht->initNexus(_spDht->getLocalNode()->getPeerPort());
         _spDht->initClient();
     }
 

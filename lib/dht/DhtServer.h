@@ -81,7 +81,7 @@ class DhtServer {
     void _serve(void);
     void _serveWorker(unsigned int workerId);
 
-    std::unique_ptr<erpc::Nexus> _spServerNexus;
+    erpc::Nexus *_nexus;
     KVStore *_kvs;
     DhtCore *_dhtCore;
     std::thread *_thread;
