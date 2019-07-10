@@ -52,9 +52,9 @@ endif(ERPC_RAW_TRANSPORT)
 if(LOOPBACK_DHT_SERVER)
 	add_definitions(-DLOOPBACK_DHT_SERVER)
 	MESSAGE(STATUS "Loopback DHT server mode enabled")
-else(DEBUG)
+else(LOOPBACK_DHT_SERVER)
 	MESSAGE(STATUS "Loopback DHT server mode disabled")
-endif(DEBUG)
+endif(LOOPBACK_DHT_SERVER)
 
 ###############################################################################
 # Internal options
