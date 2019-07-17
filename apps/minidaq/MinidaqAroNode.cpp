@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include "MinidaqAroNode.h"
@@ -29,7 +29,7 @@ void MinidaqAroNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                            std::atomic<std::uint64_t> &cntErr) {
     DaqDB::Value value;
     try {
-        value = _kvs->Alloc(key, _fSize);
+        value = _kvs->Alloc(key, _nextFragmentSize());
     }
     catch (...) {
         _kvs->Free(std::move(key));

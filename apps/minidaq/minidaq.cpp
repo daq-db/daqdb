@@ -59,6 +59,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_MAX_READY_KEYS 4 * 1024 * 1024
 #define MINIDAQ_DEFAULT_SATELLITE false
 #define MINIDAQ_DEFAULT_CONF "minidaq.cfg"
+#define MINIDAQ_DEFAULT_FR_DISTRO "const"
 
 #define US_IN_MS 1000
 
@@ -85,6 +86,7 @@ size_t maxIters;
 bool stopOnError = MINIDAQ_DEFAULT_STOPONERROR;
 bool live = MINIDAQ_DEFAULT_LIVE;
 bool satellite = MINIDAQ_DEFAULT_SATELLITE;
+std::string frDistro = MINIDAQ_DEFAULT_FR_DISTRO;
 std::string configFile;
 bool singleNode = false;
 std::unique_ptr<DaqDB::DhtNeighbor> localDht;
@@ -103,8 +105,7 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
         std::stringstream errorMsg;
         if (!DaqDB::readConfiguration(configFile, options, errorMsg)) {
             std::cout << "### Failed to read minidaq configuration file. "
-                      << endl
-                      << errorMsg.str() << std::endl;
+                      << endl << errorMsg.str() << std::endl;
         }
         std::cout << "### Done. " << endl;
     }
@@ -148,7 +149,7 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
 }
 
 static void
-runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode>> &nodes) {
+runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode> > &nodes) {
     if (!nodes.size())
         return;
 
@@ -286,7 +287,11 @@ int main(int argc, const char *argv[]) {
         "Unique subdetector ID.")(
         "fragment-size",
         po::value<size_t>(&fSize)->default_value(MINIDAQ_DEFAULT_FRAGMENT_SIZE),
-        "Single fragment size in bytes.");
+        "Base fragment size in bytes.")(
+        "fragment-distro", po::value<std::string>(&frDistro)
+                               ->default_value(MINIDAQ_DEFAULT_FR_DISTRO),
+        "Distribution for fragment size, supported values: "
+        "const (1, default), poisson (lambda = fragment size)");
 
     po::options_description filteringOpts("Filtering-specific options");
     filteringOpts.add_options()("n-eb", po::value<int>(&nEbTh)->default_value(
@@ -324,7 +329,8 @@ int main(int argc, const char *argv[]) {
         }
 
         po::notify(parsedArguments);
-    } catch (po::error &parserError) {
+    }
+    catch (po::error &parserError) {
         cerr << "Invalid arguments: " << parserError.what() << endl << endl;
         cerr << argumentsDescription << endl;
         return -1;
@@ -358,8 +364,8 @@ int main(int argc, const char *argv[]) {
         std::cout << "### Opening DaqDB..." << endl;
         auto kvs = openKVS();
         std::cout << "### Done." << endl;
-        std::vector<std::unique_ptr<DaqDB::MinidaqNode>>
-            nodes; // Configure nodes
+        std::vector<std::unique_ptr<DaqDB::MinidaqNode> > nodes; // Configure
+                                                                 // nodes
         if (nRoTh) {
             std::cout << "### Configuring readout nodes..." << endl;
             if (nAroTh) {
@@ -371,6 +377,7 @@ int main(int argc, const char *argv[]) {
             nodeRo->SetSubdetectorId(subId);
             nodeRo->SetThreads(nRoTh);
             nodeRo->SetFragmentSize(fSize);
+            nodeRo->SetFragmentDistro(frDistro);
             nodes.push_back(std::move(nodeRo));
             std::cout << "### Done." << endl;
         }
@@ -387,6 +394,7 @@ int main(int argc, const char *argv[]) {
             nodeAro->SetSubdetectorId(subId);
             nodeAro->SetThreads(nAroTh);
             nodeAro->SetFragmentSize(fSize);
+            nodeAro->SetFragmentDistro(frDistro);
             nodes.push_back(std::move(nodeAro));
             std::cout << "### Done." << endl;
         }
@@ -420,8 +428,8 @@ int main(int argc, const char *argv[]) {
                       << endl;
             std::getchar();
         }
-
-    } catch (std::exception &e) {
+    }
+    catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return 0;
     }
