@@ -36,7 +36,7 @@ template <class T> class Poller {
     }
 
     virtual bool enqueue(T *rqst) {
-        size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1);
+        size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1, 0);
         return (count == 1);
     }
     virtual void dequeue() {

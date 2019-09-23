@@ -18,12 +18,18 @@
 
 #include <memory>
 
+extern "C" {
 #include "spdk/bdev.h"
 #include "spdk/env.h"
 #include "spdk/queue.h"
 #include "spdk/thread.h"
+}
+
+#include <thread>
 
 namespace DaqDB {
+
+class SpdkBdev;
 
 /* A polling function */
 struct SpdkPoller {
@@ -44,7 +50,7 @@ struct SpdkTarget {
 
 /* Used to pass messages between fio threads */
 struct SpdkThreadMsg {
-    spdk_thread_fn fn;
+    spdk_msg_fn fn;
     void *arg;
 };
 
@@ -63,7 +69,7 @@ struct SpdkThreadCtx {
 
 class SpdkThread {
   public:
-    SpdkThread(void);
+    SpdkThread(SpdkBdev *bdev);
 
     bool init(void);
 
@@ -75,7 +81,11 @@ class SpdkThread {
     size_t poll(void);
 
   private:
+    void threadStart(void);
+
+    std::unique_ptr<DaqDB::SpdkBdev> spBdev;
     std::unique_ptr<DaqDB::SpdkThreadCtx> spCtx;
+    std::thread *_thread;
 };
 
 } // namespace DaqDB

@@ -49,19 +49,19 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
         return;
     }
 
-    spSpdkThread.reset(new SpdkThread());
+    spSpdkThread.reset(new SpdkThread(spBdev.get()));
     spSpdkThread->init();
 
-    if (doDevInit) {
-        /*
-         * Should be performed when configuration file attached, otherwise any
-         * device will not be found and bdev related steps would be unnecessary.
-         */
-        spdkBdevModuleInit();
-        spBdev->init();
-    } else {
-        spBdev->state = SpdkBdevState::SPDK_BDEV_NOT_FOUND;
-    }
+//    if (doDevInit) {
+//        /*
+//         * Should be performed when configuration file attached, otherwise any
+//         * device will not be found and bdev related steps would be unnecessary.
+//         */
+//        spdkBdevModuleInit();
+//        spBdev->init();
+//    } else {
+//        spBdev->state = SpdkBdevState::SPDK_BDEV_NOT_FOUND;
+//    }
     state = SpdkState::SPDK_READY;
 }
 
@@ -89,18 +89,18 @@ void SpdkCore::spdkBdevModuleInit(void) {
     spdk_bdev_initialize(spdkDoneCb, &done);
 
     /* First, poll until initialization is done. */
-    do {
-        spSpdkThread->poll();
-    } while (!done);
-
-    /*
-     * Continue polling until there are no more events.
-     * This handles any final events posted by pollers.
-     */
-    size_t count = 0;
-    do {
-        count = spSpdkThread->poll();
-    } while (count > 0);
+//    do {
+//        spSpdkThread->poll();
+//    } while (!done);
+//
+//    /*
+//     * Continue polling until there are no more events.
+//     * This handles any final events posted by pollers.
+//     */
+//    size_t count = 0;
+//    do {
+//        count = spSpdkThread->poll();
+//    } while (count > 0);
 }
 
 bool SpdkCore::createConfFile(void) {

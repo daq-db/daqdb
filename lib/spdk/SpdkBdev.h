@@ -24,23 +24,31 @@
 
 namespace DaqDB {
 
-struct SpdkBdevCtx {
-    spdk_bdev *bdev;
-    spdk_bdev_desc *bdev_desc;
-    spdk_io_channel *io_channel;
-
-    uint32_t blk_size = 0;
-    uint32_t buf_align = 0;
-    uint64_t blk_num = 0;
-
-    char *bdev_name;
-};
-
 enum class SpdkBdevState : std::uint8_t {
     SPDK_BDEV_INIT = 0,
     SPDK_BDEV_NOT_FOUND,
     SPDK_BDEV_READY,
     SPDK_BDEV_ERROR
+};
+
+extern "C" enum CSpdkBdevState {
+    SPDK_BDEV_INIT = 0,
+    SPDK_BDEV_NOT_FOUND,
+    SPDK_BDEV_READY,
+    SPDK_BDEV_ERROR
+};
+
+extern "C" struct SpdkBdevCtx {
+    spdk_bdev *bdev;
+    spdk_bdev_desc *bdev_desc;
+    spdk_io_channel *io_channel;
+    char *buff;
+    char *bdev_name;
+    struct spdk_bdev_io_wait_entry bdev_io_wait;
+    uint32_t blk_size = 0;
+    uint32_t buf_align = 0;
+    uint64_t blk_num = 0;
+    CSpdkBdevState state;
 };
 
 class SpdkBdev {
