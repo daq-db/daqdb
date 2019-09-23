@@ -53,6 +53,7 @@ SpdkBdev::SpdkBdev() : state(SpdkBdevState::SPDK_BDEV_INIT) {
 
 extern "C" void daqdb_spdk_start(void *arg) {
 	SpdkBdevCtx *bdev_c = (SpdkBdevCtx *)arg;
+
     bdev_c->bdev = spdk_bdev_first();
     if (!bdev_c->bdev) {
         printf("No NVMe devices detected\n");
@@ -94,36 +95,7 @@ bool SpdkBdev::init() {
 		return false;
 	}
 
-//    spBdevCtx->bdev = spdk_bdev_first();
-//    if (!spBdevCtx->bdev) {
-//        DAQ_DEBUG("No NVMe devices detected");
-//        state = SpdkBdevState::SPDK_BDEV_NOT_FOUND;
-//        return false;
-//    }
-//
-//    auto rc = spdk_bdev_open(spBdevCtx->bdev, true, NULL, NULL,
-//                             &spBdevCtx->bdev_desc);
-//    if (rc) {
-//        DAQ_DEBUG("Open BDEV failed with error code [" + std::to_string(rc) +
-//                  "]");
-//        state = SpdkBdevState::SPDK_BDEV_ERROR;
-//        return false;
-//    }
-//
-//    spBdevCtx->io_channel = spdk_bdev_get_io_channel(spBdevCtx->bdev_desc);
-//    if (!spBdevCtx->io_channel) {
-//        DAQ_DEBUG("Get io_channel failed");
-//        state = SpdkBdevState::SPDK_BDEV_ERROR;
-//        return false;
-//    }
-//
-//    spBdevCtx->blk_size = spdk_bdev_get_block_size(spBdevCtx->bdev);
-//    DAQ_DEBUG("BDEV block size: " + std::to_string(spBdevCtx->blk_size));
-//    spBdevCtx->buf_align = spdk_bdev_get_buf_align(spBdevCtx->bdev);
-//    DAQ_DEBUG("BDEV align: " + std::to_string(spBdevCtx->buf_align));
-//    spBdevCtx->blk_num = spdk_bdev_get_num_blocks(spBdevCtx->bdev);
-//    DAQ_DEBUG("BDEV number of blocks: " + std::to_string(spBdevCtx->blk_num));
-
+	sleep(2);
     state = SpdkBdevState::SPDK_BDEV_READY;
 
     return true;

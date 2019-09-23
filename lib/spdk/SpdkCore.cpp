@@ -52,32 +52,23 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
     spSpdkThread.reset(new SpdkThread(spBdev.get()));
     spSpdkThread->init();
 
-//    if (doDevInit) {
-//        /*
-//         * Should be performed when configuration file attached, otherwise any
-//         * device will not be found and bdev related steps would be unnecessary.
-//         */
-//        spdkBdevModuleInit();
-//        spBdev->init();
-//    } else {
-//        spBdev->state = SpdkBdevState::SPDK_BDEV_NOT_FOUND;
-//    }
     state = SpdkState::SPDK_READY;
 }
 
 bool SpdkCore::spdkEnvInit(void) {
-    spdk_env_opts opts;
-    spdk_env_opts_init(&opts);
-
-    opts.name = SPDK_APP_ENV_NAME.c_str();
-    /*
-     * SPDK will use 1G huge pages when mem_size is 1024
-     */
-    opts.mem_size = 1024;
-
-    opts.shm_id = 0;
-
-    return (spdk_env_init(&opts) == 0);
+//    spdk_env_opts opts;
+//    spdk_env_opts_init(&opts);
+//
+//    opts.name = SPDK_APP_ENV_NAME.c_str();
+//    /*
+//     * SPDK will use 1G huge pages when mem_size is 1024
+//     */
+//    opts.mem_size = 1024;
+//
+//    opts.shm_id = 0;
+//
+//    return (spdk_env_init(&opts) == 0);
+	return true;
 }
 
 static void spdkDoneCb(void *cb_arg, int rc) {
@@ -85,22 +76,8 @@ static void spdkDoneCb(void *cb_arg, int rc) {
 }
 
 void SpdkCore::spdkBdevModuleInit(void) {
-    bool done = false;
-    spdk_bdev_initialize(spdkDoneCb, &done);
-
-    /* First, poll until initialization is done. */
-//    do {
-//        spSpdkThread->poll();
-//    } while (!done);
-//
-//    /*
-//     * Continue polling until there are no more events.
-//     * This handles any final events posted by pollers.
-//     */
-//    size_t count = 0;
-//    do {
-//        count = spSpdkThread->poll();
-//    } while (count > 0);
+    bool done = true;
+    //spdk_bdev_initialize(spdkDoneCb, &done);
 }
 
 bool SpdkCore::createConfFile(void) {

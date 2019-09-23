@@ -43,12 +43,22 @@ namespace DaqDB {
 /*
  * Callback function for write io completion.
  */
+unsigned int dddd = 0;
+unsigned int cccc = 0;
+unsigned int rrrr = 0;
+unsigned int vvvv = 0;
+const unsigned int s_o_quant = 200000;
+
 static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
 
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
 
     if (success) {
+        if ( !((cccc++)%s_o_quant) ) {
+                std::cout << "CCCC " << cccc << " err_cnt(" << vvvv << ")" << std::endl;
+        }
+
         if (ioCtx->updatePmemIOV)
             ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
                                              sizeof(uint64_t));
@@ -56,6 +66,10 @@ static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
             ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
     } else {
+        if ( !((rrrr++)%s_o_quant) ) {
+                std::cout << "RRRR " << rrrr << " err_cnt(" << vvvv << ")" << std::endl;
+        }
+
         if (ioCtx->clb)
             ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
                        ioCtx->keySize, nullptr, 0);
@@ -320,7 +334,6 @@ void OffloadPoller::_threadMain(void) {
     while (isRunning) {
         dequeue();
         process();
-        spdkCore->spSpdkThread->poll();
     }
 }
 
