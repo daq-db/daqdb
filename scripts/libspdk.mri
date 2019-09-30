@@ -18,6 +18,7 @@ addlib build/lib/libspdk_conf.a
 addlib build/lib/libspdk_copy.a
 addlib build/lib/libspdk_copy_ioat.a
 addlib build/lib/libspdk_env_dpdk.a
+addlib build/lib/libspdk_vmd.a
 addlib build/lib/libspdk_event.a
 addlib build/lib/libspdk_event_bdev.a
 addlib build/lib/libspdk_event_copy.a
@@ -26,6 +27,7 @@ addlib build/lib/libspdk_event_net.a
 addlib build/lib/libspdk_event_nvmf.a
 addlib build/lib/libspdk_event_scsi.a
 addlib build/lib/libspdk_event_vhost.a
+addlib build/lib/libspdk_event_vmd.a
 addlib build/lib/libspdk_ioat.a
 addlib build/lib/libspdk_json.a
 addlib build/lib/libspdk_jsonrpc.a
