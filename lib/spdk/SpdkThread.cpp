@@ -17,6 +17,16 @@
 #include <iostream>
 #include <string>
 #include <thread>
+
+#include "spdk/stdinc.h"
+#include "spdk/cpuset.h"
+#include "spdk/queue.h"
+#include "spdk/log.h"
+#include "spdk/thread.h"
+#include "spdk/event.h"
+#include "spdk/ftl.h"
+#include "spdk/conf.h"
+#include "spdk/env.h"
 #include "spdk/util.h"
 
 #include "SpdkThread.h"
@@ -38,15 +48,25 @@ SpdkThread::SpdkThread(SpdkBdev *bdev)
     spCtx.reset(new SpdkThreadCtx());
 }
 
+SpdkThread::~SpdkThread() {
+    deinit();
+}
+
 bool SpdkThread::init() {
-	_thread = new std::thread(&SpdkThread::threadStart, this);
-	sleep(2);
+	//_thread = new std::thread(&SpdkThread::threadStart, this);
+	//sleep(5);
     return true;
 }
 
-
-void SpdkThread::threadStart() {
-	spBdev->init();
+void SpdkThread::deinit() {
+	spdk_app_stop(0);
+	//if ( _thread ) {
+	    //_thread->join();
+	//}
 }
+
+//void SpdkThread::threadStart() {
+	//spBdev->init();
+//}
 
 } // namespace DaqDB

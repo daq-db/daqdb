@@ -88,6 +88,7 @@ void KVStore::init() {
                                             getOptions().pmem.allocUnitSize));
     if (_spRtree.get() == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
+
     size_t keySize = pmem()->SetKeySize(getOptions().key.size());
     if (keySize != getOptions().key.size()) {
         DAQ_INFO("Requested key size of " +
@@ -97,7 +98,7 @@ void KVStore::init() {
     }
 
     _spSpdk.reset(new SpdkCore(getOptions().offload));
-    if (isOffloadEnabled()) {
+    if ( _spSpdk->isSpdkReady() == true /*isOffloadEnabled()*/) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {
         DAQ_DEBUG("SPDK offload functionality is disabled");
@@ -117,16 +118,16 @@ void KVStore::init() {
         _spDht->initClient();
     }
 
-    if (isOffloadEnabled()) {
-        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(),
-                                                        baseCoreId + dhtCount));
-        _spOffloadPoller->initFreeList();
+    if ( _spSpdk->isSpdkReady() == true /*sOffloadEnabled()*/) {
+        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(), baseCoreId + dhtCount));
         coresUsed++;
     }
 
+    sleep(5); // TODO: synchronize
+
     for (auto index = coresUsed; index < pollerCount + coresUsed; index++) {
         auto rqstPoller = new DaqDB::PmemPoller(pmem(), baseCoreId + index);
-        if (isOffloadEnabled())
+        if (_spSpdk->isSpdkReady() == true /*sOffloadEnabled()*/)
             rqstPoller->offloadPoller = _spOffloadPoller.get();
         _rqstPollers.push_back(rqstPoller);
     }

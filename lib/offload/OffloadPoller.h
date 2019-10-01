@@ -92,12 +92,20 @@ class OffloadPoller : public Poller<OffloadRqst> {
         return spdkCore->spBdev->spBdevCtx->io_channel;
     }
 
+    void loop(void);
+
+    static void spdkStart(void *arg);
+
     RTreeEngine *rtree;
     SpdkCore *spdkCore;
 
     OffloadFreeList *freeLbaList = nullptr;
 
     std::atomic<int> isRunning;
+
+    void setBlockNumForLba(uint64_t blk_num_flba) {
+    	_blkNumForLba = blk_num_flba;
+    }
 
   private:
     void _threadMain(void);

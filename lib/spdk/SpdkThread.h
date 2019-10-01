@@ -70,8 +70,10 @@ struct SpdkThreadCtx {
 class SpdkThread {
   public:
     SpdkThread(SpdkBdev *bdev);
+    ~SpdkThread();
 
     bool init(void);
+    void deinit(void);
 
     /**
      * Dequeues and call all messages from ring and calls registered pollers.
@@ -81,11 +83,11 @@ class SpdkThread {
     size_t poll(void);
 
   private:
-    void threadStart(void);
+    //void threadStart(void);
 
     std::unique_ptr<DaqDB::SpdkBdev> spBdev;
     std::unique_ptr<DaqDB::SpdkThreadCtx> spCtx;
-    std::thread *_thread;
+    //std::thread *_thread;
 };
 
 } // namespace DaqDB

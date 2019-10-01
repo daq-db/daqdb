@@ -19,6 +19,8 @@ addlib build/lib/libspdk_copy.a
 addlib build/lib/libspdk_copy_ioat.a
 addlib build/lib/libspdk_env_dpdk.a
 addlib build/lib/libspdk_vmd.a
+addlib build/lib/libspdk_notify.a
+addlib build/lib/libspdk_ftl.a
 addlib build/lib/libspdk_event.a
 addlib build/lib/libspdk_event_bdev.a
 addlib build/lib/libspdk_event_copy.a

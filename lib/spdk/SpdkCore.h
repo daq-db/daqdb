@@ -66,9 +66,17 @@ class SpdkCore {
 
     inline bool isOffloadEnabled() {
         if (state == SpdkState::SPDK_READY)
-            return (spBdev->state == SpdkBdevState::SPDK_BDEV_READY);
+            return (spBdev->spBdevCtx->state == SPDK_BDEV_READY);
         else
             return false;
+    }
+
+    SpdkBdev *getBdev(void) {
+    	return spBdev.get();
+    }
+
+    bool isSpdkReady() {
+    	return state == SpdkState::SPDK_READY ? true : false;
     }
 
     std::atomic<SpdkState> state;
