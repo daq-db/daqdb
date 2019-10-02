@@ -67,6 +67,9 @@ Key MinidaqRoNode::_NextKey() {
     return key;
 }
 
+unsigned int pppp = 0;
+const unsigned int p_o_quant = 2000;
+
 void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
     DaqDB::Value value;
@@ -85,6 +88,9 @@ void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
     _CheckBuffer(key, value.data(), value.size());
 #endif /* WITH_INTEGRITY_CHECK */
 
+    if ( !((pppp++)%p_o_quant) ) {
+            std::cout << "PPPP " << pppp << std::endl;
+    }
     _kvs->Put(std::move(key), std::move(value));
     cnt++;
 }

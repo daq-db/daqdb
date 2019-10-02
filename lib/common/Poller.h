@@ -16,6 +16,9 @@
 
 #pragma once
 
+#define POLLER_USE_SPDK_RING
+
+#ifndef POLLER_USE_SPDK_RING
 #include <boost/circular_buffer.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
@@ -23,6 +26,7 @@
 #include <boost/call_traits.hpp>
 #include <boost/bind.hpp>
 #include <boost/timer/timer.hpp>
+#endif
 
 #include "spdk/env.h"
 #include "spdk/io_channel.h"
@@ -30,10 +34,10 @@
 
 #define DEQUEUE_RING_LIMIT 1024
 #define DEQUEUE_BUFFER_LIMIT DEQUEUE_RING_LIMIT
-#define DEQUEUE_BUFFER_QUANT 32
 
 namespace DaqDB {
 
+#ifndef POLLER_USE_SPDK_RING
 template <class T>
 class BoundedBuffer {
 public:
@@ -61,6 +65,18 @@ public:
         m_not_full.notify_one();
     }
 
+    void popBackVector(value_type pItem[], unsigned short *size) {
+        boost::mutex::scoped_lock lock(m_mutex);
+        m_not_empty.wait(lock, boost::bind(&BoundedBuffer<value_type>::isNotEmpty, this));
+        unsigned short i = 0;
+        for ( ; m_unread > 0 ; ) {
+            pItem[i++] = m_container[--m_unread];
+        }
+        *size = i;
+        lock.unlock();
+        m_not_full.notify_one();
+    }
+
 private:
     BoundedBuffer(const BoundedBuffer&);              // Disabled copy constructor.
     BoundedBuffer& operator = (const BoundedBuffer&); // Disabled assign operator.
@@ -74,47 +90,52 @@ private:
     boost::condition m_not_empty;
     boost::condition m_not_full;
 };
-
+#endif
 
 template <class T> class Poller {
   public:
     Poller() : requests(new T *[DEQUEUE_RING_LIMIT]) {
-        //rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
+#ifdef POLLER_USE_SPDK_RING
+        rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
+#else
         rqstBuffer = new BoundedBuffer<T *>(DEQUEUE_BUFFER_LIMIT);
+#endif
     }
     virtual ~Poller() {
-        //spdk_ring_free(rqstRing);
-        delete[] requests;
+#ifdef POLLER_USE_SPDK_RING
+        spdk_ring_free(rqstRing);
+#else
         delete rqstBuffer;
+#endif
+        delete[] requests;
     }
 
     virtual bool enqueue(T *rqst) {
+#ifdef POLLER_USE_SPDK_RING
+        size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1, 0);
+        return (count == 1);
+#else
         rqstBuffer->pushFront(rqst);
-        //size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1, 0);
-        //return (count == 1);
         return true;
+#endif
     }
     virtual void dequeue() {
-        //requestCount = spdk_ring_dequeue(rqstRing, (void **)&requests[0], DEQUEUE_RING_LIMIT);
-        unsigned short oneShot = DEQUEUE_BUFFER_QUANT;
-        if ( requestCount > DEQUEUE_BUFFER_QUANT ) {
-            oneShot = DEQUEUE_BUFFER_LIMIT;
-        }
-        unsigned short r_cnt = 0;
-        for (  ; requestCount < oneShot ; requestCount++ ) {
-            T *elem;
-            rqstBuffer->popBack(&elem);
-            assert(elem);
-            requests[r_cnt++] = elem;
-        }
-        //assert(requestCount <= DEQUEUE_RING_LIMIT);
+#ifdef POLLER_USE_SPDK_RING
+        requestCount = spdk_ring_dequeue(rqstRing, (void **)&requests[0], DEQUEUE_RING_LIMIT);
+        assert(requestCount <= DEQUEUE_RING_LIMIT);
+#else
+        rqstBuffer->popBackVector(requests, &requestCount);
         assert(requestCount <= DEQUEUE_BUFFER_LIMIT);
+#endif
     }
 
     virtual void process() = 0;
 
-    //struct spdk_ring *rqstRing;
+#ifdef POLLER_USE_SPDK_RING
+    struct spdk_ring *rqstRing;
+#else
     BoundedBuffer<T *> *rqstBuffer;
+#endif
     unsigned short requestCount = 0;
     T **requests;
 };

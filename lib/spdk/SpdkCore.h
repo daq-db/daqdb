@@ -72,11 +72,11 @@ class SpdkCore {
     }
 
     SpdkBdev *getBdev(void) {
-    	return spBdev.get();
+        return spBdev.get();
     }
 
     bool isSpdkReady() {
-    	return state == SpdkState::SPDK_READY ? true : false;
+        return state == SpdkState::SPDK_READY ? true : false;
     }
 
     std::atomic<SpdkState> state;

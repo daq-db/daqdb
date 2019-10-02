@@ -38,7 +38,7 @@ SpdkBdev::SpdkBdev() : state(SpdkBdevState::SPDK_BDEV_INIT) {
 }
 
 void daqdb_spdk_start(void *arg) {
-//	SpdkBdevCtx *bdev_c = (SpdkBdevCtx *)arg;
+//    SpdkBdevCtx *bdev_c = (SpdkBdevCtx *)arg;
 //
 //    bdev_c->bdev = spdk_bdev_first();
 //    if (!bdev_c->bdev) {
@@ -50,15 +50,15 @@ void daqdb_spdk_start(void *arg) {
 //
 //    int rc = spdk_bdev_open(bdev_c->bdev, true, NULL, NULL, &bdev_c->bdev_desc);
 //    if (rc) {
-//    	printf("Open BDEV failed with error code[%d]\n", rc);
-//    	bdev_c->state = SPDK_BDEV_ERROR;
+//        printf("Open BDEV failed with error code[%d]\n", rc);
+//        bdev_c->state = SPDK_BDEV_ERROR;
 //        return;
 //    }
 //
 //    bdev_c->io_channel = spdk_bdev_get_io_channel(bdev_c->bdev_desc);
 //    if (!bdev_c->io_channel) {
-//    	printf("Get io_channel failed\n");
-//    	bdev_c->state = SPDK_BDEV_ERROR;
+//        printf("Get io_channel failed\n");
+//        bdev_c->state = SPDK_BDEV_ERROR;
 //        return;
 //    }
 //
@@ -75,17 +75,17 @@ void daqdb_spdk_start(void *arg) {
 }
 
 bool SpdkBdev::init() {
-//	struct spdk_app_opts daqdb_opts = {};
-//	spdk_app_opts_init(&daqdb_opts);
-//	daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
+//    struct spdk_app_opts daqdb_opts = {};
+//    spdk_app_opts_init(&daqdb_opts);
+//    daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
 //
-//	int rc = spdk_app_start(&daqdb_opts, daqdb_spdk_start, spBdevCtx.get());
-//	if ( rc ) {
-//		DAQ_DEBUG("Error spdk_app_start[" + std::to_string(rc) + "]");
-//		std::cout << "Error spdk_app_start[" << rc << "]" << std::endl;
-//		return false;
-//	}
-//	std::cout << "spdk_app_start[" << rc << "]" << std::endl;
+//    int rc = spdk_app_start(&daqdb_opts, daqdb_spdk_start, spBdevCtx.get());
+//    if ( rc ) {
+//        DAQ_DEBUG("Error spdk_app_start[" + std::to_string(rc) + "]");
+//        std::cout << "Error spdk_app_start[" << rc << "]" << std::endl;
+//        return false;
+//    }
+//    std::cout << "spdk_app_start[" << rc << "]" << std::endl;
 
     return true;
 }

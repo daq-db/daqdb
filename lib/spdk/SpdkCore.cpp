@@ -67,7 +67,7 @@ bool SpdkCore::spdkEnvInit(void) {
 //    opts.shm_id = 0;
 //
 //    return (spdk_env_init(&opts) == 0);
-	return true;
+    return true;
 }
 
 static void spdkDoneCb(void *cb_arg, int rc) {

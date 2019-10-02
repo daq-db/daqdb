@@ -54,11 +54,11 @@ unsigned int wwww = 0;
 unsigned int vvvv = 0;
 const unsigned int s_o_quant = 2000;
 
-static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
+void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
-
-	spdk_bdev_free_io(bdev_io);
+    spdk_bdev_free_io(bdev_io);
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(ioCtx->arg);
 
     if (success) {
         if ( !((cccc++)%s_o_quant) ) {
@@ -72,6 +72,7 @@ static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
             ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
     } else {
+        vvvv++;
         if ( !((rrrr++)%s_o_quant) ) {
                 std::cout << "RRRR " << rrrr << " err_cnt(" << vvvv << ")" << std::endl;
         }
@@ -80,15 +81,21 @@ static void write_complete(struct spdk_bdev_io *bdev_io, bool success,
             ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
                        ioCtx->keySize, nullptr, 0);
     }
+
+    delete ioCtx;
+
+    poller->dequeue();
+    poller->process();
 }
 
 /*
  * Callback function for read io completion.
  */
-static void read_complete(struct spdk_bdev_io *bdev_io, bool success,
+void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                           void *cb_arg) {
-	spdk_bdev_free_io(bdev_io);
+    spdk_bdev_free_io(bdev_io);
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(ioCtx->arg);
 
     if (success) {
         if (ioCtx->clb)
@@ -100,7 +107,10 @@ static void read_complete(struct spdk_bdev_io *bdev_io, bool success,
                        ioCtx->keySize, nullptr, 0);
     }
 
-    spdk_bdev_free_io(bdev_io);
+    delete ioCtx;
+
+    poller->dequeue();
+    poller->process();
 }
 
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
@@ -140,17 +150,21 @@ void OffloadPoller::startThread() {
 bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
     return spdk_bdev_read_blocks(getBdevDesc(), getBdevIoChannel(), ioCtx->buff,
                                  getBlockOffsetForLba(*ioCtx->lba),
-                                 ioCtx->blockSize, read_complete, ioCtx);
+                                 ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
 }
 
 bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
     if ( !((wwww++)%s_o_quant) ) {
             std::cout << "WWWW " << wwww << std::endl;
     }
-    return spdk_bdev_write_blocks(getBdevDesc(), getBdevIoChannel(),
+    int w_rc = spdk_bdev_write_blocks(getBdevDesc(), getBdevIoChannel(),
                                   ioCtx->buff,
                                   getBlockOffsetForLba(*ioCtx->lba),
-                                  ioCtx->blockSize, write_complete, ioCtx);
+                                  ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
+    if ( w_rc ) {
+        std::cerr << "spdk write error(" << w_rc << ")" << std::endl;
+    }
+    return w_rc;
 }
 
 void OffloadPoller::initFreeList() {
@@ -208,7 +222,7 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
     OffloadIoCtx *ioCtx = new OffloadIoCtx{
         buff,      valCtx.size,   blkSize,
         rqst->key, rqst->keySize, static_cast<uint64_t *>(valCtx.val),
-        false,     rtree,         rqst->clb};
+        false,     this, rtree,         rqst->clb};
 
     if (read(ioCtx) != 0)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
@@ -249,7 +263,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         ioCtx = new OffloadIoCtx{
             buff,      valSize,       getBdev()->getSizeInBlk(valSizeAlign),
             rqst->key, rqst->keySize, nullptr,
-            true,      rtree,         rqst->clb};
+            true,      this, rtree,         rqst->clb};
         try {
             rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
         } catch (...) {
@@ -273,7 +287,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         ioCtx = new OffloadIoCtx{
             buff,      rqst->valueSize, getBdev()->getSizeInBlk(valSizeAlign),
             rqst->key, rqst->keySize,   new uint64_t,
-            false,     rtree,           rqst->clb};
+            false,     this, rtree,           rqst->clb};
         *ioCtx->lba = *(static_cast<uint64_t *>(valCtx.val));
 
     } else {
@@ -333,28 +347,36 @@ void OffloadPoller::process() {
 }
 
 void OffloadPoller::spdkStart(void *arg) {
-	OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
-	SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
+    OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
+    SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
 
-    bdev_c->bdev = spdk_bdev_first();
+    bdev_c->bdev_name = const_cast<char *>(poller->bdevName.c_str());
+    bdev_c->bdev = 0;
+    bdev_c->bdev_desc = 0;
+
+    //bdev_c->bdev = spdk_bdev_first();
+    bdev_c->bdev = spdk_bdev_get_by_name(bdev_c->bdev_name);
     if (!bdev_c->bdev) {
-        printf("No NVMe devices detected\n");
+        printf("No NVMe devices detected for name(%s)\n", bdev_c->bdev_name);
+        spdk_app_stop(-1);
         bdev_c->state = SPDK_BDEV_NOT_FOUND;
         return;
     }
-    printf("NVMe devices detected\n");
+    printf("NVMe devices detected for name(%s)\n", bdev_c->bdev_name);
 
     int rc = spdk_bdev_open(bdev_c->bdev, true, NULL, NULL, &bdev_c->bdev_desc);
     if (rc) {
-    	printf("Open BDEV failed with error code[%d]\n", rc);
-    	bdev_c->state = SPDK_BDEV_ERROR;
+        printf("Open BDEV failed with error code[%d]\n", rc);
+        bdev_c->state = SPDK_BDEV_ERROR;
+        spdk_app_stop(-1);
         return;
     }
 
     bdev_c->io_channel = spdk_bdev_get_io_channel(bdev_c->bdev_desc);
     if (!bdev_c->io_channel) {
-    	printf("Get io_channel failed\n");
-    	bdev_c->state = SPDK_BDEV_ERROR;
+        printf("Get io_channel failed\n");
+        bdev_c->state = SPDK_BDEV_ERROR;
+        spdk_app_stop(-1);
         return;
     }
 
@@ -373,21 +395,25 @@ void OffloadPoller::spdkStart(void *arg) {
     poller->initFreeList();
 
     bdev_c->state = SPDK_BDEV_READY;
-    poller->loop();
+
+    poller->dequeue();
+    poller->process();
 }
 
 void OffloadPoller::_threadMain(void) {
-	struct spdk_app_opts daqdb_opts = {};
-	spdk_app_opts_init(&daqdb_opts);
-	daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
+    struct spdk_app_opts daqdb_opts = {};
+    spdk_app_opts_init(&daqdb_opts);
+    daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
+    daqdb_opts.name = "janl";
+    bdevName = "Nvme0n1";
 
-	int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
-	if ( rc ) {
-		DAQ_DEBUG("Error spdk_app_start[" + std::to_string(rc) + "]");
-		std::cout << "Error spdk_app_start[" << rc << "]" << std::endl;
-		return;
-	}
-	std::cout << "spdk_app_start[" << rc << "]" << std::endl;
+    int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
+    if ( rc ) {
+        DAQ_DEBUG("Error spdk_app_start[" + std::to_string(rc) + "]");
+        std::cout << "Error spdk_app_start[" << rc << "]" << std::endl;
+        return;
+    }
+    std::cout << "spdk_app_start[" << rc << "]" << std::endl;
 }
 
 void OffloadPoller::loop(void) {

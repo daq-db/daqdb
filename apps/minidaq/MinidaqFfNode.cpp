@@ -16,6 +16,7 @@
 
 #include "MinidaqFfNode.h"
 #include <random>
+#include <iostream>
 
 namespace DaqDB {
 
@@ -74,6 +75,9 @@ int MinidaqFfNode::_PickNFragments() {
     return _nSubdetectors;
 }
 
+unsigned int aaaa = 0;
+const unsigned int a_o_quant = 2000;
+
 void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
     MinidaqKey *mKeyPtr = reinterpret_cast<MinidaqKey *>(key.data());
@@ -96,6 +100,9 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
         }
 #endif /* WITH_INTEGRITY_CHECK */
         if (accept) {
+            if ( !((aaaa++)%a_o_quant) ) {
+                    std::cout << "AAAA " << aaaa << std::endl;
+            }
             while (1) {
                 try {
                     _kvs->UpdateAsync(

@@ -44,7 +44,7 @@ const unsigned int SPDK_POLLING_TIMEOUT = 1000000UL;
 #define SPDK_FIO_POLLING_TIMEOUT 1000000UL
 
 SpdkThread::SpdkThread(SpdkBdev *bdev)
-	: spBdev(bdev) {
+    : spBdev(bdev) {
     spCtx.reset(new SpdkThreadCtx());
 }
 
@@ -53,20 +53,20 @@ SpdkThread::~SpdkThread() {
 }
 
 bool SpdkThread::init() {
-	//_thread = new std::thread(&SpdkThread::threadStart, this);
-	//sleep(5);
+    //_thread = new std::thread(&SpdkThread::threadStart, this);
+    //sleep(5);
     return true;
 }
 
 void SpdkThread::deinit() {
-	spdk_app_stop(0);
-	//if ( _thread ) {
-	    //_thread->join();
-	//}
+    spdk_app_stop(0);
+    //if ( _thread ) {
+        //_thread->join();
+    //}
 }
 
 //void SpdkThread::threadStart() {
-	//spBdev->init();
+    //spBdev->init();
 //}
 
 } // namespace DaqDB
