@@ -29,6 +29,8 @@ namespace bf = boost::filesystem;
 
 namespace DaqDB {
 
+const char *SpdkCore::spdkHugepageDirname = "/mnt/huge_1GB";
+
 SpdkCore::SpdkCore(OffloadOptions offloadOptions)
     : state(SpdkState::SPDK_INIT), offloadOptions(offloadOptions) {
     bool doDevInit = createConfFile();

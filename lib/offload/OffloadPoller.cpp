@@ -37,7 +37,6 @@
 #include <RTree.h>
 #include <daqdb/Status.h>
 
-#define POOL_FREELIST_FILENAME "/mnt/pmem/offload_free.pm"
 #define POOL_FREELIST_SIZE 1ULL * 1024 * 1024 * 1024
 #define LAYOUT "queue"
 #define CREATE_MODE_RW (S_IWUSR | S_IRUSR)
@@ -54,6 +53,8 @@ unsigned int wwww = 0;
 unsigned int vvvv = 0;
 unsigned int eeee = 0;
 const unsigned int s_o_quant = 200000;
+
+const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 
 void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
@@ -111,7 +112,7 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                              const size_t cpuCore):
     Poller<OffloadRqst>(false),
-    rtree(rtree), spdkCore(spdkCore), _thread(0), _loopThread(0), _cpuCore(cpuCore) {
+    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore) {
     if (spdkCore->isSpdkReady() == true /*isOffloadEnabled()*/) {
         startThread();
     }
@@ -119,14 +120,14 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
 
 OffloadPoller::~OffloadPoller() {
     isRunning = 0;
-    if (_thread != nullptr)
-        _thread->join();
+    if (_spdkThread != nullptr)
+        _spdkThread->join();
     if ( _loopThread )
         _loopThread->join();
 }
 
 void OffloadPoller::startThread() {
-    _thread = new std::thread(&OffloadPoller::_threadMain, this);
+    _spdkThread = new std::thread(&OffloadPoller::_spdkThreadMain, this);
     DAQ_DEBUG("OffloadPoller thread started");
     if (_cpuCore) {
         cpu_set_t cpuset;
@@ -134,7 +135,7 @@ void OffloadPoller::startThread() {
         CPU_SET(_cpuCore, &cpuset);
 
         const int set_result = pthread_setaffinity_np(
-            _thread->native_handle(), sizeof(cpu_set_t), &cpuset);
+            _spdkThread->native_handle(), sizeof(cpu_set_t), &cpuset);
         if (set_result == 0) {
             DAQ_DEBUG("OffloadPoller thread affinity set on CPU core [" +
                       std::to_string(_cpuCore) + "]");
@@ -170,12 +171,12 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
 void OffloadPoller::initFreeList() {
     auto initNeeded = false;
     if (getBdevCtx()) {
-        if (boost::filesystem::exists(POOL_FREELIST_FILENAME)) {
+        if (boost::filesystem::exists(OffloadPoller::pmemFreeListFilename)) {
             _offloadFreeList =
-                pool<OffloadFreeList>::open(POOL_FREELIST_FILENAME, LAYOUT);
+                pool<OffloadFreeList>::open(OffloadPoller::pmemFreeListFilename, LAYOUT);
         } else {
             _offloadFreeList = pool<OffloadFreeList>::create(
-                POOL_FREELIST_FILENAME, LAYOUT, POOL_FREELIST_SIZE,
+                    OffloadPoller::pmemFreeListFilename, LAYOUT, POOL_FREELIST_SIZE,
                 CREATE_MODE_RW);
             initNeeded = true;
         }
@@ -401,10 +402,10 @@ void OffloadPoller::spdkStart(void *arg) {
 
     bdev_c->state = SPDK_BDEV_READY;
 
-    poller->_loopThread = new std::thread(&OffloadPoller::loop, poller);
+    poller->_loopThread = new std::thread(&OffloadPoller::_loopThreadMain, poller);
 }
 
-void OffloadPoller::_threadMain(void) {
+void OffloadPoller::_spdkThreadMain(void) {
     struct spdk_app_opts daqdb_opts = {};
     spdk_app_opts_init(&daqdb_opts);
     daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
@@ -413,18 +414,18 @@ void OffloadPoller::_threadMain(void) {
     daqdb_opts.mem_size = 1024;
     daqdb_opts.shm_id = 0;
     daqdb_opts.hugepage_single_segments = 1;
-    daqdb_opts.hugedir = "/mnt/huge_1GB";
+    daqdb_opts.hugedir = SpdkCore::spdkHugepageDirname;
 
     int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
     if ( rc ) {
         DAQ_DEBUG("Error spdk_app_start[" + std::to_string(rc) + "]");
-        std::cout << "Error spdk_app_start[" << rc << "]" << std::endl;
+        std::cerr << "Error spdk_app_start[" << rc << "]" << std::endl;
         return;
     }
     std::cout << "spdk_app_start[" << rc << "]" << std::endl;
 }
 
-void OffloadPoller::loop(void) {
+void OffloadPoller::_loopThreadMain(void) {
     isRunning = 1;
     while (isRunning) {
         dequeue();

@@ -86,10 +86,10 @@ class SpdkCore {
      * completion queue.
      */
     std::unique_ptr<SpdkThread> spSpdkThread;
-
     std::unique_ptr<SpdkBdev> spBdev;
-
     OffloadOptions offloadOptions;
+
+    const static char *spdkHugepageDirname;
 
   private:
     inline bool isNvmeInOptions() {

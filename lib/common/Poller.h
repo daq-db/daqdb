@@ -16,7 +16,7 @@
 
 #pragma once
 
-#define POLLER_USE_SPDK_RING
+//#define POLLER_USE_SPDK_RING
 
 #ifndef POLLER_USE_SPDK_RING
 #include <boost/circular_buffer.hpp>
@@ -38,36 +38,37 @@
 namespace DaqDB {
 
 #ifndef POLLER_USE_SPDK_RING
+
 template <class T>
 class BoundedBuffer {
 public:
-    typedef boost::circular_buffer<T> container_type;
-    typedef typename container_type::size_type size_type;
-    typedef typename container_type::value_type value_type;
-    typedef typename boost::call_traits<value_type>::param_type param_type;
+    typedef boost::circular_buffer<T> ContainerType;
+    typedef typename ContainerType::size_type SizeType;
+    typedef typename ContainerType::value_type ValueType;
+    typedef typename boost::call_traits<ValueType>::param_type ParamType;
 
-    explicit BoundedBuffer(size_type capacity) : m_unread(0), m_container(capacity) {}
+    explicit BoundedBuffer(SizeType capacity) : m_unread(0), m_container(capacity) {}
 
-    void pushFront(typename boost::call_traits<value_type>::param_type item) { // `param_type` represents the "best" way to pass a parameter of type `value_type` to a method.
+    void pushFront(typename boost::call_traits<ValueType>::param_type item) {
         boost::mutex::scoped_lock lock(m_mutex);
-        m_not_full.wait(lock, boost::bind(&BoundedBuffer<value_type>::isNotFull, this));
+        m_not_full.wait(lock, boost::bind(&BoundedBuffer<ValueType>::isNotFull, this));
         m_container.push_front(item);
         ++m_unread;
         lock.unlock();
         m_not_empty.notify_one();
     }
 
-    void popBack(value_type* pItem) {
+    void popBack(ValueType* pItem) {
         boost::mutex::scoped_lock lock(m_mutex);
-        m_not_empty.wait(lock, boost::bind(&BoundedBuffer<value_type>::isNotEmpty, this));
+        m_not_empty.wait(lock, boost::bind(&BoundedBuffer<ValueType>::isNotEmpty, this));
         *pItem = m_container[--m_unread];
         lock.unlock();
         m_not_full.notify_one();
     }
 
-    void popBackVector(value_type pItem[], unsigned short *size) {
+    void popBackVector(ValueType pItem[], unsigned short *size) {
         boost::mutex::scoped_lock lock(m_mutex);
-        m_not_empty.wait(lock, boost::bind(&BoundedBuffer<value_type>::isNotEmpty, this));
+        m_not_empty.wait(lock, boost::bind(&BoundedBuffer<ValueType>::isNotEmpty, this));
         unsigned short i = 0;
         for ( ; m_unread > 0 ; ) {
             pItem[i++] = m_container[--m_unread];
@@ -78,14 +79,14 @@ public:
     }
 
 private:
-    BoundedBuffer(const BoundedBuffer&);              // Disabled copy constructor.
-    BoundedBuffer& operator = (const BoundedBuffer&); // Disabled assign operator.
+    BoundedBuffer(const BoundedBuffer&) = delete;
+    BoundedBuffer& operator = (const BoundedBuffer&) = delete;
 
     bool isNotEmpty() const { return m_unread > 0; }
     bool isNotFull() const { return m_unread < m_container.capacity(); }
 
-    size_type m_unread;
-    container_type m_container;
+    SizeType m_unread;
+    ContainerType m_container;
     boost::mutex m_mutex;
     boost::condition m_not_empty;
     boost::condition m_not_full;

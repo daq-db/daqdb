@@ -93,8 +93,6 @@ class OffloadPoller : public Poller<OffloadRqst> {
         return spdkCore->spBdev->spBdevCtx->io_channel;
     }
 
-    void loop(void);
-
     static void spdkStart(void *arg);
     static void readComplete(struct spdk_bdev_io *bdev_io, bool success,
             void *cb_arg);
@@ -113,7 +111,8 @@ class OffloadPoller : public Poller<OffloadRqst> {
     }
 
   private:
-    void _threadMain(void);
+    void _spdkThreadMain(void);
+    void _loopThreadMain(void);
 
     void _processGet(const OffloadRqst *rqst);
     void _processUpdate(const OffloadRqst *rqst);
@@ -129,10 +128,12 @@ class OffloadPoller : public Poller<OffloadRqst> {
     uint64_t _blkNumForLba = 0;
     pool<DaqDB::OffloadFreeList> _offloadFreeList;
 
-    std::thread *_thread;
+    std::thread *_spdkThread;
     std::thread *_loopThread;
     size_t _cpuCore;
     std::string bdevName;
+
+    const static char *pmemFreeListFilename;
 };
 
 } // namespace DaqDB
