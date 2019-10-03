@@ -94,12 +94,21 @@ private:
 
 template <class T> class Poller {
   public:
-    Poller() : requests(new T *[DEQUEUE_RING_LIMIT]) {
+    Poller(bool create_buf = true) :
 #ifdef POLLER_USE_SPDK_RING
-        rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
+        rqstRing(0),
 #else
-        rqstBuffer = new BoundedBuffer<T *>(DEQUEUE_BUFFER_LIMIT);
+        rqstBuffer(0),
 #endif
+        requests(new T *[DEQUEUE_RING_LIMIT]),
+        createBuf(create_buf) {
+        if ( createBuf == true ) {
+#ifdef POLLER_USE_SPDK_RING
+            rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
+#else
+            rqstBuffer = new BoundedBuffer<T *>(DEQUEUE_BUFFER_LIMIT);
+#endif
+        }
     }
     virtual ~Poller() {
 #ifdef POLLER_USE_SPDK_RING
@@ -108,6 +117,19 @@ template <class T> class Poller {
         delete rqstBuffer;
 #endif
         delete[] requests;
+    }
+
+    bool init() {
+        if ( createBuf == false ) {
+#ifdef POLLER_USE_SPDK_RING
+            rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
+            return rqstRing ? true : false;
+#else
+            rqstBuffer = new BoundedBuffer<T *>(DEQUEUE_BUFFER_LIMIT);
+            return rqstBuffer ? true : false;
+#endif
+        }
+        return true;
     }
 
     virtual bool enqueue(T *rqst) {
@@ -138,6 +160,7 @@ template <class T> class Poller {
 #endif
     unsigned short requestCount = 0;
     T **requests;
+    bool createBuf;
 };
 
 } // namespace DaqDB

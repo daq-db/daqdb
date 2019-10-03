@@ -52,7 +52,8 @@ unsigned int cccc = 0;
 unsigned int rrrr = 0;
 unsigned int wwww = 0;
 unsigned int vvvv = 0;
-const unsigned int s_o_quant = 2000;
+unsigned int eeee = 0;
+const unsigned int s_o_quant = 100000;
 
 void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
@@ -83,9 +84,6 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     }
 
     delete ioCtx;
-
-    poller->dequeue();
-    poller->process();
 }
 
 /*
@@ -108,14 +106,12 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     }
 
     delete ioCtx;
-
-    poller->dequeue();
-    poller->process();
 }
 
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
-                             const size_t cpuCore)
-    : rtree(rtree), spdkCore(spdkCore), _thread(0), _cpuCore(cpuCore) {
+                             const size_t cpuCore):
+    Poller<OffloadRqst>(false),
+    rtree(rtree), spdkCore(spdkCore), _thread(0), _loopThread(0), _cpuCore(cpuCore) {
     if (spdkCore->isSpdkReady() == true /*isOffloadEnabled()*/) {
         startThread();
     }
@@ -125,6 +121,8 @@ OffloadPoller::~OffloadPoller() {
     isRunning = 0;
     if (_thread != nullptr)
         _thread->join();
+    if ( _loopThread )
+        _loopThread->join();
 }
 
 void OffloadPoller::startThread() {
@@ -162,7 +160,9 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
                                   getBlockOffsetForLba(*ioCtx->lba),
                                   ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
     if ( w_rc ) {
-        std::cerr << "spdk write error(" << w_rc << ")" << std::endl;
+        if ( !((eeee++)%s_o_quant) ) {
+            std::cerr << "spdk write error(" << w_rc << ")" << " err_cnt(" << eeee << ")" << std::endl;
+        }
     }
     return w_rc;
 }
@@ -393,11 +393,16 @@ void OffloadPoller::spdkStart(void *arg) {
     poller->setBlockNumForLba(aligned / bdev_c->blk_size);
 
     poller->initFreeList();
+    bool i_rc = poller->init();
+    if ( i_rc == false ) {
+        printf("Poller init failed\n");
+        spdk_app_stop(-1);
+        return;
+    }
 
     bdev_c->state = SPDK_BDEV_READY;
 
-    poller->dequeue();
-    poller->process();
+    poller->_loopThread = new std::thread(&OffloadPoller::loop, poller);
 }
 
 void OffloadPoller::_threadMain(void) {
@@ -406,6 +411,11 @@ void OffloadPoller::_threadMain(void) {
     daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
     daqdb_opts.name = "janl";
     bdevName = "Nvme0n1";
+
+    daqdb_opts.mem_size = 1024;
+    daqdb_opts.shm_id = 0;
+    daqdb_opts.hugepage_single_segments = 1;
+    daqdb_opts.hugedir = "/mnt/huge_1GB";
 
     int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
     if ( rc ) {

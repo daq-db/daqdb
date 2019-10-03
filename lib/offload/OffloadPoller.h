@@ -130,6 +130,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
     pool<DaqDB::OffloadFreeList> _offloadFreeList;
 
     std::thread *_thread;
+    std::thread *_loopThread;
     size_t _cpuCore;
     std::string bdevName;
 };

@@ -65,7 +65,7 @@ bool SpdkCore::spdkEnvInit(void) {
 //    opts.mem_size = 1024;
 //
 //    opts.shm_id = 0;
-//
+
 //    return (spdk_env_init(&opts) == 0);
     return true;
 }

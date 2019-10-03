@@ -76,7 +76,7 @@ int MinidaqFfNode::_PickNFragments() {
 }
 
 unsigned int aaaa = 0;
-const unsigned int a_o_quant = 2000;
+const unsigned int a_o_quant = 100000;
 
 void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
