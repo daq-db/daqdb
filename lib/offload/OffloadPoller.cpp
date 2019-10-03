@@ -53,7 +53,7 @@ unsigned int rrrr = 0;
 unsigned int wwww = 0;
 unsigned int vvvv = 0;
 unsigned int eeee = 0;
-const unsigned int s_o_quant = 100000;
+const unsigned int s_o_quant = 200000;
 
 void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
@@ -354,8 +354,7 @@ void OffloadPoller::spdkStart(void *arg) {
     bdev_c->bdev = 0;
     bdev_c->bdev_desc = 0;
 
-    //bdev_c->bdev = spdk_bdev_first();
-    bdev_c->bdev = spdk_bdev_get_by_name(bdev_c->bdev_name);
+    bdev_c->bdev = spdk_bdev_first();
     if (!bdev_c->bdev) {
         printf("No NVMe devices detected for name(%s)\n", bdev_c->bdev_name);
         spdk_app_stop(-1);
@@ -409,8 +408,7 @@ void OffloadPoller::_threadMain(void) {
     struct spdk_app_opts daqdb_opts = {};
     spdk_app_opts_init(&daqdb_opts);
     daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
-    daqdb_opts.name = "janl";
-    bdevName = "Nvme0n1";
+    daqdb_opts.name = "daqdb_nvme";
 
     daqdb_opts.mem_size = 1024;
     daqdb_opts.shm_id = 0;

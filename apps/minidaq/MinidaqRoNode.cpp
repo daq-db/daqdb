@@ -68,7 +68,7 @@ Key MinidaqRoNode::_NextKey() {
 }
 
 unsigned int pppp = 0;
-const unsigned int p_o_quant = 100000;
+const unsigned int p_o_quant = 200000;
 
 void MinidaqRoNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                           std::atomic<std::uint64_t> &cntErr) {
