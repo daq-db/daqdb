@@ -37,14 +37,7 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
 
     spBdev.reset(new SpdkBdev());
 
-    removeConfFile();
-
-    if (!rc) {
-        DAQ_DEBUG("Cannot initialize SPDK environment");
-        state = SpdkState::SPDK_ERROR;
-        spBdev->state = SpdkBdevState::SPDK_BDEV_ERROR;
-        return;
-    }
+    //removeConfFile();
 
     state = SpdkState::SPDK_READY;
     spSpdkThread.reset(new SpdkThread(spBdev.get()));

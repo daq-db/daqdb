@@ -43,7 +43,7 @@ extern "C" struct SpdkBdevCtx {
     spdk_bdev_desc *bdev_desc;
     spdk_io_channel *io_channel;
     char *buff;
-    char *bdev_name;
+    const char *bdev_name;
     struct spdk_bdev_io_wait_entry bdev_io_wait;
     uint32_t blk_size = 0;
     uint32_t buf_align = 0;
