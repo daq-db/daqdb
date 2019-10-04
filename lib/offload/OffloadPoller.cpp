@@ -95,7 +95,7 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
     Poller<OffloadRqst>(false),
     rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore) {
     if (spdkCore->isSpdkReady() == true ) {
-        startThread();
+        startSpdkThread();
     }
 }
 
@@ -202,7 +202,7 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
     OffloadIoCtx *ioCtx = new OffloadIoCtx{
         buff,      valCtx.size,   blkSize,
         rqst->key, rqst->keySize, static_cast<uint64_t *>(valCtx.val),
-        false,     this, rtree,         rqst->clb};
+        false,     rtree,         rqst->clb};
 
     if (read(ioCtx) != 0)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
@@ -243,7 +243,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         ioCtx = new OffloadIoCtx{
             buff,      valSize,       getBdev()->getSizeInBlk(valSizeAlign),
             rqst->key, rqst->keySize, nullptr,
-            true,      this, rtree,         rqst->clb};
+            true,      rtree,         rqst->clb};
         try {
             rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
         } catch (...) {
@@ -267,7 +267,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         ioCtx = new OffloadIoCtx{
             buff,      rqst->valueSize, getBdev()->getSizeInBlk(valSizeAlign),
             rqst->key, rqst->keySize,   new uint64_t,
-            false,     this, rtree,           rqst->clb};
+            false,     rtree,           rqst->clb};
         *ioCtx->lba = *(static_cast<uint64_t *>(valCtx.val));
 
     } else {
