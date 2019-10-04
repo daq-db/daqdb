@@ -21,7 +21,6 @@
 #include <daqdb/Options.h>
 
 #include "SpdkBdev.h"
-#include "SpdkThread.h"
 
 namespace DaqDB {
 
@@ -68,11 +67,6 @@ class SpdkCore {
 
     std::atomic<SpdkState> state;
 
-    /**
-     * This thread is used during initialization and later for polling SPDK
-     * completion queue.
-     */
-    std::unique_ptr<SpdkThread> spSpdkThread;
     std::unique_ptr<SpdkBdev> spBdev;
     OffloadOptions offloadOptions;
 

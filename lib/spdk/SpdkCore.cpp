@@ -20,7 +20,6 @@
 #include "spdk/env.h"
 
 #include "SpdkCore.h"
-#include "SpdkThread.h"
 
 #include <Logger.h>
 
@@ -36,12 +35,7 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
     bool doDevInit = createConfFile();
 
     spBdev.reset(new SpdkBdev());
-
-    //removeConfFile();
-
     state = SpdkState::SPDK_READY;
-    spSpdkThread.reset(new SpdkThread(spBdev.get()));
-    spSpdkThread->init();
 }
 
 static void spdkDoneCb(void *cb_arg, int rc) {

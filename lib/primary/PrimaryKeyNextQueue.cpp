@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+#include "spdk/bdev.h"
+#include "spdk/env.h"
+#include "spdk/queue.h"
+#include "spdk/thread.h"
+
 #include <Logger.h>
 #include <PrimaryKeyNextQueue.h>
 
