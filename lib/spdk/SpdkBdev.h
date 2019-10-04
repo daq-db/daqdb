@@ -69,7 +69,7 @@ class SpdkBdev {
         return size / spBdevCtx->blk_size;
     }
     void setReady() {
-        state = SPDK_BDEV_READY;
+        spBdevCtx->state = SPDK_BDEV_READY;
     }
 
     std::atomic<SpdkBdevState> state;
