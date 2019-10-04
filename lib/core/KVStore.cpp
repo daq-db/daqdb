@@ -21,6 +21,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <sstream>
+#include <iostream>
 
 #include <DhtServer.h>
 #include <DhtUtils.h>
@@ -98,7 +99,7 @@ void KVStore::init() {
     }
 
     _spSpdk.reset(new SpdkCore(getOptions().offload));
-    if ( _spSpdk->isSpdkReady() == true /*isOffloadEnabled()*/) {
+    if ( _spSpdk->isSpdkReady() == true ) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {
         DAQ_DEBUG("SPDK offload functionality is disabled");
@@ -118,16 +119,16 @@ void KVStore::init() {
         _spDht->initClient();
     }
 
-    if ( _spSpdk->isSpdkReady() == true /*sOffloadEnabled()*/) {
+    if ( _spSpdk->isSpdkReady() == true ) {
         _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(), baseCoreId + dhtCount));
         coresUsed++;
     }
 
-    sleep(5); // TODO: synchronize
+    _spOffloadPoller->waitReady(); // synchronize until OffloadPoller is done initializing SPDK framework
 
     for (auto index = coresUsed; index < pollerCount + coresUsed; index++) {
         auto rqstPoller = new DaqDB::PmemPoller(pmem(), baseCoreId + index);
-        if (_spSpdk->isSpdkReady() == true /*sOffloadEnabled()*/)
+        if (_spSpdk->isSpdkReady() == true )
             rqstPoller->offloadPoller = _spOffloadPoller.get();
         _rqstPollers.push_back(rqstPoller);
     }

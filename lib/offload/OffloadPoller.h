@@ -19,6 +19,8 @@
 #include <atomic>
 #include <cstdint>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #include "spdk/bdev.h"
 #include "spdk/env.h"
@@ -107,6 +109,9 @@ class OffloadPoller : public Poller<OffloadRqst> {
         _blkNumForLba = blk_num_flba;
     }
 
+    void signalReady();
+    void waitReady();
+
   private:
     void _spdkThreadMain(void);
     void _loopThreadMain(void);
@@ -131,6 +136,9 @@ class OffloadPoller : public Poller<OffloadRqst> {
     std::string bdevName;
 
     const static char *pmemFreeListFilename;
+
+    std::mutex _syncMutex;
+    std::unique_lock<std::mutex> *_syncLock;
 };
 
 } // namespace DaqDB

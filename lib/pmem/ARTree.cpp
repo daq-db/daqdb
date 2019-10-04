@@ -576,14 +576,7 @@ void ARTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV,
  *	Calls persist on IOVVector.
  *	Removes value buffer allocated in PMEM.
  */
-
-unsigned int wrapper = 0;
-const unsigned int wrapper_q_quant = 200000;
-
 void ARTree::UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) {
-    if ( !((wrapper++)%wrapper_q_quant) ) {
-        std::cout << "WRAPPER " << wrapper << std::endl;
-    }
     pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
     persistent_ptr<ValueWrapper> valPrstPtr;
     ValueWrapper *val;

@@ -94,6 +94,8 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                              const size_t cpuCore):
     Poller<OffloadRqst>(false),
     rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore) {
+    _syncLock = new std::unique_lock<std::mutex>(_syncMutex);
+
     if (spdkCore->isSpdkReady() == true ) {
         startSpdkThread();
     }
@@ -330,9 +332,10 @@ void OffloadPoller::spdkStart(void *arg) {
     OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
     SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
 
-    int rc = poller->getBdev()->init(poller->bdevName.c_str());
-    if ( rc ) {
+    bool rc = poller->getBdev()->init(poller->bdevName.c_str());
+    if ( rc == false ) {
         DAQ_CRITICAL("Bdev init failed");
+        poller->signalReady();
         spdk_app_stop(-1);
         return;
     }
@@ -344,11 +347,13 @@ void OffloadPoller::spdkStart(void *arg) {
     bool i_rc = poller->init();
     if ( i_rc == false ) {
         DAQ_CRITICAL("Poller init failed");
+        poller->signalReady();
         spdk_app_stop(-1);
         return;
     }
 
     poller->getBdev()->setReady();
+    poller->signalReady();
 
     poller->_loopThread = new std::thread(&OffloadPoller::_loopThreadMain, poller);
 }
@@ -370,6 +375,14 @@ void OffloadPoller::_spdkThreadMain(void) {
         return;
     }
     DAQ_DEBUG("spdk_app_start[" << rc << "]");
+}
+
+void OffloadPoller::signalReady() {
+    delete _syncLock;
+}
+
+void OffloadPoller::waitReady() {
+    std::unique_lock<std::mutex> lk(_syncMutex);
 }
 
 void OffloadPoller::_loopThreadMain(void) {
