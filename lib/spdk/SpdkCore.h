@@ -58,8 +58,6 @@ class SpdkCore {
      */
     bool attachConfigFile(void);
 
-    bool spdkEnvInit(void);
-
     void spdkBdevModuleInit(void);
 
     void removeConfFile(void);

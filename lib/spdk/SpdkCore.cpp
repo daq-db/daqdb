@@ -56,22 +56,6 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
     spSpdkThread->init();
 }
 
-bool SpdkCore::spdkEnvInit(void) {
-//    spdk_env_opts opts;
-//    spdk_env_opts_init(&opts);
-//
-//    opts.name = SPDK_APP_ENV_NAME.c_str();
-//    /*
-//     * SPDK will use 1G huge pages when mem_size is 1024
-//     */
-//    opts.mem_size = 1024;
-//
-//    opts.shm_id = 0;
-
-//    return (spdk_env_init(&opts) == 0);
-    return true;
-}
-
 static void spdkDoneCb(void *cb_arg, int rc) {
     *reinterpret_cast<bool *>(cb_arg) = true;
 }
