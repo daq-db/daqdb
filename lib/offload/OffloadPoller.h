@@ -44,7 +44,6 @@ struct OffloadIoCtx {
     size_t keySize = 0;
     uint64_t *lba = nullptr; // pointer used to store pmem allocated memory
     bool updatePmemIOV = false;
-    void *arg;
 
     RTreeEngine *rtree;
     KVStoreBase::KVStoreBaseCallback clb;
@@ -65,7 +64,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
     virtual bool write(OffloadIoCtx *ioCtx);
     virtual int64_t getFreeLba();
 
-    void startThread();
+    void startSpdkThread();
     void initFreeList();
 
     inline bool isValOffloaded(ValCtx &valCtx) {
@@ -94,10 +93,8 @@ class OffloadPoller : public Poller<OffloadRqst> {
     }
 
     static void spdkStart(void *arg);
-    static void readComplete(struct spdk_bdev_io *bdev_io, bool success,
-            void *cb_arg);
-    static void writeComplete(struct spdk_bdev_io *bdev_io, bool success,
-            void *cb_arg);
+    static void readComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+    static void writeComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
 
     RTreeEngine *rtree;
     SpdkCore *spdkCore;

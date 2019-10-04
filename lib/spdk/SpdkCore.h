@@ -49,17 +49,6 @@ class SpdkCore {
      */
     bool createConfFile(void);
 
-    /**
-     * This functions first checks if configuration file is correct and attach
-     * it as default configuration to SPDK environment
-     *
-     * @return false when cannot allocate required structures or file format is
-     * not correct, true otherwise
-     */
-    bool attachConfigFile(void);
-
-    void spdkBdevModuleInit(void);
-
     void removeConfFile(void);
 
     inline bool isOffloadEnabled() {

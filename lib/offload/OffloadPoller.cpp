@@ -43,30 +43,17 @@
 
 namespace DaqDB {
 
+const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
+
 /*
  * Callback function for write io completion.
  */
-unsigned int dddd = 0;
-unsigned int cccc = 0;
-unsigned int rrrr = 0;
-unsigned int wwww = 0;
-unsigned int vvvv = 0;
-unsigned int eeee = 0;
-const unsigned int s_o_quant = 200000;
-
-const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
-
 void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
     spdk_bdev_free_io(bdev_io);
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
-    OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(ioCtx->arg);
 
     if (success) {
-        if ( !((cccc++)%s_o_quant) ) {
-                std::cout << "CCCC " << cccc << " err_cnt(" << vvvv << ")" << std::endl;
-        }
-
         if (ioCtx->updatePmemIOV)
             ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
                                              sizeof(uint64_t));
@@ -74,11 +61,6 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
             ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
     } else {
-        vvvv++;
-        if ( !((rrrr++)%s_o_quant) ) {
-                std::cout << "RRRR " << rrrr << " err_cnt(" << vvvv << ")" << std::endl;
-        }
-
         if (ioCtx->clb)
             ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
                        ioCtx->keySize, nullptr, 0);
@@ -94,7 +76,6 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                           void *cb_arg) {
     spdk_bdev_free_io(bdev_io);
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
-    OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(ioCtx->arg);
 
     if (success) {
         if (ioCtx->clb)
@@ -113,7 +94,7 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                              const size_t cpuCore):
     Poller<OffloadRqst>(false),
     rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore) {
-    if (spdkCore->isSpdkReady() == true /*isOffloadEnabled()*/) {
+    if (spdkCore->isSpdkReady() == true ) {
         startThread();
     }
 }
@@ -126,7 +107,7 @@ OffloadPoller::~OffloadPoller() {
         _loopThread->join();
 }
 
-void OffloadPoller::startThread() {
+void OffloadPoller::startSpdkThread() {
     _spdkThread = new std::thread(&OffloadPoller::_spdkThreadMain, this);
     DAQ_DEBUG("OffloadPoller thread started");
     if (_cpuCore) {
@@ -147,23 +128,22 @@ void OffloadPoller::startThread() {
 }
 
 bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
-    return spdk_bdev_read_blocks(getBdevDesc(), getBdevIoChannel(), ioCtx->buff,
+    int r_rc = spdk_bdev_read_blocks(getBdevDesc(), getBdevIoChannel(), ioCtx->buff,
                                  getBlockOffsetForLba(*ioCtx->lba),
                                  ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
+    if ( r_rc ) {
+        DAQ_CRITICAL("Spdk read error [" + std::to_string(r_rc) + "] for offload bdev");
+    }
+    return r_rc;
 }
 
 bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
-    if ( !((wwww++)%s_o_quant) ) {
-            std::cout << "WWWW " << wwww << std::endl;
-    }
     int w_rc = spdk_bdev_write_blocks(getBdevDesc(), getBdevIoChannel(),
                                   ioCtx->buff,
                                   getBlockOffsetForLba(*ioCtx->lba),
                                   ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
     if ( w_rc ) {
-        if ( !((eeee++)%s_o_quant) ) {
-            std::cerr << "spdk write error(" << w_rc << ")" << " err_cnt(" << eeee << ")" << std::endl;
-        }
+        DAQ_CRITICAL("Spdk write error [" + std::to_string(w_rc) + "] for offload bdev");
     }
     return w_rc;
 }
@@ -216,8 +196,7 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
 
     auto size = getBdev()->getAlignedSize(valCtx.size);
 
-    char *buff = reinterpret_cast<char *>(
-        spdk_dma_zmalloc(size, getBdevCtx()->buf_align, NULL));
+    char *buff = reinterpret_cast<char *>(spdk_dma_zmalloc(size, getBdevCtx()->buf_align, NULL));
 
     auto blkSize = getBdev()->getSizeInBlk(size);
     OffloadIoCtx *ioCtx = new OffloadIoCtx{
@@ -351,43 +330,12 @@ void OffloadPoller::spdkStart(void *arg) {
     OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
     SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
 
-    bdev_c->bdev_name = const_cast<char *>(poller->bdevName.c_str());
-    bdev_c->bdev = 0;
-    bdev_c->bdev_desc = 0;
-
-    bdev_c->bdev = spdk_bdev_first();
-    if (!bdev_c->bdev) {
-        printf("No NVMe devices detected for name(%s)\n", bdev_c->bdev_name);
-        spdk_app_stop(-1);
-        bdev_c->state = SPDK_BDEV_NOT_FOUND;
-        return;
-    }
-    printf("NVMe devices detected for name(%s)\n", bdev_c->bdev_name);
-
-    int rc = spdk_bdev_open(bdev_c->bdev, true, NULL, NULL, &bdev_c->bdev_desc);
-    if (rc) {
-        printf("Open BDEV failed with error code[%d]\n", rc);
-        bdev_c->state = SPDK_BDEV_ERROR;
+    int rc = poller->getBdev()->init();
+    if ( rc ) {
+        DAQ_CRITICAL("Bdev init failed");
         spdk_app_stop(-1);
         return;
     }
-
-    bdev_c->io_channel = spdk_bdev_get_io_channel(bdev_c->bdev_desc);
-    if (!bdev_c->io_channel) {
-        printf("Get io_channel failed\n");
-        bdev_c->state = SPDK_BDEV_ERROR;
-        spdk_app_stop(-1);
-        return;
-    }
-
-    bdev_c->blk_size = spdk_bdev_get_block_size(bdev_c->bdev);
-    printf("BDEV block size(%u)\n", bdev_c->blk_size);
-
-    bdev_c->buf_align = spdk_bdev_get_buf_align(bdev_c->bdev);
-    printf("BDEV align(%u)\n", bdev_c->buf_align);
-
-    bdev_c->blk_num = spdk_bdev_get_num_blocks(bdev_c->bdev);
-    printf("BDEV number of blocks(%u)\n", bdev_c->blk_num);
 
     auto aligned = poller->getBdev()->getAlignedSize(poller->spdkCore->offloadOptions.allocUnitSize);
     poller->setBlockNumForLba(aligned / bdev_c->blk_size);
@@ -395,12 +343,12 @@ void OffloadPoller::spdkStart(void *arg) {
     poller->initFreeList();
     bool i_rc = poller->init();
     if ( i_rc == false ) {
-        printf("Poller init failed\n");
+        DAQ_CRITICAL("Poller init failed");
         spdk_app_stop(-1);
         return;
     }
 
-    bdev_c->state = SPDK_BDEV_READY;
+    poller->getBdev()->setReady();
 
     poller->_loopThread = new std::thread(&OffloadPoller::_loopThreadMain, poller);
 }
@@ -419,10 +367,9 @@ void OffloadPoller::_spdkThreadMain(void) {
     int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
     if ( rc ) {
         DAQ_DEBUG("Error spdk_app_start[" + std::to_string(rc) + "]");
-        std::cerr << "Error spdk_app_start[" << rc << "]" << std::endl;
         return;
     }
-    std::cout << "spdk_app_start[" << rc << "]" << std::endl;
+    DAQ_DEBUG("spdk_app_start[" << rc << "]");
 }
 
 void OffloadPoller::_loopThreadMain(void) {

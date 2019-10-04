@@ -279,14 +279,7 @@ void ARTree::removeFromParent(persistent_ptr<ValueWrapper> valPrstPtr) {
     decrementParent(valPrstPtr->parent);
 }
 
-
-unsigned int zzzz = 0;
-const unsigned int z_q_quant = 200000;
-
 void ARTree::Remove(const char *key) {
-    if (!((zzzz++)%z_q_quant) ) {
-        std::cout << "ZZZZ " << zzzz << std::endl;
-    }
     persistent_ptr<ValueWrapper> valPrstPtr =
         tree->findValueInNode(tree->treeRoot->rootNode, key, false);
 

@@ -60,13 +60,16 @@ class SpdkBdev {
      *
      * @return true if this BDEV device successfully opened, false otherwise
      */
-    bool init(void);
+    int init();
 
     inline size_t getAlignedSize(size_t size) {
         return size + spBdevCtx->blk_size - 1 & ~(spBdevCtx->blk_size - 1);
     }
     inline uint32_t getSizeInBlk(size_t &size) {
         return size / spBdevCtx->blk_size;
+    }
+    void setReady() {
+        state = SPDK_BDEV_READY;
     }
 
     std::atomic<SpdkBdevState> state;

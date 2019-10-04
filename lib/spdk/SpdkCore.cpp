@@ -37,10 +37,6 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
 
     spBdev.reset(new SpdkBdev());
 
-    if (doDevInit) {
-        doDevInit = attachConfigFile();
-    }
-
     bool rc = spdkEnvInit();
     removeConfFile();
 
@@ -58,11 +54,6 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
 
 static void spdkDoneCb(void *cb_arg, int rc) {
     *reinterpret_cast<bool *>(cb_arg) = true;
-}
-
-void SpdkCore::spdkBdevModuleInit(void) {
-    bool done = true;
-    //spdk_bdev_initialize(spdkDoneCb, &done);
 }
 
 bool SpdkCore::createConfFile(void) {
@@ -93,31 +84,9 @@ bool SpdkCore::createConfFile(void) {
     }
 }
 
-bool SpdkCore::attachConfigFile(void) {
-//    struct spdk_conf *config = spdk_conf_allocate();
-//    if (!config) {
-//        DAQ_DEBUG("Unable to allocate configuration structure");
-//        return false;
-//    }
-//
-//    int rc = spdk_conf_read(config, DEFAULT_SPDK_CONF_FILE.c_str());
-//    if (rc != 0) {
-//        DAQ_DEBUG("Invalid SPDK configuration file format");
-//        spdk_conf_free(config);
-//        return false;
-//    }
-//    if (spdk_conf_first_section(config) == NULL) {
-//        DAQ_DEBUG("Invalid SPDK configuration file format");
-//        spdk_conf_free(config);
-//        return false;
-//    }
-//    spdk_conf_set_as_default(config);
-    return true;
-}
-
 void SpdkCore::removeConfFile(void) {
     if (bf::exists(DEFAULT_SPDK_CONF_FILE)) {
-        //bf::remove(DEFAULT_SPDK_CONF_FILE);
+        bf::remove(DEFAULT_SPDK_CONF_FILE);
     }
 }
 

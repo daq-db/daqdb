@@ -37,55 +37,41 @@ SpdkBdev::SpdkBdev() : state(SpdkBdevState::SPDK_BDEV_INIT) {
     spBdevCtx.reset(new SpdkBdevCtx());
 }
 
-void daqdb_spdk_start(void *arg) {
-//    SpdkBdevCtx *bdev_c = (SpdkBdevCtx *)arg;
-//
-//    bdev_c->bdev = spdk_bdev_first();
-//    if (!bdev_c->bdev) {
-//        printf("No NVMe devices detected\n");
-//        bdev_c->state = SPDK_BDEV_NOT_FOUND;
-//        return;
-//    }
-//    printf("NVMe devices detected\n");
-//
-//    int rc = spdk_bdev_open(bdev_c->bdev, true, NULL, NULL, &bdev_c->bdev_desc);
-//    if (rc) {
-//        printf("Open BDEV failed with error code[%d]\n", rc);
-//        bdev_c->state = SPDK_BDEV_ERROR;
-//        return;
-//    }
-//
-//    bdev_c->io_channel = spdk_bdev_get_io_channel(bdev_c->bdev_desc);
-//    if (!bdev_c->io_channel) {
-//        printf("Get io_channel failed\n");
-//        bdev_c->state = SPDK_BDEV_ERROR;
-//        return;
-//    }
-//
-//    bdev_c->blk_size = spdk_bdev_get_block_size(bdev_c->bdev);
-//    printf("BDEV block size(%u)\n", bdev_c->blk_size);
-//
-//    bdev_c->buf_align = spdk_bdev_get_buf_align(bdev_c->bdev);
-//    printf("BDEV align(%u)\n", bdev_c->buf_align);
-//
-//    bdev_c->blk_num = spdk_bdev_get_num_blocks(bdev_c->bdev);
-//    printf("BDEV number of blocks(%u)\n", bdev_c->blk_num);
-//
-//    bdev_c->state = SPDK_BDEV_READY;
-}
+int init(size_t &aligned_size) {
+    spBdevCtx->bdev_name = const_cast<char *>(poller->bdevName.c_str());
+    spBdevCtx->bdev = 0;
+    spBdevCtx->bdev_desc = 0;
 
-bool SpdkBdev::init() {
-//    struct spdk_app_opts daqdb_opts = {};
-//    spdk_app_opts_init(&daqdb_opts);
-//    daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
-//
-//    int rc = spdk_app_start(&daqdb_opts, daqdb_spdk_start, spBdevCtx.get());
-//    if ( rc ) {
-//        DAQ_DEBUG("Error spdk_app_start[" + std::to_string(rc) + "]");
-//        std::cout << "Error spdk_app_start[" << rc << "]" << std::endl;
-//        return false;
-//    }
-//    std::cout << "spdk_app_start[" << rc << "]" << std::endl;
+    spBdevCtx->bdev = spdk_bdev_first();
+    if (!spBdevCtx->bdev) {
+        DAQ_CRITICAL("No NVMe devices detected for name[" + spBdevCtx->bdev_name + "]");
+        spBdevCtx->state = SPDK_BDEV_NOT_FOUND;
+        return false;
+    }
+    DAQ_DEBUG("NVMe devices detected for name[" + spBdevCtx->bdev_name + "]");
+
+    int rc = spdk_bdev_open(spBdevCtx->bdev, true, NULL, NULL, &spBdevCtx->bdev_desc);
+    if (rc) {
+        DAQ_CRITICAL("Open BDEV failed with error code[" + std::to_string(rc) + "]");
+        bdev_c->state = SPDK_BDEV_ERROR;
+        return false;
+    }
+
+    spBdevCtx->io_channel = spdk_bdev_get_io_channel(spBdevCtx->bdev_desc);
+    if (!spBdevCtx->io_channel) {
+        DAQ_CRITICAL("Get io_channel failed bdev[" + spBdevCtx->bdev_name + "]");
+        spBdevCtx->state = SPDK_BDEV_ERROR;
+        return false;
+    }
+
+    spBdevCtx->blk_size = spdk_bdev_get_block_size(spBdevCtx->bdev);
+    DAQ_DEBUG("BDEV block size[" + std::to_string(bdev_c->blk_size) + "]");
+
+    spBdevCtx->buf_align = spdk_bdev_get_buf_align(spBdevCtx->bdev);
+    DAQ_DEBUG("BDEV align[" + std::to_string(bdev_c->buf_align) + "]");
+
+    spBdevCtx->blk_num = spdk_bdev_get_num_blocks(spBdevCtx->bdev);
+    DAQ_DEBUG("BDEV number of blocks[" + std::to_string(bdev_c->blk_num) + "]");
 
     return true;
 }
