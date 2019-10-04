@@ -37,7 +37,6 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
 
     spBdev.reset(new SpdkBdev());
 
-    bool rc = spdkEnvInit();
     removeConfFile();
 
     if (!rc) {

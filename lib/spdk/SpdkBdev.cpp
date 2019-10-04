@@ -37,8 +37,8 @@ SpdkBdev::SpdkBdev() : state(SpdkBdevState::SPDK_BDEV_INIT) {
     spBdevCtx.reset(new SpdkBdevCtx());
 }
 
-int init(size_t &aligned_size) {
-    spBdevCtx->bdev_name = const_cast<char *>(poller->bdevName.c_str());
+int init(const char *bdev_name) {
+    spBdevCtx->bdev_name = bdev_name;
     spBdevCtx->bdev = 0;
     spBdevCtx->bdev_desc = 0;
 

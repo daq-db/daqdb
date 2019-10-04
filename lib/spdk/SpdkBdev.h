@@ -60,7 +60,7 @@ class SpdkBdev {
      *
      * @return true if this BDEV device successfully opened, false otherwise
      */
-    int init();
+    int init(const char *bdev_name);
 
     inline size_t getAlignedSize(size_t size) {
         return size + spBdevCtx->blk_size - 1 & ~(spBdevCtx->blk_size - 1);
