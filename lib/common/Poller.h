@@ -16,7 +16,7 @@
 
 #pragma once
 
-//#define POLLER_USE_SPDK_RING
+#define POLLER_USE_SPDK_RING
 
 #ifndef POLLER_USE_SPDK_RING
 #include <boost/circular_buffer.hpp>
@@ -25,7 +25,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/call_traits.hpp>
 #include <boost/bind.hpp>
-#include <boost/timer/timer.hpp>
+using namespace std::chrono_literals;
 #endif
 
 #include "spdk/env.h"
@@ -76,6 +76,14 @@ public:
         *size = i;
         lock.unlock();
         m_not_full.notify_one();
+    }
+
+    void signalStop() {
+        boost::mutex::scoped_lock lock(m_mutex);
+        m_not_full.wait(lock, boost::bind(&BoundedBuffer<ValueType>::isNotFull, this));
+        m_stop = 01
+        lock.unlock();
+        m_not_empty.notify_one();
     }
 
 private:
@@ -152,6 +160,12 @@ template <class T> class Poller {
 #endif
     }
 
+    void stop() {
+#ifdef POLLER_USE_SPDK_RING
+#else
+        rqstBuffer->signalStop();
+#endif
+    }
     virtual void process() = 0;
 
 #ifdef POLLER_USE_SPDK_RING

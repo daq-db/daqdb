@@ -37,6 +37,10 @@ SpdkBdev::SpdkBdev() : state(SpdkBdevState::SPDK_BDEV_INIT) {
     spBdevCtx.reset(new SpdkBdevCtx());
 }
 
+void SpdkBdev::deinit() {
+    spdk_bdev_close(spBdevCtx->bdev_desc);
+}
+
 int SpdkBdev::init(const char *bdev_name) {
     spBdevCtx->bdev_name = bdev_name;
     spBdevCtx->bdev = 0;

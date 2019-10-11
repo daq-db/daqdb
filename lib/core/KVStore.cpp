@@ -47,18 +47,20 @@ KVStore::KVStore(const DaqDB::Options &options)
 
 KVStore::~KVStore() {
     DAQ_INFO("Closing DAQDB KVStore.");
-
+    std::cout << "======= 0 " << __PRETTY_FUNCTION__ << std::endl;
     RTreeEngine::Close(_spRtree.get());
     _spRtree.reset();
-
+    std::cout << "======= 1 " << __PRETTY_FUNCTION__ << std::endl;
     _spPKey.reset();
+    std::cout << "======= 2 " << __PRETTY_FUNCTION__ << std::endl;
     _spDhtServer.reset();
+    std::cout << "======= 3 " << __PRETTY_FUNCTION__ << std::endl;
     _spDht.reset();
-
+    std::cout << "======= 4 " << _rqstPollers.size() << " " << __PRETTY_FUNCTION__ << std::endl;
     for (auto index = 0; index < _rqstPollers.size(); index++) {
         delete _rqstPollers.at(index);
     }
-
+    std::cout << "======= 5 " << __PRETTY_FUNCTION__ << std::endl;
     _spOffloadPoller.reset();
 }
 

@@ -14,6 +14,8 @@
  * limitations under the License. 
  */
 
+#include <signal.h>
+
 #include <boost/filesystem.hpp>
 
 #include "spdk/conf.h"
@@ -32,14 +34,16 @@ const char *SpdkCore::spdkHugepageDirname = "/mnt/huge_1GB";
 
 SpdkCore::SpdkCore(OffloadOptions offloadOptions)
     : state(SpdkState::SPDK_INIT), offloadOptions(offloadOptions) {
-    bool doDevInit = createConfFile();
+    removeConfFile();
+    bool conf_file_ok = createConfFile();
 
     spBdev.reset(new SpdkBdev());
-    state = SpdkState::SPDK_READY;
-}
 
-static void spdkDoneCb(void *cb_arg, int rc) {
-    *reinterpret_cast<bool *>(cb_arg) = true;
+    if ( conf_file_ok == false ) {
+        state = SpdkState::SPDK_ERROR;
+        spBdev->state = SpdkBdevState::SPDK_BDEV_NOT_FOUND;
+    } else
+        state = SpdkState::SPDK_READY;
 }
 
 bool SpdkCore::createConfFile(void) {
@@ -74,6 +78,11 @@ void SpdkCore::removeConfFile(void) {
     if (bf::exists(DEFAULT_SPDK_CONF_FILE)) {
         bf::remove(DEFAULT_SPDK_CONF_FILE);
     }
+}
+
+void SpdkCore::restoreSignals() {
+    ::signal(SIGTERM, SIG_DFL);
+    ::signal(SIGINT, SIG_DFL);
 }
 
 } // namespace DaqDB

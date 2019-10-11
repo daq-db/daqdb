@@ -45,6 +45,10 @@ namespace DaqDB {
 
 const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 
+int ssss = 1;
+unsigned int wwww = 0;
+unsigned int eeee = 0;
+
 /*
  * Callback function for write io completion.
  */
@@ -54,6 +58,9 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
 
     if (success) {
+        if ( !((wwww++)%200000) ) {
+            std::cout << "WWWW " << wwww << " EEEE " << eeee << std::endl;
+        }
         if (ioCtx->updatePmemIOV)
             ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
                                              sizeof(uint64_t));
@@ -61,6 +68,7 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
             ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
     } else {
+        eeee++;
         if (ioCtx->clb)
             ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
                        ioCtx->keySize, nullptr, 0);
@@ -102,11 +110,13 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
 }
 
 OffloadPoller::~OffloadPoller() {
+    std::cout << "######### 0 " << isRunning << " " << __PRETTY_FUNCTION__ << std::endl;
     isRunning = 0;
+    std::cout << "######### 1 " << isRunning << " " << __PRETTY_FUNCTION__ << std::endl;
+    if ( _loopThread != nullptr)
+        _loopThread->join();
     if (_spdkThread != nullptr)
         _spdkThread->join();
-    if ( _loopThread )
-        _loopThread->join();
 }
 
 void OffloadPoller::startSpdkThread() {
@@ -139,12 +149,17 @@ bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
     return r_rc;
 }
 
+unsigned int wewe = 0;
 bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
     int w_rc = spdk_bdev_write_blocks(getBdevDesc(), getBdevIoChannel(),
                                   ioCtx->buff,
                                   getBlockOffsetForLba(*ioCtx->lba),
                                   ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
     if ( w_rc ) {
+        eeee++;
+        if ( !((wewe++)%200000) ) {
+            std::cout << "WEWE " << wewe << std::endl;
+        }
         DAQ_CRITICAL("Spdk write error [" + std::to_string(w_rc) + "] for offload bdev");
     }
     return w_rc;
@@ -279,6 +294,9 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
 
     if (write(ioCtx) != 0)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+
+    if ( rqst->valueSize > 0 )
+        delete [] rqst->value;
 }
 
 void OffloadPoller::_processRemove(const OffloadRqst *rqst) {
@@ -328,6 +346,40 @@ void OffloadPoller::process() {
     }
 }
 
+uint64_t lba = 0;
+void OffloadPoller::sendStop() {
+    char *buff = reinterpret_cast<char *>(spdk_dma_zmalloc(1, getBdevCtx()->buf_align, NULL));
+
+    size_t size = 1;
+    auto blkSize = getBdev()->getSizeInBlk(size);
+    OffloadIoCtx *ioCtx = new OffloadIoCtx{
+        buff,      0,   blkSize,
+        0, 0, &lba,
+        false,     rtree,         0};
+
+    stopRead(ioCtx);
+}
+
+bool OffloadPoller::stopRead(OffloadIoCtx *ioCtx) {
+    int r_rc = spdk_bdev_read_blocks(getBdevDesc(), getBdevIoChannel(), ioCtx->buff,
+                                 getBlockOffsetForLba(*ioCtx->lba),
+                                 ioCtx->blockSize, OffloadPoller::stopReadComplete, ioCtx);
+    std::cout << "###### " << __PRETTY_FUNCTION__ <<
+            " r_rc:" << r_rc <<
+            " g_b_o_f: " << getBlockOffsetForLba(*ioCtx->lba) <<
+            " b_s:" << ioCtx->blockSize << std::endl;
+    return r_rc;
+}
+
+void OffloadPoller::stopReadComplete(struct spdk_bdev_io *bdev_io, bool success,
+        void *cb_arg) {
+    std::cout << "###### " << __PRETTY_FUNCTION__ << std::endl;
+    spdk_bdev_free_io(bdev_io);
+    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    delete ioCtx;
+    spdk_app_stop(0);
+}
+
 void OffloadPoller::spdkStart(void *arg) {
     OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
     SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
@@ -355,6 +407,8 @@ void OffloadPoller::spdkStart(void *arg) {
     poller->getBdev()->setReady();
     poller->signalReady();
 
+    poller->spdkCore->restoreSignals();
+
     poller->_loopThread = new std::thread(&OffloadPoller::_loopThreadMain, poller);
 }
 
@@ -372,9 +426,13 @@ void OffloadPoller::_spdkThreadMain(void) {
     int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
     if ( rc ) {
         DAQ_DEBUG("Error spdk_app_start[" + std::to_string(rc) + "]");
+        std::cout << "######## 0 " << __PRETTY_FUNCTION__ << std::endl;
         return;
     }
-    DAQ_DEBUG("spdk_app_start[" << rc << "]");
+    DAQ_DEBUG("spdk_app_start[" + std::to_string(rc) + "]");
+    std::cout << "######## 1 " << __PRETTY_FUNCTION__ << std::endl;
+    getBdev()->deinit();
+    spdk_app_fini();
 }
 
 void OffloadPoller::signalReady() {
@@ -391,6 +449,10 @@ void OffloadPoller::_loopThreadMain(void) {
         dequeue();
         process();
     }
+    std::cout << "######## 0 " << __PRETTY_FUNCTION__ << std::endl;
+
+    spdk_app_stop(0);
+    //sendStop();
 }
 
 int64_t OffloadPoller::getFreeLba() {

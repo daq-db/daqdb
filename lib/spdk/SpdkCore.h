@@ -65,6 +65,8 @@ class SpdkCore {
         return state == SpdkState::SPDK_READY ? true : false;
     }
 
+    void restoreSignals();
+
     std::atomic<SpdkState> state;
 
     std::unique_ptr<SpdkBdev> spBdev;

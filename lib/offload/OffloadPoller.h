@@ -98,6 +98,12 @@ class OffloadPoller : public Poller<OffloadRqst> {
     static void readComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
     static void writeComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
 
+    void sendStop();
+    bool stopRead(OffloadIoCtx *ioCtx);
+    static void stopReadComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+
+    static void handleSignal(int signo);
+
     RTreeEngine *rtree;
     SpdkCore *spdkCore;
 
