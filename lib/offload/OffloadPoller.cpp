@@ -66,8 +66,8 @@ OffloadPoller::~OffloadPoller() {
     std::cout << "######### 0 " << isRunning << " " << __PRETTY_FUNCTION__ << std::endl;
     isRunning = 0;
     std::cout << "######### 1 " << isRunning << " " << __PRETTY_FUNCTION__ << std::endl;
-    if ( _spdkPoller )
-        spdk_poller_unregister(&_spdkPoller);
+    //if ( _spdkPoller )
+    //    spdk_poller_unregister(&_spdkPoller);
     if ( _loopThread != nullptr)
         _loopThread->join();
     if (_spdkThread != nullptr)
@@ -393,7 +393,7 @@ int OffloadPoller::spdkPollerFn(void *arg) {
     if ( !poller->isRunning && !poller->appStopped ) {
         poller->appStopped = 1;
         std::cout << "------ " << __PRETTY_FUNCTION__ << std::endl;
-        //spdk_poller_unregister(&poller->_spdkPoller);
+        spdk_poller_unregister(&poller->_spdkPoller);
         //getBdev()->deinit();
         spdk_app_stop(0);
         //spdk_app_fini();
