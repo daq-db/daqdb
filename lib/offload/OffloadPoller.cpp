@@ -31,6 +31,7 @@
 #include "spdk/ftl.h"
 #include "spdk/conf.h"
 #include "spdk/env.h"
+//#include "spdk/poller.h"
 
 #include "OffloadPoller.h"
 #include <Logger.h>
@@ -48,6 +49,30 @@ const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 int ssss = 1;
 unsigned int wwww = 0;
 unsigned int eeee = 0;
+
+
+OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
+                             const size_t cpuCore):
+    Poller<OffloadRqst>(false),
+    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), appStopped(0), _spdkPoller(0) {
+    _syncLock = new std::unique_lock<std::mutex>(_syncMutex);
+
+    if (spdkCore->isSpdkReady() == true ) {
+        startSpdkThread();
+    }
+}
+
+OffloadPoller::~OffloadPoller() {
+    std::cout << "######### 0 " << isRunning << " " << __PRETTY_FUNCTION__ << std::endl;
+    isRunning = 0;
+    std::cout << "######### 1 " << isRunning << " " << __PRETTY_FUNCTION__ << std::endl;
+    if ( _spdkPoller )
+        spdk_poller_unregister(&_spdkPoller);
+    if ( _loopThread != nullptr)
+        _loopThread->join();
+    if (_spdkThread != nullptr)
+        _spdkThread->join();
+}
 
 /*
  * Callback function for write io completion.
@@ -96,27 +121,6 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     }
 
     delete ioCtx;
-}
-
-OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
-                             const size_t cpuCore):
-    Poller<OffloadRqst>(false),
-    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore) {
-    _syncLock = new std::unique_lock<std::mutex>(_syncMutex);
-
-    if (spdkCore->isSpdkReady() == true ) {
-        startSpdkThread();
-    }
-}
-
-OffloadPoller::~OffloadPoller() {
-    std::cout << "######### 0 " << isRunning << " " << __PRETTY_FUNCTION__ << std::endl;
-    isRunning = 0;
-    std::cout << "######### 1 " << isRunning << " " << __PRETTY_FUNCTION__ << std::endl;
-    if ( _loopThread != nullptr)
-        _loopThread->join();
-    if (_spdkThread != nullptr)
-        _spdkThread->join();
 }
 
 void OffloadPoller::startSpdkThread() {
@@ -380,6 +384,24 @@ void OffloadPoller::stopReadComplete(struct spdk_bdev_io *bdev_io, bool success,
     spdk_app_stop(0);
 }
 
+int OffloadPoller::spdkPollerFn(void *arg) {
+    OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
+
+    poller->dequeue();
+    poller->process();
+
+    if ( !poller->isRunning && !poller->appStopped ) {
+        poller->appStopped = 1;
+        std::cout << "------ " << __PRETTY_FUNCTION__ << std::endl;
+        //spdk_poller_unregister(&poller->_spdkPoller);
+        //getBdev()->deinit();
+        spdk_app_stop(0);
+        //spdk_app_fini();
+    }
+
+    return 0;
+}
+
 void OffloadPoller::spdkStart(void *arg) {
     OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
     SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
@@ -409,7 +431,10 @@ void OffloadPoller::spdkStart(void *arg) {
 
     poller->spdkCore->restoreSignals();
 
-    poller->_loopThread = new std::thread(&OffloadPoller::_loopThreadMain, poller);
+    poller->isRunning = 1;
+    poller->setSpdkPoller(spdk_poller_register(OffloadPoller::spdkPollerFn, poller, 0));
+
+    //poller->_loopThread = new std::thread(&OffloadPoller::_loopThreadMain, poller);
 }
 
 void OffloadPoller::_spdkThreadMain(void) {
@@ -431,7 +456,7 @@ void OffloadPoller::_spdkThreadMain(void) {
     }
     DAQ_DEBUG("spdk_app_start[" + std::to_string(rc) + "]");
     std::cout << "######## 1 " << __PRETTY_FUNCTION__ << std::endl;
-    getBdev()->deinit();
+    //getBdev()->deinit();
     spdk_app_fini();
 }
 
@@ -451,7 +476,9 @@ void OffloadPoller::_loopThreadMain(void) {
     }
     std::cout << "######## 0 " << __PRETTY_FUNCTION__ << std::endl;
 
+    //getBdev()->deinit();
     spdk_app_stop(0);
+    spdk_app_fini();
     //sendStop();
 }
 

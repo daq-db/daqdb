@@ -110,6 +110,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
     OffloadFreeList *freeLbaList = nullptr;
 
     std::atomic<int> isRunning;
+    std::atomic<int> appStopped;
 
     void setBlockNumForLba(uint64_t blk_num_flba) {
         _blkNumForLba = blk_num_flba;
@@ -117,6 +118,11 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
     void signalReady();
     void waitReady();
+
+    static int spdkPollerFn(void *arg);
+    void setSpdkPoller(struct spdk_poller *spdk_poller) {
+        _spdkPoller = spdk_poller;
+    }
 
   private:
     void _spdkThreadMain(void);
@@ -145,6 +151,8 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
     std::mutex _syncMutex;
     std::unique_lock<std::mutex> *_syncLock;
+
+    struct spdk_poller *_spdkPoller;
 };
 
 } // namespace DaqDB
