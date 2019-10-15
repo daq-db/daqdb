@@ -50,7 +50,6 @@ int ssss = 1;
 unsigned int wwww = 0;
 unsigned int eeee = 0;
 
-
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                              const size_t cpuCore):
     Poller<OffloadRqst>(false),
@@ -394,7 +393,7 @@ int OffloadPoller::spdkPollerFn(void *arg) {
         poller->appStopped = 1;
         std::cout << "------ " << __PRETTY_FUNCTION__ << std::endl;
         spdk_poller_unregister(&poller->_spdkPoller);
-        //getBdev()->deinit();
+        poller->getBdev()->deinit();
         spdk_app_stop(0);
         //spdk_app_fini();
     }
