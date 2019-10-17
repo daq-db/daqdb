@@ -46,6 +46,7 @@ int SpdkBdev::init(const char *bdev_name) {
     spBdevCtx->bdev_name = bdev_name;
     spBdevCtx->bdev = 0;
     spBdevCtx->bdev_desc = 0;
+    spdk_bdev_opts bdev_opts;
 
     spBdevCtx->bdev = spdk_bdev_first();
     if (!spBdevCtx->bdev) {
@@ -62,12 +63,17 @@ int SpdkBdev::init(const char *bdev_name) {
         return false;
     }
 
+    spdk_bdev_get_opts(&bdev_opts);
+    DAQ_DEBUG("bdev.bdev_io_pool_size[" + std::to_string(bdev_opts.bdev_io_pool_size) + "[");
+
+
     spBdevCtx->io_channel = spdk_bdev_get_io_channel(spBdevCtx->bdev_desc);
     if (!spBdevCtx->io_channel) {
         DAQ_CRITICAL(std::string("Get io_channel failed bdev[") + spBdevCtx->bdev_name + "]");
         spBdevCtx->state = SPDK_BDEV_ERROR;
         return false;
     }
+
 
     spBdevCtx->blk_size = spdk_bdev_get_block_size(spBdevCtx->bdev);
     DAQ_DEBUG("BDEV block size[" + std::to_string(spBdevCtx->blk_size) + "]");

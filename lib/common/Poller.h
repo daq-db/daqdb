@@ -34,6 +34,7 @@ using namespace std::chrono_literals;
 
 #define DEQUEUE_RING_LIMIT 1024
 #define DEQUEUE_BUFFER_LIMIT DEQUEUE_RING_LIMIT
+#define DEQUEUE_RING_QUANT 1024
 
 namespace DaqDB {
 
@@ -70,20 +71,12 @@ public:
         boost::mutex::scoped_lock lock(m_mutex);
         m_not_empty.wait(lock, boost::bind(&BoundedBuffer<ValueType>::isNotEmpty, this));
         unsigned short i = 0;
-        for ( ; m_unread > 0 ; ) {
+        for ( ; m_unread > 0 && i < DEQUEUE_RING_QUANT ; ) {
             pItem[i++] = m_container[--m_unread];
         }
         *size = i;
         lock.unlock();
         m_not_full.notify_one();
-    }
-
-    void signalStop() {
-        boost::mutex::scoped_lock lock(m_mutex);
-        m_not_full.wait(lock, boost::bind(&BoundedBuffer<ValueType>::isNotFull, this));
-        m_stop = 01
-        lock.unlock();
-        m_not_empty.notify_one();
     }
 
 private:
@@ -160,12 +153,6 @@ template <class T> class Poller {
 #endif
     }
 
-    void stop() {
-#ifdef POLLER_USE_SPDK_RING
-#else
-        rqstBuffer->signalStop();
-#endif
-    }
     virtual void process() = 0;
 
 #ifdef POLLER_USE_SPDK_RING

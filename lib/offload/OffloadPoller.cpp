@@ -49,6 +49,8 @@ int ssss = 1;
 unsigned int wwww = 0;
 unsigned int eeee = 0;
 
+#define TEST_RAW_IOPS
+
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                              const size_t cpuCore):
     Poller<OffloadRqst>(false),
@@ -73,7 +75,11 @@ OffloadPoller::~OffloadPoller() {
  */
 void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
+#ifdef TEST_RAW_IOPS
+    spdk_dma_free(bdev_io);
+#else
     spdk_bdev_free_io(bdev_io);
+#endif
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
 
     if (success) {
@@ -101,7 +107,11 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
  */
 void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                           void *cb_arg) {
+#ifdef TEST_RAW_IOPS
+    spdk_dma_free(bdev_io);
+#else
     spdk_bdev_free_io(bdev_io);
+#endif
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
 
     if (success) {
@@ -138,9 +148,14 @@ void OffloadPoller::startSpdkThread() {
 }
 
 bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
+#ifdef TEST_RAW_IOPS
+    int r_rc = 0;
+    OffloadPoller::readComplete(reinterpret_cast<struct spdk_bdev_io *>(ioCtx->buff), true, ioCtx);
+#else
     int r_rc = spdk_bdev_read_blocks(getBdevDesc(), getBdevIoChannel(), ioCtx->buff,
                                  getBlockOffsetForLba(*ioCtx->lba),
                                  ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
+#endif
     if ( r_rc ) {
         DAQ_CRITICAL("Spdk read error [" + std::to_string(r_rc) + "] for offload bdev");
     }
@@ -149,14 +164,23 @@ bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
 
 unsigned int wewe = 0;
 bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
+#ifdef TEST_RAW_IOPS
+    int w_rc = 0;
+    OffloadPoller::writeComplete(reinterpret_cast<struct spdk_bdev_io *>(ioCtx->buff), true, ioCtx);
+#else
     int w_rc = spdk_bdev_write_blocks(getBdevDesc(), getBdevIoChannel(),
                                   ioCtx->buff,
                                   getBlockOffsetForLba(*ioCtx->lba),
                                   ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
+#endif
+
+    if ( !((wwww++)%200000) ) {
+        std::cout << "WWWW " << wwww << " EEEE " << eeee << std::endl;
+    }
     if ( w_rc ) {
         eeee++;
         if ( !((wewe++)%200000) ) {
-            std::cout << "WEWE " << wewe << " rc " << w_rc << std::endl;
+            std::cout << "WEWE " << wewe << " WWWW " << wwww << " rc " << w_rc << std::endl;
         }
         DAQ_CRITICAL("Spdk write error [" + std::to_string(w_rc) + "] for offload bdev");
     }
