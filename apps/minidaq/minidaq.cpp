@@ -424,9 +424,12 @@ int main(int argc, const char *argv[]) {
         runBenchmark(nodes);
 
         if (isServer) {
-            std::cout << "### minidaq server running... Press any key to exit"
+            std::cout << "### minidaq server running... Press q to exit"
                       << endl;
-            std::getchar();
+            while (1) {
+                if (std::getchar() == 'q')
+                    break;
+            }
         }
     }
     catch (std::exception &e) {
