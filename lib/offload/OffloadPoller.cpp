@@ -48,8 +48,9 @@ const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 int ssss = 1;
 unsigned int wwww = 0;
 unsigned int eeee = 0;
+unsigned int wewe = 0;
 
-#define TEST_RAW_IOPS
+//#define TEST_RAW_IOPS
 
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                              const size_t cpuCore):
@@ -84,7 +85,7 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
 
     if (success) {
         if ( !((wwww++)%200000) ) {
-            std::cout << "WWWW " << wwww << " EEEE " << eeee << std::endl;
+            std::cout << "WWWW " << wwww << " EEEE " << eeee << " WEWE " << wewe << std::endl;
         }
         if (ioCtx->updatePmemIOV)
             ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
@@ -162,7 +163,26 @@ bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
     return r_rc;
 }
 
-unsigned int wewe = 0;
+void OffloadPoller::writeQueueIoWait(void *cb_arg) {
+    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
+
+    int w_rc = spdk_bdev_write_blocks(poller->getBdevDesc(), poller->getBdevIoChannel(),
+                                  ioCtx->buff,
+                                  poller->getBlockOffsetForLba(*ioCtx->lba),
+                                  ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
+    if ( w_rc ) {
+        w_rc = spdk_bdev_queue_io_wait(poller->getBdevCtx()->bdev, poller->getBdevIoChannel(),
+                &ioCtx->bdev_io_wait);
+        if ( w_rc ) {
+            DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(w_rc) + "] for offload bdev");
+            poller->getBdev()->deinit();
+            spdk_app_stop(-1);
+        }
+    } else
+        wewe--;
+}
+
 bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
 #ifdef TEST_RAW_IOPS
     int w_rc = 0;
@@ -174,15 +194,29 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
                                   ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
 #endif
 
-    if ( !((wwww++)%200000) ) {
-        std::cout << "WWWW " << wwww << " EEEE " << eeee << std::endl;
-    }
     if ( w_rc ) {
         eeee++;
         if ( !((wewe++)%200000) ) {
             std::cout << "WEWE " << wewe << " WWWW " << wwww << " rc " << w_rc << std::endl;
         }
-        DAQ_CRITICAL("Spdk write error [" + std::to_string(w_rc) + "] for offload bdev");
+        if ( w_rc == -ENOMEM ) {
+            ioCtx->bdev_io_wait.bdev = getBdevCtx()->bdev;
+            ioCtx->bdev_io_wait.cb_fn = OffloadPoller::writeQueueIoWait;
+            ioCtx->bdev_io_wait.cb_arg = ioCtx;
+
+            w_rc = spdk_bdev_queue_io_wait(getBdevCtx()->bdev, getBdevIoChannel(),
+                    &ioCtx->bdev_io_wait);
+            if ( w_rc ) {
+                DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(w_rc) + "] for offload bdev");
+                getBdev()->deinit();
+                spdk_app_stop(-1);
+            }
+        } else {
+            DAQ_CRITICAL("Spdk write error [" + std::to_string(w_rc) + "] for offload bdev");
+            getBdev()->deinit();
+            spdk_app_stop(-1);
+        }
+
     }
     return w_rc;
 }
@@ -241,7 +275,7 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
     OffloadIoCtx *ioCtx = new OffloadIoCtx{
         buff,      valCtx.size,   blkSize,
         rqst->key, rqst->keySize, static_cast<uint64_t *>(valCtx.val),
-        false,     rtree,         rqst->clb};
+        false,     rtree,         rqst->clb, this};
 
     if (read(ioCtx) != 0)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
@@ -282,7 +316,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         ioCtx = new OffloadIoCtx{
             buff,      valSize,       getBdev()->getSizeInBlk(valSizeAlign),
             rqst->key, rqst->keySize, nullptr,
-            true,      rtree,         rqst->clb};
+            true,      rtree,         rqst->clb, this};
         try {
             rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
         } catch (...) {
@@ -306,7 +340,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         ioCtx = new OffloadIoCtx{
             buff,      rqst->valueSize, getBdev()->getSizeInBlk(valSizeAlign),
             rqst->key, rqst->keySize,   new uint64_t,
-            false,     rtree,           rqst->clb};
+            false,     rtree,           rqst->clb, this};
         *ioCtx->lba = *(static_cast<uint64_t *>(valCtx.val));
 
     } else {

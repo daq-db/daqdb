@@ -38,6 +38,9 @@
 
 namespace DaqDB {
 
+enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
+using OffloadRqst = Rqst<OffloadOperation>;
+
 struct OffloadIoCtx {
     char *buff;
     size_t size = 0;
@@ -49,10 +52,10 @@ struct OffloadIoCtx {
 
     RTreeEngine *rtree;
     KVStoreBase::KVStoreBaseCallback clb;
-};
 
-enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
-using OffloadRqst = Rqst<OffloadOperation>;
+    Poller<OffloadRqst> *poller = nullptr;
+    struct spdk_bdev_io_wait_entry bdev_io_wait;
+};
 
 class OffloadPoller : public Poller<OffloadRqst> {
   public:
@@ -97,7 +100,8 @@ class OffloadPoller : public Poller<OffloadRqst> {
     static void spdkStart(void *arg);
     static void readComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
     static void writeComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
-
+    static void writeQueueIoWait(void *cb_arg);
+    static void readQueueIoWait(void *cb_arg);
 
     RTreeEngine *rtree;
     SpdkCore *spdkCore;
