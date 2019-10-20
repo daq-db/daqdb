@@ -45,10 +45,29 @@ namespace DaqDB {
 
 const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 
-int ssss = 1;
-unsigned int wwww = 0;
-unsigned int eeee = 0;
-unsigned int wewe = 0;
+std::ostringstream &OffloadStats::formatWriteBuf(std::ostringstream &buf) {
+    buf << "write_compl_cnt[" << write_compl_cnt << "] write_err_cnt[" << write_err_cnt << "]";
+    return buf;
+}
+
+std::ostringstream &OffloadStats::formatReadBuf(std::ostringstream &buf) {
+    buf << "read_compl_cnt[" << read_compl_cnt << "] read_err_cnt[" << read_err_cnt << "]";
+    return buf;
+}
+
+void OffloadStats::printWritePer(std::ostream &os) {
+    if ( !((write_compl_cnt++)%quant_per) ) {
+        std::ostringstream buf;
+        os << formatWriteBuf(buf).str() << std::endl;
+    }
+}
+
+void OffloadStats::printReadPer(std::ostream &os) {
+    if ( !((read_compl_cnt++)%quant_per) ) {
+        std::ostringstream buf;
+        os << formatReadBuf(buf).str() << std::endl;
+    }
+}
 
 //#define TEST_RAW_IOPS
 
@@ -82,11 +101,10 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     spdk_bdev_free_io(bdev_io);
 #endif
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
 
     if (success) {
-        if ( !((wwww++)%200000) ) {
-            std::cout << "WWWW " << wwww << " EEEE " << eeee << " WEWE " << wewe << std::endl;
-        }
+        poller->stats.printWritePer(std::cout);
         if (ioCtx->updatePmemIOV)
             ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
                                              sizeof(uint64_t));
@@ -94,7 +112,6 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
             ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
     } else {
-        eeee++;
         if (ioCtx->clb)
             ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
                        ioCtx->keySize, nullptr, 0);
@@ -114,8 +131,10 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     spdk_bdev_free_io(bdev_io);
 #endif
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
 
     if (success) {
+        poller->stats.printReadPer(std::cout);
         if (ioCtx->clb)
             ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
                        ioCtx->buff, ioCtx->size);
@@ -148,6 +167,25 @@ void OffloadPoller::startSpdkThread() {
     }
 }
 
+void OffloadPoller::readQueueIoWait(void *cb_arg) {
+    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
+
+    int r_rc = spdk_bdev_read_blocks(poller->getBdevDesc(), poller->getBdevIoChannel(), ioCtx->buff,
+                                 poller->getBlockOffsetForLba(*ioCtx->lba),
+                                 ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
+    if ( r_rc ) {
+        r_rc = spdk_bdev_queue_io_wait(poller->getBdevCtx()->bdev, poller->getBdevIoChannel(),
+                &ioCtx->bdev_io_wait);
+        if ( r_rc ) {
+            DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(r_rc) + "] for offload bdev");
+            poller->getBdev()->deinit();
+            spdk_app_stop(-1);
+        }
+    } else
+        poller->stats.read_err_cnt--;
+}
+
 bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
 #ifdef TEST_RAW_IOPS
     int r_rc = 0;
@@ -158,9 +196,26 @@ bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
                                  ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
 #endif
     if ( r_rc ) {
-        DAQ_CRITICAL("Spdk read error [" + std::to_string(r_rc) + "] for offload bdev");
+        stats.read_err_cnt++;
+        if ( r_rc == -ENOMEM ) {
+            ioCtx->bdev_io_wait.bdev = getBdevCtx()->bdev;
+            ioCtx->bdev_io_wait.cb_fn = OffloadPoller::readQueueIoWait;
+            ioCtx->bdev_io_wait.cb_arg = ioCtx;
+
+            r_rc = spdk_bdev_queue_io_wait(getBdevCtx()->bdev, getBdevIoChannel(),
+                    &ioCtx->bdev_io_wait);
+            if ( r_rc ) {
+                DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(r_rc) + "] for offload bdev");
+                getBdev()->deinit();
+                spdk_app_stop(-1);
+            }
+        } else {
+            DAQ_CRITICAL("Spdk read error [" + std::to_string(r_rc) + "] for offload bdev");
+            getBdev()->deinit();
+            spdk_app_stop(-1);
+        }
     }
-    return r_rc;
+    return !r_rc ? true : false;
 }
 
 void OffloadPoller::writeQueueIoWait(void *cb_arg) {
@@ -180,7 +235,7 @@ void OffloadPoller::writeQueueIoWait(void *cb_arg) {
             spdk_app_stop(-1);
         }
     } else
-        wewe--;
+        poller->stats.write_err_cnt--;
 }
 
 bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
@@ -195,10 +250,7 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
 #endif
 
     if ( w_rc ) {
-        eeee++;
-        if ( !((wewe++)%200000) ) {
-            std::cout << "WEWE " << wewe << " WWWW " << wwww << " rc " << w_rc << std::endl;
-        }
+        stats.write_err_cnt++;
         if ( w_rc == -ENOMEM ) {
             ioCtx->bdev_io_wait.bdev = getBdevCtx()->bdev;
             ioCtx->bdev_io_wait.cb_fn = OffloadPoller::writeQueueIoWait;
@@ -216,9 +268,8 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
             getBdev()->deinit();
             spdk_app_stop(-1);
         }
-
     }
-    return w_rc;
+    return !w_rc ? true : false;
 }
 
 void OffloadPoller::initFreeList() {

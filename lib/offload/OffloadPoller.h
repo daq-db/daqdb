@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <iostream>
+#include <sstream>
+#include <string>
 #include <atomic>
 #include <cstdint>
 #include <thread>
@@ -40,6 +43,23 @@ namespace DaqDB {
 
 enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
 using OffloadRqst = Rqst<OffloadOperation>;
+
+struct OffloadStats {
+    uint64_t write_compl_cnt;
+    uint64_t write_err_cnt;
+    uint64_t read_compl_cnt;
+    uint64_t read_err_cnt;
+    bool periodic = true;
+    uint64_t quant_per = (1 << 16);
+
+    OffloadStats():
+        write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0), read_err_cnt(0)
+    {}
+    std::ostringstream &formatWriteBuf(std::ostringstream &buf);
+    std::ostringstream &formatReadBuf(std::ostringstream &buf);
+    void printWritePer(std::ostream &os);
+    void printReadPer(std::ostream &os);
+};
 
 struct OffloadIoCtx {
     char *buff;
@@ -151,6 +171,9 @@ class OffloadPoller : public Poller<OffloadRqst> {
     std::unique_lock<std::mutex> *_syncLock;
 
     struct spdk_poller *_spdkPoller;
+
+  public:
+    OffloadStats stats;
 };
 
 } // namespace DaqDB
