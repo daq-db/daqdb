@@ -112,6 +112,8 @@ class KVStore : public KVStoreBase {
     inline DhtServer *dhtServer() { return _spDhtServer.get(); };
     inline DhtClient *dhtClient() { return _spDht->getClient(); };
 
+    virtual bool QuiesceOffload(bool ForceAbort = false);
+
   private:
     explicit KVStore(const DaqDB::Options &options);
     inline bool isOffloadEnabled() { return getSpdkCore()->isOffloadEnabled(); }

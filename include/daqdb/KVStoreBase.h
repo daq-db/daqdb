@@ -405,6 +405,16 @@ class KVStoreBase {
      */
     virtual bool IsOffloaded(Key &key) = 0;
 
+    /**
+     * If offload is enabled, quiesce it. Abort if default timeout exceeded.
+     *
+     * @param[in] kif force abort is to be applied.
+     *
+     * @throw OperationFailedException if any error occurred XXX
+     *
+     */
+    virtual bool QuiesceOffload(bool ForceAbort = false) = 0;
+
     virtual uint64_t GetTreeSize() = 0;
     virtual uint64_t GetLeafCount() = 0;
     virtual uint8_t GetTreeDepth() = 0;

@@ -49,12 +49,12 @@ namespace DaqDB {
 const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 
 std::ostringstream &OffloadStats::formatWriteBuf(std::ostringstream &buf) {
-    buf << "write_compl_cnt[" << write_compl_cnt << "] write_err_cnt[" << write_err_cnt << "]";
+    buf << "write_compl_cnt[" << write_compl_cnt << "] write_err_cnt[" << write_err_cnt << "] outs_io_cnt[" << outstanding_io_cnt << "]";
     return buf;
 }
 
 std::ostringstream &OffloadStats::formatReadBuf(std::ostringstream &buf) {
-    buf << "read_compl_cnt[" << read_compl_cnt << "] read_err_cnt[" << read_err_cnt << "]";
+    buf << "read_compl_cnt[" << read_compl_cnt << "] read_err_cnt[" << read_err_cnt << "] outs_io_cnt[" << outstanding_io_cnt << "]";
     return buf;
 }
 
@@ -86,6 +86,7 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
     rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), _spdkPoller(0), stats(enableStats) {
     _syncLock = new std::unique_lock<std::mutex>(_syncMutex);
 
+    _state = OffloadPoller::State::OFFLOAD_POLLER_INIT;
     if (spdkCore->isSpdkReady() == true ) {
         startSpdkThread();
     }
@@ -93,10 +94,23 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
 
 OffloadPoller::~OffloadPoller() {
     isRunning = 0;
+    _state = OffloadPoller::State::OFFLOAD_POLLER_STOPPED;
     if ( _loopThread != nullptr)
         _loopThread->join();
     if (_spdkThread != nullptr)
         _spdkThread->join();
+}
+
+void OffloadPoller::IOQuiesce() {
+    _state = OffloadPoller::State::OFFLOAD_POLLER_QUIESCING;
+}
+
+bool OffloadPoller::isIOQuiescent() {
+    return _state == OffloadPoller::State::OFFLOAD_POLLER_QUIESCENT || _state == OffloadPoller::State::OFFLOAD_POLLER_ABORTED ? true : false;
+}
+
+void OffloadPoller::IOAbort() {
+    _state = OffloadPoller::State::OFFLOAD_POLLER_ABORTED;
 }
 
 /*
@@ -111,6 +125,11 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
 #endif
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
     OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
+
+    if ( poller->stats.outstanding_io_cnt )
+        poller->stats.outstanding_io_cnt--;
+
+    (void )poller->stateMachine();
 
     if (success) {
         poller->stats.printWritePer(std::cout);
@@ -141,6 +160,11 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
 #endif
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
     OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
+
+    if ( poller->stats.outstanding_io_cnt )
+        poller->stats.outstanding_io_cnt--;
+
+    (void )poller->stateMachine();
 
     if (success) {
         poller->stats.printReadPer(std::cout);
@@ -191,11 +215,18 @@ void OffloadPoller::readQueueIoWait(void *cb_arg) {
             poller->getBdev()->deinit();
             spdk_app_stop(-1);
         }
-    } else
+    } else {
         poller->stats.read_err_cnt--;
+        poller->stats.outstanding_io_cnt++;
+    }
 }
 
 bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
+    if ( stateMachine() == true ) {
+        spdk_dma_free(ioCtx->buff);
+        return false;
+    }
+
 #ifdef TEST_RAW_IOPS
     int r_rc = 0;
     OffloadPoller::readComplete(reinterpret_cast<struct spdk_bdev_io *>(ioCtx->buff), true, ioCtx);
@@ -223,7 +254,9 @@ bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
             getBdev()->deinit();
             spdk_app_stop(-1);
         }
-    }
+    } else
+        stats.outstanding_io_cnt++;
+
     return !r_rc ? true : false;
 }
 
@@ -243,11 +276,18 @@ void OffloadPoller::writeQueueIoWait(void *cb_arg) {
             poller->getBdev()->deinit();
             spdk_app_stop(-1);
         }
-    } else
+    } else {
         poller->stats.write_err_cnt--;
+        poller->stats.outstanding_io_cnt++;
+    }
 }
 
 bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
+    if ( stateMachine() == true ) {
+        spdk_dma_free(ioCtx->buff);
+        return false;
+    }
+
 #ifdef TEST_RAW_IOPS
     int w_rc = 0;
     OffloadPoller::writeComplete(reinterpret_cast<struct spdk_bdev_io *>(ioCtx->buff), true, ioCtx);
@@ -277,7 +317,9 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
             getBdev()->deinit();
             spdk_app_stop(-1);
         }
-    }
+    } else
+        stats.outstanding_io_cnt++;
+
     return !w_rc ? true : false;
 }
 

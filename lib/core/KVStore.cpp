@@ -58,6 +58,25 @@ KVStore::~KVStore() {
     _spOffloadPoller.reset();
 }
 
+bool KVStore::QuiesceOffload(bool ForceAbort) {
+    if ( _spSpdk->isSpdkReady() == true && _spOffloadPoller.get() ) {
+        _spOffloadPoller->IOQuiesce();
+
+        int num_tries = 0;
+        while ( _spOffloadPoller->isIOQuiescent() == false ) {
+            sleep(1);
+            if ( ForceAbort = true && num_tries > 20 ) {
+                _spOffloadPoller->IOAbort();
+                break;
+            }
+        }
+
+        return _spOffloadPoller->isIOQuiescent();
+    }
+
+    return true;
+}
+
 void KVStore::init() {
     auto pollerCount = getOptions().runtime.numOfPollers;
     auto dhtCount = getOptions().dht.numOfDhtThreads;

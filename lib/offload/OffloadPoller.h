@@ -52,9 +52,10 @@ struct OffloadStats {
     bool periodic = true;
     bool enable;
     uint64_t quant_per = (1 << 16);
+    uint64_t outstanding_io_cnt;
 
     OffloadStats(bool enab = false):
-        write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0), read_err_cnt(0), enable(enab)
+        write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0), read_err_cnt(0), enable(enab), outstanding_io_cnt(0)
     {}
     std::ostringstream &formatWriteBuf(std::ostringstream &buf);
     std::ostringstream &formatReadBuf(std::ostringstream &buf);
@@ -143,6 +144,45 @@ class OffloadPoller : public Poller<OffloadRqst> {
         _spdkPoller = spdk_poller;
     }
 
+    enum class State : std::uint8_t {
+        OFFLOAD_POLLER_INIT = 0,
+        OFFLOAD_POLLER_READY,
+        OFFLOAD_POLLER_ERROR,
+        OFFLOAD_POLLER_QUIESCING,
+        OFFLOAD_POLLER_QUIESCENT,
+        OFFLOAD_POLLER_STOPPED,
+        OFFLOAD_POLLER_ABORTED
+    };
+
+    void IOQuiesce();
+    bool isIOQuiescent();
+    void IOAbort();
+
+
+    bool stateMachine() {
+        switch ( _state ) {
+        case OffloadPoller::State::OFFLOAD_POLLER_INIT:
+        case OffloadPoller::State::OFFLOAD_POLLER_READY:
+            break;
+        case OffloadPoller::State::OFFLOAD_POLLER_ERROR:
+            getBdev()->deinit();
+            break;
+        case OffloadPoller::State::OFFLOAD_POLLER_QUIESCING:
+            if ( !stats.outstanding_io_cnt ) {
+                _state = OffloadPoller::State::OFFLOAD_POLLER_QUIESCENT;
+            }
+            return true;
+        case OffloadPoller::State::OFFLOAD_POLLER_QUIESCENT:
+            return true;
+        case OffloadPoller::State::OFFLOAD_POLLER_STOPPED:
+            break;
+        case OffloadPoller::State::OFFLOAD_POLLER_ABORTED:
+            getBdev()->deinit();
+            return true;
+        }
+        return false;
+    }
+
   private:
     void _spdkThreadMain(void);
     void _loopThreadMain(void);
@@ -172,6 +212,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
     std::unique_lock<std::mutex> *_syncLock;
 
     struct spdk_poller *_spdkPoller;
+    volatile State _state;
 
   public:
     OffloadStats stats;
