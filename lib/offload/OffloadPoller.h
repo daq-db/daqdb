@@ -50,10 +50,11 @@ struct OffloadStats {
     uint64_t read_compl_cnt;
     uint64_t read_err_cnt;
     bool periodic = true;
+    bool enable;
     uint64_t quant_per = (1 << 16);
 
-    OffloadStats():
-        write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0), read_err_cnt(0)
+    OffloadStats(bool enab = false):
+        write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0), read_err_cnt(0), enable(enab)
     {}
     std::ostringstream &formatWriteBuf(std::ostringstream &buf);
     std::ostringstream &formatReadBuf(std::ostringstream &buf);
@@ -80,7 +81,7 @@ struct OffloadIoCtx {
 class OffloadPoller : public Poller<OffloadRqst> {
   public:
     OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
-                  const size_t cpuCore = 0);
+                  const size_t cpuCore = 0, bool enableStats = false);
     virtual ~OffloadPoller();
 
     void process() final;

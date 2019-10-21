@@ -14,6 +14,9 @@
  * limitations under the License. 
  */
 
+#include <stdio.h>
+#include <time.h>
+
 #include <iostream>
 #include <pthread.h>
 #include <string>
@@ -56,25 +59,31 @@ std::ostringstream &OffloadStats::formatReadBuf(std::ostringstream &buf) {
 }
 
 void OffloadStats::printWritePer(std::ostream &os) {
-    if ( !((write_compl_cnt++)%quant_per) ) {
+    if ( enable == true && !((write_compl_cnt++)%quant_per) ) {
         std::ostringstream buf;
-        os << formatWriteBuf(buf).str() << std::endl;
+        char time_buf[128];
+        time_t now = time (0);
+        strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S.000", localtime(&now));
+        os << formatWriteBuf(buf).str() << " " << time_buf << std::endl;
     }
 }
 
 void OffloadStats::printReadPer(std::ostream &os) {
-    if ( !((read_compl_cnt++)%quant_per) ) {
+    if ( enable == true && !((read_compl_cnt++)%quant_per) ) {
         std::ostringstream buf;
-        os << formatReadBuf(buf).str() << std::endl;
+        char time_buf[128];
+        time_t now = time (0);
+        strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S.000", localtime(&now));
+        os << formatReadBuf(buf).str() << " " << time_buf << std::endl;
     }
 }
 
 //#define TEST_RAW_IOPS
 
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
-                             const size_t cpuCore):
+                             const size_t cpuCore, bool enableStats):
     Poller<OffloadRqst>(false),
-    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), _spdkPoller(0) {
+    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), _spdkPoller(0), stats(enableStats) {
     _syncLock = new std::unique_lock<std::mutex>(_syncMutex);
 
     if (spdkCore->isSpdkReady() == true ) {
