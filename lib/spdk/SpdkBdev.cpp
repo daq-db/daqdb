@@ -64,6 +64,12 @@ int SpdkBdev::init(const char *bdev_name) {
     }
 
     spdk_bdev_get_opts(&bdev_opts);
+    if ( bdev_opts.bdev_io_pool_size < 1024 * 1024 ) {
+        bdev_opts.bdev_io_pool_size = 1024 * 1024;
+        if ( bdev_opts.bdev_io_cache_size < 16 * 1024 )
+            bdev_opts.bdev_io_cache_size = 16 * 1024;
+        spdk_bdev_set_opts(&bdev_opts);
+    }
     DAQ_DEBUG("bdev.bdev_io_pool_size[" + std::to_string(bdev_opts.bdev_io_pool_size) + "[");
 
 
@@ -73,7 +79,6 @@ int SpdkBdev::init(const char *bdev_name) {
         spBdevCtx->state = SPDK_BDEV_ERROR;
         return false;
     }
-
 
     spBdevCtx->blk_size = spdk_bdev_get_block_size(spBdevCtx->bdev);
     DAQ_DEBUG("BDEV block size[" + std::to_string(spBdevCtx->blk_size) + "]");

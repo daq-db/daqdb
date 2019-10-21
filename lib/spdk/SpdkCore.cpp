@@ -83,6 +83,7 @@ void SpdkCore::removeConfFile(void) {
 void SpdkCore::restoreSignals() {
     ::signal(SIGTERM, SIG_DFL);
     ::signal(SIGINT, SIG_DFL);
+    ::signal(SIGSEGV, SIG_DFL);
 }
 
 } // namespace DaqDB

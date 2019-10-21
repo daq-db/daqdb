@@ -558,8 +558,8 @@ void OffloadPoller::_spdkThreadMain(void) {
     daqdb_opts.name = "daqdb_nvme";
 
     daqdb_opts.mem_size = 1024;
-    daqdb_opts.shm_id = 0;
-    daqdb_opts.hugepage_single_segments = 1;
+    //daqdb_opts.shm_id = 1;
+    //daqdb_opts.hugepage_single_segments = 1;
     daqdb_opts.hugedir = SpdkCore::spdkHugepageDirname;
 
     int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
