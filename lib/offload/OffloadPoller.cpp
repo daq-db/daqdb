@@ -295,7 +295,7 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
     int w_rc = spdk_bdev_write_blocks(getBdevDesc(), getBdevIoChannel(),
                                   ioCtx->buff,
                                   getBlockOffsetForLba(*ioCtx->lba),
-                                  ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
+                                  ioCtx->blockSize < 4 ? 4 : ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
 #endif
 
     if ( w_rc ) {
@@ -558,8 +558,8 @@ void OffloadPoller::_spdkThreadMain(void) {
     daqdb_opts.name = "daqdb_nvme";
 
     daqdb_opts.mem_size = 1024;
-    //daqdb_opts.shm_id = 1;
-    //daqdb_opts.hugepage_single_segments = 1;
+    daqdb_opts.shm_id = 1;
+    daqdb_opts.hugepage_single_segments = 1;
     daqdb_opts.hugedir = SpdkCore::spdkHugepageDirname;
 
     int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);

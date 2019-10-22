@@ -59,7 +59,7 @@ KVStore::~KVStore() {
 }
 
 bool KVStore::QuiesceOffload(bool ForceAbort) {
-    if ( _spSpdk->isSpdkReady() == true && _spOffloadPoller.get() ) {
+    if ( _spSpdk->isBdevFound() == true && _spOffloadPoller.get() ) {
         _spOffloadPoller->IOQuiesce();
 
         int num_tries = 0;
@@ -114,7 +114,7 @@ void KVStore::init() {
     }
 
     _spSpdk.reset(new SpdkCore(getOptions().offload));
-    if ( _spSpdk->isSpdkReady() == true ) {
+    if ( _spSpdk->isBdevFound() == true ) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {
         DAQ_DEBUG("SPDK offload functionality is disabled");
@@ -134,8 +134,8 @@ void KVStore::init() {
         _spDht->initClient();
     }
 
-    if ( _spSpdk->isSpdkReady() == true ) {
-        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(), baseCoreId + dhtCount, true));
+    if ( _spSpdk->isBdevFound() == true ) {
+        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(), baseCoreId + dhtCount/*, true)*/)); // change to true to print running stats
         coresUsed++;
     }
 
@@ -144,7 +144,7 @@ void KVStore::init() {
 
     for (auto index = coresUsed; index < pollerCount + coresUsed; index++) {
         auto rqstPoller = new DaqDB::PmemPoller(pmem(), baseCoreId + index);
-        if (_spSpdk->isSpdkReady() == true )
+        if (_spSpdk->isBdevFound() == true )
             rqstPoller->offloadPoller = _spOffloadPoller.get();
         _rqstPollers.push_back(rqstPoller);
     }

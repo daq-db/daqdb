@@ -56,6 +56,7 @@ class SpdkCore {
         else
             return false;
     }
+    bool spdkEnvInit(void);
 
     SpdkBdev *getBdev(void) {
         return spBdev.get();
@@ -63,6 +64,10 @@ class SpdkCore {
 
     bool isSpdkReady() {
         return state == SpdkState::SPDK_READY ? true : false;
+    }
+
+    bool isBdevFound() {
+        return state == SpdkState::SPDK_READY && spBdev->state != SpdkBdevState::SPDK_BDEV_NOT_FOUND ? true : false;
     }
 
     void restoreSignals();
