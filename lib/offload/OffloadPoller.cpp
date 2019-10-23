@@ -145,6 +145,7 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                        ioCtx->keySize, nullptr, 0);
     }
 
+    delete [] ioCtx->key;
     delete ioCtx;
 }
 
@@ -177,6 +178,7 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                        ioCtx->keySize, nullptr, 0);
     }
 
+    delete [] ioCtx->key;
     delete ioCtx;
 }
 

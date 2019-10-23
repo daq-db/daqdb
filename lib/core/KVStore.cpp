@@ -135,7 +135,7 @@ void KVStore::init() {
     }
 
     if ( _spSpdk->isBdevFound() == true ) {
-        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(), baseCoreId + dhtCount/*, true)*/)); // change to true to print running stats
+        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(), baseCoreId + dhtCount/*, true*/)); // change to true to print running stats
         coresUsed++;
     }
 

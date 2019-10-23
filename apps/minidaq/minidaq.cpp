@@ -197,7 +197,6 @@ runBenchmark(std::vector<std::unique_ptr<DaqDB::MinidaqNode> > &nodes) {
     // Wait for results
     bool showStats = true;
     for (auto &n : nodes) {
-        sleep(10);
         while (!n->Wait(live ? tIter_ms : 0))
             n->ShowTreeStats();
         showStats = false;

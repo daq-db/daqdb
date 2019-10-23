@@ -16,7 +16,6 @@
 
 #include "MinidaqFfNode.h"
 #include <random>
-#include <iostream>
 
 namespace DaqDB {
 
