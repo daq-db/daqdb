@@ -295,7 +295,7 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
     int w_rc = spdk_bdev_write_blocks(getBdevDesc(), getBdevIoChannel(),
                                   ioCtx->buff,
                                   getBlockOffsetForLba(*ioCtx->lba),
-                                  ioCtx->blockSize < 4 ? 4 : ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
+                                  ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
 #endif
 
     if ( w_rc ) {
