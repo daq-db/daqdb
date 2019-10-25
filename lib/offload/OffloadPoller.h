@@ -51,7 +51,7 @@ struct OffloadStats {
     uint64_t read_err_cnt;
     bool periodic = true;
     bool enable;
-    uint64_t quant_per = (1 << 17);
+    uint64_t quant_per = 1; //(1 << 17);
     uint64_t outstanding_io_cnt;
 
     OffloadStats(bool enab = false):

@@ -382,7 +382,7 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
         rqst->key, rqst->keySize, static_cast<uint64_t *>(valCtx.val),
         false,     rtree,         rqst->clb, this};
 
-    if (read(ioCtx) != 0)
+    if (read(ioCtx) != true)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 }
 
@@ -453,7 +453,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         return;
     }
 
-    if (write(ioCtx) != 0)
+    if (write(ioCtx) != true)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 
     if ( rqst->valueSize > 0 )
