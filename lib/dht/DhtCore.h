@@ -71,6 +71,8 @@ class DhtCore {
 
     inline uint8_t getDhtThreadsCount() { return options.numOfDhtThreads; };
 
+    inline uint8_t getDhtIdBase() { return options.baseDhtId; };
+
     void initNexus();
 
     /**

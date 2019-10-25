@@ -42,6 +42,7 @@ namespace po = boost::program_options;
 #define MINIDAQ_DEFAULT_N_THREADS_FF 0
 #define MINIDAQ_DEFAULT_N_THREADS_EB 0
 #define MINIDAQ_DEFAULT_N_THREADS_DHT 1
+#define MINIDAQ_DEFAULT_B_ID_DHT 0
 #define MINIDAQ_DEFAULT_N_SUBDETECTORS 1
 #define MINIDAQ_DEFAULT_N_POOLERS 1
 #define MINIDAQ_DEFAULT_START_SUB_ID 100
@@ -79,6 +80,7 @@ int nCores;
 int nCoresUsed = 0;
 int bCoreId;
 int nDhtThreads;
+int bDhtId;
 int maxReadyKeys;
 size_t fSize;
 bool enableLog = MINIDAQ_DEFAULT_LOG;
@@ -118,6 +120,7 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     options.runtime.numOfPollers = nPoolers;
     nCoresUsed += nPoolers;
     options.dht.numOfDhtThreads = nDhtThreads;
+    options.dht.baseDhtId = bDhtId;
     if (!satellite) {
         nCoresUsed += nDhtThreads;
     }
@@ -252,6 +255,9 @@ int main(int argc, const char *argv[]) {
         "n-dht-threads", po::value<int>(&nDhtThreads)
                              ->default_value(MINIDAQ_DEFAULT_N_THREADS_DHT),
         "Total number of DaqDB DHT threads.")(
+        "base-dht-id", po::value<int>(&bDhtId)
+                             ->default_value(MINIDAQ_DEFAULT_B_ID_DHT),
+        "Base DHT ID to be used by DAQDB clients.")(
         "base-core-id",
         po::value<int>(&bCoreId)->default_value(MINIDAQ_DEFAULT_BASE_CORE_ID),
         "Base core ID for DAQDB and minidaq worker threads.")(
