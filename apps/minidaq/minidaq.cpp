@@ -255,7 +255,7 @@ int main(int argc, const char *argv[]) {
         "n-dht-threads", po::value<int>(&nDhtThreads)
                              ->default_value(MINIDAQ_DEFAULT_N_THREADS_DHT),
         "Total number of DaqDB DHT threads.")(
-        "b-dht-id", po::value<int>(&bDhtId)
+        "base-dht-id", po::value<int>(&bDhtId)
                              ->default_value(MINIDAQ_DEFAULT_B_ID_DHT),
         "Base DHT ID to be used by DAQDB clients.")(
         "base-core-id",
