@@ -148,7 +148,8 @@ void DhtClient::initialize(DhtCore *dhtCore) {
     erpc::Rpc<erpc::CTransport> *rpc;
 
     int i = _dhtCore->numberOfClientThreads++;
-    _remoteRpcId = (dhtCore->randomSeed + i) % dhtCore->getDhtThreadsCount();
+    _remoteRpcId = dhtCore->getDhtIdBase() +
+                   ((dhtCore->randomSeed + i) % dhtCore->getDhtThreadsCount());
 
     try {
         rpc = new erpc::Rpc<erpc::CTransport>(

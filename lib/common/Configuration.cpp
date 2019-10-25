@@ -85,12 +85,15 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
     int maskLength;
     int maskOffset;
     unsigned int numOfDhtThreads;
+    unsigned int baseDhtId;
     if (cfg.lookupValue("dht_key_mask_length", maskLength))
         options.dht.maskLength = maskLength;
     if (cfg.lookupValue("dht_key_mask_offset", maskOffset))
         options.dht.maskOffset = maskOffset;
     if (cfg.lookupValue("runtime_dht_threads", numOfDhtThreads))
         options.dht.numOfDhtThreads = numOfDhtThreads;
+    if (cfg.lookupValue("runtime_base_dht_id", baseDhtId))
+        options.dht.baseDhtId = baseDhtId;
 
     try {
         const libconfig::Setting &neighbors = cfg.lookup("neighbors");
