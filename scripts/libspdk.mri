@@ -41,7 +41,6 @@ addlib build/lib/libspdk_net.a
 addlib build/lib/libspdk_nvme.a
 addlib build/lib/libspdk_nvmf.a
 addlib build/lib/libspdk_rpc.a
-addlib build/lib/libspdk_rte_vhost.a
 addlib build/lib/libspdk_scsi.a
 addlib build/lib/libspdk_sock.a
 addlib build/lib/libspdk_thread.a
@@ -63,5 +62,11 @@ addlib dpdk/build/lib/librte_mempool_ring.a
 addlib dpdk/build/lib/librte_net.a
 addlib dpdk/build/lib/librte_pci.a
 addlib dpdk/build/lib/librte_ring.a
+addlib dpdk/build/lib/librte_vhost.a
+addlib dpdk/build/lib/librte_hash.a
+addlib dpdk/build/lib/librte_cryptodev.a
+addlib dpdk/build/lib/librte_cmdline.a
+addlib dpdk/build/lib/librte_meter.a
+addlib dpdk/build/lib/librte_compressdev.a
 save
 end
