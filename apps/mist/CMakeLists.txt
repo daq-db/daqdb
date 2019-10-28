@@ -20,7 +20,7 @@ file(GLOB MIST_SOURCES ${APPS}/mist/*.cpp ${APPS}/mist/*.hpp)
 add_executable(mist ${MIST_SOURCES})
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 target_link_libraries(mist ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INT}
-	${CMAKE_THREAD_LIBS_INIT} ${Dpdk_LIBRARIES} daqdb_thin dl numa boost_thread boost_thread-mt)
+	${CMAKE_THREAD_LIBS_INIT} ${Dpdk_LIBRARIES} daqdb_thin dl numa boost_thread)
 
 configure_file(mist.cfg.in
 	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mist.cfg.sample COPYONLY)

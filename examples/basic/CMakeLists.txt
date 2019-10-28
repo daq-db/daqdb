@@ -17,5 +17,5 @@ set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 
 file(GLOB BASIC_SOURCES *.cpp)
 add_executable(basic ${BASIC_SOURCES})
-target_link_libraries(basic ${Boost_LIBRARIES} ${Dpdk_LIBRARIES} daqdb pmemobj dl boost_thread boost_thread-mt
+target_link_libraries(basic ${Boost_LIBRARIES} ${Dpdk_LIBRARIES} daqdb pmemobj dl boost_thread
     numa ${CMAKE_THREAD_LIBS_INIT} )
