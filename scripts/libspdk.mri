@@ -48,6 +48,7 @@ addlib build/lib/libspdk_trace.a
 addlib build/lib/libspdk_util.a
 addlib build/lib/libspdk_vhost.a
 addlib build/lib/libspdk_virtio.a
+addlib isa-l/.libs/libisal.a
 save
 create libdpdk.a
 addlib dpdk/build/lib/librte_bus_pci.a
