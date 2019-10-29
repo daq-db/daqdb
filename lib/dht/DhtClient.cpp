@@ -33,12 +33,6 @@ namespace DaqDB {
 #define WAIT_FOR_NEIGHBOUR_INTERVAL 100
 #define WAIT_FOR_NEIGHBOUR_RETRIES 10
 
-/**
- * Number of times run_event_loop_once will be called waiting for response.
- * (about 1s on 2.3GHz CPU)
- */
-#define WAIT_FOR_RESPONSE_IN_ERPC_LOOP_CYCLES 20 * 1000 * 1000
-
 static void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 
 static void clbGet(void *ctxClient, void *ioCtx) {
@@ -188,12 +182,9 @@ void DhtClient::_runToResponse() {
     DAQ_DEBUG("Waiting for response");
     auto rpc = reinterpret_cast<erpc::Rpc<erpc::CTransport> *>(_clientRpc);
 
-    auto timeout = WAIT_FOR_RESPONSE_IN_ERPC_LOOP_CYCLES;
-    while (!_reqCtx.ready && --timeout) {
+    // todo add proper timeout mechanism
+    while (!_reqCtx.ready) {
         rpc->run_event_loop_once();
-    }
-    if (!timeout) {
-        throw OperationFailedException(Status(StatusCode::TIME_OUT));
     }
     if (_reqCtx.status != 0) {
         throw OperationFailedException(Status(_reqCtx.status));
