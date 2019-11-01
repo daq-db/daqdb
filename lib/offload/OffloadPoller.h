@@ -51,7 +51,7 @@ struct OffloadStats {
     uint64_t read_err_cnt;
     bool periodic = true;
     bool enable;
-    uint64_t quant_per = 1; //(1 << 17);
+    uint64_t quant_per = (1 << 17);
     uint64_t outstanding_io_cnt;
 
     OffloadStats(bool enab = false):
@@ -185,7 +185,6 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
   private:
     void _spdkThreadMain(void);
-    void _loopThreadMain(void);
 
     void _processGet(const OffloadRqst *rqst);
     void _processUpdate(const OffloadRqst *rqst);
@@ -209,7 +208,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
     const static char *pmemFreeListFilename;
 
     std::mutex _syncMutex;
-    std::unique_lock<std::mutex> *_syncLock;
+    std::unique_lock<std::mutex> _syncLock;
 
     struct spdk_poller *_spdkPoller;
     volatile State _state;

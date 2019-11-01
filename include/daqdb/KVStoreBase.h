@@ -408,9 +408,9 @@ class KVStoreBase {
     /**
      * If offload is enabled, quiesce it. Abort if default timeout exceeded.
      *
-     * @param[in] kif force abort is to be applied.
+     * @param[in] ForceAbort if force abort is to be applied.
      *
-     * @throw OperationFailedException if any error occurred XXX
+     * @throw OperationFailedException if any error occurred
      *
      */
     virtual bool QuiesceOffload(bool ForceAbort = false) = 0;

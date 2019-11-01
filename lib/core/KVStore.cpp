@@ -58,14 +58,14 @@ KVStore::~KVStore() {
     _spOffloadPoller.reset();
 }
 
-bool KVStore::QuiesceOffload(bool ForceAbort) {
+bool KVStore::QuiesceOffload(bool forceAbort) {
     if ( _spSpdk->isBdevFound() == true && _spOffloadPoller.get() ) {
         _spOffloadPoller->IOQuiesce();
 
         int num_tries = 0;
         while ( _spOffloadPoller->isIOQuiescent() == false ) {
             sleep(1);
-            if ( ForceAbort = true && num_tries > 20 ) {
+            if ( forceAbort == true && num_tries++ > 20 ) {
                 _spOffloadPoller->IOAbort();
                 break;
             }

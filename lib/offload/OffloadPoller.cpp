@@ -85,7 +85,8 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                              const size_t cpuCore, bool enableStats):
     Poller<OffloadRqst>(false),
     rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), _spdkPoller(0), stats(enableStats) {
-    _syncLock = new std::unique_lock<std::mutex>(_syncMutex);
+    //_syncLock = new std::unique_lock<std::mutex>(_syncMutex);
+    _syncLock.lock();
 
     _state = OffloadPoller::State::OFFLOAD_POLLER_INIT;
     if (spdkCore->isSpdkReady() == true ) {
@@ -575,7 +576,7 @@ void OffloadPoller::_spdkThreadMain(void) {
 }
 
 void OffloadPoller::signalReady() {
-    delete _syncLock;
+    _syncLock.unlock();
 }
 
 void OffloadPoller::waitReady() {
