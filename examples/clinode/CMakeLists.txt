@@ -27,4 +27,4 @@ configure_file(clinode.cfg.in
 
 set(Dpdk_LIBRARIES -Wl,--whole-archive dpdk -Wl,--no-whole-archive)
 target_link_libraries(clinode ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
-        ${Dpdk_LIBRARIES} pmem daqdb linenoise pmemobj dl numa boost_thread)
+        ${Dpdk_LIBRARIES} pmem daqdb linenoise pmemobj dl numa)
