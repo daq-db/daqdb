@@ -92,7 +92,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
     virtual bool write(OffloadIoCtx *ioCtx);
     virtual int64_t getFreeLba();
 
-    void startSpdkThread();
+    void startSpdk();
     void initFreeList();
 
     inline bool isValOffloaded(ValCtx &valCtx) {

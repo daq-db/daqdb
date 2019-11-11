@@ -89,7 +89,7 @@ OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
 
     _state = OffloadPoller::State::OFFLOAD_POLLER_INIT;
     if (spdkCore->isSpdkReady() == true ) {
-        startSpdkThread();
+        startSpdk();
     }
 }
 
@@ -115,7 +115,7 @@ void OffloadPoller::IOAbort() {
 }
 
 /*
- * Callback function for write io completion.
+ * Callback function for a write IO completion.
  */
 void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
@@ -151,7 +151,7 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
 }
 
 /*
- * Callback function for read io completion.
+ * Callback function for a read IO completion.
  */
 void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                           void *cb_arg) {
@@ -183,7 +183,10 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     delete ioCtx;
 }
 
-void OffloadPoller::startSpdkThread() {
+/*
+ * Start up Spdk, including SPDK thread, to initialize SPDK environemnt and a Bdev
+ */
+void OffloadPoller::startSpdk() {
     _spdkThread = new std::thread(&OffloadPoller::_spdkThreadMain, this);
     DAQ_DEBUG("OffloadPoller thread started");
     if (_cpuCore) {
@@ -203,6 +206,9 @@ void OffloadPoller::startSpdkThread() {
     }
 }
 
+/*
+ * Callback function that SPDK framework will call when an io buffer becomes available
+ */
 void OffloadPoller::readQueueIoWait(void *cb_arg) {
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
     OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
@@ -210,6 +216,8 @@ void OffloadPoller::readQueueIoWait(void *cb_arg) {
     int r_rc = spdk_bdev_read_blocks(poller->getBdevDesc(), poller->getBdevIoChannel(), ioCtx->buff,
                                  poller->getBlockOffsetForLba(*ioCtx->lba),
                                  ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
+
+    /* If a read IO still fails due to shortage of io buffers, queue it up for later execution */
     if ( r_rc ) {
         r_rc = spdk_bdev_queue_io_wait(poller->getBdevCtx()->bdev, poller->getBdevIoChannel(),
                 &ioCtx->bdev_io_wait);
@@ -263,6 +271,9 @@ bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
     return !r_rc ? true : false;
 }
 
+/*
+ * Callback function that SPDK framework will call when an io buffer becomes available
+ */
 void OffloadPoller::writeQueueIoWait(void *cb_arg) {
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
     OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
@@ -271,6 +282,8 @@ void OffloadPoller::writeQueueIoWait(void *cb_arg) {
                                   ioCtx->buff,
                                   poller->getBlockOffsetForLba(*ioCtx->lba),
                                   ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
+
+    /* If a write IO still fails due to shortage of io buffers, queue it up for later execution */
     if ( w_rc ) {
         w_rc = spdk_bdev_queue_io_wait(poller->getBdevCtx()->bdev, poller->getBdevIoChannel(),
                 &ioCtx->bdev_io_wait);
