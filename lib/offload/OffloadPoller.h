@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <thread>
 #include <mutex>
+#include <chrono>
 #include <condition_variable>
 
 #include "spdk/bdev.h"
@@ -137,7 +138,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
     }
 
     void signalReady();
-    void waitReady();
+    bool waitReady();
 
     static int spdkPollerFn(void *arg);
     void setSpdkPoller(struct spdk_poller *spdk_poller) {
@@ -208,7 +209,8 @@ class OffloadPoller : public Poller<OffloadRqst> {
     const static char *pmemFreeListFilename;
 
     std::mutex _syncMutex;
-    std::unique_lock<std::mutex> _syncLock;
+    std::condition_variable _cv;
+    bool _ready;
 
     struct spdk_poller *_spdkPoller;
     volatile State _state;
