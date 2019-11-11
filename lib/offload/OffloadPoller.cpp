@@ -84,9 +84,8 @@ void OffloadStats::printReadPer(std::ostream &os) {
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
                              const size_t cpuCore, bool enableStats):
     Poller<OffloadRqst>(false),
-    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), _spdkPoller(0), stats(enableStats) {
-    //_syncLock = new std::unique_lock<std::mutex>(_syncMutex);
-    _syncLock.lock();
+    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), _spdkPoller(0), 
+            _ready(false), stats(enableStats) {
 
     _state = OffloadPoller::State::OFFLOAD_POLLER_INIT;
     if (spdkCore->isSpdkReady() == true ) {
@@ -576,11 +575,16 @@ void OffloadPoller::_spdkThreadMain(void) {
 }
 
 void OffloadPoller::signalReady() {
-    _syncLock.unlock();
+    std::unique_lock<std::mutex> lk(_syncMutex);
+    _ready = true;
+    _cv.notify_all();
 }
 
-void OffloadPoller::waitReady() {
+bool OffloadPoller::waitReady() {
+    const std::chrono::milliseconds timeout(10000);
     std::unique_lock<std::mutex> lk(_syncMutex);
+    _cv.wait_for(lk, timeout, [this] { return _ready; });
+    return _ready;
 }
 
 int64_t OffloadPoller::getFreeLba() {
