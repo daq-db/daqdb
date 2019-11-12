@@ -92,6 +92,9 @@ class OffloadPoller : public Poller<OffloadRqst> {
     virtual bool write(OffloadIoCtx *ioCtx);
     virtual int64_t getFreeLba();
 
+    /*
+     * Start up Spdk, including SPDK thread, to initialize SPDK environemnt and a Bdev
+     */
     void startSpdk();
     void initFreeList();
 
@@ -120,11 +123,32 @@ class OffloadPoller : public Poller<OffloadRqst> {
         return spdkCore->spBdev->spBdevCtx->io_channel;
     }
 
+    /*
+     * Callback function called by SPDK spdk_app_start in the context of an SPDK thread.
+     */
     static void spdkStart(void *arg);
+
+    /*
+     * Callback function for a read IO completion.
+     */
     static void readComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+
+    /*
+     * Callback function for a write IO completion.
+     */
     static void writeComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
-    static void writeQueueIoWait(void *cb_arg);
+
+    /*
+     * Callback function that SPDK framework will call when an io buffer becomes available
+     * Called by SPDK framework when enough of IO buffers become available to complete the IO
+     */
     static void readQueueIoWait(void *cb_arg);
+
+    /*
+     * Callback function that SPDK framework will call when an io buffer becomes available
+     * Called by SPDK framework when enough of IO buffers become available to complete the IO
+     */
+    static void writeQueueIoWait(void *cb_arg);
 
     RTreeEngine *rtree;
     SpdkCore *spdkCore;

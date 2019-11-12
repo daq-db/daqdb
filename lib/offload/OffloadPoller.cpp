@@ -246,9 +246,15 @@ bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
                                  getBlockOffsetForLba(*ioCtx->lba),
                                  ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
 #endif
+    /* TODO: refactor the following block for better code reusability */
     if ( r_rc ) {
         stats.read_err_cnt++;
-        if ( r_rc == -ENOMEM ) {
+        /*
+         * -ENOMEM condition indicates a shoortage of IO buffers.
+         *  Schedule this IO for later execution by providing a callback function, when sufficient 
+         *  IO buffers are available
+         */
+        if ( r_rc == -ENOMEM ) { 
             ioCtx->bdev_io_wait.bdev = getBdevCtx()->bdev;
             ioCtx->bdev_io_wait.cb_fn = OffloadPoller::readQueueIoWait;
             ioCtx->bdev_io_wait.cb_arg = ioCtx;
@@ -314,8 +320,14 @@ bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
                                   ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
 #endif
 
+    /* TODO: refactor the following block for better code reusability */
     if ( w_rc ) {
         stats.write_err_cnt++;
+        /*
+         * -ENOMEM condition indicates a shoortage of IO buffers.
+         *  Schedule this IO for later execution by providing a callback function, when sufficient 
+         *  IO buffers are available
+         */
         if ( w_rc == -ENOMEM ) {
             ioCtx->bdev_io_wait.bdev = getBdevCtx()->bdev;
             ioCtx->bdev_io_wait.cb_fn = OffloadPoller::writeQueueIoWait;
@@ -535,6 +547,9 @@ int OffloadPoller::spdkPollerFn(void *arg) {
     return 0;
 }
 
+/*
+ * Callback function called by SPDK spdk_app_start in the context of an SPDK thread.
+ */
 void OffloadPoller::spdkStart(void *arg) {
     OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
     SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
