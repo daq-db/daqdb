@@ -78,6 +78,8 @@ class KVStoreThin : public KVStoreBase {
 
     inline DhtClient *dhtClient() { return _spDht->getClient(); };
 
+    virtual bool QuiesceOffload(bool ForceAbort = false) { return true; }
+
   private:
     explicit KVStoreThin(const DaqDB::Options &options);
     virtual ~KVStoreThin();

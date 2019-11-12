@@ -158,6 +158,8 @@ MinidaqStats MinidaqNode::_Execute(int executorId) {
 
     _stopped = true;
 
+    _kvs->QuiesceOffload(true);
+
     // Wait for all completions
     do {
         c = 0;

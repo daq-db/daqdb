@@ -21,7 +21,6 @@
 #include <daqdb/Options.h>
 
 #include "SpdkBdev.h"
-#include "SpdkThread.h"
 
 namespace DaqDB {
 
@@ -49,39 +48,36 @@ class SpdkCore {
      */
     bool createConfFile(void);
 
-    /**
-     * This functions first checks if configuration file is correct and attach
-     * it as default configuration to SPDK environment
-     *
-     * @return false when cannot allocate required structures or file format is
-     * not correct, true otherwise
-     */
-    bool attachConfigFile(void);
-
-    bool spdkEnvInit(void);
-
-    void spdkBdevModuleInit(void);
-
     void removeConfFile(void);
 
     inline bool isOffloadEnabled() {
         if (state == SpdkState::SPDK_READY)
-            return (spBdev->state == SpdkBdevState::SPDK_BDEV_READY);
+            return (spBdev->spBdevCtx->state == SPDK_BDEV_READY);
         else
             return false;
     }
+    bool spdkEnvInit(void);
+
+    SpdkBdev *getBdev(void) {
+        return spBdev.get();
+    }
+
+    bool isSpdkReady() {
+        return state == SpdkState::SPDK_READY ? true : false;
+    }
+
+    bool isBdevFound() {
+        return state == SpdkState::SPDK_READY && spBdev->state != SpdkBdevState::SPDK_BDEV_NOT_FOUND ? true : false;
+    }
+
+    void restoreSignals();
 
     std::atomic<SpdkState> state;
 
-    /**
-     * This thread is used during initialization and later for polling SPDK
-     * completion queue.
-     */
-    std::unique_ptr<SpdkThread> spSpdkThread;
-
     std::unique_ptr<SpdkBdev> spBdev;
-
     OffloadOptions offloadOptions;
+
+    const static char *spdkHugepageDirname;
 
   private:
     inline bool isNvmeInOptions() {

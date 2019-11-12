@@ -16,9 +16,15 @@
 
 #pragma once
 
+#include <iostream>
+#include <sstream>
+#include <string>
 #include <atomic>
 #include <cstdint>
 #include <thread>
+#include <mutex>
+#include <chrono>
+#include <condition_variable>
 
 #include "spdk/bdev.h"
 #include "spdk/env.h"
@@ -36,6 +42,28 @@
 
 namespace DaqDB {
 
+enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
+using OffloadRqst = Rqst<OffloadOperation>;
+
+struct OffloadStats {
+    uint64_t write_compl_cnt;
+    uint64_t write_err_cnt;
+    uint64_t read_compl_cnt;
+    uint64_t read_err_cnt;
+    bool periodic = true;
+    bool enable;
+    uint64_t quant_per = (1 << 17);
+    uint64_t outstanding_io_cnt;
+
+    OffloadStats(bool enab = false):
+        write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0), read_err_cnt(0), enable(enab), outstanding_io_cnt(0)
+    {}
+    std::ostringstream &formatWriteBuf(std::ostringstream &buf);
+    std::ostringstream &formatReadBuf(std::ostringstream &buf);
+    void printWritePer(std::ostream &os);
+    void printReadPer(std::ostream &os);
+};
+
 struct OffloadIoCtx {
     char *buff;
     size_t size = 0;
@@ -47,15 +75,15 @@ struct OffloadIoCtx {
 
     RTreeEngine *rtree;
     KVStoreBase::KVStoreBaseCallback clb;
-};
 
-enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
-using OffloadRqst = Rqst<OffloadOperation>;
+    Poller<OffloadRqst> *poller = nullptr;
+    struct spdk_bdev_io_wait_entry bdev_io_wait;
+};
 
 class OffloadPoller : public Poller<OffloadRqst> {
   public:
     OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
-                  const size_t cpuCore = 0);
+                  const size_t cpuCore = 0, bool enableStats = false);
     virtual ~OffloadPoller();
 
     void process() final;
@@ -64,7 +92,10 @@ class OffloadPoller : public Poller<OffloadRqst> {
     virtual bool write(OffloadIoCtx *ioCtx);
     virtual int64_t getFreeLba();
 
-    void startThread();
+    /*
+     * Start up Spdk, including SPDK thread, to initialize SPDK environemnt and a Bdev
+     */
+    void startSpdk();
     void initFreeList();
 
     inline bool isValOffloaded(ValCtx &valCtx) {
@@ -92,6 +123,33 @@ class OffloadPoller : public Poller<OffloadRqst> {
         return spdkCore->spBdev->spBdevCtx->io_channel;
     }
 
+    /*
+     * Callback function called by SPDK spdk_app_start in the context of an SPDK thread.
+     */
+    static void spdkStart(void *arg);
+
+    /*
+     * Callback function for a read IO completion.
+     */
+    static void readComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+
+    /*
+     * Callback function for a write IO completion.
+     */
+    static void writeComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+
+    /*
+     * Callback function that SPDK framework will call when an io buffer becomes available
+     * Called by SPDK framework when enough of IO buffers become available to complete the IO
+     */
+    static void readQueueIoWait(void *cb_arg);
+
+    /*
+     * Callback function that SPDK framework will call when an io buffer becomes available
+     * Called by SPDK framework when enough of IO buffers become available to complete the IO
+     */
+    static void writeQueueIoWait(void *cb_arg);
+
     RTreeEngine *rtree;
     SpdkCore *spdkCore;
 
@@ -99,8 +157,59 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
     std::atomic<int> isRunning;
 
+    void setBlockNumForLba(uint64_t blk_num_flba) {
+        _blkNumForLba = blk_num_flba;
+    }
+
+    void signalReady();
+    bool waitReady();
+
+    static int spdkPollerFn(void *arg);
+    void setSpdkPoller(struct spdk_poller *spdk_poller) {
+        _spdkPoller = spdk_poller;
+    }
+
+    enum class State : std::uint8_t {
+        OFFLOAD_POLLER_INIT = 0,
+        OFFLOAD_POLLER_READY,
+        OFFLOAD_POLLER_ERROR,
+        OFFLOAD_POLLER_QUIESCING,
+        OFFLOAD_POLLER_QUIESCENT,
+        OFFLOAD_POLLER_STOPPED,
+        OFFLOAD_POLLER_ABORTED
+    };
+
+    void IOQuiesce();
+    bool isIOQuiescent();
+    void IOAbort();
+
+
+    bool stateMachine() {
+        switch ( _state ) {
+        case OffloadPoller::State::OFFLOAD_POLLER_INIT:
+        case OffloadPoller::State::OFFLOAD_POLLER_READY:
+            break;
+        case OffloadPoller::State::OFFLOAD_POLLER_ERROR:
+            getBdev()->deinit();
+            break;
+        case OffloadPoller::State::OFFLOAD_POLLER_QUIESCING:
+            if ( !stats.outstanding_io_cnt ) {
+                _state = OffloadPoller::State::OFFLOAD_POLLER_QUIESCENT;
+            }
+            return true;
+        case OffloadPoller::State::OFFLOAD_POLLER_QUIESCENT:
+            return true;
+        case OffloadPoller::State::OFFLOAD_POLLER_STOPPED:
+            break;
+        case OffloadPoller::State::OFFLOAD_POLLER_ABORTED:
+            getBdev()->deinit();
+            return true;
+        }
+        return false;
+    }
+
   private:
-    void _threadMain(void);
+    void _spdkThreadMain(void);
 
     void _processGet(const OffloadRqst *rqst);
     void _processUpdate(const OffloadRqst *rqst);
@@ -116,8 +225,22 @@ class OffloadPoller : public Poller<OffloadRqst> {
     uint64_t _blkNumForLba = 0;
     pool<DaqDB::OffloadFreeList> _offloadFreeList;
 
-    std::thread *_thread;
+    std::thread *_spdkThread;
+    std::thread *_loopThread;
     size_t _cpuCore;
+    std::string bdevName;
+
+    const static char *pmemFreeListFilename;
+
+    std::mutex _syncMutex;
+    std::condition_variable _cv;
+    bool _ready;
+
+    struct spdk_poller *_spdkPoller;
+    volatile State _state;
+
+  public:
+    OffloadStats stats;
 };
 
 } // namespace DaqDB

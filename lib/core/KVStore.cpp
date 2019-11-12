@@ -21,6 +21,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <sstream>
+#include <iostream>
 
 #include <DhtServer.h>
 #include <DhtUtils.h>
@@ -46,19 +47,34 @@ KVStore::KVStore(const DaqDB::Options &options)
 
 KVStore::~KVStore() {
     DAQ_INFO("Closing DAQDB KVStore.");
-
     RTreeEngine::Close(_spRtree.get());
     _spRtree.reset();
-
     _spPKey.reset();
     _spDhtServer.reset();
     _spDht.reset();
-
     for (auto index = 0; index < _rqstPollers.size(); index++) {
         delete _rqstPollers.at(index);
     }
-
     _spOffloadPoller.reset();
+}
+
+bool KVStore::QuiesceOffload(bool forceAbort) {
+    if ( _spSpdk->isBdevFound() == true && _spOffloadPoller.get() ) {
+        _spOffloadPoller->IOQuiesce();
+
+        int num_tries = 0;
+        while ( _spOffloadPoller->isIOQuiescent() == false ) {
+            sleep(1);
+            if ( forceAbort == true && num_tries++ > 20 ) {
+                _spOffloadPoller->IOAbort();
+                break;
+            }
+        }
+
+        return _spOffloadPoller->isIOQuiescent();
+    }
+
+    return true;
 }
 
 void KVStore::init() {
@@ -88,6 +104,7 @@ void KVStore::init() {
                                             getOptions().pmem.allocUnitSize));
     if (_spRtree.get() == nullptr)
         throw OperationFailedException(errno, ::pmemobj_errormsg());
+
     size_t keySize = pmem()->SetKeySize(getOptions().key.size());
     if (keySize != getOptions().key.size()) {
         DAQ_INFO("Requested key size of " +
@@ -97,7 +114,7 @@ void KVStore::init() {
     }
 
     _spSpdk.reset(new SpdkCore(getOptions().offload));
-    if (isOffloadEnabled()) {
+    if ( _spSpdk->isBdevFound() == true ) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {
         DAQ_DEBUG("SPDK offload functionality is disabled");
@@ -117,16 +134,17 @@ void KVStore::init() {
         _spDht->initClient();
     }
 
-    if (isOffloadEnabled()) {
-        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(),
-                                                        baseCoreId + dhtCount));
-        _spOffloadPoller->initFreeList();
+    if ( _spSpdk->isBdevFound() == true ) {
+        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(), baseCoreId + dhtCount/*, true*/)); // uncomment to print running stats
         coresUsed++;
     }
 
+    if ( _spOffloadPoller.get() )
+        _spOffloadPoller->waitReady(); // synchronize until OffloadPoller is done initializing SPDK framework
+
     for (auto index = coresUsed; index < pollerCount + coresUsed; index++) {
         auto rqstPoller = new DaqDB::PmemPoller(pmem(), baseCoreId + index);
-        if (isOffloadEnabled())
+        if (_spSpdk->isBdevFound() == true )
             rqstPoller->offloadPoller = _spOffloadPoller.get();
         _rqstPollers.push_back(rqstPoller);
     }

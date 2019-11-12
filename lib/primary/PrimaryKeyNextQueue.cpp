@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+#include "spdk/bdev.h"
+#include "spdk/env.h"
+#include "spdk/queue.h"
+#include "spdk/thread.h"
+
 #include <Logger.h>
 #include <PrimaryKeyNextQueue.h>
 
@@ -62,7 +67,7 @@ void PrimaryKeyNextQueue::enqueueNext(const Key &key) {
         return;
     char *pKeyBuff = _createPKeyBuff(key.data());
     int cnt =
-        spdk_ring_enqueue(_readyKeys, reinterpret_cast<void **>(&pKeyBuff), 1);
+        spdk_ring_enqueue(_readyKeys, reinterpret_cast<void **>(&pKeyBuff), 1, 0);
     if (!cnt) {
         delete[] pKeyBuff;
         throw OperationFailedException(QUEUE_FULL_ERROR);

@@ -101,6 +101,7 @@ static void logStd(std::string m) {
 /** @todo move to MinidaqFogServer for distributed version */
 static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     DaqDB::Options options;
+    DaqDB::Options spdk_options;
 
     if (boost::filesystem::exists(configFile)) {
         std::cout << "### Reading minidaq configuration file... " << endl;
@@ -145,6 +146,19 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
     }
     if (enableLog) {
         options.runtime.logFunc = logStd;
+    }
+
+    if (boost::filesystem::exists(spdk_conf)) {
+        std::cout << "### Reading minidaq offload configuration file: " << spdk_conf << " ... " << endl;
+        std::stringstream errorMsg;
+        if (!DaqDB::readConfiguration(spdk_conf, spdk_options, errorMsg)) {
+            std::cout << "### Failed to read minidaq offload configuration file. "
+                      << endl << errorMsg.str() << std::endl;
+        }
+        std::cout << "### Done. " << endl;
+        options.offload.allocUnitSize = spdk_options.offload.allocUnitSize;
+        options.offload.nvmeAddr = spdk_options.offload.nvmeAddr;
+        options.offload.nvmeName = spdk_options.offload.nvmeName;
     }
 
     return std::unique_ptr<DaqDB::KVStoreBase>(

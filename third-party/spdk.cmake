@@ -5,6 +5,7 @@ include(ExternalProject)
 ExternalProject_Add(project_spdk
 	PREFIX ${PROJECT_SOURCE_DIR}/spdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
+	PATCH_COMMAND ${ROOT_DAQDB_DIR}/scripts/patch_spdk_isal.sh
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/spdk
 	CONFIGURE_COMMAND "./configure"
 	BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}

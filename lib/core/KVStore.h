@@ -95,6 +95,7 @@ class KVStore : public KVStoreBase {
     void Remove(const char *key, size_t keySize);
 
     virtual bool IsOffloaded(Key &key);
+    virtual bool QuiesceOffload(bool forceAbort = false);
 
     uint64_t GetTreeSize();
     uint64_t GetLeafCount();
