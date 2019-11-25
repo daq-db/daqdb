@@ -82,12 +82,12 @@ void OffloadStats::printReadPer(std::ostream &os) {
 //#define TEST_RAW_IOPS
 
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
-                             const size_t cpuCore, bool enableStats):
-    Poller<OffloadRqst>(false),
-    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), 
-        _cpuCore(cpuCore), _ready(false), _spdkPoller(0), stats(enableStats) {
+                             const size_t cpuCore, bool enableStats)
+    : Poller<OffloadRqst>(false), rtree(rtree), spdkCore(spdkCore),
+      _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), _ready(false),
+      _spdkPoller(0), _state(OffloadPoller::State::OFFLOAD_POLLER_INIT),
+      stats(enableStats), IoBytesQueued(0), IoBytesMaxQueued(0) {
 
-    _state = OffloadPoller::State::OFFLOAD_POLLER_INIT;
     if (spdkCore->isSpdkReady() == true ) {
         startSpdk();
     }
@@ -122,6 +122,9 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
     OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
     spdk_dma_free(ioCtx->buff);
+    poller->IoBytesQueued = ioCtx->size > poller->IoBytesQueued
+                                ? 0
+                                : poller->IoBytesQueued - ioCtx->size;
 
 #ifdef TEST_RAW_IOPS
     spdk_dma_free(bdev_io);
@@ -160,6 +163,9 @@ void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
     OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
     spdk_dma_free(ioCtx->buff);
+    poller->IoBytesQueued = ioCtx->size > poller->IoBytesQueued
+                                ? 0
+                                : poller->IoBytesQueued - ioCtx->size;
 
 #ifdef TEST_RAW_IOPS
     spdk_dma_free(bdev_io);
@@ -403,7 +409,9 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
 
     auto size = getBdev()->getAlignedSize(valCtx.size);
 
-    char *buff = reinterpret_cast<char *>(spdk_dma_zmalloc(size, getBdevCtx()->buf_align, NULL));
+    char *buff = reinterpret_cast<char *>(
+        spdk_dma_zmalloc(size, getBdevCtx()->buf_align, NULL));
+    IoBytesQueued += size;
 
     auto blkSize = getBdev()->getSizeInBlk(size);
     OffloadIoCtx *ioCtx = new OffloadIoCtx{
@@ -445,6 +453,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         auto valSizeAlign = getBdev()->getAlignedSize(valSize);
         auto buff = reinterpret_cast<char *>(
             spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
+        IoBytesQueued += valSize;
 
         memcpy(buff, val, valSize);
         ioCtx = new OffloadIoCtx{
@@ -469,6 +478,8 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
         auto buff = reinterpret_cast<char *>(
             spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
+        IoBytesQueued += rqst->valueSize;
+
         memcpy(buff, rqst->value, rqst->valueSize);
 
         ioCtx = new OffloadIoCtx{
@@ -539,8 +550,11 @@ void OffloadPoller::process() {
 int OffloadPoller::spdkPollerFn(void *arg) {
     OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
 
-    poller->dequeue();
-    poller->process();
+    uint32_t to_qu_cnt = poller->canQueue();
+    if (to_qu_cnt) {
+        poller->dequeue(to_qu_cnt);
+        poller->process();
+    }
 
     if ( !poller->isRunning ) {
         spdk_poller_unregister(&poller->_spdkPoller);
@@ -549,6 +563,10 @@ int OffloadPoller::spdkPollerFn(void *arg) {
     }
 
     return 0;
+}
+
+void OffloadPoller::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
+    IoBytesMaxQueued = io_cache_size * 64;
 }
 
 /*
@@ -566,6 +584,8 @@ void OffloadPoller::spdkStart(void *arg) {
         return;
     }
 
+    poller->setMaxQueued(poller->getBdev()->getIoCacheSize(),
+                         poller->getBdev()->getBlockSize());
     auto aligned = poller->getBdev()->getAlignedSize(poller->spdkCore->offloadOptions.allocUnitSize);
     poller->setBlockNumForLba(aligned / bdev_c->blk_size);
 

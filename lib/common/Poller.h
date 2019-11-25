@@ -50,9 +50,12 @@ template <class T> class Poller {
         size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1, 0);
         return (count == 1);
     }
-    virtual void dequeue() {
-        requestCount = spdk_ring_dequeue(rqstRing, (void **)&requests[0], DEQUEUE_RING_LIMIT);
-        assert(requestCount <= DEQUEUE_RING_LIMIT);
+    virtual void dequeue(uint32_t cnt = DEQUEUE_RING_LIMIT) {
+        requestCount = spdk_ring_dequeue(
+            rqstRing, (void **)&requests[0],
+            cnt >= DEQUEUE_RING_LIMIT ? DEQUEUE_RING_LIMIT : cnt);
+        assert(requestCount <=
+               (cnt >= DEQUEUE_RING_LIMIT ? DEQUEUE_RING_LIMIT : cnt));
     }
 
     virtual void process() = 0;

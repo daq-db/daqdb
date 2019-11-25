@@ -46,8 +46,11 @@ extern "C" struct SpdkBdevCtx {
     const char *bdev_name;
     struct spdk_bdev_io_wait_entry bdev_io_wait;
     uint32_t blk_size = 0;
+    uint32_t data_blk_size = 0;
     uint32_t buf_align = 0;
     uint64_t blk_num = 0;
+    uint32_t io_pool_size = 0;
+    uint32_t io_cache_size = 0;
     CSpdkBdevState state;
 };
 
@@ -72,6 +75,9 @@ class SpdkBdev {
     void setReady() {
         spBdevCtx->state = SPDK_BDEV_READY;
     }
+    inline uint32_t getBlockSize() { return spBdevCtx->blk_size; }
+    inline uint32_t getIoPoolSize() { return spBdevCtx->io_pool_size; }
+    inline uint32_t getIoCacheSize() { return spBdevCtx->io_cache_size; }
 
     std::atomic<SpdkBdevState> state;
     std::unique_ptr<SpdkBdevCtx> spBdevCtx;

@@ -241,6 +241,16 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
   public:
     OffloadStats stats;
+
+    uint64_t IoBytesQueued;
+    uint64_t IoBytesMaxQueued;
+
+    uint32_t canQueue() {
+        return IoBytesQueued >= IoBytesMaxQueued
+                   ? 0
+                   : (IoBytesMaxQueued - IoBytesQueued) / 4096;
+    }
+    void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
 };
 
 } // namespace DaqDB

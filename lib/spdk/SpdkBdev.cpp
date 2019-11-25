@@ -64,8 +64,14 @@ int SpdkBdev::init(const char *bdev_name) {
     }
 
     spdk_bdev_get_opts(&bdev_opts);
-    DAQ_DEBUG("bdev.bdev_io_pool_size[" + std::to_string(bdev_opts.bdev_io_pool_size) + "[");
+    bdev_opts.bdev_io_cache_size = bdev_opts.bdev_io_pool_size >> 1;
+    spdk_bdev_set_opts(&bdev_opts);
+    spdk_bdev_get_opts(&bdev_opts);
+    DAQ_DEBUG("bdev.bdev_io_pool_size[" + bdev_opts.bdev_io_pool_size + "]" +
+              " bdev.bdev.io_cache_size[" + bdev_opts.bdev_io_cache_size + "]");
 
+    spBdevCtx->io_pool_size = bdev_opts.bdev_io_pool_size;
+    spBdevCtx->io_cache_size = bdev_opts.bdev_io_cache_size;
 
     spBdevCtx->io_channel = spdk_bdev_get_io_channel(spBdevCtx->bdev_desc);
     if (!spBdevCtx->io_channel) {
@@ -76,6 +82,9 @@ int SpdkBdev::init(const char *bdev_name) {
 
     spBdevCtx->blk_size = spdk_bdev_get_block_size(spBdevCtx->bdev);
     DAQ_DEBUG("BDEV block size[" + std::to_string(spBdevCtx->blk_size) + "]");
+
+    spBdevCtx->data_blk_size = spdk_bdev_get_data_block_size(spBdevCtx->bdev);
+    DAQ_DEBUG("BDEV data block size[" + spBdevCtx->data_blk_size + "]");
 
     spBdevCtx->buf_align = spdk_bdev_get_buf_align(spBdevCtx->bdev);
     DAQ_DEBUG("BDEV align[" + std::to_string(spBdevCtx->buf_align) + "]");
