@@ -166,6 +166,7 @@ struct DhtNeighbor {
 struct DhtOptions {
     NodeId id = 0;
     unsigned short numOfDhtThreads = 1;
+    unsigned short baseDhtId = 0;
     unsigned int maskLength = 0;
     unsigned int maskOffset = 0;
     std::vector<DhtNeighbor *> neighbors;
