@@ -119,13 +119,15 @@ void OffloadPoller::IOAbort() {
  */
 void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                            void *cb_arg) {
+    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
+    spdk_dma_free(ioCtx->buff);
+
 #ifdef TEST_RAW_IOPS
     spdk_dma_free(bdev_io);
 #else
     spdk_bdev_free_io(bdev_io);
 #endif
-    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
-    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
 
     if ( poller->stats.outstanding_io_cnt )
         poller->stats.outstanding_io_cnt--;
@@ -155,13 +157,15 @@ void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
  */
 void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                           void *cb_arg) {
+    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
+    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
+    spdk_dma_free(ioCtx->buff);
+
 #ifdef TEST_RAW_IOPS
     spdk_dma_free(bdev_io);
 #else
     spdk_bdev_free_io(bdev_io);
 #endif
-    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
-    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
 
     if ( poller->stats.outstanding_io_cnt )
         poller->stats.outstanding_io_cnt--;
