@@ -26,6 +26,7 @@
 #include "spdk/conf.h"
 #include "spdk/env.h"
 
+#include "Rqst.h"
 #include "SpdkBdev.h"
 #include <Logger.h>
 
@@ -37,12 +38,16 @@ SpdkBdev::SpdkBdev() : state(SpdkBdevState::SPDK_BDEV_INIT) {
     spBdevCtx.reset(new SpdkBdevCtx());
 }
 
+int SpdkBdev::read(OffloadRqst *rqst) { return 0; }
+
+int SpdkBdev::write(OffloadRqst *rqst) { return 0; }
+
 void SpdkBdev::deinit() {
   spdk_put_io_channel(spBdevCtx->io_channel);
   spdk_bdev_close(spBdevCtx->bdev_desc);
 }
 
-int SpdkBdev::init(const char *bdev_name) {
+bool SpdkBdev::init(const char *bdev_name) {
     spBdevCtx->bdev_name = bdev_name;
     spBdevCtx->bdev = 0;
     spBdevCtx->bdev_desc = 0;

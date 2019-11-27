@@ -22,6 +22,9 @@
 
 #include "spdk/bdev.h"
 
+#include "Rqst.h"
+#include "SpdkDevice.h"
+
 namespace DaqDB {
 
 enum class SpdkBdevState : std::uint8_t {
@@ -54,16 +57,17 @@ extern "C" struct SpdkBdevCtx {
     CSpdkBdevState state;
 };
 
-class SpdkBdev {
+class SpdkBdev : public SpdkDevice<OffloadRqst> {
   public:
     SpdkBdev(void);
+    ~SpdkBdev() = default;
 
     /**
      * Initialize BDEV device and sets SpdkBdev state.
      *
      * @return true if this BDEV device successfully opened, false otherwise
      */
-    int init(const char *bdev_name);
+    bool init(const char *bdev_name);
     void deinit();
 
     inline size_t getAlignedSize(size_t size) {
@@ -75,6 +79,16 @@ class SpdkBdev {
     void setReady() {
         spBdevCtx->state = SPDK_BDEV_READY;
     }
+
+    /*
+     * SpdkDevice virtual interface
+     */
+    virtual int read(OffloadRqst *rqst);
+    virtual int write(OffloadRqst *rqst);
+
+    /*
+     * Spdk Bdev specifics
+     */
     inline uint32_t getBlockSize() { return spBdevCtx->blk_size; }
     inline uint32_t getIoPoolSize() { return spBdevCtx->io_pool_size; }
     inline uint32_t getIoCacheSize() { return spBdevCtx->io_cache_size; }

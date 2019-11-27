@@ -20,7 +20,9 @@
 
 #include <daqdb/Options.h>
 
+#include "Rqst.h"
 #include "SpdkBdev.h"
+#include "SpdkBdevFactory.h"
 
 namespace DaqDB {
 

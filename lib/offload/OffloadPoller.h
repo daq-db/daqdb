@@ -42,9 +42,6 @@
 
 namespace DaqDB {
 
-enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
-using OffloadRqst = Rqst<OffloadOperation>;
-
 struct OffloadStats {
     uint64_t write_compl_cnt;
     uint64_t write_err_cnt;
