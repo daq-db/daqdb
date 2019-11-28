@@ -21,9 +21,9 @@
 #include "spdk/conf.h"
 #include "spdk/env.h"
 
-#include "SpdkCore.h"
-
 #include <Logger.h>
+#include <RTree.h>
+#include "SpdkCore.h"
 
 using namespace std;
 namespace bf = boost::filesystem;

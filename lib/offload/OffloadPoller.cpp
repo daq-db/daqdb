@@ -574,7 +574,7 @@ void OffloadPoller::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
  */
 void OffloadPoller::spdkStart(void *arg) {
     OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
-    SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
+    SpdkBdevCtx *bdev_c = &poller->getBdev()->spBdevCtx;
 
     SpdkConf conf(poller->bdevName);
     bool rc = poller->getBdev()->init(conf);
@@ -588,7 +588,7 @@ void OffloadPoller::spdkStart(void *arg) {
     poller->setMaxQueued(poller->getBdev()->getIoCacheSize(),
                          poller->getBdev()->getBlockSize());
     auto aligned = poller->getBdev()->getAlignedSize(poller->spdkCore->offloadOptions.allocUnitSize);
-    poller->setBlockNumForLba(aligned / bdev_c->blk_size);
+    poller->getBdev()->setBlockNumForLba(aligned / bdev_c->blk_size);
 
     poller->initFreeList();
     bool i_rc = poller->init();

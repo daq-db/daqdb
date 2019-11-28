@@ -23,6 +23,8 @@
 #include "spdk/bdev.h"
 
 #include "Rqst.h"
+#include <Logger.h>
+#include <RTree.h>
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
 
@@ -58,9 +60,44 @@ extern "C" struct SpdkBdevCtx {
     CSpdkBdevState state;
 };
 
+struct BdevStats {
+    uint64_t write_compl_cnt;
+    uint64_t write_err_cnt;
+    uint64_t read_compl_cnt;
+    uint64_t read_err_cnt;
+    bool periodic = true;
+    bool enable;
+    uint64_t quant_per = (1 << 17);
+    uint64_t outstanding_io_cnt;
+
+    BdevStats(bool enab = false):
+        write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0), read_err_cnt(0), enable(enab), outstanding_io_cnt(0)
+    {}
+    std::ostringstream &formatWriteBuf(std::ostringstream &buf);
+    std::ostringstream &formatReadBuf(std::ostringstream &buf);
+    void printWritePer(std::ostream &os);
+    void printReadPer(std::ostream &os);
+};
+
+struct BdevTask {
+    char *buff;
+    size_t size = 0;
+    uint32_t blockSize = 0;
+    const char *key = nullptr;
+    size_t keySize = 0;
+    uint64_t *lba = nullptr; // pointer used to store pmem allocated memory
+    bool updatePmemIOV = false;
+
+    RTreeEngine *rtree;
+    KVStoreBase::KVStoreBaseCallback clb;
+
+    SpdkDevice<OffloadRqst> *bdev = nullptr;
+    struct spdk_bdev_io_wait_entry bdev_io_wait;
+};
+
 class SpdkBdev : public SpdkDevice<OffloadRqst> {
   public:
-    SpdkBdev(void);
+    SpdkBdev(bool enableStats = false);
     ~SpdkBdev() = default;
 
     /**
@@ -72,13 +109,13 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
     virtual void deinit();
 
     inline size_t getAlignedSize(size_t size) {
-        return size + spBdevCtx->blk_size - 1 & ~(spBdevCtx->blk_size - 1);
+        return size + spBdevCtx.blk_size - 1 & ~(spBdevCtx.blk_size - 1);
     }
     inline uint32_t getSizeInBlk(size_t &size) {
-        return size / spBdevCtx->blk_size;
+        return size / spBdevCtx.blk_size;
     }
     void setReady() {
-        spBdevCtx->state = SPDK_BDEV_READY;
+        spBdevCtx.state = SPDK_BDEV_READY;
     }
 
     /*
@@ -90,12 +127,94 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
     /*
      * Spdk Bdev specifics
      */
-    inline uint32_t getBlockSize() { return spBdevCtx->blk_size; }
-    inline uint32_t getIoPoolSize() { return spBdevCtx->io_pool_size; }
-    inline uint32_t getIoCacheSize() { return spBdevCtx->io_cache_size; }
+    inline uint32_t getBlockSize() { return spBdevCtx.blk_size; }
+    inline uint32_t getIoPoolSize() { return spBdevCtx.io_pool_size; }
+    inline uint32_t getIoCacheSize() { return spBdevCtx.io_cache_size; }
+
+    /*
+      * Callback function for a read IO completion.
+      */
+     static void readComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+
+     /*
+      * Callback function for a write IO completion.
+      */
+     static void writeComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+
+     /*
+      * Callback function that SPDK framework will call when an io buffer becomes available
+      * Called by SPDK framework when enough of IO buffers become available to complete the IO
+      */
+     static void readQueueIoWait(void *cb_arg);
+
+     /*
+      * Callback function that SPDK framework will call when an io buffer becomes available
+      * Called by SPDK framework when enough of IO buffers become available to complete the IO
+      */
+     static void writeQueueIoWait(void *cb_arg);
+
+    enum class State : std::uint8_t {
+        BDEV_IO_INIT = 0,
+        BDEV_IO_READY,
+        BDEV_IO_ERROR,
+        BDEV_IO_QUIESCING,
+        BDEV_IO_QUIESCENT,
+        BDEV_IO_STOPPED,
+        BDEV_IO_ABORTED
+    };
+
+    void IOQuiesce();
+    bool isIOQuiescent();
+    void IOAbort();
+
+    bool stateMachine() {
+        switch ( _IoState ) {
+        case SpdkBdev::State::BDEV_IO_INIT:
+        case SpdkBdev::State::BDEV_IO_READY:
+            break;
+        case SpdkBdev::State::BDEV_IO_ERROR:
+            deinit();
+            break;
+        case SpdkBdev::State::BDEV_IO_QUIESCING:
+            if ( !stats.outstanding_io_cnt ) {
+                _IoState = SpdkBdev::State::BDEV_IO_QUIESCENT;
+            }
+            return true;
+        case SpdkBdev::State::BDEV_IO_QUIESCENT:
+            return true;
+        case SpdkBdev::State::BDEV_IO_STOPPED:
+            break;
+        case SpdkBdev::State::BDEV_IO_ABORTED:
+            deinit();
+            return true;
+        }
+        return false;
+    }
 
     std::atomic<SpdkBdevState> state;
-    std::unique_ptr<SpdkBdevCtx> spBdevCtx;
+    struct spdk_poller *_spdkPoller;
+    volatile State _IoState;
+
+  public:
+    SpdkBdevCtx spBdevCtx;
+    uint64_t _blkNumForLba = 0;
+    BdevStats stats;
+
+    uint64_t IoBytesQueued;
+    uint64_t IoBytesMaxQueued;
+
+    uint32_t canQueue() {
+        return IoBytesQueued >= IoBytesMaxQueued
+                   ? 0
+                   : (IoBytesMaxQueued - IoBytesQueued) / 4096;
+    }
+    uint64_t getBlockOffsetForLba(uint64_t lba) {
+        return lba * _blkNumForLba;
+    }
+    void setBlockNumForLba(uint64_t blk_num_flba) {
+        _blkNumForLba = blk_num_flba;
+    }
+    void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
 };
 
 } // namespace DaqDB

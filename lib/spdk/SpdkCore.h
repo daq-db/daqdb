@@ -54,7 +54,7 @@ class SpdkCore {
 
     inline bool isOffloadEnabled() {
         if (state == SpdkState::SPDK_READY)
-            return (spBdev->spBdevCtx->state == SPDK_BDEV_READY);
+            return (spBdev->spBdevCtx.state == SPDK_BDEV_READY);
         else
             return false;
     }

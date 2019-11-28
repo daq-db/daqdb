@@ -108,16 +108,14 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
     virtual SpdkBdev *getBdev() { return spdkCore->spBdev.get(); }
 
-    virtual SpdkBdevCtx *getBdevCtx() {
-        return spdkCore->spBdev->spBdevCtx.get();
-    }
+    virtual SpdkBdevCtx *getBdevCtx() { return &spdkCore->spBdev->spBdevCtx; }
 
     inline spdk_bdev_desc *getBdevDesc() {
-        return spdkCore->spBdev->spBdevCtx->bdev_desc;
+        return spdkCore->spBdev->spBdevCtx.bdev_desc;
     }
 
     inline spdk_io_channel *getBdevIoChannel() {
-        return spdkCore->spBdev->spBdevCtx->io_channel;
+        return spdkCore->spBdev->spBdevCtx.io_channel;
     }
 
     /*

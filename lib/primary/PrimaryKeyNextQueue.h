@@ -17,7 +17,6 @@
 #pragma once
 
 #include <PrimaryKeyBase.h>
-#include <SpdkCore.h>
 #include <daqdb/Key.h>
 #include <daqdb/Options.h>
 
