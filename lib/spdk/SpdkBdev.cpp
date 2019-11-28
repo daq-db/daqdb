@@ -47,8 +47,10 @@ void SpdkBdev::deinit() {
   spdk_bdev_close(spBdevCtx->bdev_desc);
 }
 
-bool SpdkBdev::init(const char *bdev_name) {
-    spBdevCtx->bdev_name = bdev_name;
+bool SpdkBdev::init(const SpdkConf &conf) {
+    SpdkDevice::init(conf);
+
+    spBdevCtx->bdev_name = conf.bdev_name.c_str();
     spBdevCtx->bdev = 0;
     spBdevCtx->bdev_desc = 0;
     spdk_bdev_opts bdev_opts;

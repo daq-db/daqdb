@@ -31,6 +31,14 @@ template <class T> class SpdkDevice {
 
     virtual int write(T *rqst) = 0;
     virtual int read(T *rqst) = 0;
+    virtual bool init(const SpdkConf &_conf) {
+        conf = _conf;
+        return true;
+    }
+    virtual void deinit() = 0;
+
+  private:
+    SpdkConf conf;
 };
 
 } // namespace DaqDB

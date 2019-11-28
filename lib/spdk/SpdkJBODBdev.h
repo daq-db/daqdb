@@ -17,6 +17,7 @@
 #pragma once
 
 #include "Rqst.h"
+#include "SpdkConf.h"
 #include "SpdkDevice.h"
 
 namespace DaqDB {
@@ -32,8 +33,8 @@ class SpdkJBODBdev : public SpdkDevice<OffloadRqst> {
      * @return  if this JBOD devices successfully configured and opened, false
      * otherwise
      */
-    bool init();
-    void deinit();
+    virtual bool init(const SpdkConf &conf);
+    virtual void deinit();
 
     /*
      * SpdkDevice virtual interface

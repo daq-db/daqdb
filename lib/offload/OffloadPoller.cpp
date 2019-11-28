@@ -576,7 +576,8 @@ void OffloadPoller::spdkStart(void *arg) {
     OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
     SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
 
-    bool rc = poller->getBdev()->init(poller->bdevName.c_str());
+    SpdkConf conf(poller->bdevName);
+    bool rc = poller->getBdev()->init(conf);
     if ( rc == false ) {
         DAQ_CRITICAL("Bdev init failed");
         poller->signalReady();

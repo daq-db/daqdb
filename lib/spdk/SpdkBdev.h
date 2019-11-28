@@ -23,6 +23,7 @@
 #include "spdk/bdev.h"
 
 #include "Rqst.h"
+#include "SpdkConf.h"
 #include "SpdkDevice.h"
 
 namespace DaqDB {
@@ -67,8 +68,8 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
      *
      * @return true if this BDEV device successfully opened, false otherwise
      */
-    bool init(const char *bdev_name);
-    void deinit();
+    virtual bool init(const SpdkConf &conf);
+    virtual void deinit();
 
     inline size_t getAlignedSize(size_t size) {
         return size + spBdevCtx->blk_size - 1 & ~(spBdevCtx->blk_size - 1);

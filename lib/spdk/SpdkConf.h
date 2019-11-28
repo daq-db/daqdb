@@ -16,18 +16,23 @@
 
 #pragma once
 
-#include "Rqst.h"
-#include "SpdkConf.h"
-#include "SpdkDevice.h"
-
 namespace DaqDB {
 
-template <class T> class SpdkBdevFactory {
+/*
+ * Encapsulates Spdk config
+ */
+class SpdkConf {
   public:
-    SpdkBdevFactory() = default;
-    ~SpdkBdevFactory() = default;
+    SpdkConf(const std::string _bdev_name = "") : bdev_name(_bdev_name) {}
 
-    static SpdkDevice<T> *produce();
+    SpdkConf &operator=(const SpdkConf &_r) {
+        this->bdev_name = _r.bdev_name;
+        return *this;
+    }
+
+    ~SpdkConf() = default;
+
+    std::string bdev_name;
 };
 
 } // namespace DaqDB

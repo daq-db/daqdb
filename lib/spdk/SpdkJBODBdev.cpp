@@ -27,6 +27,6 @@ int SpdkJBODBdev::write(OffloadRqst *rqst) { return 0; }
 
 void SpdkJBODBdev::deinit() {}
 
-bool SpdkJBODBdev::init() { return true; }
+bool SpdkJBODBdev::init(const SpdkConf &conf) { return true; }
 
 } // namespace DaqDB

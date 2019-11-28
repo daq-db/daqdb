@@ -27,6 +27,6 @@ int SpdkRAID0Bdev::write(OffloadRqst *rqst) { return 0; }
 
 void SpdkRAID0Bdev::deinit() {}
 
-bool SpdkRAID0Bdev::init() { return true; }
+bool SpdkRAID0Bdev::init(const SpdkConf &conf) { return true; }
 
 } // namespace DaqDB
