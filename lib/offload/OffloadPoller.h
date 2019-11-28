@@ -79,7 +79,7 @@ struct OffloadIoCtx {
 
 class OffloadPoller : public Poller<OffloadRqst> {
   public:
-    OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
+    OffloadPoller(RTreeEngine *rtree, SpdkCore<OffloadRqst> *spdkCore,
                   const size_t cpuCore = 0, bool enableStats = false);
     virtual ~OffloadPoller();
 
@@ -146,7 +146,7 @@ class OffloadPoller : public Poller<OffloadRqst> {
     static void writeQueueIoWait(void *cb_arg);
 
     RTreeEngine *rtree;
-    SpdkCore *spdkCore;
+    SpdkCore<OffloadRqst> *spdkCore;
 
     OffloadFreeList *freeLbaList = nullptr;
 

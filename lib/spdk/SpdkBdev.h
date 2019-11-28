@@ -23,10 +23,10 @@
 #include "spdk/bdev.h"
 
 #include "Rqst.h"
-#include <Logger.h>
-#include <RTree.h>
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
+#include <Logger.h>
+#include <RTree.h>
 
 namespace DaqDB {
 
@@ -70,9 +70,9 @@ struct BdevStats {
     uint64_t quant_per = (1 << 17);
     uint64_t outstanding_io_cnt;
 
-    BdevStats(bool enab = false):
-        write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0), read_err_cnt(0), enable(enab), outstanding_io_cnt(0)
-    {}
+    BdevStats(bool enab = false)
+        : write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0),
+          read_err_cnt(0), enable(enab), outstanding_io_cnt(0) {}
     std::ostringstream &formatWriteBuf(std::ostringstream &buf);
     std::ostringstream &formatReadBuf(std::ostringstream &buf);
     void printWritePer(std::ostream &os);
@@ -114,9 +114,7 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
     inline uint32_t getSizeInBlk(size_t &size) {
         return size / spBdevCtx.blk_size;
     }
-    void setReady() {
-        spBdevCtx.state = SPDK_BDEV_READY;
-    }
+    void setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
 
     /*
      * SpdkDevice virtual interface
@@ -132,26 +130,30 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
     inline uint32_t getIoCacheSize() { return spBdevCtx.io_cache_size; }
 
     /*
-      * Callback function for a read IO completion.
-      */
-     static void readComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+     * Callback function for a read IO completion.
+     */
+    static void readComplete(struct spdk_bdev_io *bdev_io, bool success,
+                             void *cb_arg);
 
-     /*
-      * Callback function for a write IO completion.
-      */
-     static void writeComplete(struct spdk_bdev_io *bdev_io, bool success, void *cb_arg);
+    /*
+     * Callback function for a write IO completion.
+     */
+    static void writeComplete(struct spdk_bdev_io *bdev_io, bool success,
+                              void *cb_arg);
 
-     /*
-      * Callback function that SPDK framework will call when an io buffer becomes available
-      * Called by SPDK framework when enough of IO buffers become available to complete the IO
-      */
-     static void readQueueIoWait(void *cb_arg);
+    /*
+     * Callback function that SPDK framework will call when an io buffer becomes
+     * available Called by SPDK framework when enough of IO buffers become
+     * available to complete the IO
+     */
+    static void readQueueIoWait(void *cb_arg);
 
-     /*
-      * Callback function that SPDK framework will call when an io buffer becomes available
-      * Called by SPDK framework when enough of IO buffers become available to complete the IO
-      */
-     static void writeQueueIoWait(void *cb_arg);
+    /*
+     * Callback function that SPDK framework will call when an io buffer becomes
+     * available Called by SPDK framework when enough of IO buffers become
+     * available to complete the IO
+     */
+    static void writeQueueIoWait(void *cb_arg);
 
     enum class State : std::uint8_t {
         BDEV_IO_INIT = 0,
@@ -168,7 +170,7 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
     void IOAbort();
 
     bool stateMachine() {
-        switch ( _IoState ) {
+        switch (_IoState) {
         case SpdkBdev::State::BDEV_IO_INIT:
         case SpdkBdev::State::BDEV_IO_READY:
             break;
@@ -176,7 +178,7 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
             deinit();
             break;
         case SpdkBdev::State::BDEV_IO_QUIESCING:
-            if ( !stats.outstanding_io_cnt ) {
+            if (!stats.outstanding_io_cnt) {
                 _IoState = SpdkBdev::State::BDEV_IO_QUIESCENT;
             }
             return true;
@@ -208,9 +210,7 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
                    ? 0
                    : (IoBytesMaxQueued - IoBytesQueued) / 4096;
     }
-    uint64_t getBlockOffsetForLba(uint64_t lba) {
-        return lba * _blkNumForLba;
-    }
+    uint64_t getBlockOffsetForLba(uint64_t lba) { return lba * _blkNumForLba; }
     void setBlockNumForLba(uint64_t blk_num_flba) {
         _blkNumForLba = blk_num_flba;
     }

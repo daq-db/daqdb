@@ -88,8 +88,8 @@ void SpdkBdev::IOQuiesce() { _IoState = SpdkBdev::State::BDEV_IO_QUIESCING; }
 bool SpdkBdev::isIOQuiescent() {
     return _IoState == SpdkBdev::State::BDEV_IO_QUIESCENT ||
                    _IoState == SpdkBdev::State::BDEV_IO_ABORTED
-            ? true
-            : false;
+               ? true
+               : false;
 }
 
 void SpdkBdev::IOAbort() { _IoState = SpdkBdev::State::BDEV_IO_ABORTED; }
@@ -98,7 +98,7 @@ void SpdkBdev::IOAbort() { _IoState = SpdkBdev::State::BDEV_IO_ABORTED; }
  * Callback function for a write IO completion.
  */
 void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
-        void *cb_arg) {
+                             void *cb_arg) {
     BdevTask *task = reinterpret_cast<BdevTask *>(cb_arg);
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
@@ -114,23 +114,23 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     if (bdev->stats.outstanding_io_cnt)
         bdev->stats.outstanding_io_cnt--;
 
-    (void )bdev->stateMachine();
+    (void)bdev->stateMachine();
 
     if (success) {
         bdev->stats.printWritePer(std::cout);
         if (task->updatePmemIOV)
             task->rtree->UpdateValueWrapper(task->key, task->lba,
-                    sizeof(uint64_t));
+                                            sizeof(uint64_t));
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                    task->buff, task->size);
+                      task->buff, task->size);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
-                    task->keySize, nullptr, 0);
+                      task->keySize, nullptr, 0);
     }
 
-    delete [] task->key;
+    delete[] task->key;
     delete task;
 }
 
@@ -138,7 +138,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
  * Callback function for a read IO completion.
  */
 void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
-        void *cb_arg) {
+                            void *cb_arg) {
     BdevTask *task = reinterpret_cast<BdevTask *>(cb_arg);
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
@@ -154,40 +154,45 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     if (bdev->stats.outstanding_io_cnt)
         bdev->stats.outstanding_io_cnt--;
 
-    (void )bdev->stateMachine();
+    (void)bdev->stateMachine();
 
     if (success) {
         bdev->stats.printReadPer(std::cout);
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                    task->buff, task->size);
+                      task->buff, task->size);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
-                    task->keySize, nullptr, 0);
+                      task->keySize, nullptr, 0);
     }
 
-    delete [] task->key;
+    delete[] task->key;
     delete task;
 }
 
 /*
- * Callback function that SPDK framework will call when an io buffer becomes available
+ * Callback function that SPDK framework will call when an io buffer becomes
+ * available
  */
 void SpdkBdev::readQueueIoWait(void *cb_arg) {
     BdevTask *task = reinterpret_cast<BdevTask *>(cb_arg);
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
 
-    int r_rc = spdk_bdev_read_blocks(bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-            bdev->getBlockOffsetForLba(*task->lba),
-            task->blockSize, SpdkBdev::readComplete, task);
+    int r_rc = spdk_bdev_read_blocks(
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
+        bdev->getBlockOffsetForLba(*task->lba), task->blockSize,
+        SpdkBdev::readComplete, task);
 
-    /* If a read IO still fails due to shortage of io buffers, queue it up for later execution */
+    /* If a read IO still fails due to shortage of io buffers, queue it up for
+     * later execution */
     if (r_rc) {
-        r_rc = spdk_bdev_queue_io_wait(bdev->spBdevCtx.bdev, bdev->spBdevCtx.io_channel,
-                &task->bdev_io_wait);
+        r_rc = spdk_bdev_queue_io_wait(bdev->spBdevCtx.bdev,
+                                       bdev->spBdevCtx.io_channel,
+                                       &task->bdev_io_wait);
         if (r_rc) {
-            DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(r_rc) + "] for offload bdev");
+            DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(r_rc) +
+                         "] for offload bdev");
             bdev->deinit();
             spdk_app_stop(-1);
         }
@@ -198,22 +203,27 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
 }
 
 /*
- * Callback function that SPDK framework will call when an io buffer becomes available
+ * Callback function that SPDK framework will call when an io buffer becomes
+ * available
  */
 void SpdkBdev::writeQueueIoWait(void *cb_arg) {
     BdevTask *task = reinterpret_cast<BdevTask *>(cb_arg);
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
 
-    int w_rc = spdk_bdev_write_blocks(bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-            bdev->getBlockOffsetForLba(*task->lba),
-            task->blockSize, SpdkBdev::writeComplete, task);
+    int w_rc = spdk_bdev_write_blocks(
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
+        bdev->getBlockOffsetForLba(*task->lba), task->blockSize,
+        SpdkBdev::writeComplete, task);
 
-    /* If a write IO still fails due to shortage of io buffers, queue it up for later execution */
+    /* If a write IO still fails due to shortage of io buffers, queue it up for
+     * later execution */
     if (w_rc) {
-        w_rc = spdk_bdev_queue_io_wait(bdev->spBdevCtx.bdev, bdev->spBdevCtx.io_channel,
-                &task->bdev_io_wait);
+        w_rc = spdk_bdev_queue_io_wait(bdev->spBdevCtx.bdev,
+                                       bdev->spBdevCtx.io_channel,
+                                       &task->bdev_io_wait);
         if (w_rc) {
-            DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(w_rc) + "] for offload bdev");
+            DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(w_rc) +
+                         "] for offload bdev");
             bdev->deinit();
             spdk_app_stop(-1);
         }
@@ -228,8 +238,8 @@ int SpdkBdev::read(OffloadRqst *rqst) { return 0; }
 int SpdkBdev::write(OffloadRqst *rqst) { return 0; }
 
 void SpdkBdev::deinit() {
-  spdk_put_io_channel(spBdevCtx.io_channel);
-  spdk_bdev_close(spBdevCtx.bdev_desc);
+    spdk_put_io_channel(spBdevCtx.io_channel);
+    spdk_bdev_close(spBdevCtx.bdev_desc);
 }
 
 bool SpdkBdev::init(const SpdkConf &conf) {
@@ -242,7 +252,8 @@ bool SpdkBdev::init(const SpdkConf &conf) {
 
     spBdevCtx.bdev = spdk_bdev_first();
     if (!spBdevCtx.bdev) {
-        DAQ_CRITICAL(std::string("No NVMe devices detected for name[") + spBdevCtx.bdev_name + "]");
+        DAQ_CRITICAL(std::string("No NVMe devices detected for name[") +
+                     spBdevCtx.bdev_name + "]");
         spBdevCtx.state = SPDK_BDEV_NOT_FOUND;
         return false;
     }
@@ -267,7 +278,8 @@ bool SpdkBdev::init(const SpdkConf &conf) {
 
     spBdevCtx.io_channel = spdk_bdev_get_io_channel(spBdevCtx.bdev_desc);
     if (!spBdevCtx.io_channel) {
-        DAQ_CRITICAL(std::string("Get io_channel failed bdev[") + spBdevCtx.bdev_name + "]");
+        DAQ_CRITICAL(std::string("Get io_channel failed bdev[") +
+                     spBdevCtx.bdev_name + "]");
         spBdevCtx.state = SPDK_BDEV_ERROR;
         return false;
     }
@@ -282,7 +294,8 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     DAQ_DEBUG("BDEV align[" + std::to_string(spBdevCtx.buf_align) + "]");
 
     spBdevCtx.blk_num = spdk_bdev_get_num_blocks(spBdevCtx.bdev);
-    DAQ_DEBUG("BDEV number of blocks[" + std::to_string(spBdevCtx.blk_num) + "]");
+    DAQ_DEBUG("BDEV number of blocks[" + std::to_string(spBdevCtx.blk_num) +
+              "]");
 
     return true;
 }

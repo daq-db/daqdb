@@ -16,10 +16,19 @@
 
 #pragma once
 
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <iostream>
+#include <mutex>
+#include <sstream>
 #include <string>
+#include <thread>
 
 #include <daqdb/Options.h>
 
+#include "Poller.h"
 #include "Rqst.h"
 #include "SpdkBdev.h"
 #include "SpdkBdevFactory.h"
@@ -36,7 +45,7 @@ enum class SpdkState : std::uint8_t {
     SPDK_STOPPED
 };
 
-class SpdkCore {
+template <class T> class SpdkCore {
   public:
     SpdkCore(OffloadOptions offloadOptions);
 
@@ -78,10 +87,40 @@ class SpdkCore {
 
     std::unique_ptr<SpdkBdev> spBdev;
     OffloadOptions offloadOptions;
+    Poller<T> *poller;
 
     const static char *spdkHugepageDirname;
 
+    void signalReady();
+    bool waitReady();
+
+    void setPoller(Poller<T> *pol) { poller = pol; }
+
+    static int spdkPollerFunction(void *arg);
+
+    /*
+     * Callback function called by SPDK spdk_app_start in the context of an SPDK
+     * thread.
+     */
+    static void spdkStart(void *arg);
+
+    void startSpdk();
+
   private:
+    std::thread *_spdkThread;
+    std::thread *_loopThread;
+    bool _ready;
+
+    size_t _cpuCore;
+    std::string _bdevName;
+
+    std::string _confFile;
+
+    std::mutex _syncMutex;
+    std::condition_variable _cv;
+
+    struct spdk_poller *_spdkPoller;
+
     inline bool isNvmeInOptions() {
         return !offloadOptions.nvmeAddr.empty() &&
                !offloadOptions.nvmeName.empty();
@@ -89,7 +128,7 @@ class SpdkCore {
     inline std::string getNvmeAddress() { return offloadOptions.nvmeAddr; }
     inline std::string getNvmeName() { return offloadOptions.nvmeName; }
 
-    std::string _confFile;
+    void _spdkThreadMain(void);
 };
 
 } // namespace DaqDB

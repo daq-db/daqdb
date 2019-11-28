@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include <RTree.h>
 #include "SpdkBdevFactory.h"
 #include "SpdkBdev.h"
 #include "SpdkJBODBdev.h"
 #include "SpdkRAID0Bdev.h"
+#include <RTree.h>
 
 namespace DaqDB {
 

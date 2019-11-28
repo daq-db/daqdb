@@ -113,7 +113,7 @@ void KVStore::init() {
         throw OperationFailedException(Status(NOT_SUPPORTED));
     }
 
-    _spSpdk.reset(new SpdkCore(getOptions().offload));
+    _spSpdk.reset(new SpdkCore<OffloadRqst>(getOptions().offload));
     if ( _spSpdk->isBdevFound() == true ) {
         DAQ_DEBUG("SPDK offload functionality is enabled");
     } else {

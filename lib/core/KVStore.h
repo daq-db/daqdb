@@ -104,7 +104,7 @@ class KVStore : public KVStoreBase {
     void LogMsg(std::string msg);
 
     inline DhtCore *getDhtCore() { return _spDht.get(); };
-    inline SpdkCore *getSpdkCore() { return _spSpdk.get(); };
+    inline SpdkCore<OffloadRqst> *getSpdkCore() { return _spSpdk.get(); };
 
     inline RTreeEngine *pmem() { return _spRtree.get(); };
     inline DhtServer *dht() { return _spDhtServer.get(); };
@@ -132,7 +132,7 @@ class KVStore : public KVStoreBase {
     std::vector<PmemPoller *> _rqstPollers;
 
     std::unique_ptr<DhtCore> _spDht;
-    std::unique_ptr<SpdkCore> _spSpdk;
+    std::unique_ptr<SpdkCore<OffloadRqst>> _spSpdk;
 
     std::mutex _lock;
 };

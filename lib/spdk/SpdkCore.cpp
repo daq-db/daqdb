@@ -16,24 +16,39 @@
 
 #include <signal.h>
 
+#include <iostream>
+#include <pthread.h>
+#include <string>
+#include <thread>
+
 #include <boost/filesystem.hpp>
 
 #include "spdk/conf.h"
+#include "spdk/cpuset.h"
 #include "spdk/env.h"
+#include "spdk/event.h"
+#include "spdk/ftl.h"
+#include "spdk/log.h"
+#include "spdk/queue.h"
+#include "spdk/stdinc.h"
+#include "spdk/thread.h"
 
+#include "SpdkCore.h"
 #include <Logger.h>
 #include <RTree.h>
-#include "SpdkCore.h"
 
 using namespace std;
 namespace bf = boost::filesystem;
 
 namespace DaqDB {
 
-const char *SpdkCore::spdkHugepageDirname = "/mnt/huge_1GB";
+template <class T>
+const char *SpdkCore<T>::spdkHugepageDirname = "/mnt/huge_1GB";
 
-SpdkCore::SpdkCore(OffloadOptions offloadOptions)
-    : state(SpdkState::SPDK_INIT), offloadOptions(offloadOptions) {
+template <class T>
+SpdkCore<T>::SpdkCore(OffloadOptions offloadOptions)
+    : state(SpdkState::SPDK_INIT), offloadOptions(offloadOptions), poller(0),
+      _spdkThread(0), _loopThread(0), _ready(false) {
     removeConfFile();
     bool conf_file_ok = createConfFile();
 
@@ -49,7 +64,7 @@ SpdkCore::SpdkCore(OffloadOptions offloadOptions)
         state = SpdkState::SPDK_READY;
 }
 
-bool SpdkCore::spdkEnvInit(void) {
+template <class T> bool SpdkCore<T>::spdkEnvInit(void) {
     spdk_env_opts opts;
     spdk_env_opts_init(&opts);
 
@@ -64,7 +79,7 @@ bool SpdkCore::spdkEnvInit(void) {
     return (spdk_env_init(&opts) == 0);
 }
 
-bool SpdkCore::createConfFile(void) {
+template <class T> bool SpdkCore<T>::createConfFile(void) {
     if (!bf::exists(DEFAULT_SPDK_CONF_FILE)) {
         if (isNvmeInOptions()) {
             ofstream spdkConf(DEFAULT_SPDK_CONF_FILE, ios::out);
@@ -92,16 +107,133 @@ bool SpdkCore::createConfFile(void) {
     }
 }
 
-void SpdkCore::removeConfFile(void) {
+template <class T> void SpdkCore<T>::removeConfFile(void) {
     if (bf::exists(DEFAULT_SPDK_CONF_FILE)) {
         bf::remove(DEFAULT_SPDK_CONF_FILE);
     }
 }
 
-void SpdkCore::restoreSignals() {
+template <class T> void SpdkCore<T>::restoreSignals() {
     ::signal(SIGTERM, SIG_DFL);
     ::signal(SIGINT, SIG_DFL);
     ::signal(SIGSEGV, SIG_DFL);
+}
+
+/*
+ * Start up Spdk, including SPDK thread, to initialize SPDK environemnt and a
+ * Bdev
+ */
+template <class T> void SpdkCore<T>::startSpdk() {
+    _spdkThread = new std::thread(&SpdkCore<T>::_spdkThreadMain, this);
+    DAQ_DEBUG("SpdkCore thread started");
+    if (_cpuCore) {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(_cpuCore, &cpuset);
+
+        const int set_result = pthread_setaffinity_np(
+            _spdkThread->native_handle(), sizeof(cpu_set_t), &cpuset);
+        if (set_result == 0) {
+            DAQ_DEBUG("SpdkCore thread affinity set on CPU core [" +
+                      std::to_string(_cpuCore) + "]");
+        } else {
+            DAQ_DEBUG("Cannot set affinity on CPU core [" +
+                      std::to_string(_cpuCore) + "] for OffloadReactor");
+        }
+    }
+}
+
+/*
+ * Callback function called by SPDK spdk_app_start in the context of an SPDK
+ * thread.
+ */
+template <class T> void SpdkCore<T>::spdkStart(void *arg) {
+    SpdkCore<T> *spdkCore = reinterpret_cast<SpdkCore<T> *>(arg);
+    SpdkBdev *bdev = spdkCore->spBdev;
+    SpdkBdevCtx *bdev_c = &bdev->spBdevCtx;
+
+    SpdkConf conf(spdkCore->_bdevName);
+    bool rc = bdev->init(conf);
+    if (rc == false) {
+        DAQ_CRITICAL("Bdev init failed");
+        spdkCore->signalReady();
+        spdk_app_stop(-1);
+        return;
+    }
+
+    spdkCore->setMaxQueued(bdev->getIoCacheSize(), bdev->getBlockSize());
+    auto aligned =
+        bdev->getAlignedSize(spdkCore->poller->offloadOptions.allocUnitSize);
+    bdev->setBlockNumForLba(aligned / bdev->spBdevCtx.blk_size);
+
+    spdkCore->poller->initFreeList();
+    bool i_rc = spdkCore->poller->init();
+    if (i_rc == false) {
+        DAQ_CRITICAL("Poller init failed");
+        spdkCore->signalReady();
+        spdk_app_stop(-1);
+        return;
+    }
+
+    bdev->setReady();
+    spdkCore->signalReady();
+    spdkCore->restoreSignals();
+
+    spdkCore->poller->isRunning = 1;
+    spdkCore->setSpdkPoller(
+        spdk_poller_register(SpdkCore<T>::spdkPollerFunction, spdkCore, 0));
+}
+
+template <class T> void SpdkCore<T>::_spdkThreadMain(void) {
+    struct spdk_app_opts daqdb_opts = {};
+    spdk_app_opts_init(&daqdb_opts);
+    daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
+    daqdb_opts.name = "daqdb_nvme";
+
+    daqdb_opts.mem_size = 1024;
+    daqdb_opts.shm_id = 1;
+    daqdb_opts.hugepage_single_segments = 1;
+    daqdb_opts.hugedir = SpdkCore<T>::spdkHugepageDirname;
+
+    int rc = spdk_app_start(&daqdb_opts, SpdkCore<T>::spdkStart, this);
+    if (rc) {
+        DAQ_CRITICAL("Error spdk_app_start[" + std::to_string(rc) + "]");
+        return;
+    }
+    DAQ_DEBUG("spdk_app_start[" + std::to_string(rc) + "]");
+    spdk_app_fini();
+}
+
+template <class T> int SpdkCore<T>::spdkPollerFunction(void *arg) {
+    SpdkCore<T> *spdkCore = reinterpret_cast<SpdkCore<T> *>(arg);
+    Poller<T> *poller = spdkCore->poller;
+
+    uint32_t to_qu_cnt = poller->canQueue();
+    if (to_qu_cnt) {
+        poller->dequeue(to_qu_cnt);
+        poller->process();
+    }
+
+    if (!poller->isRunning) {
+        spdk_poller_unregister(&poller->_spdkPoller);
+        spdkCore->spBdev->deinit();
+        spdk_app_stop(0);
+    }
+
+    return 0;
+}
+
+template <class T> void SpdkCore<T>::signalReady() {
+    std::unique_lock<std::mutex> lk(_syncMutex);
+    _ready = true;
+    _cv.notify_all();
+}
+
+template <class T> bool SpdkCore<T>::waitReady() {
+    const std::chrono::milliseconds timeout(10000);
+    std::unique_lock<std::mutex> lk(_syncMutex);
+    _cv.wait_for(lk, timeout, [this] { return _ready; });
+    return _ready;
 }
 
 } // namespace DaqDB

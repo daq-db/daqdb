@@ -81,9 +81,10 @@ void OffloadStats::printReadPer(std::ostream &os) {
 
 //#define TEST_RAW_IOPS
 
-OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
+OffloadPoller::OffloadPoller(RTreeEngine *rtree,
+                             SpdkCore<OffloadRqst> *_spdkCore,
                              const size_t cpuCore, bool enableStats)
-    : Poller<OffloadRqst>(false), rtree(rtree), spdkCore(spdkCore),
+    : Poller<OffloadRqst>(false), rtree(rtree), spdkCore(_spdkCore),
       _spdkThread(0), _loopThread(0), _cpuCore(cpuCore), _ready(false),
       _spdkPoller(0), _state(OffloadPoller::State::OFFLOAD_POLLER_INIT),
       stats(enableStats), IoBytesQueued(0), IoBytesMaxQueued(0) {
@@ -616,7 +617,7 @@ void OffloadPoller::_spdkThreadMain(void) {
     daqdb_opts.mem_size = 1024;
     daqdb_opts.shm_id = 1;
     daqdb_opts.hugepage_single_segments = 1;
-    daqdb_opts.hugedir = SpdkCore::spdkHugepageDirname;
+    daqdb_opts.hugedir = SpdkCore<OffloadRqst>::spdkHugepageDirname;
 
     int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
     if ( rc ) {
