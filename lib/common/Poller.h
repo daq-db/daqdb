@@ -60,6 +60,11 @@ template <class T> class Poller {
 
     virtual void process() = 0;
 
+    virtual void setRunning(int rn) {}
+    virtual bool isOffloadRunning() { return false; }
+    virtual void initFreeList() {}
+    virtual uint32_t canQueue() { return 0; }
+
     struct spdk_ring *rqstRing;
     unsigned short requestCount = 0;
     T **requests;

@@ -139,8 +139,15 @@ void KVStore::init() {
         coresUsed++;
     }
 
-    if ( _spOffloadPoller.get() )
-        _spOffloadPoller->waitReady(); // synchronize until OffloadPoller is done initializing SPDK framework
+    if (_spOffloadPoller.get()) {
+        auto *spdkCore = getSpdkCore();
+        spdkCore->setPoller(_spOffloadPoller.get());
+        if (spdkCore->isSpdkReady() == true) {
+            spdkCore->startSpdk();
+            spdkCore->waitReady(); // synchronize until OffloadPoller is done
+                                   // initializing SPDK framework
+        }
+    }
 
     for (auto index = coresUsed; index < pollerCount + coresUsed; index++) {
         auto rqstPoller = new DaqDB::PmemPoller(pmem(), baseCoreId + index);

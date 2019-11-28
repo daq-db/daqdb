@@ -424,7 +424,7 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 }
 
-void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
+void OffloadPoller::_processUpdateOld(const OffloadRqst *rqst) {
     OffloadIoCtx *ioCtx = nullptr;
     ValCtx valCtx;
 
@@ -499,6 +499,96 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
 
     if ( rqst->valueSize > 0 )
         delete [] rqst->value;
+}
+
+void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
+    DeviceTask<SpdkBdev> *ioTask = nullptr;
+    ValCtx valCtx;
+
+    if (rqst == nullptr) {
+        _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+        return;
+    }
+
+    auto rc = _getValCtx(rqst, valCtx);
+    if (rc != StatusCode::OK) {
+        _rqstClb(rqst, rc);
+        return;
+    }
+
+    if (isValInPmem(valCtx)) {
+        const char *val;
+        size_t valSize = 0;
+        if (rqst->valueSize > 0) {
+            val = rqst->value;
+            valSize = rqst->valueSize;
+        } else {
+            val = static_cast<char *>(valCtx.val);
+            valSize = valCtx.size;
+        }
+
+        auto valSizeAlign = getBdev()->getAlignedSize(valSize);
+        auto buff = reinterpret_cast<char *>(
+            spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
+        IoBytesQueued += valSize;
+
+        memcpy(buff, val, valSize);
+        ioTask = new DeviceTask<SpdkBdev>{
+            buff,
+            valSize,
+            getBdev()->getSizeInBlk(valSizeAlign),
+            rqst->key,
+            rqst->keySize,
+            nullptr,
+            true,
+            rtree,
+            rqst->clb,
+            dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev())};
+        try {
+            rtree->AllocateIOVForKey(rqst->key, &ioTask->lba, sizeof(uint64_t));
+        } catch (...) {
+            /** @todo fix exception handling */
+            delete ioTask;
+            _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+            return;
+        }
+        *ioTask->lba = getFreeLba();
+
+    } else if (isValOffloaded(valCtx)) {
+        if (valCtx.size == 0) {
+            _rqstClb(rqst, StatusCode::OK);
+            return;
+        }
+        auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
+        auto buff = reinterpret_cast<char *>(
+            spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
+        IoBytesQueued += rqst->valueSize;
+
+        memcpy(buff, rqst->value, rqst->valueSize);
+
+        ioTask = new DeviceTask<SpdkBdev>{
+            buff,
+            rqst->valueSize,
+            getBdev()->getSizeInBlk(valSizeAlign),
+            rqst->key,
+            rqst->keySize,
+            new uint64_t,
+            false,
+            rtree,
+            rqst->clb,
+            dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev())};
+        *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
+
+    } else {
+        _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
+        return;
+    }
+
+    if (getBdev()->write(ioTask) != true)
+        _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+
+    if (rqst->valueSize > 0)
+        delete[] rqst->value;
 }
 
 void OffloadPoller::_processRemove(const OffloadRqst *rqst) {

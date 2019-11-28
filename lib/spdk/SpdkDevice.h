@@ -16,10 +16,34 @@
 
 #pragma once
 
+#include "spdk/bdev.h"
+
+#include <Logger.h>
+#include <RTree.h>
+
 namespace DaqDB {
 
 enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
 using OffloadRqst = Rqst<OffloadOperation>;
+
+template <class T> class SpdkDevice;
+
+template <class S> class DeviceTask {
+  public:
+    char *buff;
+    size_t size = 0;
+    uint32_t blockSize = 0;
+    const char *key = nullptr;
+    size_t keySize = 0;
+    uint64_t *lba = nullptr; // pointer used to store pmem allocated memory
+    bool updatePmemIOV = false;
+
+    RTreeEngine *rtree;
+    KVStoreBase::KVStoreBaseCallback clb;
+
+    SpdkDevice<S> *bdev = nullptr;
+    struct spdk_bdev_io_wait_entry bdev_io_wait;
+};
 
 /*
  * Pure abstract class to define read/write IO interface

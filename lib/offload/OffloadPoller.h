@@ -164,6 +164,9 @@ class OffloadPoller : public Poller<OffloadRqst> {
         _spdkPoller = spdk_poller;
     }
 
+    virtual void setRunning(int rn) { isRunning = rn; }
+    virtual bool isOffloadRunning() { return isRunning; }
+
     enum class State : std::uint8_t {
         OFFLOAD_POLLER_INIT = 0,
         OFFLOAD_POLLER_READY,
@@ -209,6 +212,9 @@ class OffloadPoller : public Poller<OffloadRqst> {
     void _processGet(const OffloadRqst *rqst);
     void _processUpdate(const OffloadRqst *rqst);
     void _processRemove(const OffloadRqst *rqst);
+    void _processGetOld(const OffloadRqst *rqst);
+    void _processUpdateOld(const OffloadRqst *rqst);
+    void _processRemoveOld(const OffloadRqst *rqst);
 
     StatusCode _getValCtx(const OffloadRqst *rqst, ValCtx &valCtx) const;
 

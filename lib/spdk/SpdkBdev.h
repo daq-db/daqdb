@@ -79,23 +79,7 @@ struct BdevStats {
     void printReadPer(std::ostream &os);
 };
 
-struct BdevTask {
-    char *buff;
-    size_t size = 0;
-    uint32_t blockSize = 0;
-    const char *key = nullptr;
-    size_t keySize = 0;
-    uint64_t *lba = nullptr; // pointer used to store pmem allocated memory
-    bool updatePmemIOV = false;
-
-    RTreeEngine *rtree;
-    KVStoreBase::KVStoreBaseCallback clb;
-
-    SpdkDevice<OffloadRqst> *bdev = nullptr;
-    struct spdk_bdev_io_wait_entry bdev_io_wait;
-};
-
-class SpdkBdev : public SpdkDevice<OffloadRqst> {
+class SpdkBdev : public SpdkDevice<DeviceTask<SpdkBdev>> {
   public:
     SpdkBdev(bool enableStats = false);
     ~SpdkBdev() = default;
@@ -119,8 +103,8 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
     /*
      * SpdkDevice virtual interface
      */
-    virtual int read(OffloadRqst *rqst);
-    virtual int write(OffloadRqst *rqst);
+    virtual int read(DeviceTask<SpdkBdev> *rqst);
+    virtual int write(DeviceTask<SpdkBdev> *rqst);
 
     /*
      * Spdk Bdev specifics
@@ -216,5 +200,7 @@ class SpdkBdev : public SpdkDevice<OffloadRqst> {
     }
     void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
 };
+
+using BdevTask = DeviceTask<SpdkBdev>;
 
 } // namespace DaqDB

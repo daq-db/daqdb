@@ -233,9 +233,9 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
     }
 }
 
-int SpdkBdev::read(OffloadRqst *rqst) { return 0; }
+int SpdkBdev::read(DeviceTask<SpdkBdev> *rqst) { return 0; }
 
-int SpdkBdev::write(OffloadRqst *rqst) { return 0; }
+int SpdkBdev::write(DeviceTask<SpdkBdev> *rqst) { return 0; }
 
 void SpdkBdev::deinit() {
     spdk_put_io_channel(spBdevCtx.io_channel);
@@ -300,4 +300,7 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     return true;
 }
 
+void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
+    IoBytesMaxQueued = io_cache_size * 64;
+}
 } // namespace DaqDB
