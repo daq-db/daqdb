@@ -14,31 +14,6 @@
  * limitations under the License. 
  */
 
-#include <signal.h>
-
-#include <iostream>
-#include <pthread.h>
-#include <string>
-#include <thread>
-
-#include <boost/filesystem.hpp>
-
-#include "spdk/conf.h"
-#include "spdk/cpuset.h"
-#include "spdk/env.h"
-#include "spdk/event.h"
-#include "spdk/ftl.h"
-#include "spdk/log.h"
-#include "spdk/queue.h"
-#include "spdk/stdinc.h"
-#include "spdk/thread.h"
-
-#include "SpdkCore.h"
-#include <Logger.h>
-#include <RTree.h>
-
 namespace DaqDB {
-
-
 
 } // namespace DaqDB

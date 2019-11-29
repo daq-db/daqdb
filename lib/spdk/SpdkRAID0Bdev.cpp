@@ -21,9 +21,11 @@ namespace DaqDB {
 
 SpdkRAID0Bdev::SpdkRAID0Bdev() {}
 
-int SpdkRAID0Bdev::read(OffloadRqst *rqst) { return 0; }
+int SpdkRAID0Bdev::read(DeviceTask<SpdkRAID0Bdev> *task) { return 0; }
 
-int SpdkRAID0Bdev::write(OffloadRqst *rqst) { return 0; }
+int SpdkRAID0Bdev::write(DeviceTask<SpdkRAID0Bdev> *task) { return 0; }
+
+int SpdkRAID0Bdev::reschedule(DeviceTask<SpdkRAID0Bdev> *task) { return 0; }
 
 void SpdkRAID0Bdev::deinit() {}
 

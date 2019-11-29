@@ -21,9 +21,11 @@ namespace DaqDB {
 
 SpdkJBODBdev::SpdkJBODBdev() {}
 
-int SpdkJBODBdev::read(OffloadRqst *rqst) { return 0; }
+int SpdkJBODBdev::read(DeviceTask<SpdkJBODBdev> *task) { return 0; }
 
-int SpdkJBODBdev::write(OffloadRqst *rqst) { return 0; }
+int SpdkJBODBdev::write(DeviceTask<SpdkJBODBdev> *task) { return 0; }
+
+int SpdkJBODBdev::reschedule(DeviceTask<SpdkJBODBdev> *task) { return 0; }
 
 void SpdkJBODBdev::deinit() {}
 

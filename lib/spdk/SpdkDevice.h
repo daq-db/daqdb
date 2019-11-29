@@ -53,8 +53,10 @@ template <class T> class SpdkDevice {
     SpdkDevice() = default;
     ~SpdkDevice() = default;
 
-    virtual int write(T *rqst) = 0;
-    virtual int read(T *rqst) = 0;
+    virtual int write(T *task) = 0;
+    virtual int read(T *task) = 0;
+    virtual int reschedule(T *task) = 0;
+
     virtual bool init(const SpdkConf &_conf) {
         conf = _conf;
         return true;

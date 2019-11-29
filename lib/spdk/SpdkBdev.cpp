@@ -37,6 +37,8 @@
 
 namespace DaqDB {
 
+//#define TEST_RAW_IOPS
+
 /*
  * BdevStats
  */
@@ -99,7 +101,7 @@ void SpdkBdev::IOAbort() { _IoState = SpdkBdev::State::BDEV_IO_ABORTED; }
  */
 void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                              void *cb_arg) {
-    BdevTask *task = reinterpret_cast<BdevTask *>(cb_arg);
+    BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
     bdev->IoBytesQueued =
@@ -139,7 +141,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
  */
 void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                             void *cb_arg) {
-    BdevTask *task = reinterpret_cast<BdevTask *>(cb_arg);
+    BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
     bdev->IoBytesQueued =
@@ -176,7 +178,7 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
  * available
  */
 void SpdkBdev::readQueueIoWait(void *cb_arg) {
-    BdevTask *task = reinterpret_cast<BdevTask *>(cb_arg);
+    BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
 
     int r_rc = spdk_bdev_read_blocks(
@@ -192,7 +194,7 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
                                        &task->bdev_io_wait);
         if (r_rc) {
             DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(r_rc) +
-                         "] for offload bdev");
+                         "] for spdk bdev");
             bdev->deinit();
             spdk_app_stop(-1);
         }
@@ -207,7 +209,7 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
  * available
  */
 void SpdkBdev::writeQueueIoWait(void *cb_arg) {
-    BdevTask *task = reinterpret_cast<BdevTask *>(cb_arg);
+    BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
 
     int w_rc = spdk_bdev_write_blocks(
@@ -223,7 +225,7 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
                                        &task->bdev_io_wait);
         if (w_rc) {
             DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(w_rc) +
-                         "] for offload bdev");
+                         "] for spdk bdev");
             bdev->deinit();
             spdk_app_stop(-1);
         }
@@ -233,9 +235,106 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
     }
 }
 
-int SpdkBdev::read(DeviceTask<SpdkBdev> *rqst) { return 0; }
+int SpdkBdev::read(DeviceTask<SpdkBdev> *task) {
+    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    if (stateMachine() == true) {
+        spdk_dma_free(task->buff);
+        return false;
+    }
 
-int SpdkBdev::write(DeviceTask<SpdkBdev> *rqst) { return 0; }
+#ifdef TEST_RAW_IOPS
+    int r_rc = 0;
+    SpdkBdev::readComplete(reinterpret_cast<struct spdk_bdev_io *>(task->buff),
+                           true, task);
+#else
+    int r_rc = spdk_bdev_read_blocks(
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
+        bdev->getBlockOffsetForLba(*task->lba), task->blockSize,
+        SpdkBdev::readComplete, task);
+#endif
+    if (r_rc) {
+        stats.read_err_cnt++;
+        /*
+         * -ENOMEM condition indicates a shoortage of IO buffers.
+         *  Schedule this IO for later execution by providing a callback
+         * function, when sufficient IO buffers are available
+         */
+        if (r_rc == -ENOMEM) {
+            r_rc = SpdkBdev::reschedule(task);
+            if (r_rc) {
+                DAQ_CRITICAL("Spdk queue_io_wait error [" +
+                             std::to_string(r_rc) + "] for spdk bdev");
+                bdev->deinit();
+                spdk_app_stop(-1);
+            }
+        } else {
+            DAQ_CRITICAL("Spdk read error [" + std::to_string(r_rc) +
+                         "] for spdk bdev");
+            bdev->deinit();
+            spdk_app_stop(-1);
+        }
+    } else
+        stats.outstanding_io_cnt++;
+
+    return !r_rc ? true : false;
+}
+
+int SpdkBdev::write(DeviceTask<SpdkBdev> *task) {
+    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    if (stateMachine() == true) {
+        spdk_dma_free(task->buff);
+        return false;
+    }
+
+#ifdef TEST_RAW_IOPS
+    int w_rc = 0;
+    SpdkBdev::writeComplete(reinterpret_cast<struct spdk_bdev_io *>(task->buff),
+                            true, task);
+#else
+    int w_rc = spdk_bdev_write_blocks(
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
+        bdev->getBlockOffsetForLba(*task->lba), task->blockSize,
+        SpdkBdev::writeComplete, task);
+#endif
+
+    /* TODO: refactor the following block for better code reusability */
+    if (w_rc) {
+        stats.write_err_cnt++;
+        /*
+         * -ENOMEM condition indicates a shoortage of IO buffers.
+         *  Schedule this IO for later execution by providing a callback
+         * function, when sufficient IO buffers are available
+         */
+        if (w_rc == -ENOMEM) {
+            w_rc = SpdkBdev::reschedule(task);
+            if (w_rc) {
+                DAQ_CRITICAL("Spdk queue_io_wait error [" +
+                             std::to_string(w_rc) + "] for spdk bdev");
+                bdev->deinit();
+                spdk_app_stop(-1);
+            }
+        } else {
+            DAQ_CRITICAL("Spdk write error [" + std::to_string(w_rc) +
+                         "] for spdk bdev");
+            bdev->deinit();
+            spdk_app_stop(-1);
+        }
+    } else
+        stats.outstanding_io_cnt++;
+
+    return !w_rc ? true : false;
+}
+
+int SpdkBdev::reschedule(DeviceTask<SpdkBdev> *task) {
+    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+
+    task->bdev_io_wait.bdev = spBdevCtx.bdev;
+    task->bdev_io_wait.cb_fn = SpdkBdev::writeQueueIoWait;
+    task->bdev_io_wait.cb_arg = task;
+
+    return spdk_bdev_queue_io_wait(
+        bdev->spBdevCtx.bdev, bdev->spBdevCtx.io_channel, &task->bdev_io_wait);
+}
 
 void SpdkBdev::deinit() {
     spdk_put_io_channel(spBdevCtx.io_channel);

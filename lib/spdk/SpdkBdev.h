@@ -103,9 +103,9 @@ class SpdkBdev : public SpdkDevice<DeviceTask<SpdkBdev>> {
     /*
      * SpdkDevice virtual interface
      */
-    virtual int read(DeviceTask<SpdkBdev> *rqst);
-    virtual int write(DeviceTask<SpdkBdev> *rqst);
-
+    virtual int read(DeviceTask<SpdkBdev> *task);
+    virtual int write(DeviceTask<SpdkBdev> *task);
+    virtual int reschedule(DeviceTask<SpdkBdev> *task);
     /*
      * Spdk Bdev specifics
      */

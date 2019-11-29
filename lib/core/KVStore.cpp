@@ -60,18 +60,18 @@ KVStore::~KVStore() {
 
 bool KVStore::QuiesceOffload(bool forceAbort) {
     if ( _spSpdk->isBdevFound() == true && _spOffloadPoller.get() ) {
-        _spOffloadPoller->IOQuiesce();
+        _spSpdk->getBdev()->IOQuiesce();
 
         int num_tries = 0;
-        while ( _spOffloadPoller->isIOQuiescent() == false ) {
+        while (_spSpdk->getBdev()->isIOQuiescent() == false) {
             sleep(1);
             if ( forceAbort == true && num_tries++ > 20 ) {
-                _spOffloadPoller->IOAbort();
+                _spSpdk->getBdev()->IOAbort();
                 break;
             }
         }
 
-        return _spOffloadPoller->isIOQuiescent();
+        return _spSpdk->getBdev()->isIOQuiescent();
     }
 
     return true;
@@ -135,7 +135,7 @@ void KVStore::init() {
     }
 
     if ( _spSpdk->isBdevFound() == true ) {
-        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore(), baseCoreId + dhtCount/*, true*/)); // uncomment to print running stats
+        _spOffloadPoller.reset(new DaqDB::OffloadPoller(pmem(), getSpdkCore()));
         coresUsed++;
     }
 
@@ -144,7 +144,7 @@ void KVStore::init() {
         spdkCore->setPoller(_spOffloadPoller.get());
         if (spdkCore->isSpdkReady() == true) {
             spdkCore->startSpdk();
-            spdkCore->waitReady(); // synchronize until OffloadPoller is done
+            spdkCore->waitReady(); // synchronize until SpdkCore is done
                                    // initializing SPDK framework
         }
     }

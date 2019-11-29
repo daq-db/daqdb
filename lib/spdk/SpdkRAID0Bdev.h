@@ -16,13 +16,21 @@
 
 #pragma once
 
+#include <atomic>
+#include <cstdint>
+#include <memory>
+
+#include "spdk/bdev.h"
+
 #include "Rqst.h"
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
+#include <Logger.h>
+#include <RTree.h>
 
 namespace DaqDB {
 
-class SpdkRAID0Bdev : public SpdkDevice<OffloadRqst> {
+class SpdkRAID0Bdev : public SpdkDevice<DeviceTask<SpdkRAID0Bdev>> {
   public:
     SpdkRAID0Bdev(void);
     ~SpdkRAID0Bdev() = default;
@@ -39,8 +47,9 @@ class SpdkRAID0Bdev : public SpdkDevice<OffloadRqst> {
     /*
      * SpdkDevice virtual interface
      */
-    virtual int read(OffloadRqst *rqst);
-    virtual int write(OffloadRqst *rqst);
+    virtual int read(DeviceTask<SpdkRAID0Bdev> *task);
+    virtual int write(DeviceTask<SpdkRAID0Bdev> *task);
+    virtual int reschedule(DeviceTask<SpdkRAID0Bdev> *task);
 };
 
 } // namespace DaqDB
