@@ -165,7 +165,7 @@ SpdkCore<T>::SpdkCore(OffloadOptions offloadOptions)
     removeConfFile();
     bool conf_file_ok = createConfFile();
 
-    spBdev.reset(new SpdkBdev());
+    spBdev.reset(new SpdkBdev(true)); // set to true to enable running stats
 
     if (conf_file_ok == false) {
         if (spdkEnvInit() == false)
@@ -287,13 +287,13 @@ template <class T> void SpdkCore<T>::spdkStart(void *arg) {
         return;
     }
 
-    bdev->setReady();
-    spdkCore->signalReady();
-    spdkCore->restoreSignals();
-
     spdkCore->poller->setRunning(1);
     spdkCore->setSpdkPoller(
         spdk_poller_register(SpdkCore<T>::spdkPollerFunction, spdkCore, 0));
+
+    bdev->setReady();
+    spdkCore->signalReady();
+    spdkCore->restoreSignals();
 }
 
 template <class T> void SpdkCore<T>::_spdkThreadMain(void) {
@@ -320,7 +320,7 @@ template <class T> int SpdkCore<T>::spdkPollerFunction(void *arg) {
     SpdkCore<T> *spdkCore = reinterpret_cast<SpdkCore<T> *>(arg);
     Poller<T> *poller = spdkCore->poller;
 
-    uint32_t to_qu_cnt = poller->canQueue();
+    uint32_t to_qu_cnt = spdkCore->spBdev->canQueue();
     if (to_qu_cnt) {
         poller->dequeue(to_qu_cnt);
         poller->process();
