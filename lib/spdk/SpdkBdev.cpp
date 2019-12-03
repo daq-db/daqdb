@@ -102,7 +102,7 @@ void SpdkBdev::IOAbort() { _IoState = SpdkBdev::State::BDEV_IO_ABORTED; }
 void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                              void *cb_arg) {
     BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
     bdev->IoBytesQueued =
         task->size > bdev->IoBytesQueued ? 0 : bdev->IoBytesQueued - task->size;
@@ -142,7 +142,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
 void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                             void *cb_arg) {
     BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
     bdev->IoBytesQueued =
         task->size > bdev->IoBytesQueued ? 0 : bdev->IoBytesQueued - task->size;
@@ -179,7 +179,7 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
  */
 void SpdkBdev::readQueueIoWait(void *cb_arg) {
     BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     int r_rc = spdk_bdev_read_blocks(
         bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
@@ -210,7 +210,7 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
  */
 void SpdkBdev::writeQueueIoWait(void *cb_arg) {
     BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     int w_rc = spdk_bdev_write_blocks(
         bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
@@ -236,7 +236,7 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
 }
 
 int SpdkBdev::read(DeviceTask<SpdkBdev> *task) {
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
         spdk_dma_free(task->buff);
         return false;
@@ -280,7 +280,7 @@ int SpdkBdev::read(DeviceTask<SpdkBdev> *task) {
 }
 
 int SpdkBdev::write(DeviceTask<SpdkBdev> *task) {
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
         spdk_dma_free(task->buff);
         return false;
@@ -325,7 +325,7 @@ int SpdkBdev::write(DeviceTask<SpdkBdev> *task) {
 }
 
 int SpdkBdev::reschedule(DeviceTask<SpdkBdev> *task) {
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(task->bdev);
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     task->bdev_io_wait.bdev = spBdevCtx.bdev;
     task->bdev_io_wait.cb_fn = SpdkBdev::writeQueueIoWait;

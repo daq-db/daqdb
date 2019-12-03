@@ -153,17 +153,16 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         getBdev()->IoBytesQueued += valSize;
 
         memcpy(buff, val, valSize);
-        ioTask = new DeviceTask<SpdkBdev>{
-            buff,
-            valSize,
-            getBdev()->getSizeInBlk(valSizeAlign),
-            rqst->key,
-            rqst->keySize,
-            nullptr,
-            true,
-            rtree,
-            rqst->clb,
-            dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev())};
+        ioTask = new DeviceTask<SpdkBdev>{buff,
+                                          valSize,
+                                          getBdev()->getSizeInBlk(valSizeAlign),
+                                          rqst->key,
+                                          rqst->keySize,
+                                          nullptr,
+                                          true,
+                                          rtree,
+                                          rqst->clb,
+                                          reinterpret_cast<void *>(getBdev())};
         ioTask->bdev = dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev());
         try {
             rtree->AllocateIOVForKey(rqst->key, &ioTask->lba, sizeof(uint64_t));
@@ -186,17 +185,16 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
 
         memcpy(buff, rqst->value, rqst->valueSize);
 
-        ioTask = new DeviceTask<SpdkBdev>{
-            buff,
-            rqst->valueSize,
-            getBdev()->getSizeInBlk(valSizeAlign),
-            rqst->key,
-            rqst->keySize,
-            new uint64_t,
-            false,
-            rtree,
-            rqst->clb,
-            dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev())};
+        ioTask = new DeviceTask<SpdkBdev>{buff,
+                                          rqst->valueSize,
+                                          getBdev()->getSizeInBlk(valSizeAlign),
+                                          rqst->key,
+                                          rqst->keySize,
+                                          new uint64_t,
+                                          false,
+                                          rtree,
+                                          rqst->clb,
+                                          reinterpret_cast<void *>(getBdev())};
         ioTask->bdev = dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev());
         *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
     } else {

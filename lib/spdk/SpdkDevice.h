@@ -41,7 +41,7 @@ template <class S> class DeviceTask {
     RTreeEngine *rtree;
     KVStoreBase::KVStoreBaseCallback clb;
 
-    SpdkDevice<S> *bdev = nullptr;
+    void *bdev = nullptr;
     struct spdk_bdev_io_wait_entry bdev_io_wait;
 };
 
