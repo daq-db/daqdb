@@ -297,7 +297,6 @@ int SpdkBdev::write(DeviceTask<SpdkBdev> *task) {
         SpdkBdev::writeComplete, task);
 #endif
 
-    /* TODO: refactor the following block for better code reusability */
     if (w_rc) {
         stats.write_err_cnt++;
         /*

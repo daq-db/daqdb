@@ -164,6 +164,7 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
             rtree,
             rqst->clb,
             dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev())};
+        ioTask->bdev = dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev());
         try {
             rtree->AllocateIOVForKey(rqst->key, &ioTask->lba, sizeof(uint64_t));
         } catch (...) {
@@ -173,7 +174,6 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
             return;
         }
         *ioTask->lba = getFreeLba();
-
     } else if (isValOffloaded(valCtx)) {
         if (valCtx.size == 0) {
             _rqstClb(rqst, StatusCode::OK);
@@ -197,8 +197,8 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
             rtree,
             rqst->clb,
             dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev())};
+        ioTask->bdev = dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev());
         *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
-
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         return;
