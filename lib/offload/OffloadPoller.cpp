@@ -49,8 +49,7 @@ namespace DaqDB {
 
 const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 
-OffloadPoller::OffloadPoller(RTreeEngine *rtree,
-                             SpdkCore<OffloadRqst> *_spdkCore)
+OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *_spdkCore)
     : Poller<OffloadRqst>(false), rtree(rtree), spdkCore(_spdkCore) {}
 
 OffloadPoller::~OffloadPoller() {
@@ -110,19 +109,19 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
     getBdev()->IoBytesQueued += size;
 
     auto blkSize = getBdev()->getSizeInBlk(size);
-    DeviceTask<SpdkBdev> *ioTask = new DeviceTask<SpdkBdev>{
-        buff,          valCtx.size,
-        blkSize,       rqst->key,
-        rqst->keySize, static_cast<uint64_t *>(valCtx.val),
-        false,         rtree,
-        rqst->clb,     dynamic_cast<SpdkDevice<SpdkBdev> *>(getBdev())};
+    DeviceTask *ioTask =
+        new DeviceTask{buff,          valCtx.size,
+                       blkSize,       rqst->key,
+                       rqst->keySize, static_cast<uint64_t *>(valCtx.val),
+                       false,         rtree,
+                       rqst->clb,     dynamic_cast<SpdkDevice *>(getBdev())};
 
     if (getBdev()->read(ioTask) != true)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 }
 
 void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
-    DeviceTask<SpdkBdev> *ioTask = nullptr;
+    DeviceTask *ioTask = nullptr;
     ValCtx valCtx;
 
     if (rqst == nullptr) {
@@ -153,16 +152,11 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         getBdev()->IoBytesQueued += valSize;
 
         memcpy(buff, val, valSize);
-        ioTask = new DeviceTask<SpdkBdev>{buff,
-                                          valSize,
-                                          getBdev()->getSizeInBlk(valSizeAlign),
-                                          rqst->key,
-                                          rqst->keySize,
-                                          nullptr,
-                                          true,
-                                          rtree,
-                                          rqst->clb,
-                                          reinterpret_cast<void *>(getBdev())};
+        ioTask = new DeviceTask{
+            buff,      valSize,       getBdev()->getSizeInBlk(valSizeAlign),
+            rqst->key, rqst->keySize, nullptr,
+            true,      rtree,         rqst->clb,
+            getBdev()};
         try {
             rtree->AllocateIOVForKey(rqst->key, &ioTask->lba, sizeof(uint64_t));
         } catch (...) {
@@ -184,16 +178,11 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
 
         memcpy(buff, rqst->value, rqst->valueSize);
 
-        ioTask = new DeviceTask<SpdkBdev>{buff,
-                                          rqst->valueSize,
-                                          getBdev()->getSizeInBlk(valSizeAlign),
-                                          rqst->key,
-                                          rqst->keySize,
-                                          new uint64_t,
-                                          false,
-                                          rtree,
-                                          rqst->clb,
-                                          reinterpret_cast<void *>(getBdev())};
+        ioTask = new DeviceTask{
+            buff,      rqst->valueSize, getBdev()->getSizeInBlk(valSizeAlign),
+            rqst->key, rqst->keySize,   new uint64_t,
+            false,     rtree,           rqst->clb,
+            getBdev()};
         *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);

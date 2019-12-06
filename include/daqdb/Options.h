@@ -137,10 +137,20 @@ struct KeyDescriptor {
     std::vector<KeyFieldDescriptor> _fields;
 };
 
-struct OffloadOptions {
-    size_t allocUnitSize = 16 * 1024;
+enum OffloadDevType : std::int8_t { BDEV = 0, JBOD = 1, RAID0 = 2 };
+
+struct OffloadDevDescriptor {
+    OffloadDevDescriptor() = default;
+    ~OffloadDevDescriptor() = default;
     std::string nvmeAddr = "";
     std::string nvmeName = "";
+};
+
+struct OffloadOptions {
+    OffloadDevType devType = BDEV;
+    std::string name;
+    size_t allocUnitSize = 16 * 1024;
+    std::vector<OffloadDevDescriptor> _devs;
 };
 
 struct RuntimeOptions {

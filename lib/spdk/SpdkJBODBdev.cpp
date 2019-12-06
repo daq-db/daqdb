@@ -19,16 +19,20 @@
 
 namespace DaqDB {
 
+SpdkDeviceClass SpdkJBODBdev::bdev_class = SpdkDeviceClass::JBOD;
+
 SpdkJBODBdev::SpdkJBODBdev() {}
 
-int SpdkJBODBdev::read(DeviceTask<SpdkJBODBdev> *task) { return 0; }
+int SpdkJBODBdev::read(DeviceTask *task) { return 0; }
 
-int SpdkJBODBdev::write(DeviceTask<SpdkJBODBdev> *task) { return 0; }
+int SpdkJBODBdev::write(DeviceTask *task) { return 0; }
 
-int SpdkJBODBdev::reschedule(DeviceTask<SpdkJBODBdev> *task) { return 0; }
+int SpdkJBODBdev::reschedule(DeviceTask *task) { return 0; }
 
 void SpdkJBODBdev::deinit() {}
 
 bool SpdkJBODBdev::init(const SpdkConf &conf) { return true; }
+
+void SpdkJBODBdev::enableStats(bool en) {}
 
 } // namespace DaqDB

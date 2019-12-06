@@ -19,16 +19,20 @@
 
 namespace DaqDB {
 
+SpdkDeviceClass SpdkRAID0Bdev::bdev_class = SpdkDeviceClass::RAID0;
+
 SpdkRAID0Bdev::SpdkRAID0Bdev() {}
 
-int SpdkRAID0Bdev::read(DeviceTask<SpdkRAID0Bdev> *task) { return 0; }
+int SpdkRAID0Bdev::read(DeviceTask *task) { return 0; }
 
-int SpdkRAID0Bdev::write(DeviceTask<SpdkRAID0Bdev> *task) { return 0; }
+int SpdkRAID0Bdev::write(DeviceTask *task) { return 0; }
 
-int SpdkRAID0Bdev::reschedule(DeviceTask<SpdkRAID0Bdev> *task) { return 0; }
+int SpdkRAID0Bdev::reschedule(DeviceTask *task) { return 0; }
 
 void SpdkRAID0Bdev::deinit() {}
 
 bool SpdkRAID0Bdev::init(const SpdkConf &conf) { return true; }
+
+void SpdkRAID0Bdev::enableStats(bool en) {}
 
 } // namespace DaqDB

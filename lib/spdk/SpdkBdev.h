@@ -77,9 +77,10 @@ struct BdevStats {
     std::ostringstream &formatReadBuf(std::ostringstream &buf);
     void printWritePer(std::ostream &os);
     void printReadPer(std::ostream &os);
+    void enableStats(bool en);
 };
 
-class SpdkBdev : public SpdkDevice<DeviceTask<SpdkBdev>> {
+class SpdkBdev : public SpdkDevice {
   public:
     SpdkBdev(bool enableStats = false);
     ~SpdkBdev() = default;
@@ -103,9 +104,12 @@ class SpdkBdev : public SpdkDevice<DeviceTask<SpdkBdev>> {
     /*
      * SpdkDevice virtual interface
      */
-    virtual int read(DeviceTask<SpdkBdev> *task);
-    virtual int write(DeviceTask<SpdkBdev> *task);
-    virtual int reschedule(DeviceTask<SpdkBdev> *task);
+    virtual int read(DeviceTask *task);
+    virtual int write(DeviceTask *task);
+    virtual int reschedule(DeviceTask *task);
+
+    virtual void enableStats(bool en);
+
     /*
      * Spdk Bdev specifics
      */
@@ -182,6 +186,8 @@ class SpdkBdev : public SpdkDevice<DeviceTask<SpdkBdev>> {
     volatile State _IoState;
 
   public:
+    static SpdkDeviceClass bdev_class;
+
     SpdkBdevCtx spBdevCtx;
     uint64_t _blkNumForLba = 0;
     BdevStats stats;
@@ -201,6 +207,6 @@ class SpdkBdev : public SpdkDevice<DeviceTask<SpdkBdev>> {
     void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
 };
 
-using BdevTask = DeviceTask<SpdkBdev>;
+using BdevTask = DeviceTask;
 
 } // namespace DaqDB

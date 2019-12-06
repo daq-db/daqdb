@@ -35,6 +35,7 @@
 #include <Poller.h>
 #include <RTreeEngine.h>
 #include <Rqst.h>
+#include <SpdkBdevFactory.h>
 #include <SpdkCore.h>
 #include <daqdb/KVStoreBase.h>
 
@@ -44,7 +45,7 @@ namespace DaqDB {
 
 class OffloadPoller : public Poller<OffloadRqst> {
   public:
-    OffloadPoller(RTreeEngine *rtree, SpdkCore<OffloadRqst> *_spdkCore);
+    OffloadPoller(RTreeEngine *rtree, SpdkCore *_spdkCore);
     virtual ~OffloadPoller();
 
     void process() final;
@@ -59,20 +60,26 @@ class OffloadPoller : public Poller<OffloadRqst> {
         return valCtx.location == LOCATIONS::PMEM;
     }
 
-    virtual SpdkBdev *getBdev() { return spdkCore->spBdev.get(); }
+    virtual SpdkBdev *getBdev() {
+        return dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get());
+    }
 
-    virtual SpdkBdevCtx *getBdevCtx() { return &spdkCore->spBdev->spBdevCtx; }
+    virtual SpdkBdevCtx *getBdevCtx() {
+        return &dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get())->spBdevCtx;
+    }
 
     inline spdk_bdev_desc *getBdevDesc() {
-        return spdkCore->spBdev->spBdevCtx.bdev_desc;
+        return dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get())
+            ->spBdevCtx.bdev_desc;
     }
 
     inline spdk_io_channel *getBdevIoChannel() {
-        return spdkCore->spBdev->spBdevCtx.io_channel;
+        return dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get())
+            ->spBdevCtx.io_channel;
     }
 
     RTreeEngine *rtree;
-    SpdkCore<OffloadRqst> *spdkCore;
+    SpdkCore *spdkCore;
 
     OffloadFreeList *freeLbaList = nullptr;
 

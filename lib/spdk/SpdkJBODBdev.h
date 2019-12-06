@@ -30,7 +30,7 @@
 
 namespace DaqDB {
 
-class SpdkJBODBdev : public SpdkDevice<DeviceTask<SpdkJBODBdev>> {
+class SpdkJBODBdev : public SpdkDevice {
   public:
     SpdkJBODBdev(void);
     ~SpdkJBODBdev() = default;
@@ -47,9 +47,13 @@ class SpdkJBODBdev : public SpdkDevice<DeviceTask<SpdkJBODBdev>> {
     /*
      * SpdkDevice virtual interface
      */
-    virtual int read(DeviceTask<SpdkJBODBdev> *task);
-    virtual int write(DeviceTask<SpdkJBODBdev> *task);
-    virtual int reschedule(DeviceTask<SpdkJBODBdev> *task);
+    virtual int read(DeviceTask *task);
+    virtual int write(DeviceTask *task);
+    virtual int reschedule(DeviceTask *task);
+
+    virtual void enableStats(bool en);
+
+    static SpdkDeviceClass bdev_class;
 };
 
 } // namespace DaqDB

@@ -1,0 +1,7 @@
+offload_dev_name = "example_offload_raid0"
+offload_dev_type = "raid0"
+offload_nvme_addr = "0000:89:00.0"
+offload_nvme_name = "Nvme1"
+offload_nvme_addr = "0000:8c:00.0"
+offload_nvme_name = "Nvme4"
+

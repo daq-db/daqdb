@@ -79,8 +79,30 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
     int offloadAllocUnitSize;
     if (cfg.lookupValue("offload_unit_alloc_size", offloadAllocUnitSize))
         options.offload.allocUnitSize = offloadAllocUnitSize;
-    cfg.lookupValue("offload_nvme_addr", options.offload.nvmeAddr);
-    cfg.lookupValue("offload_nvme_name", options.offload.nvmeName);
+    std::string dev_type;
+    cfg.lookupValue("offload_dev_type", dev_type);
+    if (dev_type == "bdev")
+        options.offload.devType = OffloadDevType::BDEV;
+    else if (dev_type == "jbod")
+        options.offload.devType = OffloadDevType::JBOD;
+    else if (dev_type == "raid0")
+        options.offload.devType = OffloadDevType::RAID0;
+    else {
+        ss << "Parse error, invalid offload dev type " << dev_type;
+        return false;
+    }
+    std::string offload_name;
+    if (cfg.lookupValue("offload_dev_name", offload_name))
+        options.offload.name = offload_name;
+    else
+        options.offload.name = "anonymous";
+    OffloadDevDescriptor offload_desc;
+    for (;;) {
+        if (cfg.lookupValue("offload_nvme_addr", offload_desc.nvmeAddr) &&
+            cfg.lookupValue("offload_nvme_name", offload_desc.nvmeName)) {
+            options.offload._devs.push_back(offload_desc);
+        }
+    }
 
     int maskLength;
     int maskOffset;

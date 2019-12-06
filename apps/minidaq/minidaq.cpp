@@ -157,8 +157,9 @@ static std::unique_ptr<DaqDB::KVStoreBase> openKVS() {
         }
         std::cout << "### Done. " << endl;
         options.offload.allocUnitSize = spdk_options.offload.allocUnitSize;
-        options.offload.nvmeAddr = spdk_options.offload.nvmeAddr;
-        options.offload.nvmeName = spdk_options.offload.nvmeName;
+        options.offload._devs = spdk_options.offload._devs;
+        options.offload.devType = spdk_options.offload.devType;
+        options.offload.name = spdk_options.offload.name;
     }
 
     return std::unique_ptr<DaqDB::KVStoreBase>(

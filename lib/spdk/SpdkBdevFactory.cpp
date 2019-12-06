@@ -14,14 +14,33 @@
  * limitations under the License.
  */
 
-#include "SpdkBdevFactory.h"
+#include <string>
+
+#include <Rqst.h>
+
 #include "SpdkBdev.h"
+#include "SpdkBdevFactory.h"
+#include "SpdkConf.h"
+#include "SpdkDevice.h"
 #include "SpdkJBODBdev.h"
 #include "SpdkRAID0Bdev.h"
 #include <RTree.h>
 
 namespace DaqDB {
 
-template <class T> SpdkDevice<T> *SpdkBdevFactory<T>::produce() { return 0; }
+SpdkDevice *SpdkBdevFactory::getBdev(SpdkDeviceClass typ) {
+    switch (typ) {
+    case SpdkDeviceClass::BDEV:
+        return new SpdkBdev;
+        break; // never reached
+    case SpdkDeviceClass::JBOD:
+        return new SpdkJBODBdev;
+        break; // never reached
+    case SpdkDeviceClass::RAID0:
+        return new SpdkRAID0Bdev;
+        break; // never reached
+    }
+    return 0;
+}
 
 } // namespace DaqDB

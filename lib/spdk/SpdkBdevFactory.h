@@ -17,17 +17,20 @@
 #pragma once
 
 #include "Rqst.h"
+#include "SpdkBdev.h"
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
+#include "SpdkJBODBdev.h"
+#include "SpdkRAID0Bdev.h"
 
 namespace DaqDB {
 
-template <class T> class SpdkBdevFactory {
+class SpdkBdevFactory {
   public:
     SpdkBdevFactory() = default;
     ~SpdkBdevFactory() = default;
 
-    static SpdkDevice<T> *produce();
+    static SpdkDevice *getBdev(SpdkDeviceClass typ);
 };
 
 } // namespace DaqDB

@@ -19,6 +19,7 @@
 #include "spdk/bdev.h"
 
 #include <Logger.h>
+#include <Options.h>
 #include <RTree.h>
 
 namespace DaqDB {
@@ -26,9 +27,11 @@ namespace DaqDB {
 enum class OffloadOperation : std::int8_t { NONE = 0, GET, UPDATE, REMOVE };
 using OffloadRqst = Rqst<OffloadOperation>;
 
-template <class T> class SpdkDevice;
+typedef OffloadDevType SpdkDeviceClass;
 
-template <class S> class DeviceTask {
+class SpdkDevice;
+
+struct DeviceTask {
   public:
     char *buff;
     size_t size = 0;
@@ -41,21 +44,23 @@ template <class S> class DeviceTask {
     RTreeEngine *rtree;
     KVStoreBase::KVStoreBaseCallback clb;
 
-    void *bdev = nullptr;
+    SpdkDevice *bdev = nullptr;
     struct spdk_bdev_io_wait_entry bdev_io_wait;
 };
 
 /*
  * Pure abstract class to define read/write IO interface
  */
-template <class T> class SpdkDevice {
+class SpdkDevice {
   public:
     SpdkDevice() = default;
     ~SpdkDevice() = default;
 
-    virtual int write(T *task) = 0;
-    virtual int read(T *task) = 0;
-    virtual int reschedule(T *task) = 0;
+    virtual int write(DeviceTask *task) = 0;
+    virtual int read(DeviceTask *task) = 0;
+    virtual int reschedule(DeviceTask *task) = 0;
+
+    virtual void enableStats(bool en) = 0;
 
     virtual bool init(const SpdkConf &_conf) {
         conf = _conf;

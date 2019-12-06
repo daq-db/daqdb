@@ -76,10 +76,13 @@ void BdevStats::printReadPer(std::ostream &os) {
     }
 }
 
+void BdevStats::enableStats(bool en) { enable = en; }
 /*
  * SpdkBdev
  */
 const std::string DEFAULT_SPDK_CONF_FILE = "spdk.conf";
+
+SpdkDeviceClass SpdkBdev::bdev_class = SpdkDeviceClass::BDEV;
 
 SpdkBdev::SpdkBdev(bool enableStats)
     : state(SpdkBdevState::SPDK_BDEV_INIT), stats(enableStats),
@@ -101,7 +104,7 @@ void SpdkBdev::IOAbort() { _IoState = SpdkBdev::State::BDEV_IO_ABORTED; }
  */
 void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                              void *cb_arg) {
-    BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
+    BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
     bdev->IoBytesQueued =
@@ -141,7 +144,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
  */
 void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                             void *cb_arg) {
-    BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
+    BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
     bdev->IoBytesQueued =
@@ -178,7 +181,7 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
  * available
  */
 void SpdkBdev::readQueueIoWait(void *cb_arg) {
-    BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
+    BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     int r_rc = spdk_bdev_read_blocks(
@@ -209,7 +212,7 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
  * available
  */
 void SpdkBdev::writeQueueIoWait(void *cb_arg) {
-    BdevTask *task = reinterpret_cast<DeviceTask<SpdkBdev> *>(cb_arg);
+    BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     int w_rc = spdk_bdev_write_blocks(
@@ -235,7 +238,7 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
     }
 }
 
-int SpdkBdev::read(DeviceTask<SpdkBdev> *task) {
+int SpdkBdev::read(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
         spdk_dma_free(task->buff);
@@ -279,7 +282,7 @@ int SpdkBdev::read(DeviceTask<SpdkBdev> *task) {
     return !r_rc ? true : false;
 }
 
-int SpdkBdev::write(DeviceTask<SpdkBdev> *task) {
+int SpdkBdev::write(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
         spdk_dma_free(task->buff);
@@ -324,7 +327,7 @@ int SpdkBdev::write(DeviceTask<SpdkBdev> *task) {
     return !w_rc ? true : false;
 }
 
-int SpdkBdev::reschedule(DeviceTask<SpdkBdev> *task) {
+int SpdkBdev::reschedule(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     task->bdev_io_wait.bdev = spBdevCtx.bdev;
@@ -401,4 +404,6 @@ bool SpdkBdev::init(const SpdkConf &conf) {
 void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
     IoBytesMaxQueued = io_cache_size * 64;
 }
+
+void SpdkBdev::enableStats(bool en) { stats.enableStats(en); }
 } // namespace DaqDB
