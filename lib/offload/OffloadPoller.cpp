@@ -110,7 +110,7 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
 
     auto blkSize = getBdev()->getSizeInBlk(size);
     DeviceTask *ioTask =
-        new DeviceTask{buff,          valCtx.size,
+        new DeviceTask{buff,          getBdev()->getOptimalSize(valCtx.size),
                        blkSize,       rqst->key,
                        rqst->keySize, static_cast<uint64_t *>(valCtx.val),
                        false,         rtree,
@@ -149,14 +149,19 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         auto valSizeAlign = getBdev()->getAlignedSize(valSize);
         auto buff = reinterpret_cast<char *>(
             spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
-        getBdev()->IoBytesQueued += valSize;
+        getBdev()->IoBytesQueued += getBdev()->getOptimalSize(valSize);
 
         memcpy(buff, val, valSize);
-        ioTask = new DeviceTask{
-            buff,      valSize,       getBdev()->getSizeInBlk(valSizeAlign),
-            rqst->key, rqst->keySize, nullptr,
-            true,      rtree,         rqst->clb,
-            getBdev()};
+        ioTask = new DeviceTask{buff,
+                                getBdev()->getOptimalSize(valSize),
+                                getBdev()->getSizeInBlk(valSizeAlign),
+                                rqst->key,
+                                rqst->keySize,
+                                nullptr,
+                                true,
+                                rtree,
+                                rqst->clb,
+                                getBdev()};
         try {
             rtree->AllocateIOVForKey(rqst->key, &ioTask->lba, sizeof(uint64_t));
         } catch (...) {
@@ -174,15 +179,20 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
         auto buff = reinterpret_cast<char *>(
             spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
-        getBdev()->IoBytesQueued += rqst->valueSize;
+        getBdev()->IoBytesQueued += getBdev()->getOptimalSize(rqst->valueSize);
 
         memcpy(buff, rqst->value, rqst->valueSize);
 
-        ioTask = new DeviceTask{
-            buff,      rqst->valueSize, getBdev()->getSizeInBlk(valSizeAlign),
-            rqst->key, rqst->keySize,   new uint64_t,
-            false,     rtree,           rqst->clb,
-            getBdev()};
+        ioTask = new DeviceTask{buff,
+                                getBdev()->getOptimalSize(rqst->valueSize),
+                                getBdev()->getSizeInBlk(valSizeAlign),
+                                rqst->key,
+                                rqst->keySize,
+                                new uint64_t,
+                                false,
+                                rtree,
+                                rqst->clb,
+                                getBdev()};
         *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
