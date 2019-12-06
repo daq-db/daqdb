@@ -142,6 +142,7 @@ enum OffloadDevType : std::int8_t { BDEV = 0, JBOD = 1, RAID0 = 2 };
 struct OffloadDevDescriptor {
     OffloadDevDescriptor() = default;
     ~OffloadDevDescriptor() = default;
+    std::string devName;
     std::string nvmeAddr = "";
     std::string nvmeName = "";
 };
@@ -150,6 +151,7 @@ struct OffloadOptions {
     OffloadDevType devType = BDEV;
     std::string name;
     size_t allocUnitSize = 16 * 1024;
+    size_t raid0StripeSize = 128;
     std::vector<OffloadDevDescriptor> _devs;
 };
 

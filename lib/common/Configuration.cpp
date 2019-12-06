@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <iostream>
+
 #include <config/Configuration.h>
 #include <libconfig.h++>
 
@@ -96,12 +98,49 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.offload.name = offload_name;
     else
         options.offload.name = "anonymous";
+
     OffloadDevDescriptor offload_desc;
-    for (;;) {
+    switch (options.offload.devType) {
+    case OffloadDevType::BDEV:
         if (cfg.lookupValue("offload_nvme_addr", offload_desc.nvmeAddr) &&
             cfg.lookupValue("offload_nvme_name", offload_desc.nvmeName)) {
             options.offload._devs.push_back(offload_desc);
+        } else {
+            ss << "No nvme device found for BDEV in offload";
+            return false;
         }
+        break;
+    case OffloadDevType::JBOD:
+    case OffloadDevType::RAID0: {
+        const Setting &root = cfg.getRoot();
+        const Setting &devices = root["devices"];
+        int count = devices.getLength();
+        for (int i = 0; i < count; i++) {
+            const Setting &device = devices[i];
+            offload_desc.devName = device.getName();
+            ;
+            if (!device.lookupValue("offload_nvme_addr",
+                                    offload_desc.nvmeAddr) ||
+                !device.lookupValue("offload_nvme_name", offload_desc.nvmeName))
+                continue;
+            options.offload._devs.push_back(offload_desc);
+        }
+        if (!options.offload._devs.size()) {
+            ss << "No nvme device found in devices for offload";
+            return false;
+        }
+        int stripeSize = 128;
+        if (options.offload.devType == OffloadDevType::RAID0) {
+            if (cfg.lookupValue("offload_raid0_stripe_size", stripeSize))
+                options.offload.raid0StripeSize =
+                    static_cast<size_t>(stripeSize);
+        }
+    } break;
+    default:
+        ss << "Invalid or unsupported device type[" << options.offload.devType
+           << "] for offload";
+        return false;
+        break;
     }
 
     int maskLength;
