@@ -207,11 +207,6 @@ void SpdkCore::_spdkThreadMain(void) {
     daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
     daqdb_opts.name = "daqdb_nvme";
 
-    daqdb_opts.mem_size = 1024;
-    daqdb_opts.shm_id = 1;
-    daqdb_opts.hugepage_single_segments = 1;
-    daqdb_opts.hugedir = SpdkCore::spdkHugepageDirname;
-
     int rc = spdk_app_start(&daqdb_opts, SpdkCore::spdkStart, this);
     if (rc) {
         DAQ_CRITICAL("Error spdk_app_start[" + std::to_string(rc) + "]");

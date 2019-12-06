@@ -57,6 +57,7 @@ extern "C" struct SpdkBdevCtx {
     uint64_t blk_num = 0;
     uint32_t io_pool_size = 0;
     uint32_t io_cache_size = 0;
+    uint32_t io_min_size = 4096;
     CSpdkBdevState state;
 };
 
@@ -93,11 +94,17 @@ class SpdkBdev : public SpdkDevice {
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
 
+    /*
+     * Optimal size is 4k times
+     */
+    inline virtual size_t getOptimalSize(size_t size) {
+        return size ? (((size - 1)/4096 + 1)*spBdevCtx.io_min_size) : 0;
+    }
     inline virtual size_t getAlignedSize(size_t size) {
-        return size + spBdevCtx.blk_size - 1 & ~(spBdevCtx.blk_size - 1);
+        return getOptimalSize(size) + spBdevCtx.blk_size - 1 & ~(spBdevCtx.blk_size - 1);
     }
     inline virtual uint32_t getSizeInBlk(size_t &size) {
-        return size / spBdevCtx.blk_size;
+        return getOptimalSize(size) / spBdevCtx.blk_size;
     }
     void virtual setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
 
