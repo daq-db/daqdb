@@ -93,13 +93,13 @@ class SpdkBdev : public SpdkDevice {
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
 
-    inline size_t getAlignedSize(size_t size) {
+    inline virtual size_t getAlignedSize(size_t size) {
         return size + spBdevCtx.blk_size - 1 & ~(spBdevCtx.blk_size - 1);
     }
-    inline uint32_t getSizeInBlk(size_t &size) {
+    inline virtual uint32_t getSizeInBlk(size_t &size) {
         return size / spBdevCtx.blk_size;
     }
-    void setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
+    void virtual setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
 
     /*
      * SpdkDevice virtual interface

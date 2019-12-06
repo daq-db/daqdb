@@ -52,6 +52,9 @@ class SpdkJBODBdev : public SpdkDevice {
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);
+    inline virtual size_t getAlignedSize(size_t size) { return 0; }
+    inline virtual uint32_t getSizeInBlk(size_t &size) { return 0; }
+    void virtual setReady() {}
 
     static SpdkDeviceClass bdev_class;
 };
