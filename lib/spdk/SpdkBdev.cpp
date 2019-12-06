@@ -252,8 +252,8 @@ int SpdkBdev::read(DeviceTask *task) {
 #else
     int r_rc = spdk_bdev_read_blocks(
         bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        bdev->getBlockOffsetForLba(*task->lba), task->blockSize,
-        SpdkBdev::readComplete, task);
+        task->blockSize * (*task->lba), task->blockSize, SpdkBdev::readComplete,
+        task);
 #endif
     if (r_rc) {
         stats.read_err_cnt++;
@@ -296,7 +296,7 @@ int SpdkBdev::write(DeviceTask *task) {
 #else
     int w_rc = spdk_bdev_write_blocks(
         bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        bdev->getBlockOffsetForLba(*task->lba), task->blockSize,
+        task->blockSize * (*task->lba), task->blockSize,
         SpdkBdev::writeComplete, task);
 #endif
 
@@ -402,7 +402,7 @@ bool SpdkBdev::init(const SpdkConf &conf) {
 }
 
 void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
-    IoBytesMaxQueued = io_cache_size * 64;
+    IoBytesMaxQueued = io_cache_size * 128;
 }
 
 void SpdkBdev::enableStats(bool en) { stats.enableStats(en); }

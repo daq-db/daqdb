@@ -68,7 +68,7 @@ struct BdevStats {
     uint64_t read_err_cnt;
     bool periodic = true;
     bool enable;
-    uint64_t quant_per = (1 << 17);
+    uint64_t quant_per = (1 << 18);
     uint64_t outstanding_io_cnt;
 
     BdevStats(bool enab = false)
