@@ -234,12 +234,12 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         return;
     }
 
-    if (getBdev()->write(ioTask) != true)
-        _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
-
     delete[] rqst->key;
     if (rqst->valueSize > 0)
         delete[] rqst->value;
+
+    if (getBdev()->write(ioTask) != true)
+        _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 }
 
 void OffloadPoller::_processRemove(OffloadRqst *rqst) {
