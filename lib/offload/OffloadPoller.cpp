@@ -94,11 +94,13 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
+        delete rqst;
         return;
     }
 
     if (isValInPmem(valCtx)) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
+        delete rqst;
         return;
     }
 
@@ -133,12 +135,14 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
 
     if (rqst == nullptr) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+        delete rqst;
         return;
     }
 
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
+        delete rqst;
         return;
     }
 
@@ -176,14 +180,15 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
             rtree->AllocateIOVForKey(rqst->key, &ioTask->lba, sizeof(uint64_t));
         } catch (...) {
             /** @todo fix exception handling */
-            delete ioTask;
             _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+            delete rqst;
             return;
         }
         *ioTask->lba = getFreeLba();
     } else if (isValOffloaded(valCtx)) {
         if (valCtx.size == 0) {
             _rqstClb(rqst, StatusCode::OK);
+            delete rqst;
             return;
         }
         auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
@@ -208,6 +213,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
+        delete rqst;
         return;
     }
 
@@ -226,11 +232,13 @@ void OffloadPoller::_processRemove(OffloadRqst *rqst) {
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
+        delete rqst;
         return;
     }
 
     if (isValInPmem(valCtx)) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
+        delete rqst;
         return;
     }
 
@@ -239,6 +247,7 @@ void OffloadPoller::_processRemove(OffloadRqst *rqst) {
     freeLbaList->push(_offloadFreeList, lba);
     rtree->Remove(rqst->key);
     _rqstClb(rqst, StatusCode::OK);
+    delete rqst;
 }
 
 void OffloadPoller::process() {
