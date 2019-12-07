@@ -110,9 +110,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     bdev->IoBytesQueued =
         task->size > bdev->IoBytesQueued ? 0 : bdev->IoBytesQueued - task->size;
 
-#ifdef TEST_RAW_IOPS
-    spdk_dma_free(bdev_io);
-#else
+#ifndef TEST_RAW_IOPS
     spdk_bdev_free_io(bdev_io);
 #endif
 
@@ -149,9 +147,7 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     bdev->IoBytesQueued =
         task->size > bdev->IoBytesQueued ? 0 : bdev->IoBytesQueued - task->size;
 
-#ifdef TEST_RAW_IOPS
-    spdk_dma_free(bdev_io);
-#else
+#ifndef TEST_RAW_IOPS
     spdk_bdev_free_io(bdev_io);
 #endif
 
