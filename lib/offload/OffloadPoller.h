@@ -94,9 +94,9 @@ class OffloadPoller : public Poller<OffloadRqst> {
   private:
     void _spdkThreadMain(void);
 
-    void _processGet(const OffloadRqst *rqst);
-    void _processUpdate(const OffloadRqst *rqst);
-    void _processRemove(const OffloadRqst *rqst);
+    void _processGet(OffloadRqst *rqst);
+    void _processUpdate(OffloadRqst *rqst);
+    void _processRemove(OffloadRqst *rqst);
 
     StatusCode _getValCtx(const OffloadRqst *rqst, ValCtx &valCtx) const;
 

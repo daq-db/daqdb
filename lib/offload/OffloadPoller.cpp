@@ -88,7 +88,7 @@ StatusCode OffloadPoller::_getValCtx(const OffloadRqst *rqst,
     return StatusCode::OK;
 }
 
-void OffloadPoller::_processGet(const OffloadRqst *rqst) {
+void OffloadPoller::_processGet(OffloadRqst *rqst) {
     ValCtx valCtx;
 
     auto rc = _getValCtx(rqst, valCtx);
@@ -109,18 +109,25 @@ void OffloadPoller::_processGet(const OffloadRqst *rqst) {
     getBdev()->IoBytesQueued += size;
 
     auto blkSize = getBdev()->getSizeInBlk(size);
-    DeviceTask *ioTask =
-        new DeviceTask{buff,          getBdev()->getOptimalSize(valCtx.size),
-                       blkSize,       rqst->key,
-                       rqst->keySize, static_cast<uint64_t *>(valCtx.val),
-                       false,         rtree,
-                       rqst->clb,     dynamic_cast<SpdkDevice *>(getBdev())};
+    DeviceTask *ioTask = new (rqst->taskBuffer)
+        DeviceTask{buff,
+                   getBdev()->getOptimalSize(valCtx.size),
+                   blkSize,
+                   rqst->keySize,
+                   static_cast<uint64_t *>(valCtx.val),
+                   false,
+                   rtree,
+                   rqst->clb,
+                   getBdev(),
+                   rqst};
+    memcpy(ioTask->key, rqst->key, rqst->keySize);
+    delete[] rqst->key;
 
     if (getBdev()->read(ioTask) != true)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 }
 
-void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
+void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
     DeviceTask *ioTask = nullptr;
     ValCtx valCtx;
 
@@ -152,16 +159,19 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
         getBdev()->IoBytesQueued += getBdev()->getOptimalSize(valSize);
 
         memcpy(buff, val, valSize);
-        ioTask = new DeviceTask{buff,
-                                getBdev()->getOptimalSize(valSize),
-                                getBdev()->getSizeInBlk(valSizeAlign),
-                                rqst->key,
-                                rqst->keySize,
-                                nullptr,
-                                true,
-                                rtree,
-                                rqst->clb,
-                                getBdev()};
+        ioTask = new (rqst->taskBuffer)
+            DeviceTask{buff,
+                       getBdev()->getOptimalSize(valSize),
+                       getBdev()->getSizeInBlk(valSizeAlign),
+                       rqst->keySize,
+                       nullptr,
+                       true,
+                       rtree,
+                       rqst->clb,
+                       getBdev(),
+                       rqst};
+        memcpy(ioTask->key, rqst->key, rqst->keySize);
+
         try {
             rtree->AllocateIOVForKey(rqst->key, &ioTask->lba, sizeof(uint64_t));
         } catch (...) {
@@ -183,16 +193,18 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
 
         memcpy(buff, rqst->value, rqst->valueSize);
 
-        ioTask = new DeviceTask{buff,
-                                getBdev()->getOptimalSize(rqst->valueSize),
-                                getBdev()->getSizeInBlk(valSizeAlign),
-                                rqst->key,
-                                rqst->keySize,
-                                new uint64_t,
-                                false,
-                                rtree,
-                                rqst->clb,
-                                getBdev()};
+        ioTask = new (rqst->taskBuffer)
+            DeviceTask{buff,
+                       getBdev()->getOptimalSize(rqst->valueSize),
+                       getBdev()->getSizeInBlk(valSizeAlign),
+                       rqst->keySize,
+                       new uint64_t,
+                       false,
+                       rtree,
+                       rqst->clb,
+                       getBdev(),
+                       rqst};
+        memcpy(ioTask->key, rqst->key, rqst->keySize);
         *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
@@ -202,11 +214,12 @@ void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
     if (getBdev()->write(ioTask) != true)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
 
+    delete[] rqst->key;
     if (rqst->valueSize > 0)
         delete[] rqst->value;
 }
 
-void OffloadPoller::_processRemove(const OffloadRqst *rqst) {
+void OffloadPoller::_processRemove(OffloadRqst *rqst) {
 
     ValCtx valCtx;
 
@@ -234,20 +247,19 @@ void OffloadPoller::process() {
             OffloadRqst *rqst = requests[RqstIdx];
             switch (rqst->op) {
             case OffloadOperation::GET:
-                _processGet(const_cast<const OffloadRqst *>(rqst));
+                _processGet(rqst);
                 break;
             case OffloadOperation::UPDATE: {
-                _processUpdate(const_cast<const OffloadRqst *>(rqst));
+                _processUpdate(rqst);
                 break;
             }
             case OffloadOperation::REMOVE: {
-                _processRemove(const_cast<const OffloadRqst *>(rqst));
+                _processRemove(rqst);
                 break;
             }
             default:
                 break;
             }
-            delete requests[RqstIdx];
         }
         requestCount = 0;
     }

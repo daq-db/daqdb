@@ -38,6 +38,7 @@ class Rqst {
         : op(op), key(key), keySize(keySize), value(value),
           valueSize(valueSize), clb(clb) {}
     Rqst() {};
+    virtual ~Rqst() = default;
 
     const T op;
     const char *key = nullptr;
@@ -48,6 +49,7 @@ class Rqst {
     // @TODO jradtke need to check if passing function object has impact on
     // performance
     KVStoreBase::KVStoreBaseCallback clb;
+    unsigned char taskBuffer[256];
 };
 
 } // namespace DaqDB

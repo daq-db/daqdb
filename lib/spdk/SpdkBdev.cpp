@@ -135,8 +135,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                       task->keySize, nullptr, 0);
     }
 
-    delete[] task->key;
-    delete task;
+    delete task->rqst;
 }
 
 /*
@@ -172,8 +171,7 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                       task->keySize, nullptr, 0);
     }
 
-    delete[] task->key;
-    delete task;
+    delete task->rqst;
 }
 
 /*

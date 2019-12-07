@@ -36,7 +36,6 @@ struct DeviceTask {
     char *buff;
     size_t size = 0;
     uint32_t blockSize = 0;
-    const char *key = nullptr;
     size_t keySize = 0;
     uint64_t *lba = nullptr; // pointer used to store pmem allocated memory
     bool updatePmemIOV = false;
@@ -45,7 +44,9 @@ struct DeviceTask {
     KVStoreBase::KVStoreBaseCallback clb;
 
     SpdkDevice *bdev = nullptr;
+    OffloadRqst *rqst = nullptr;
     struct spdk_bdev_io_wait_entry bdev_io_wait;
+    char key[64];
 };
 
 /*
