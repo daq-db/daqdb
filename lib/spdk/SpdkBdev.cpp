@@ -271,6 +271,7 @@ int SpdkBdev::write(DeviceTask *task) {
         return false;
     }
 
+    task->bdevAddr->busAddr.spdkPciAddr = bdev->spBdevCtx.pci_addr;
 #ifdef TEST_RAW_IOPS
     int w_rc = 0;
     SpdkBdev::writeComplete(reinterpret_cast<struct spdk_bdev_io *>(task->buff),

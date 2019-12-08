@@ -23,6 +23,7 @@
 #include "spdk/bdev.h"
 
 #include "Rqst.h"
+#include "SpdkBdev.h"
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
 #include <Logger.h>
@@ -30,10 +31,16 @@
 
 namespace DaqDB {
 
+struct JBODDevice {
+    DeviceAddr addr;
+    SpdkBdev *bdev;
+    uint32_t num;
+};
+
 class SpdkJBODBdev : public SpdkDevice {
   public:
-    SpdkJBODBdev(void);
-    ~SpdkJBODBdev() = default;
+    SpdkJBODBdev(bool _statsEnabled = false);
+    virtual ~SpdkJBODBdev();
 
     /**
      * Initialize JBOD devices.
@@ -58,6 +65,14 @@ class SpdkJBODBdev : public SpdkDevice {
     void virtual setReady() {}
 
     static SpdkDeviceClass bdev_class;
+
+    bool statsEnabled;
+
+  private:
+    const static uint32_t maxDevices = 64;
+    JBODDevice devices[maxDevices];
+    uint32_t numDevices = 0;
+    uint32_t currDevice = 0;
 };
 
 } // namespace DaqDB

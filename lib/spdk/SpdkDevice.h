@@ -37,8 +37,14 @@ struct DeviceAddr {
     union BusAddr {
         uint64_t busAddr;
         struct spdk_pci_addr spdkPciAddr;
-    } __attribute__((packed));
+    } busAddr __attribute__((packed));
 };
+
+inline bool operator==(const struct spdk_pci_addr &l,
+                       const struct spdk_pci_addr &r) {
+    return l.domain == r.domain && l.bus == r.bus && l.dev == r.dev &&
+           l.func == r.func;
+}
 
 struct DeviceTask {
   public:

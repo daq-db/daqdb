@@ -35,6 +35,7 @@ struct SpdkBdevConf {
 class SpdkConf {
   public:
     SpdkConf(const OffloadOptions &_offloadOptions);
+    SpdkConf(SpdkConfDevType devType, std::string name, size_t raid0StripeSize);
     ~SpdkConf() = default;
 
     SpdkConf &operator=(const SpdkConf &_r);
@@ -46,7 +47,7 @@ class SpdkConf {
     const std::string &getBdevNvmeAddr() const;
     struct spdk_pci_addr getBdevSpdkPciAddr();
 
-    SpdkConfDevType getSpdkConfDevType() { return _devType; }
+    SpdkConfDevType getSpdkConfDevType() const { return _devType; }
     void setSpdkConfDevType(SpdkConfDevType devType) { _devType = devType; }
     std::string getName() { return _name; }
     void setName(std::string &name) { _name = name; }
@@ -54,7 +55,8 @@ class SpdkConf {
     void setRaid0StripeSize(size_t raid0StripeSize) {
         _raid0StripeSize = raid0StripeSize;
     }
-    const std::vector<SpdkBdevConf> &getDevs() { return _devs; }
+    const std::vector<SpdkBdevConf> &getDevs() const { return _devs; }
+    void addDev(SpdkBdevConf dev);
 
   private:
     SpdkConfDevType _devType;

@@ -21,17 +21,61 @@ namespace DaqDB {
 
 SpdkDeviceClass SpdkJBODBdev::bdev_class = SpdkDeviceClass::JBOD;
 
-SpdkJBODBdev::SpdkJBODBdev() {}
+SpdkJBODBdev::SpdkJBODBdev(bool _statsEnabled) : statsEnabled(_statsEnabled) {}
 
-int SpdkJBODBdev::read(DeviceTask *task) { return 0; }
+SpdkJBODBdev::~SpdkJBODBdev() {
+    for (; numDevices; numDevices--) {
+        devices[numDevices].bdev->isRunning = 0;
+        delete devices[numDevices].bdev;
+    }
+}
 
-int SpdkJBODBdev::write(DeviceTask *task) { return 0; }
+int SpdkJBODBdev::read(DeviceTask *task) {
+    for (uint32_t i = 0; i < numDevices; i++) {
+        if (task->bdevAddr->busAddr.spdkPciAddr ==
+            devices[i].addr.busAddr.spdkPciAddr)
+            return devices[i].bdev->read(task);
+    }
+    return -1;
+}
+
+int SpdkJBODBdev::write(DeviceTask *task) {
+    int ret = devices[currDevice].bdev->write(task);
+    currDevice++;
+    currDevice %= numDevices;
+    return ret;
+}
 
 int SpdkJBODBdev::reschedule(DeviceTask *task) { return 0; }
 
-void SpdkJBODBdev::deinit() {}
+void SpdkJBODBdev::deinit() {
+    for (uint32_t i = 0; i < numDevices; i++) {
+        devices[i].bdev->deinit();
+    }
+}
 
-bool SpdkJBODBdev::init(const SpdkConf &conf) { return true; }
+bool SpdkJBODBdev::init(const SpdkConf &conf) {
+    if (conf.getSpdkConfDevType() != SpdkConfDevType::JBOD) {
+        return false;
+    }
+
+    for (auto d : conf.getDevs()) {
+        devices[numDevices].addr.lba = -1; // max
+        devices[numDevices].addr.busAddr.spdkPciAddr = d.pciAddr;
+        devices[numDevices].num = numDevices;
+        devices[numDevices].bdev = new SpdkBdev(statsEnabled);
+
+        SpdkConf currConf(SpdkConfDevType::BDEV, d.devName, 0);
+
+        currConf.addDev(d);
+        bool ret = devices[numDevices].bdev->init(currConf);
+        if (ret == false) {
+            return false;
+        }
+        numDevices++;
+    }
+    return true;
+}
 
 void SpdkJBODBdev::enableStats(bool en) {}
 

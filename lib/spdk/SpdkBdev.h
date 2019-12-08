@@ -61,6 +61,7 @@ extern "C" struct SpdkBdevCtx {
     uint32_t io_cache_size = 0;
     uint32_t io_min_size = 4096;
     CSpdkBdevState state;
+    struct spdk_pci_addr pci_addr;
 };
 
 class FinalizePoller;

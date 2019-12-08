@@ -26,6 +26,10 @@ SpdkConf::SpdkConf(const OffloadOptions &_offloadOptions)
     copyDevs(_offloadOptions._devs);
 }
 
+SpdkConf::SpdkConf(SpdkConfDevType devType, std::string name,
+                   size_t raid0StripeSize)
+    : _devType(devType), _name(name), _raid0StripeSize(raid0StripeSize) {}
+
 struct spdk_pci_addr SpdkConf::parsePciAddr(const std::string &nvmeAddr) {
     struct spdk_pci_addr addr;
     return addr;
@@ -56,5 +60,7 @@ SpdkConf &SpdkConf::operator=(const SpdkConf &_r) {
     this->_devs = _r._devs;
     return *this;
 }
+
+void SpdkConf::addDev(SpdkBdevConf dev) { _devs.push_back(dev); }
 
 } // namespace DaqDB
