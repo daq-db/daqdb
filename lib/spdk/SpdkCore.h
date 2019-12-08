@@ -108,8 +108,7 @@ class SpdkCore {
     bool _ready;
 
     size_t _cpuCore;
-    std::string _bdevName;
-
+    SpdkConf _spdkConf;
     std::string _confFile;
 
     std::mutex _syncMutex;

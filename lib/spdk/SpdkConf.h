@@ -16,23 +16,51 @@
 
 #pragma once
 
+#include "spdk/env.h"
+
 namespace DaqDB {
+
+typedef OffloadDevType SpdkConfDevType;
+
+struct SpdkBdevConf {
+    std::string devName = "";
+    std::string nvmeAddr = "";
+    struct spdk_pci_addr pciAddr;
+    std::string nvmeName = "";
+};
 
 /*
  * Encapsulates Spdk config
  */
 class SpdkConf {
   public:
-    SpdkConf(const std::string _bdev_name = "") : bdev_name(_bdev_name) {}
-
-    SpdkConf &operator=(const SpdkConf &_r) {
-        this->bdev_name = _r.bdev_name;
-        return *this;
-    }
-
+    SpdkConf(const OffloadOptions &_offloadOptions);
     ~SpdkConf() = default;
 
-    std::string bdev_name;
+    SpdkConf &operator=(const SpdkConf &_r);
+
+    struct spdk_pci_addr parsePciAddr(const std::string &nvmeAddr);
+    void copyDevs(const std::vector<OffloadDevDescriptor> &_offloadDevs);
+
+    const std::string &getBdevNvmeName() const;
+    const std::string &getBdevNvmeAddr() const;
+    struct spdk_pci_addr getBdevSpdkPciAddr();
+
+    SpdkConfDevType getSpdkConfDevType() { return _devType; }
+    void setSpdkConfDevType(SpdkConfDevType devType) { _devType = devType; }
+    std::string getName() { return _name; }
+    void setName(std::string &name) { _name = name; }
+    size_t getRaid0StripeSize() { return _raid0StripeSize; }
+    void setRaid0StripeSize(size_t raid0StripeSize) {
+        _raid0StripeSize = raid0StripeSize;
+    }
+    const std::vector<SpdkBdevConf> &getDevs() { return _devs; }
+
+  private:
+    SpdkConfDevType _devType;
+    std::string _name;
+    size_t _raid0StripeSize;
+    std::vector<SpdkBdevConf> _devs;
 };
 
 } // namespace DaqDB

@@ -54,7 +54,8 @@ const char *SpdkCore::spdkHugepageDirname = "/mnt/huge_1GB";
 
 SpdkCore::SpdkCore(OffloadOptions _offloadOptions)
     : state(SpdkState::SPDK_INIT), offloadOptions(_offloadOptions), poller(0),
-      _spdkThread(0), _loopThread(0), _ready(false) {
+      _spdkThread(0), _loopThread(0), _ready(false), _cpuCore(0),
+      _spdkConf(offloadOptions) {
     removeConfFile();
     bool conf_file_ok = createConfFile();
 
@@ -175,8 +176,7 @@ void SpdkCore::spdkStart(void *arg) {
     SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get());
     SpdkBdevCtx *bdev_c = &bdev->spBdevCtx;
 
-    SpdkConf conf(spdkCore->_bdevName);
-    bool rc = bdev->init(conf);
+    bool rc = bdev->init(spdkCore->_spdkConf);
     if (rc == false) {
         DAQ_CRITICAL("Bdev init failed");
         spdkCore->signalReady();

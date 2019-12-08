@@ -75,18 +75,12 @@ class SpdkDevice {
 
     virtual void enableStats(bool en) = 0;
 
-    virtual bool init(const SpdkConf &_conf) {
-        conf = _conf;
-        return true;
-    }
+    virtual bool init(const SpdkConf &_conf) = 0;
     virtual void deinit() = 0;
     inline virtual size_t getOptimalSize(size_t size) = 0;
     inline virtual size_t getAlignedSize(size_t size) = 0;
     inline virtual uint32_t getSizeInBlk(size_t &size) = 0;
     void virtual setReady() = 0;
-
-  private:
-    SpdkConf conf;
 };
 
 } // namespace DaqDB
