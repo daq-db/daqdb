@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <string>
+
 #include <daqdb/Options.h>
 
 #include "SpdkConf.h"
@@ -32,6 +36,10 @@ SpdkConf::SpdkConf(SpdkConfDevType devType, std::string name,
 
 struct spdk_pci_addr SpdkConf::parsePciAddr(const std::string &nvmeAddr) {
     struct spdk_pci_addr addr;
+    int ret = sscanf(nvmeAddr.c_str(), "%x.%X.%X.%X", &addr.domain, &addr.bus,
+                     &addr.dev, &addr.func);
+    if (ret != 4)
+        memset(&addr, 0xff, sizeof(addr));
     return addr;
 }
 
