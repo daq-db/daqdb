@@ -39,8 +39,6 @@
 #include <SpdkCore.h>
 #include <daqdb/KVStoreBase.h>
 
-#define OFFLOAD_DEQUEUE_RING_LIMIT 1024
-
 namespace DaqDB {
 
 class OffloadPoller : public Poller<OffloadRqst> {
@@ -92,7 +90,6 @@ class OffloadPoller : public Poller<OffloadRqst> {
     virtual bool isOffloadRunning() { return isRunning; }
 
   private:
-    void _spdkThreadMain(void);
 
     void _processGet(OffloadRqst *rqst);
     void _processUpdate(OffloadRqst *rqst);

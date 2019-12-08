@@ -123,7 +123,8 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
                    rtree,
                    rqst->clb,
                    getBdev(),
-                   rqst};
+                   rqst,
+                   OffloadOperation::GET};
     memcpy(ioTask->key, rqst->key, rqst->keySize);
     delete[] rqst->key;
 
@@ -181,7 +182,8 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        rtree,
                        rqst->clb,
                        getBdev(),
-                       rqst};
+                       rqst,
+                       OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
 
         try {
@@ -222,7 +224,8 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        rtree,
                        rqst->clb,
                        getBdev(),
-                       rqst};
+                       rqst,
+                       OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
         *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
     } else {

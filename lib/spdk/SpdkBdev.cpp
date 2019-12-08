@@ -33,6 +33,7 @@
 
 #include "Rqst.h"
 #include "SpdkBdev.h"
+#include <FinalizePoller.h>
 #include <daqdb/Status.h>
 
 namespace DaqDB {
@@ -86,7 +87,13 @@ SpdkDeviceClass SpdkBdev::bdev_class = SpdkDeviceClass::BDEV;
 
 SpdkBdev::SpdkBdev(bool enableStats)
     : state(SpdkBdevState::SPDK_BDEV_INIT), stats(enableStats),
-      IoBytesQueued(0), IoBytesMaxQueued(0) {}
+      IoBytesQueued(0), IoBytesMaxQueued(0), finalizer(0), finalizerThread(0),
+      isRunning(0) {}
+
+SpdkBdev::~SpdkBdev() {
+    if (finalizerThread != nullptr)
+        finalizerThread->join();
+}
 
 void SpdkBdev::IOQuiesce() { _IoState = SpdkBdev::State::BDEV_IO_QUIESCING; }
 
@@ -119,21 +126,10 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
 
     (void)bdev->stateMachine();
 
-    if (success) {
+    task->result = success;
+    if (success)
         bdev->stats.printWritePer(std::cout);
-        if (task->updatePmemIOV)
-            task->rtree->UpdateValueWrapper(task->key, task->lba,
-                                            sizeof(uint64_t));
-        if (task->clb)
-            task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff, task->size);
-    } else {
-        if (task->clb)
-            task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
-                      task->keySize, nullptr, 0);
-    }
-
-    delete task->rqst;
+    bdev->finalizer->enqueue(task);
 }
 
 /*
@@ -156,18 +152,10 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
 
     (void)bdev->stateMachine();
 
-    if (success) {
+    task->result = success;
+    if (success)
         bdev->stats.printReadPer(std::cout);
-        if (task->clb)
-            task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff, task->size);
-    } else {
-        if (task->clb)
-            task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
-                      task->keySize, nullptr, 0);
-    }
-
-    delete task->rqst;
+    bdev->finalizer->enqueue(task);
 }
 
 /*
@@ -392,7 +380,17 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     DAQ_DEBUG("BDEV number of blocks[" + std::to_string(spBdevCtx.blk_num) +
               "]");
 
+    isRunning = 1;
+    finalizer = new FinalizePoller();
+    finalizerThread = new std::thread(&SpdkBdev::finilizerThreadMain, this);
     return true;
+}
+
+void SpdkBdev::finilizerThreadMain() {
+    while (isRunning == true) {
+        finalizer->dequeue();
+        finalizer->process();
+    }
 }
 
 void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {

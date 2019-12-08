@@ -19,6 +19,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <thread>
 
 #include "spdk/bdev.h"
 
@@ -61,6 +62,8 @@ extern "C" struct SpdkBdevCtx {
     CSpdkBdevState state;
 };
 
+class FinalizePoller;
+
 struct BdevStats {
     uint64_t write_compl_cnt;
     uint64_t write_err_cnt;
@@ -84,7 +87,7 @@ struct BdevStats {
 class SpdkBdev : public SpdkDevice {
   public:
     SpdkBdev(bool enableStats = false);
-    ~SpdkBdev() = default;
+    virtual ~SpdkBdev();
 
     /**
      * Initialize BDEV device and sets SpdkBdev state.
@@ -213,6 +216,11 @@ class SpdkBdev : public SpdkDevice {
         _blkNumForLba = blk_num_flba;
     }
     void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
+
+    FinalizePoller *finalizer;
+    std::thread *finalizerThread;
+    std::atomic<int> isRunning;
+    void finilizerThreadMain(void);
 };
 
 using BdevTask = DeviceTask;

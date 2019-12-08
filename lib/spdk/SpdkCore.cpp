@@ -72,6 +72,11 @@ SpdkCore::SpdkCore(OffloadOptions _offloadOptions)
         state = SpdkState::SPDK_READY;
 }
 
+SpdkCore::~SpdkCore() {
+    if (_spdkThread != nullptr)
+        _spdkThread->join();
+}
+
 bool SpdkCore::spdkEnvInit(void) {
     spdk_env_opts opts;
     spdk_env_opts_init(&opts);
@@ -230,6 +235,7 @@ int SpdkCore::spdkPollerFunction(void *arg) {
         spdk_poller_unregister(&spdkCore->_spdkPoller);
         bdev->deinit();
         spdk_app_stop(0);
+        bdev->isRunning = 0;
     }
 
     return 0;

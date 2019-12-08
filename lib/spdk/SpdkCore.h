@@ -34,6 +34,7 @@ namespace bf = boost::filesystem;
 class SpdkCore {
   public:
     SpdkCore(OffloadOptions _offloadOptions);
+    ~SpdkCore();
 
     /**
      * SPDK requires passing configuration through file.

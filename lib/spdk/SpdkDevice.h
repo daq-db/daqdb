@@ -45,8 +45,10 @@ struct DeviceTask {
 
     SpdkDevice *bdev = nullptr;
     OffloadRqst *rqst = nullptr;
+    OffloadOperation op;
     struct spdk_bdev_io_wait_entry bdev_io_wait;
     char key[64];
+    bool result;
 };
 
 /*
@@ -55,7 +57,7 @@ struct DeviceTask {
 class SpdkDevice {
   public:
     SpdkDevice() = default;
-    ~SpdkDevice() = default;
+    virtual ~SpdkDevice() = default;
 
     virtual int write(DeviceTask *task) = 0;
     virtual int read(DeviceTask *task) = 0;
