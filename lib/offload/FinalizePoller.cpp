@@ -79,8 +79,9 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
 
     if (task->result) {
         if (task->updatePmemIOV)
-            task->rtree->UpdateValueWrapper(task->key, task->lba,
-                                            sizeof(uint64_t));
+            task->rtree->UpdateValueWrapper(
+                task->key, reinterpret_cast<uint64_t *>(task->bdevAddr),
+                sizeof(DeviceAddr));
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
                       task->buff, task->size);

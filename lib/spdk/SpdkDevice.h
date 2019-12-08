@@ -17,6 +17,7 @@
 #pragma once
 
 #include "spdk/bdev.h"
+#include "spdk/env.h"
 
 #include <Logger.h>
 #include <Options.h>
@@ -31,13 +32,22 @@ typedef OffloadDevType SpdkDeviceClass;
 
 class SpdkDevice;
 
+struct DeviceAddr {
+    uint64_t lba;
+    union BusAddr {
+        uint64_t busAddr;
+        struct spdk_pci_addr spdkPciAddr;
+    } __attribute__((packed));
+};
+
 struct DeviceTask {
   public:
     char *buff;
     size_t size = 0;
     uint32_t blockSize = 0;
     size_t keySize = 0;
-    uint64_t *lba = nullptr; // pointer used to store pmem allocated memory
+    DeviceAddr *bdevAddr =
+        nullptr; // pointer used to store pmem allocated memory
     bool updatePmemIOV = false;
 
     RTreeEngine *rtree;

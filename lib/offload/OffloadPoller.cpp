@@ -118,7 +118,7 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
                    getBdev()->getOptimalSize(valCtx.size),
                    blkSize,
                    rqst->keySize,
-                   static_cast<uint64_t *>(valCtx.val),
+                   static_cast<DeviceAddr *>(valCtx.val),
                    false,
                    rtree,
                    rqst->clb,
@@ -187,7 +187,9 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         memcpy(ioTask->key, rqst->key, rqst->keySize);
 
         try {
-            rtree->AllocateIOVForKey(rqst->key, &ioTask->lba, sizeof(uint64_t));
+            rtree->AllocateIOVForKey(
+                rqst->key, reinterpret_cast<uint64_t **>(&ioTask->bdevAddr),
+                sizeof(DeviceAddr));
         } catch (...) {
             /** @todo fix exception handling */
             _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
@@ -197,7 +199,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
             delete rqst;
             return;
         }
-        *ioTask->lba = getFreeLba();
+        ioTask->bdevAddr->lba = getFreeLba();
     } else if (isValOffloaded(valCtx)) {
         if (valCtx.size == 0) {
             _rqstClb(rqst, StatusCode::OK);
@@ -219,7 +221,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        getBdev()->getOptimalSize(rqst->valueSize),
                        getBdev()->getSizeInBlk(valSizeAlign),
                        rqst->keySize,
-                       new uint64_t,
+                       new DeviceAddr,
                        false,
                        rtree,
                        rqst->clb,
@@ -227,7 +229,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        rqst,
                        OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
-        *ioTask->lba = *(static_cast<uint64_t *>(valCtx.val));
+        ioTask->bdevAddr->lba = *(static_cast<uint64_t *>(valCtx.val));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         delete[] rqst->key;
