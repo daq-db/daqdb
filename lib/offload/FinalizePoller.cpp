@@ -36,7 +36,7 @@
 
 namespace DaqDB {
 
-FinalizePoller::FinalizePoller() : Poller<DeviceTask>(false) {}
+FinalizePoller::FinalizePoller() : Poller<DeviceTask>() {}
 
 void FinalizePoller::process() {
     if (requestCount > 0) {
