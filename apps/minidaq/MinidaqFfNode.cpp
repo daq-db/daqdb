@@ -81,7 +81,6 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
     int baseId = _PickSubdetector();
     bool accept = _Accept();
 
-    bool keyFreed = false;
     for (int i = 0; i < _PickNFragments(); i++) {
         /** @todo change to GetRange once implemented */
         mKeyPtr->detectorId = baseId + i;
@@ -89,10 +88,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
         try {
             value = _kvs->Get(key);
         } catch (...) {
-            if (keyFreed == false) {
-                _kvs->Free(std::move(key));
-                keyFreed = true;
-            }
+            _kvs->Free(std::move(key));
             throw;
         }
 #ifdef WITH_INTEGRITY_CHECK
@@ -119,7 +115,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                      *        this is not thread-safe
                      */
                     _kvs->Free(key, std::move(value));
-                    keyFreed = true;
+                    _kvs->Free(std::move(key));
                 } catch (QueueFullException &e) {
                     // Keep retrying
                     if (_delay_us) {
@@ -129,10 +125,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                     continue;
                 } catch (...) {
                     _kvs->Free(key, std::move(value));
-                    if (keyFreed == false) {
-                        _kvs->Free(std::move(key));
-                        keyFreed = true;
-                    }
+                    _kvs->Free(std::move(key));
                     throw;
                 }
                 break;
@@ -140,10 +133,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
         } else {
             _kvs->Remove(key);
             _kvs->Free(key, std::move(value));
-            if (keyFreed == false) {
-                _kvs->Free(std::move(key));
-                keyFreed = true;
-            }
+            _kvs->Free(std::move(key));
             cnt++;
         }
     }

@@ -94,14 +94,12 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
-        delete[] rqst->key;
         delete rqst;
         return;
     }
 
     if (isValInPmem(valCtx)) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
-        delete[] rqst->key;
         delete rqst;
         return;
     }
@@ -126,7 +124,6 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
                    rqst,
                    OffloadOperation::GET};
     memcpy(ioTask->key, rqst->key, rqst->keySize);
-    delete[] rqst->key;
 
     if (getBdev()->read(ioTask) != true)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
@@ -144,7 +141,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
-        delete[] rqst->key;
         if (rqst->valueSize > 0)
             delete[] rqst->value;
         delete rqst;
@@ -189,7 +185,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         } catch (...) {
             /** @todo fix exception handling */
             _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
-            delete[] rqst->key;
             if (rqst->valueSize > 0)
                 delete[] rqst->value;
             delete rqst;
@@ -199,7 +194,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
     } else if (isValOffloaded(valCtx)) {
         if (valCtx.size == 0) {
             _rqstClb(rqst, StatusCode::OK);
-            delete[] rqst->key;
             if (rqst->valueSize > 0)
                 delete[] rqst->value;
             delete rqst;
@@ -228,14 +222,12 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         ioTask->bdevAddr->lba = *(static_cast<uint64_t *>(valCtx.val));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
-        delete[] rqst->key;
         if (rqst->valueSize > 0)
             delete[] rqst->value;
         delete rqst;
         return;
     }
 
-    delete[] rqst->key;
     if (rqst->valueSize > 0)
         delete[] rqst->value;
 

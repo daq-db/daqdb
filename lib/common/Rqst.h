@@ -32,16 +32,18 @@ struct ValCtx {
 template <class T>
 class Rqst {
   public:
-    Rqst(const T op, const char *key, const size_t keySize,
-         const char *value, size_t valueSize,
-         KVStoreBase::KVStoreBaseCallback clb)
-        : op(op), key(key), keySize(keySize), value(value),
-          valueSize(valueSize), clb(clb) {}
+    Rqst(const T op, const char *key, const size_t keySize, const char *value,
+         size_t valueSize, KVStoreBase::KVStoreBaseCallback clb)
+        : op(op), key(keyBuffer), keySize(keySize), value(value),
+          valueSize(valueSize), clb(clb) {
+        memcpy(keyBuffer, key, keySize);
+    }
     Rqst() {};
     virtual ~Rqst() = default;
 
     const T op;
     const char *key = nullptr;
+    char keyBuffer[32];
     size_t keySize = 0;
     const char *value = nullptr;
     size_t valueSize = 0;
