@@ -138,10 +138,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
 
     if (rqst == nullptr) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
-        delete[] rqst->key;
-        if (rqst->valueSize > 0)
-            delete[] rqst->value;
-        delete rqst;
         return;
     }
 
