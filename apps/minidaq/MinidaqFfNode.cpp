@@ -131,6 +131,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
             }
         } else {
             _kvs->Remove(key);
+            _kvs->Free(key, std::move(value));
             cnt++;
         }
     }

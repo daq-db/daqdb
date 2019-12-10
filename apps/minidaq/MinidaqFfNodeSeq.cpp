@@ -101,7 +101,6 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                      *        this is not thread-safe
                      */
                     _kvs->Free(key, std::move(value));
-                    _kvs->Free(std::move(key));
                 } catch (QueueFullException &e) {
                     // Keep retrying
                     if (_delay_us) {
@@ -119,9 +118,9 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
         } else {
             _kvs->Remove(key);
             _kvs->Free(key, std::move(value));
-            _kvs->Free(std::move(key));
             cnt++;
         }
     }
+    _kvs->Free(std::move(key));
 }
 }
