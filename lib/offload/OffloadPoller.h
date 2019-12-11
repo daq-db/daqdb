@@ -51,13 +51,6 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
     void initFreeList();
 
-    inline bool isValOffloaded(ValCtx &valCtx) {
-        return valCtx.location == LOCATIONS::DISK;
-    }
-    inline bool isValInPmem(ValCtx &valCtx) {
-        return valCtx.location == LOCATIONS::PMEM;
-    }
-
     virtual SpdkBdev *getBdev() {
         return dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get());
     }

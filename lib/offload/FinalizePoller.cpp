@@ -91,6 +91,8 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
                       task->keySize, nullptr, 0);
     }
 
+    if (task->rqst->valueSize)
+        delete[] task->rqst->value;
     delete task->rqst;
 }
 

@@ -98,7 +98,7 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
         return;
     }
 
-    if (isValInPmem(valCtx)) {
+    if (valCtx.location == LOCATIONS::PMEM) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         delete rqst;
         return;
@@ -131,30 +131,25 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
 
 void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
     DeviceTask *ioTask = nullptr;
-    ValCtx valCtx;
+    ConstValCtx valCtx;
 
     if (rqst == nullptr) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
         return;
     }
 
-    auto rc = _getValCtx(rqst, valCtx);
-    if (rc != StatusCode::OK) {
-        _rqstClb(rqst, rc);
-        if (rqst->valueSize > 0)
-            delete[] rqst->value;
-        delete rqst;
-        return;
-    }
+    valCtx.val = rqst->value;
+    valCtx.size = rqst->valueSize;
+    valCtx.location = rqst->loc;
 
-    if (isValInPmem(valCtx)) {
+    if (valCtx.location == LOCATIONS::PMEM) {
         const char *val;
         size_t valSize = 0;
         if (rqst->valueSize > 0) {
             val = rqst->value;
             valSize = rqst->valueSize;
         } else {
-            val = static_cast<char *>(valCtx.val);
+            val = static_cast<const char *>(valCtx.val);
             valSize = valCtx.size;
         }
 
@@ -191,7 +186,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
             return;
         }
         ioTask->bdevAddr->lba = getFreeLba();
-    } else if (isValOffloaded(valCtx)) {
+    } else if (valCtx.location == LOCATIONS::DISK) {
         if (valCtx.size == 0) {
             _rqstClb(rqst, StatusCode::OK);
             if (rqst->valueSize > 0)
@@ -219,7 +214,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        rqst,
                        OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
-        ioTask->bdevAddr->lba = *(static_cast<uint64_t *>(valCtx.val));
+        memcpy(ioTask->bdevAddr, valCtx.val, sizeof(*ioTask->bdevAddr));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         if (rqst->valueSize > 0)
@@ -227,9 +222,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         delete rqst;
         return;
     }
-
-    if (rqst->valueSize > 0)
-        delete[] rqst->value;
 
     if (getBdev()->write(ioTask) != true)
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
@@ -242,12 +234,16 @@ void OffloadPoller::_processRemove(OffloadRqst *rqst) {
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
+        if (rqst->valueSize > 0)
+            delete[] rqst->value;
         delete rqst;
         return;
     }
 
-    if (isValInPmem(valCtx)) {
+    if (valCtx.location == LOCATIONS::PMEM) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
+        if (rqst->valueSize > 0)
+            delete[] rqst->value;
         delete rqst;
         return;
     }

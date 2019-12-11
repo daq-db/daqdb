@@ -511,10 +511,22 @@ void KVStore::UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
         if (!isOffloadEnabled())
             throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
+        uint8_t location;
+        try {
+            void *newValData;
+            size_t newValSize;
+            _spRtree->Get(key.data(), key.size(), &newValData, &newValSize,
+                          &location);
+            value = Value(static_cast<char *>(newValData), newValSize);
+        } catch (...) {
+            Value val;
+            cb(this, KEY_NOT_FOUND, key.data(), key.size(), value.data(),
+               value.size());
+        }
         try {
             if (!_spOffloadPoller->enqueue(new OffloadRqst(
                     OffloadOperation::UPDATE, key.data(), key.size(),
-                    value.data(), value.size(), cb))) {
+                    value.data(), value.size(), cb, location))) {
                 throw QueueFullException();
             }
         } catch (OperationFailedException &e) {

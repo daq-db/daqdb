@@ -29,13 +29,20 @@ struct ValCtx {
     void *val = nullptr;
 };
 
+struct ConstValCtx {
+    uint8_t location = 0;
+    size_t size = 0;
+    const void *val = nullptr;
+};
+
 template <class T>
 class Rqst {
   public:
     Rqst(const T op, const char *key, const size_t keySize, const char *value,
-         size_t valueSize, KVStoreBase::KVStoreBaseCallback clb)
+         size_t valueSize, KVStoreBase::KVStoreBaseCallback clb,
+         uint8_t loc = 0)
         : op(op), key(keyBuffer), keySize(keySize), value(value),
-          valueSize(valueSize), clb(clb) {
+          valueSize(valueSize), clb(clb), loc(loc) {
         memcpy(keyBuffer, key, keySize);
     }
     Rqst() {};
@@ -51,6 +58,7 @@ class Rqst {
     // @TODO jradtke need to check if passing function object has impact on
     // performance
     KVStoreBase::KVStoreBaseCallback clb;
+    uint8_t loc;
     unsigned char taskBuffer[256];
 };
 
