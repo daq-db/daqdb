@@ -84,10 +84,12 @@ void BdevStats::enableStats(bool en) { enable = en; }
 const std::string DEFAULT_SPDK_CONF_FILE = "spdk.conf";
 
 SpdkDeviceClass SpdkBdev::bdev_class = SpdkDeviceClass::BDEV;
+size_t SpdkBdev::cpuCoreCounter = SpdkBdev::cpuCoreStart;
 
 SpdkBdev::SpdkBdev(bool enableStats)
     : state(SpdkBdevState::SPDK_BDEV_INIT), stats(enableStats),
-      IoBytesQueued(0), IoBytesMaxQueued(0), finalizer(0), finalizerThread(0),
+      IoBytesQueued(0), IoBytesMaxQueued(0),
+      cpuCore(SpdkBdev::cpuCoreCounter++), finalizer(0), finalizerThread(0),
       isRunning(0) {}
 
 SpdkBdev::~SpdkBdev() {
@@ -240,7 +242,7 @@ int SpdkBdev::read(DeviceTask *task) {
     if (r_rc) {
         stats.read_err_cnt++;
         /*
-         * -ENOMEM condition indicates a shoortage of IO buffers.
+         * -ENOMEM condition indicates a shortage of IO buffers.
          *  Schedule this IO for later execution by providing a callback
          * function, when sufficient IO buffers are available
          */
@@ -286,7 +288,7 @@ int SpdkBdev::write(DeviceTask *task) {
     if (w_rc) {
         stats.write_err_cnt++;
         /*
-         * -ENOMEM condition indicates a shoortage of IO buffers.
+         * -ENOMEM condition indicates a shortage of IO buffers.
          *  Schedule this IO for later execution by providing a callback
          * function, when sufficient IO buffers are available
          */
@@ -333,7 +335,11 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     spBdevCtx.bdev_desc = 0;
     spdk_bdev_opts bdev_opts;
 
-    spBdevCtx.bdev = spdk_bdev_first();
+    if (!conf.getBdev())
+        spBdevCtx.bdev = spdk_bdev_first();
+    else
+        spBdevCtx.bdev = conf.getBdev();
+
     if (!spBdevCtx.bdev) {
         DAQ_CRITICAL(std::string("No NVMe devices detected for name[") +
                      spBdevCtx.bdev_name + "]");
@@ -383,6 +389,19 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     isRunning = 1;
     finalizer = new FinalizePoller();
     finalizerThread = new std::thread(&SpdkBdev::finilizerThreadMain, this);
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpuCore, &cpuset);
+
+    const int set_result = pthread_setaffinity_np(
+        finalizerThread->native_handle(), sizeof(cpu_set_t), &cpuset);
+    if (!set_result) {
+        DAQ_DEBUG("SpdkCore thread affinity set on CPU core [" +
+                  std::to_string(_cpuCore) + "]");
+    } else {
+        DAQ_DEBUG("Cannot set affinity on CPU core [" +
+                  std::to_string(_cpuCore) + "] for OffloadReactor");
+    }
     return true;
 }
 

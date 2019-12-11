@@ -100,7 +100,7 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
             while (1) {
                 try {
                     _kvs->UpdateAsync(
-                        key, UpdateOptions(LONG_TERM),
+                        key, Value(value),
                         [&cnt, &cntErr](DaqDB::KVStoreBase *kvs,
                                         DaqDB::Status status, const char *key,
                                         const size_t keySize, const char *value,
@@ -110,7 +110,8 @@ void MinidaqFfNode::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                             } else {
                                 cnt++;
                             }
-                        });
+                        },
+                        UpdateOptions(LONG_TERM));
                     /** @todo c++ does not allow it in lambda,
                      *        this is not thread-safe
                      */

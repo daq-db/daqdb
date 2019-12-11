@@ -55,6 +55,10 @@ class SpdkConf {
     void setRaid0StripeSize(size_t raid0StripeSize) {
         _raid0StripeSize = raid0StripeSize;
     }
+    struct spdk_bdev *getBdev() const {
+        return _bdev;
+    }
+    void setBdev(struct spdk_bdev *bdev) { _bdev = bdev; }
     const std::vector<SpdkBdevConf> &getDevs() const { return _devs; }
     void addDev(SpdkBdevConf dev);
 
@@ -63,6 +67,7 @@ class SpdkConf {
     std::string _name;
     size_t _raid0StripeSize;
     std::vector<SpdkBdevConf> _devs;
+    struct spdk_bdev *_bdev;
 };
 
 } // namespace DaqDB

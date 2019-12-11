@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "spdk/bdev.h"
+
 #include "SpdkJBODBdev.h"
 #include <Logger.h>
 
@@ -59,6 +61,8 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         return false;
     }
 
+    struct spdk_bdev *bdev = spdk_bdev_first_leaf();
+
     for (auto d : conf.getDevs()) {
         devices[numDevices].addr.lba = -1; // max
         devices[numDevices].addr.busAddr.spdkPciAddr = d.pciAddr;
@@ -66,6 +70,7 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         devices[numDevices].bdev = new SpdkBdev(statsEnabled);
 
         SpdkConf currConf(SpdkConfDevType::BDEV, d.devName, 0);
+        currConf.setBdev(bdev);
 
         currConf.addDev(d);
         bool ret = devices[numDevices].bdev->init(currConf);
@@ -73,6 +78,7 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
             return false;
         }
         numDevices++;
+        bdev = spdk_bdev_next_leaf(bdev);
     }
     return true;
 }

@@ -208,6 +208,10 @@ class SpdkBdev : public SpdkDevice {
     uint64_t IoBytesQueued;
     uint64_t IoBytesMaxQueued;
 
+    size_t cpuCore;
+    static const size_t cpuCoreStart = 8;
+    static size_t cpuCoreCounter;
+
     uint32_t canQueue() {
         return IoBytesQueued >= IoBytesMaxQueued
                    ? 0

@@ -26,7 +26,7 @@ namespace DaqDB {
 
 SpdkConf::SpdkConf(const OffloadOptions &_offloadOptions)
     : _devType(_offloadOptions.devType), _name(_offloadOptions.name),
-      _raid0StripeSize(_offloadOptions.raid0StripeSize) {
+      _raid0StripeSize(_offloadOptions.raid0StripeSize), _bdev(0) {
     copyDevs(_offloadOptions._devs);
 }
 

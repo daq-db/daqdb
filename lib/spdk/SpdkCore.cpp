@@ -54,7 +54,7 @@ const char *SpdkCore::spdkHugepageDirname = "/mnt/huge_1GB";
 
 SpdkCore::SpdkCore(OffloadOptions _offloadOptions)
     : state(SpdkState::SPDK_INIT), offloadOptions(_offloadOptions), poller(0),
-      _spdkThread(0), _loopThread(0), _ready(false), _cpuCore(0),
+      _spdkThread(0), _loopThread(0), _ready(false), _cpuCore(1),
       _spdkConf(offloadOptions) {
     removeConfFile();
     bool conf_file_ok = createConfFile();
@@ -109,8 +109,16 @@ bool SpdkCore::createConfFile(void) {
                     spdkConf.close();
                     break;
                 case OffloadDevType::JBOD:
+                    spdkConf << "[Nvme]" << endl;
+                    for (auto b : offloadOptions._devs) {
+                        spdkConf << "  TransportID \"trtype:PCIe traddr:"
+                                 << b.nvmeAddr << "\" " << b.nvmeName << endl;
+                    }
+                    spdkConf.close();
                     break;
                 case OffloadDevType::RAID0:
+                    std::cout << "RAID0 bdev configuration not supported yet"
+                              << std::endl;
                     break;
                 }
 
@@ -157,7 +165,7 @@ void SpdkCore::startSpdk() {
 
         const int set_result = pthread_setaffinity_np(
             _spdkThread->native_handle(), sizeof(cpu_set_t), &cpuset);
-        if (set_result == 0) {
+        if (!set_result) {
             DAQ_DEBUG("SpdkCore thread affinity set on CPU core [" +
                       std::to_string(_cpuCore) + "]");
         } else {
