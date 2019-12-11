@@ -38,6 +38,7 @@ class Value {
             return *this;
         _data = r._data;
         _size = r._size;
+        attr = r.attr;
         return *this;
     }
 
