@@ -143,15 +143,8 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
     valCtx.location = rqst->loc;
 
     if (valCtx.location == LOCATIONS::PMEM) {
-        const char *val;
-        size_t valSize = 0;
-        if (rqst->valueSize > 0) {
-            val = rqst->value;
-            valSize = rqst->valueSize;
-        } else {
-            val = static_cast<const char *>(valCtx.val);
-            valSize = valCtx.size;
-        }
+        const char *val = valCtx.val;
+        size_t valSize = valCtx.size;
 
         auto valSizeAlign = getBdev()->getAlignedSize(valSize);
         auto buff = reinterpret_cast<char *>(
