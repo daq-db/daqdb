@@ -48,33 +48,27 @@ class SpdkCore {
 
     void removeConfFile(void);
 
-    inline bool isOffloadEnabled() {
+    bool isOffloadEnabled() {
         if (state == SpdkState::SPDK_READY)
-            return (dynamic_cast<SpdkBdev *>(spBdev.get())->spBdevCtx.state ==
-                    SPDK_BDEV_READY);
+            return spBdev->isOffloadEnabled();
         else
             return false;
     }
     bool spdkEnvInit(void);
 
-    SpdkBdev *getBdev(void) { return dynamic_cast<SpdkBdev *>(spBdev.get()); }
+    SpdkDevice *getBdev(void) { return spBdev.get(); }
 
     bool isSpdkReady() {
         return state == SpdkState::SPDK_READY ? true : false;
     }
 
     bool isBdevFound() {
-        return state == SpdkState::SPDK_READY &&
-                       dynamic_cast<SpdkBdev *>(spBdev.get())->state !=
-                           SpdkBdevState::SPDK_BDEV_NOT_FOUND
-                   ? true
-                   : false;
+        return state == SpdkState::SPDK_READY && spBdev->isBdevFound() == true;
     }
 
     void restoreSignals();
 
     std::atomic<SpdkState> state;
-
     std::unique_ptr<SpdkDevice> spBdev;
     OffloadOptions offloadOptions;
     Poller<OffloadRqst> *poller;

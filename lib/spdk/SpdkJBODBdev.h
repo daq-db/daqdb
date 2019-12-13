@@ -63,6 +63,11 @@ class SpdkJBODBdev : public SpdkDevice {
     inline virtual size_t getAlignedSize(size_t size) { return 0; }
     inline virtual uint32_t getSizeInBlk(size_t &size) { return 0; }
     void virtual setReady() {}
+    virtual bool isOffloadEnabled() { return true; }
+    virtual bool isBdevFound() { return true; }
+    virtual void IOQuiesce() {}
+    virtual bool isIOQuiescent() { return true; }
+    virtual void IOAbort() {}
 
     static SpdkDeviceClass bdev_class;
 

@@ -114,6 +114,12 @@ class SpdkBdev : public SpdkDevice {
     }
     void virtual setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
 
+    virtual bool isOffloadEnabled() {
+        return spBdevCtx.state == SPDK_BDEV_READY;
+    }
+    virtual bool isBdevFound() {
+        return state != SpdkBdevState::SPDK_BDEV_NOT_FOUND;
+    }
     /*
      * SpdkDevice virtual interface
      */
@@ -166,9 +172,9 @@ class SpdkBdev : public SpdkDevice {
         BDEV_IO_ABORTED
     };
 
-    void IOQuiesce();
-    bool isIOQuiescent();
-    void IOAbort();
+    virtual void IOQuiesce();
+    virtual bool isIOQuiescent();
+    virtual void IOAbort();
 
     bool stateMachine() {
         switch (_IoState) {

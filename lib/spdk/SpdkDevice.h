@@ -87,6 +87,11 @@ class SpdkDevice {
     inline virtual size_t getAlignedSize(size_t size) = 0;
     inline virtual uint32_t getSizeInBlk(size_t &size) = 0;
     void virtual setReady() = 0;
+    virtual bool isBdevFound() = 0;
+    virtual bool isOffloadEnabled() = 0;
+    virtual void IOQuiesce() = 0;
+    virtual bool isIOQuiescent() = 0;
+    virtual void IOAbort() = 0;
 };
 
 } // namespace DaqDB
