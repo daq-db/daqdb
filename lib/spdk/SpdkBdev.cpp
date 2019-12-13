@@ -405,7 +405,7 @@ bool SpdkBdev::init(const SpdkConf &conf) {
 }
 
 void SpdkBdev::finilizerThreadMain() {
-    while (isRunning == true) {
+    while (isRunning) {
         finalizer->dequeue();
         finalizer->process();
     }
