@@ -78,6 +78,7 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         if (ret == false) {
             return false;
         }
+        spBdevCtx = devices[numDevices].bdev->spBdevCtx;
         numDevices++;
         bdev = spdk_bdev_next_leaf(bdev);
     }
