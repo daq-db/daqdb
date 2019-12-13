@@ -92,7 +92,6 @@ class SpdkJBODBdev : public SpdkDevice {
     JBODDevice devices[maxDevices];
     uint32_t numDevices = 0;
     uint32_t currDevice = 0;
-    uint64_t _blkNumForLba = 0;
     std::atomic<int> isRunning;
 };
 

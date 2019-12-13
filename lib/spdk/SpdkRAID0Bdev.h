@@ -79,7 +79,6 @@ class SpdkRAID0Bdev : public SpdkDevice {
     static SpdkDeviceClass bdev_class;
 
   private:
-    uint64_t _blkNumForLba = 0;
     std::atomic<int> isRunning;
 };
 
