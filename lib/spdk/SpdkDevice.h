@@ -98,9 +98,7 @@ extern "C" struct SpdkBdevCtx {
  */
 class SpdkDevice {
   public:
-    SpdkDevice() : IoBytesQueued(0), IoBytesMaxQueued(0) {
-        memset(&spBdevCtx, '\0', sizeof(spBdevCtx));
-    }
+    SpdkDevice() : IoBytesQueued(0), IoBytesMaxQueued(0) {}
     virtual ~SpdkDevice() = default;
 
     virtual int write(DeviceTask *task) = 0;
@@ -123,7 +121,9 @@ class SpdkDevice {
     virtual uint32_t canQueue() = 0;
     virtual SpdkBdevCtx *getBdevCtx() = 0;
     virtual uint64_t getBlockOffsetForLba(uint64_t lba) = 0;
-    virtual void setBlockNumForLba(uint64_t blk_num_flba) = 0;
+    virtual void setBlockNumForLba(uint64_t blk_num_flba) {
+        _blkNumForLba = blk_num_flba;
+    }
     virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) = 0;
     virtual uint32_t getBlockSize() = 0;
     virtual uint32_t getIoPoolSize() = 0;
