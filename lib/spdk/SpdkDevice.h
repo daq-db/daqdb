@@ -131,6 +131,7 @@ class SpdkDevice {
     virtual void setRunning(int running) = 0;
     virtual bool IsRunning(int running) = 0;
 
+    uint64_t _blkNumForLba = 0;
     SpdkBdevCtx spBdevCtx;
     uint64_t IoBytesQueued;
     uint64_t IoBytesMaxQueued;

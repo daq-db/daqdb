@@ -182,7 +182,6 @@ class SpdkBdev : public SpdkDevice {
   public:
     static SpdkDeviceClass bdev_class;
 
-    uint64_t _blkNumForLba = 0;
     BdevStats stats;
 
     size_t cpuCore;

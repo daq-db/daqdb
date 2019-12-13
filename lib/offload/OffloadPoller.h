@@ -51,22 +51,16 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
     void initFreeList();
 
-    virtual SpdkBdev *getBdev() {
-        return dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get());
-    }
+    SpdkDevice *getBdev() { return spdkCore->spBdev.get(); }
 
-    virtual SpdkBdevCtx *getBdevCtx() {
-        return &dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get())->spBdevCtx;
-    }
+    SpdkBdevCtx *getBdevCtx() { return spdkCore->spBdev->getBdevCtx(); }
 
     inline spdk_bdev_desc *getBdevDesc() {
-        return dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get())
-            ->spBdevCtx.bdev_desc;
+        return spdkCore->spBdev->getBdevCtx()->bdev_desc;
     }
 
     inline spdk_io_channel *getBdevIoChannel() {
-        return dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get())
-            ->spBdevCtx.io_channel;
+        return spdkCore->spBdev->getBdevCtx()->io_channel;
     }
 
     RTreeEngine *rtree;
