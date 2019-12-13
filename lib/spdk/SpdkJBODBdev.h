@@ -59,11 +59,20 @@ class SpdkJBODBdev : public SpdkDevice {
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);
-    virtual size_t getOptimalSize(size_t size) { return 0; }
-    virtual size_t getAlignedSize(size_t size) { return 0; }
-    virtual uint32_t getSizeInBlk(size_t &size) { return 0; }
-    virtual void setReady() {}
-    virtual bool isOffloadEnabled() { return true; }
+    virtual size_t getOptimalSize(size_t size) {
+        return size ? (((size - 1) / 4096 + 1) * spBdevCtx.io_min_size) : 0;
+    }
+    virtual size_t getAlignedSize(size_t size) {
+        return getOptimalSize(size) + spBdevCtx.blk_size - 1 &
+               ~(spBdevCtx.blk_size - 1);
+    }
+    virtual uint32_t getSizeInBlk(size_t &size) {
+        return getOptimalSize(size) / spBdevCtx.blk_size;
+    }
+    virtual void setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
+    virtual bool isOffloadEnabled() {
+        return spBdevCtx.state == SPDK_BDEV_READY;
+    }
     virtual bool isBdevFound() { return true; }
     virtual void IOQuiesce() {}
     virtual bool isIOQuiescent() { return true; }
