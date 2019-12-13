@@ -37,14 +37,14 @@ int SpdkJBODBdev::read(DeviceTask *task) {
     for (uint32_t i = 0; i < numDevices; i++) {
         if (task->bdevAddr->busAddr.spdkPciAddr ==
             devices[i].addr.busAddr.spdkPciAddr)
-            task->bdev = this;
+            task->bdev = devices[i].bdev;
             return devices[i].bdev->read(task);
     }
     return -1;
 }
 
 int SpdkJBODBdev::write(DeviceTask *task) {
-    task->bdev = this;
+    task->bdev = devices[currDevice].bdev;
     int ret = devices[currDevice].bdev->write(task);
     currDevice++;
     currDevice %= numDevices;
