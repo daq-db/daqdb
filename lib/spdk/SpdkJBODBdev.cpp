@@ -23,11 +23,12 @@ namespace DaqDB {
 
 SpdkDeviceClass SpdkJBODBdev::bdev_class = SpdkDeviceClass::JBOD;
 
-SpdkJBODBdev::SpdkJBODBdev(bool _statsEnabled) : statsEnabled(_statsEnabled) {}
+SpdkJBODBdev::SpdkJBODBdev(bool _statsEnabled)
+    : statsEnabled(_statsEnabled), isRunning(0) {}
 
 SpdkJBODBdev::~SpdkJBODBdev() {
     for (; numDevices; numDevices--) {
-        devices[numDevices].bdev->isRunning = 0;
+        devices[numDevices].bdev->setRunning(0);
         delete devices[numDevices].bdev;
     }
 }
@@ -84,5 +85,9 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
 }
 
 void SpdkJBODBdev::enableStats(bool en) {}
+
+void SpdkJBODBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
+    IoBytesMaxQueued = io_cache_size * 128;
+}
 
 } // namespace DaqDB

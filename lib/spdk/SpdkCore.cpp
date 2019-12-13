@@ -181,8 +181,8 @@ void SpdkCore::startSpdk() {
  */
 void SpdkCore::spdkStart(void *arg) {
     SpdkCore *spdkCore = reinterpret_cast<SpdkCore *>(arg);
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get());
-    SpdkBdevCtx *bdev_c = &bdev->spBdevCtx;
+    SpdkDevice *bdev = spdkCore->spBdev.get();
+    SpdkBdevCtx *bdev_c = bdev->getBdevCtx();
 
     bool rc = bdev->init(spdkCore->_spdkConf);
     if (rc == false) {
@@ -194,7 +194,7 @@ void SpdkCore::spdkStart(void *arg) {
 
     bdev->setMaxQueued(bdev->getIoCacheSize(), bdev->getBlockSize());
     auto aligned = bdev->getAlignedSize(spdkCore->offloadOptions.allocUnitSize);
-    bdev->setBlockNumForLba(aligned / bdev->spBdevCtx.blk_size);
+    bdev->setBlockNumForLba(aligned / bdev_c->blk_size);
 
     spdkCore->poller->initFreeList();
     bool i_rc = spdkCore->poller->init();
@@ -232,7 +232,7 @@ void SpdkCore::_spdkThreadMain(void) {
 int SpdkCore::spdkPollerFunction(void *arg) {
     SpdkCore *spdkCore = reinterpret_cast<SpdkCore *>(arg);
     Poller<OffloadRqst> *poller = spdkCore->poller;
-    SpdkBdev *bdev = dynamic_cast<SpdkBdev *>(spdkCore->spBdev.get());
+    SpdkDevice *bdev = spdkCore->spBdev.get();
     uint32_t to_qu_cnt = bdev->canQueue();
     if (to_qu_cnt) {
         poller->dequeue(to_qu_cnt);
@@ -243,7 +243,7 @@ int SpdkCore::spdkPollerFunction(void *arg) {
         spdk_poller_unregister(&spdkCore->_spdkPoller);
         bdev->deinit();
         spdk_app_stop(0);
-        bdev->isRunning = 0;
+        bdev->setRunning(0);
     }
 
     return 0;

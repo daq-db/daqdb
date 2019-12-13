@@ -67,12 +67,40 @@ struct DeviceTask {
     bool result;
 };
 
+extern "C" enum CSpdkBdevState {
+    SPDK_BDEV_INIT = 0,
+    SPDK_BDEV_NOT_FOUND,
+    SPDK_BDEV_READY,
+    SPDK_BDEV_ERROR
+};
+
+extern "C" struct SpdkBdevCtx {
+    spdk_bdev *bdev;
+    spdk_bdev_desc *bdev_desc;
+    spdk_io_channel *io_channel;
+    char *buff;
+    const char *bdev_name;
+    const char *bdev_addr;
+    struct spdk_bdev_io_wait_entry bdev_io_wait;
+    uint32_t blk_size = 0;
+    uint32_t data_blk_size = 0;
+    uint32_t buf_align = 0;
+    uint64_t blk_num = 0;
+    uint32_t io_pool_size = 0;
+    uint32_t io_cache_size = 0;
+    uint32_t io_min_size = 4096;
+    CSpdkBdevState state;
+    struct spdk_pci_addr pci_addr;
+};
+
 /*
  * Pure abstract class to define read/write IO interface
  */
 class SpdkDevice {
   public:
-    SpdkDevice() = default;
+    SpdkDevice() : IoBytesQueued(0), IoBytesMaxQueued(0) {
+        memset(&spBdevCtx, '\0', sizeof(spBdevCtx));
+    }
     virtual ~SpdkDevice() = default;
 
     virtual int write(DeviceTask *task) = 0;
@@ -83,15 +111,29 @@ class SpdkDevice {
 
     virtual bool init(const SpdkConf &_conf) = 0;
     virtual void deinit() = 0;
-    inline virtual size_t getOptimalSize(size_t size) = 0;
-    inline virtual size_t getAlignedSize(size_t size) = 0;
-    inline virtual uint32_t getSizeInBlk(size_t &size) = 0;
-    void virtual setReady() = 0;
+    virtual size_t getOptimalSize(size_t size) = 0;
+    virtual size_t getAlignedSize(size_t size) = 0;
+    virtual uint32_t getSizeInBlk(size_t &size) = 0;
+    virtual void setReady() = 0;
     virtual bool isBdevFound() = 0;
     virtual bool isOffloadEnabled() = 0;
     virtual void IOQuiesce() = 0;
     virtual bool isIOQuiescent() = 0;
     virtual void IOAbort() = 0;
+    virtual uint32_t canQueue() = 0;
+    virtual SpdkBdevCtx *getBdevCtx() = 0;
+    virtual uint64_t getBlockOffsetForLba(uint64_t lba) = 0;
+    virtual void setBlockNumForLba(uint64_t blk_num_flba) = 0;
+    virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) = 0;
+    virtual uint32_t getBlockSize() = 0;
+    virtual uint32_t getIoPoolSize() = 0;
+    virtual uint32_t getIoCacheSize() = 0;
+    virtual void setRunning(int running) = 0;
+    virtual bool IsRunning(int running) = 0;
+
+    SpdkBdevCtx spBdevCtx;
+    uint64_t IoBytesQueued;
+    uint64_t IoBytesMaxQueued;
 };
 
 } // namespace DaqDB

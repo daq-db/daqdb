@@ -88,7 +88,6 @@ size_t SpdkBdev::cpuCoreCounter = SpdkBdev::cpuCoreStart;
 
 SpdkBdev::SpdkBdev(bool enableStats)
     : state(SpdkBdevState::SPDK_BDEV_INIT), stats(enableStats),
-      IoBytesQueued(0), IoBytesMaxQueued(0),
       cpuCore(SpdkBdev::cpuCoreCounter++), finalizer(0), finalizerThread(0),
       isRunning(0) {}
 
@@ -386,7 +385,7 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     DAQ_DEBUG("BDEV number of blocks[" + std::to_string(spBdevCtx.blk_num) +
               "]");
 
-    isRunning = 1;
+    setRunning(1);
     finalizer = new FinalizePoller();
     finalizerThread = new std::thread(&SpdkBdev::finilizerThreadMain, this);
     cpu_set_t cpuset;

@@ -52,17 +52,35 @@ class SpdkRAID0Bdev : public SpdkDevice {
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);
-    inline virtual size_t getOptimalSize(size_t size) { return 0; }
-    inline virtual size_t getAlignedSize(size_t size) { return 0; }
-    inline virtual uint32_t getSizeInBlk(size_t &size) { return 0; }
-    void virtual setReady() {}
+    virtual size_t getOptimalSize(size_t size) { return 0; }
+    virtual size_t getAlignedSize(size_t size) { return 0; }
+    virtual uint32_t getSizeInBlk(size_t &size) { return 0; }
+    virtual void setReady() {}
     virtual bool isOffloadEnabled() { return true; }
     virtual bool isBdevFound() { return true; }
     virtual void IOQuiesce() {}
     virtual bool isIOQuiescent() { return true; }
     virtual void IOAbort() {}
+    virtual uint32_t canQueue() { return 1024; }
+    virtual SpdkBdevCtx *getBdevCtx() { return &spBdevCtx; }
+    virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
+        return lba * _blkNumForLba;
+    }
+    virtual void setBlockNumForLba(uint64_t blk_num_flba) {
+        _blkNumForLba = blk_num_flba;
+    }
+    virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
+    virtual uint32_t getBlockSize() { return spBdevCtx.blk_size; }
+    virtual uint32_t getIoPoolSize() { return spBdevCtx.io_pool_size; }
+    virtual uint32_t getIoCacheSize() { return spBdevCtx.io_cache_size; }
+    virtual void setRunning(int running) { isRunning = running; }
+    virtual bool IsRunning(int running) { return isRunning; }
 
     static SpdkDeviceClass bdev_class;
+
+  private:
+    uint64_t _blkNumForLba = 0;
+    std::atomic<int> isRunning;
 };
 
 } // namespace DaqDB

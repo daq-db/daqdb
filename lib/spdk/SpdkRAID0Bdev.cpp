@@ -21,7 +21,7 @@ namespace DaqDB {
 
 SpdkDeviceClass SpdkRAID0Bdev::bdev_class = SpdkDeviceClass::RAID0;
 
-SpdkRAID0Bdev::SpdkRAID0Bdev() {}
+SpdkRAID0Bdev::SpdkRAID0Bdev() : isRunning(0) {}
 
 int SpdkRAID0Bdev::read(DeviceTask *task) { return 0; }
 
@@ -34,5 +34,9 @@ void SpdkRAID0Bdev::deinit() {}
 bool SpdkRAID0Bdev::init(const SpdkConf &conf) { return true; }
 
 void SpdkRAID0Bdev::enableStats(bool en) {}
+
+void SpdkRAID0Bdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
+    IoBytesMaxQueued = io_cache_size * 128;
+}
 
 } // namespace DaqDB

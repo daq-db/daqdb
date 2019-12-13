@@ -38,32 +38,6 @@ enum class SpdkBdevState : std::uint8_t {
     SPDK_BDEV_ERROR
 };
 
-extern "C" enum CSpdkBdevState {
-    SPDK_BDEV_INIT = 0,
-    SPDK_BDEV_NOT_FOUND,
-    SPDK_BDEV_READY,
-    SPDK_BDEV_ERROR
-};
-
-extern "C" struct SpdkBdevCtx {
-    spdk_bdev *bdev;
-    spdk_bdev_desc *bdev_desc;
-    spdk_io_channel *io_channel;
-    char *buff;
-    const char *bdev_name;
-    const char *bdev_addr;
-    struct spdk_bdev_io_wait_entry bdev_io_wait;
-    uint32_t blk_size = 0;
-    uint32_t data_blk_size = 0;
-    uint32_t buf_align = 0;
-    uint64_t blk_num = 0;
-    uint32_t io_pool_size = 0;
-    uint32_t io_cache_size = 0;
-    uint32_t io_min_size = 4096;
-    CSpdkBdevState state;
-    struct spdk_pci_addr pci_addr;
-};
-
 class FinalizePoller;
 
 struct BdevStats {
@@ -120,6 +94,7 @@ class SpdkBdev : public SpdkDevice {
     virtual bool isBdevFound() {
         return state != SpdkBdevState::SPDK_BDEV_NOT_FOUND;
     }
+    virtual SpdkBdevCtx *getBdevCtx() { return &spBdevCtx; }
     /*
      * SpdkDevice virtual interface
      */
@@ -132,9 +107,9 @@ class SpdkBdev : public SpdkDevice {
     /*
      * Spdk Bdev specifics
      */
-    inline uint32_t getBlockSize() { return spBdevCtx.blk_size; }
-    inline uint32_t getIoPoolSize() { return spBdevCtx.io_pool_size; }
-    inline uint32_t getIoCacheSize() { return spBdevCtx.io_cache_size; }
+    virtual uint32_t getBlockSize() { return spBdevCtx.blk_size; }
+    virtual uint32_t getIoPoolSize() { return spBdevCtx.io_pool_size; }
+    virtual uint32_t getIoCacheSize() { return spBdevCtx.io_cache_size; }
 
     /*
      * Callback function for a read IO completion.
@@ -207,32 +182,34 @@ class SpdkBdev : public SpdkDevice {
   public:
     static SpdkDeviceClass bdev_class;
 
-    SpdkBdevCtx spBdevCtx;
     uint64_t _blkNumForLba = 0;
     BdevStats stats;
-
-    uint64_t IoBytesQueued;
-    uint64_t IoBytesMaxQueued;
 
     size_t cpuCore;
     static const size_t cpuCoreStart = 8;
     static size_t cpuCoreCounter;
 
-    uint32_t canQueue() {
+    virtual uint32_t canQueue() {
         return IoBytesQueued >= IoBytesMaxQueued
                    ? 0
                    : (IoBytesMaxQueued - IoBytesQueued) / 4096;
     }
-    uint64_t getBlockOffsetForLba(uint64_t lba) { return lba * _blkNumForLba; }
-    void setBlockNumForLba(uint64_t blk_num_flba) {
+    virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
+        return lba * _blkNumForLba;
+    }
+    virtual void setBlockNumForLba(uint64_t blk_num_flba) {
         _blkNumForLba = blk_num_flba;
     }
-    void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
+    virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
+    virtual void setRunning(int running) { isRunning = running; }
+    virtual bool IsRunning(int running) { return isRunning; }
 
     FinalizePoller *finalizer;
     std::thread *finalizerThread;
-    std::atomic<int> isRunning;
     void finilizerThreadMain(void);
+
+  private:
+    std::atomic<int> isRunning;
 };
 
 using BdevTask = DeviceTask;
