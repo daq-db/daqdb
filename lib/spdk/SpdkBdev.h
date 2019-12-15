@@ -46,18 +46,18 @@ struct BdevStats {
     uint64_t read_compl_cnt;
     uint64_t read_err_cnt;
     bool periodic = true;
-    bool enable;
     uint64_t quant_per = (1 << 18);
     uint64_t outstanding_io_cnt;
 
-    BdevStats(bool enab = false)
+    BdevStats()
         : write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0),
-          read_err_cnt(0), enable(enab), outstanding_io_cnt(0) {}
-    std::ostringstream &formatWriteBuf(std::ostringstream &buf);
-    std::ostringstream &formatReadBuf(std::ostringstream &buf);
-    void printWritePer(std::ostream &os);
-    void printReadPer(std::ostream &os);
-    void enableStats(bool en);
+          read_err_cnt(0), outstanding_io_cnt(0) {}
+    std::ostringstream &formatWriteBuf(std::ostringstream &buf,
+                                       const char *bdev_addr);
+    std::ostringstream &formatReadBuf(std::ostringstream &buf,
+                                      const char *bdev_addr);
+    void printWritePer(std::ostream &os, const char *bdev_addr);
+    void printReadPer(std::ostream &os, const char *bdev_addr);
 };
 
 class SpdkBdev : public SpdkDevice {
@@ -209,6 +209,7 @@ class SpdkBdev : public SpdkDevice {
 
   private:
     std::atomic<int> isRunning;
+    bool statsEnabled;
 };
 
 using BdevTask = DeviceTask;

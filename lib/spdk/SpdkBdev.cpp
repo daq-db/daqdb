@@ -43,41 +43,46 @@ namespace DaqDB {
 /*
  * BdevStats
  */
-std::ostringstream &BdevStats::formatWriteBuf(std::ostringstream &buf) {
-    buf << "write_compl_cnt[" << write_compl_cnt << "] write_err_cnt["
-        << write_err_cnt << "] outs_io_cnt[" << outstanding_io_cnt << "]";
+std::ostringstream &BdevStats::formatWriteBuf(std::ostringstream &buf,
+                                              const char *bdev_addr) {
+    buf << "bdev_addr[" << bdev_addr << "] write_compl_cnt[" << write_compl_cnt
+        << "] write_err_cnt[" << write_err_cnt << "] outs_io_cnt["
+        << outstanding_io_cnt << "]";
     return buf;
 }
 
-std::ostringstream &BdevStats::formatReadBuf(std::ostringstream &buf) {
-    buf << "read_compl_cnt[" << read_compl_cnt << "] read_err_cnt["
-        << read_err_cnt << "] outs_io_cnt[" << outstanding_io_cnt << "]";
+std::ostringstream &BdevStats::formatReadBuf(std::ostringstream &buf,
+                                             const char *bdev_addr) {
+    buf << "bdev_addr[" << bdev_addr << "] read_compl_cnt[" << read_compl_cnt
+        << "] read_err_cnt[" << read_err_cnt << "] outs_io_cnt["
+        << outstanding_io_cnt << "]";
     return buf;
 }
 
-void BdevStats::printWritePer(std::ostream &os) {
-    if (enable == true && !((write_compl_cnt++) % quant_per)) {
+void BdevStats::printWritePer(std::ostream &os, const char *bdev_addr) {
+    if (!((write_compl_cnt++) % quant_per)) {
         std::ostringstream buf;
         char time_buf[128];
         time_t now = time(0);
         strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S.000",
                  localtime(&now));
-        os << formatWriteBuf(buf).str() << " " << time_buf << std::endl;
+        os << formatWriteBuf(buf, bdev_addr).str() << " " << time_buf
+           << std::endl;
     }
 }
 
-void BdevStats::printReadPer(std::ostream &os) {
-    if (enable == true && !((read_compl_cnt++) % quant_per)) {
+void BdevStats::printReadPer(std::ostream &os, const char *bdev_addr) {
+    if (!((read_compl_cnt++) % quant_per)) {
         std::ostringstream buf;
         char time_buf[128];
         time_t now = time(0);
         strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S.000",
                  localtime(&now));
-        os << formatReadBuf(buf).str() << " " << time_buf << std::endl;
+        os << formatReadBuf(buf, bdev_addr).str() << " " << time_buf
+           << std::endl;
     }
 }
 
-void BdevStats::enableStats(bool en) { enable = en; }
 /*
  * SpdkBdev
  */
@@ -87,9 +92,9 @@ SpdkDeviceClass SpdkBdev::bdev_class = SpdkDeviceClass::BDEV;
 size_t SpdkBdev::cpuCoreCounter = SpdkBdev::cpuCoreStart;
 
 SpdkBdev::SpdkBdev(bool enableStats)
-    : state(SpdkBdevState::SPDK_BDEV_INIT), stats(enableStats),
-      cpuCore(SpdkBdev::cpuCoreCounter++), finalizer(0), finalizerThread(0),
-      isRunning(0) {}
+    : state(SpdkBdevState::SPDK_BDEV_INIT), cpuCore(SpdkBdev::cpuCoreCounter++),
+      finalizer(0), finalizerThread(0), isRunning(0),
+      statsEnabled(enableStats) {}
 
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
@@ -128,8 +133,8 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     (void)bdev->stateMachine();
 
     task->result = success;
-    if (success)
-        bdev->stats.printWritePer(std::cout);
+    if (bdev->statsEnabled == true && success == true)
+        bdev->stats.printWritePer(std::cout, bdev->spBdevCtx.bdev_addr);
     bdev->finalizer->enqueue(task);
 }
 
@@ -154,8 +159,8 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     (void)bdev->stateMachine();
 
     task->result = success;
-    if (success)
-        bdev->stats.printReadPer(std::cout);
+    if (bdev->statsEnabled == true && success == true)
+        bdev->stats.printReadPer(std::cout, bdev->spBdevCtx.bdev_addr);
     bdev->finalizer->enqueue(task);
 }
 
@@ -185,8 +190,10 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
             spdk_app_stop(-1);
         }
     } else {
-        bdev->stats.read_err_cnt--;
-        bdev->stats.outstanding_io_cnt++;
+        if (bdev->statsEnabled == true) {
+            bdev->stats.read_err_cnt--;
+            bdev->stats.outstanding_io_cnt++;
+        }
     }
 }
 
@@ -216,8 +223,10 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
             spdk_app_stop(-1);
         }
     } else {
-        bdev->stats.write_err_cnt--;
-        bdev->stats.outstanding_io_cnt++;
+        if (bdev->statsEnabled == true) {
+            bdev->stats.write_err_cnt--;
+            bdev->stats.outstanding_io_cnt++;
+        }
     }
 }
 
@@ -259,8 +268,10 @@ int SpdkBdev::read(DeviceTask *task) {
             bdev->deinit();
             spdk_app_stop(-1);
         }
-    } else
-        stats.outstanding_io_cnt++;
+    } else {
+        if (bdev->statsEnabled == true)
+            stats.outstanding_io_cnt++;
+    }
 
     return !r_rc ? true : false;
 }
@@ -305,8 +316,10 @@ int SpdkBdev::write(DeviceTask *task) {
             bdev->deinit();
             spdk_app_stop(-1);
         }
-    } else
-        stats.outstanding_io_cnt++;
+    } else {
+        if (bdev->statsEnabled == true)
+            stats.outstanding_io_cnt++;
+    }
 
     return !w_rc ? true : false;
 }
@@ -415,5 +428,5 @@ void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
     IoBytesMaxQueued = io_cache_size * 128;
 }
 
-void SpdkBdev::enableStats(bool en) { stats.enableStats(en); }
+void SpdkBdev::enableStats(bool en) { statsEnabled = en; }
 } // namespace DaqDB
