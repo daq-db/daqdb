@@ -74,13 +74,15 @@ extern "C" enum CSpdkBdevState {
     SPDK_BDEV_ERROR
 };
 
+#define MAX_BDEV_NAME 32
+#define BDEV_PCI_ADDR 32
 extern "C" struct SpdkBdevCtx {
     spdk_bdev *bdev;
     spdk_bdev_desc *bdev_desc;
     spdk_io_channel *io_channel;
     char *buff;
-    const char *bdev_name;
-    const char *bdev_addr;
+    char bdev_name[MAX_BDEV_NAME];
+    char bdev_addr[BDEV_PCI_ADDR];
     struct spdk_bdev_io_wait_entry bdev_io_wait;
     uint32_t blk_size = 0;
     uint32_t data_blk_size = 0;

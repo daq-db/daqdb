@@ -74,7 +74,6 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
 
         SpdkConf currConf(SpdkConfDevType::BDEV, d.devName, 0);
         currConf.setBdev(bdev);
-
         currConf.addDev(d);
         bool ret = devices[numDevices].bdev->init(currConf);
         if (ret == false) {

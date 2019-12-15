@@ -341,8 +341,8 @@ void SpdkBdev::deinit() {
 }
 
 bool SpdkBdev::init(const SpdkConf &conf) {
-    spBdevCtx.bdev_name = conf.getBdevNvmeName().c_str();
-    spBdevCtx.bdev_addr = conf.getBdevNvmeAddr().c_str();
+    strcpy(spBdevCtx.bdev_name, conf.getBdevNvmeName().c_str());
+    strcpy(spBdevCtx.bdev_addr, conf.getBdevNvmeAddr().c_str());
     spBdevCtx.bdev = 0;
     spBdevCtx.bdev_desc = 0;
     spdk_bdev_opts bdev_opts;
