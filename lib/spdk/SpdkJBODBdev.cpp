@@ -87,7 +87,7 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
     return true;
 }
 
-void SpdkJBODBdev::enableStats(bool en) {}
+void SpdkJBODBdev::enableStats(bool en) { statsEnabled = en; }
 
 void SpdkJBODBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
     IoBytesMaxQueued = io_cache_size * 128;
