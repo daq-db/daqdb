@@ -197,6 +197,13 @@ void SpdkCore::spdkStart(void *arg) {
     bdev->setBlockNumForLba(aligned / bdev_c->blk_size);
 
     spdkCore->poller->initFreeList();
+    bool i_rc = spdkCore->poller->init();
+    if (i_rc == false) {
+        DAQ_CRITICAL("Poller init failed");
+        spdkCore->signalReady();
+        spdk_app_stop(-1);
+        return;
+    }
 
     spdkCore->poller->setRunning(1);
     spdkCore->setSpdkPoller(

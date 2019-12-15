@@ -50,7 +50,7 @@ namespace DaqDB {
 const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 
 OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *_spdkCore)
-    : Poller<OffloadRqst>(), rtree(rtree), spdkCore(_spdkCore) {}
+    : Poller<OffloadRqst>(false), rtree(rtree), spdkCore(_spdkCore) {}
 
 OffloadPoller::~OffloadPoller() {
     isRunning = 0;

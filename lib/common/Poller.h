@@ -25,15 +25,26 @@ namespace DaqDB {
 
 template <class T> class Poller {
   public:
-    Poller() : rqstRing(0), requests(new T *[DEQUEUE_RING_LIMIT]) {
-        rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
-                                    SPDK_ENV_SOCKET_ID_ANY);
+    Poller(bool _createBuf = true)
+        : rqstRing(0), requests(new T *[DEQUEUE_RING_LIMIT]),
+          createBuf(_createBuf) {
+        if (createBuf == true) {
+            rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
+                                        SPDK_ENV_SOCKET_ID_ANY);
+        }
     }
     virtual ~Poller() {
         spdk_ring_free(rqstRing);
         delete[] requests;
     }
-
+    bool init() {
+        if (createBuf == false) {
+            rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4,
+                                        SPDK_ENV_SOCKET_ID_ANY);
+            return rqstRing ? true : false;
+        }
+        return true;
+    }
     virtual bool enqueue(T *rqst) {
         size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1, 0);
         return (count == 1);
@@ -57,6 +68,7 @@ template <class T> class Poller {
     struct spdk_ring *rqstRing;
     unsigned short requestCount = 0;
     T **requests;
+    bool createBuf;
 };
 
 } // namespace DaqDB
