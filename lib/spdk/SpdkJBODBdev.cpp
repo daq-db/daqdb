@@ -28,8 +28,8 @@ SpdkJBODBdev::SpdkJBODBdev(bool _statsEnabled)
 
 SpdkJBODBdev::~SpdkJBODBdev() {
     for (; numDevices; numDevices--) {
-        devices[numDevices].bdev->setRunning(0);
-        delete devices[numDevices].bdev;
+        devices[numDevices - 1].bdev->setRunning(0);
+        delete devices[numDevices - 1].bdev;
     }
 }
 
