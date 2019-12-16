@@ -99,6 +99,8 @@ SpdkBdev::SpdkBdev(bool enableStats)
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
         finalizerThread->join();
+    if (finalizer)
+        delete finalizer;
 }
 
 void SpdkBdev::IOQuiesce() { _IoState = SpdkBdev::State::BDEV_IO_QUIESCING; }
