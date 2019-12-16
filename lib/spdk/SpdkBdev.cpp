@@ -178,7 +178,7 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
 
     int r_rc = spdk_bdev_read_blocks(
         bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        bdev->getBlockOffsetForLba(task->bdevAddr->lba), task->blockSize,
+        task->blockSize * task->bdevAddr->lba, task->blockSize,
         SpdkBdev::readComplete, task);
 
     /* If a read IO still fails due to shortage of io buffers, queue it up for
@@ -211,7 +211,7 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
 
     int w_rc = spdk_bdev_write_blocks(
         bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        bdev->getBlockOffsetForLba(task->bdevAddr->lba), task->blockSize,
+        task->blockSize * task->freeLba, task->blockSize,
         SpdkBdev::writeComplete, task);
 
     /* If a write IO still fails due to shortage of io buffers, queue it up for
@@ -294,7 +294,7 @@ int SpdkBdev::write(DeviceTask *task) {
 #else
     int w_rc = spdk_bdev_write_blocks(
         bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->bdevAddr->lba, task->blockSize,
+        task->blockSize * task->freeLba, task->blockSize,
         SpdkBdev::writeComplete, task);
 #endif
 
