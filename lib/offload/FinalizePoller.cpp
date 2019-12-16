@@ -92,7 +92,7 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
                       task->keySize, nullptr, 0);
     }
 
-    delete task->rqst;
+    OffloadRqst::updatePool.put(task->rqst);
 }
 
 } // namespace DaqDB

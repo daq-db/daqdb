@@ -523,10 +523,13 @@ void KVStore::UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
             cb(this, KEY_NOT_FOUND, key.data(), key.size(), value.data(),
                value.size());
         }
+        OffloadRqst *offRqst = OffloadRqst::updatePool.get();
         try {
-            if (!_spOffloadPoller->enqueue(new OffloadRqst(
-                    OffloadOperation::UPDATE, key.data(), key.size(),
-                    value.data(), value.size(), cb, location))) {
+            offRqst->setArgs(key.data(), key.size(), value.data(), value.size(),
+                             cb, location);
+
+            if (!_spOffloadPoller->enqueue(offRqst)) {
+                OffloadRqst::updatePool.put(offRqst);
                 throw QueueFullException();
             }
         } catch (OperationFailedException &e) {

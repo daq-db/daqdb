@@ -19,6 +19,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "ClassAlloc.h"
+#include "GeneralPool.h"
 #include <daqdb/KVStoreBase.h>
 
 namespace DaqDB {
@@ -45,8 +47,19 @@ class Rqst {
           valueSize(valueSize), clb(clb), loc(loc) {
         memcpy(keyBuffer, key, keySize);
     }
-    Rqst() {};
+    Rqst() : op(T::UPDATE){};
     virtual ~Rqst() = default;
+    void setArgs(const char *_key, const size_t _keySize, const char *_value,
+                 size_t _valueSize, KVStoreBase::KVStoreBaseCallback _clb,
+                 uint8_t _loc) {
+        key = _key;
+        keySize = _keySize;
+        memcpy(keyBuffer, key, keySize);
+        value = _value;
+        valueSize = _valueSize;
+        clb = _clb;
+        loc = _loc;
+    }
 
     const T op;
     const char *key = nullptr;
@@ -60,6 +73,12 @@ class Rqst {
     KVStoreBase::KVStoreBaseCallback clb;
     uint8_t loc;
     unsigned char taskBuffer[256];
+
+    static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> updatePool;
 };
+
+template <class T>
+MemMgmt::GeneralPool<Rqst<T>, MemMgmt::ClassAlloc<Rqst<T>>>
+    Rqst<T>::updatePool(100, "Rqst");
 
 } // namespace DaqDB
