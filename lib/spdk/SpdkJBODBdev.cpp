@@ -71,6 +71,7 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         devices[numDevices].addr.busAddr.spdkPciAddr = d.pciAddr;
         devices[numDevices].num = numDevices;
         devices[numDevices].bdev = new SpdkBdev(statsEnabled);
+        devices[numDevices].bdev->memTracker = this;
 
         SpdkConf currConf(SpdkConfDevType::BDEV, d.devName, 0);
         currConf.setBdev(bdev);
@@ -89,7 +90,14 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
 void SpdkJBODBdev::enableStats(bool en) { statsEnabled = en; }
 
 void SpdkJBODBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
-    IoBytesMaxQueued = io_cache_size * 128;
+    memTracker->IoBytesMaxQueued = io_cache_size * 128;
+}
+
+uint32_t SpdkJBODBdev::canQueue() {
+    return memTracker->IoBytesQueued >= memTracker->IoBytesMaxQueued
+               ? 0
+               : (memTracker->IoBytesMaxQueued - memTracker->IoBytesQueued) /
+                     4096;
 }
 
 } // namespace DaqDB

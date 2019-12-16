@@ -72,7 +72,7 @@ void FinalizePoller::_processGet(DeviceTask *task) {
                       task->keySize, nullptr, 0);
     }
 
-    delete task->rqst;
+    OffloadRqst::getPool.put(task->rqst);
 }
 
 void FinalizePoller::_processUpdate(DeviceTask *task) {

@@ -47,21 +47,50 @@ class Rqst {
           valueSize(valueSize), clb(clb), loc(loc) {
         memcpy(keyBuffer, key, keySize);
     }
-    Rqst() : op(T::UPDATE){};
+    Rqst()
+        : op(T::GET), key(keyBuffer), keySize(0), value(0), valueSize(0),
+          clb(0), loc(0){};
     virtual ~Rqst() = default;
-    void setArgs(const char *_key, const size_t _keySize, const char *_value,
-                 size_t _valueSize, KVStoreBase::KVStoreBaseCallback _clb,
-                 uint8_t _loc) {
+    void finalizeUpdate(const char *_key, const size_t _keySize,
+                        const char *_value, size_t _valueSize,
+                        KVStoreBase::KVStoreBaseCallback _clb,
+                        uint8_t _loc = 0) {
+        op = T::UPDATE;
         key = _key;
         keySize = _keySize;
         memcpy(keyBuffer, key, keySize);
+        key = keyBuffer;
         value = _value;
         valueSize = _valueSize;
         clb = _clb;
         loc = _loc;
     }
+    void finalizeGet(const char *_key, const size_t _keySize,
+                     const char *_value, size_t _valueSize,
+                     KVStoreBase::KVStoreBaseCallback _clb) {
+        op = T::GET;
+        key = _key;
+        keySize = _keySize;
+        memcpy(keyBuffer, key, keySize);
+        key = keyBuffer;
+        value = _value;
+        valueSize = _valueSize;
+        clb = _clb;
+    }
+    void finalizeRemove(const char *_key, const size_t _keySize,
+                        const char *_value, size_t _valueSize,
+                        KVStoreBase::KVStoreBaseCallback _clb) {
+        op = T::REMOVE;
+        key = _key;
+        keySize = _keySize;
+        memcpy(keyBuffer, key, keySize);
+        key = keyBuffer;
+        value = _value;
+        valueSize = _valueSize;
+        clb = _clb;
+    }
 
-    const T op;
+    T op;
     const char *key = nullptr;
     char keyBuffer[32];
     size_t keySize = 0;
@@ -75,10 +104,20 @@ class Rqst {
     unsigned char taskBuffer[256];
 
     static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> updatePool;
+    static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> getPool;
+    static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> removePool;
 };
 
 template <class T>
 MemMgmt::GeneralPool<Rqst<T>, MemMgmt::ClassAlloc<Rqst<T>>>
-    Rqst<T>::updatePool(100, "Rqst");
+    Rqst<T>::updatePool(100, "updateRqstPool");
+
+template <class T>
+MemMgmt::GeneralPool<Rqst<T>, MemMgmt::ClassAlloc<Rqst<T>>>
+    Rqst<T>::getPool(100, "getRqstPool");
+
+template <class T>
+MemMgmt::GeneralPool<Rqst<T>, MemMgmt::ClassAlloc<Rqst<T>>>
+    Rqst<T>::removePool(100, "removeRqstPool");
 
 } // namespace DaqDB

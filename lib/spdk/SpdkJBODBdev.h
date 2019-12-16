@@ -77,7 +77,7 @@ class SpdkJBODBdev : public SpdkDevice {
     virtual void IOQuiesce() {}
     virtual bool isIOQuiescent() { return true; }
     virtual void IOAbort() {}
-    virtual uint32_t canQueue() { return 1024; }
+    virtual uint32_t canQueue();
     virtual SpdkBdevCtx *getBdevCtx() { return &spBdevCtx; }
     virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
         return lba * _blkNumForLba;

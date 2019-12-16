@@ -193,18 +193,22 @@ void KVStore::_getOffloaded(const char *key, size_t keySize, char *value,
     std::mutex mtx;
     std::condition_variable cv;
     bool ready = false;
-    if (!_spOffloadPoller->enqueue(new OffloadRqst(
-            OffloadOperation::GET, key, keySize, nullptr, 0,
-            [&mtx, &cv, &ready, &value, &valueSize](
-                KVStoreBase *kvs, Status status, const char *key,
-                size_t keySize, const char *valueOff, size_t valueOffSize) {
-                // todo add size check
-                std::unique_lock<std::mutex> lck(mtx);
-                std::memcpy(value, valueOff, valueOffSize);
-                *valueSize = valueOffSize;
-                ready = true;
-                cv.notify_all();
-            }))) {
+    OffloadRqst *getRqst = OffloadRqst::getPool.get();
+    getRqst->finalizeGet(key, keySize, nullptr, 0,
+                         [&mtx, &cv, &ready, &value, &valueSize](
+                             KVStoreBase *kvs, Status status, const char *key,
+                             size_t keySize, const char *valueOff,
+                             size_t valueOffSize) {
+                             // todo add size check
+                             std::unique_lock<std::mutex> lck(mtx);
+                             std::memcpy(value, valueOff, valueOffSize);
+                             *valueSize = valueOffSize;
+                             ready = true;
+                             cv.notify_all();
+                         });
+
+    if (!_spOffloadPoller->enqueue(getRqst)) {
+        OffloadRqst::getPool.put(getRqst);
         throw QueueFullException();
     }
     // wait for completion
@@ -223,18 +227,22 @@ void KVStore::_getOffloaded(const char *key, size_t keySize, char **value,
     std::mutex mtx;
     std::condition_variable cv;
     bool ready = false;
-    if (!_spOffloadPoller->enqueue(new OffloadRqst(
-            OffloadOperation::GET, key, keySize, nullptr, 0,
-            [&mtx, &cv, &ready, &value, &valueSize](
-                KVStoreBase *kvs, Status status, const char *key,
-                size_t keySize, const char *valueOff, size_t valueOffSize) {
-                *value = new char[valueOffSize];
-                std::unique_lock<std::mutex> lck(mtx);
-                std::memcpy(*value, valueOff, valueOffSize);
-                *valueSize = valueOffSize;
-                ready = true;
-                cv.notify_all();
-            }))) {
+    OffloadRqst *getRqst = OffloadRqst::getPool.get();
+    getRqst->finalizeGet(key, keySize, nullptr, 0,
+                         [&mtx, &cv, &ready, &value, &valueSize](
+                             KVStoreBase *kvs, Status status, const char *key,
+                             size_t keySize, const char *valueOff,
+                             size_t valueOffSize) {
+                             *value = new char[valueOffSize];
+                             std::unique_lock<std::mutex> lck(mtx);
+                             std::memcpy(*value, valueOff, valueOffSize);
+                             *valueSize = valueOffSize;
+                             ready = true;
+                             cv.notify_all();
+                         });
+
+    if (!_spOffloadPoller->enqueue(getRqst)) {
+        OffloadRqst::getPool.put(getRqst);
         throw QueueFullException();
     }
     // wait for completion
@@ -319,15 +327,19 @@ void KVStore::Remove(const char *key, size_t keySize) {
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
-        if (!_spOffloadPoller->enqueue(new OffloadRqst(
-                OffloadOperation::REMOVE, key, keySize, nullptr, 0,
-                [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
-                                    const char *key, size_t keySize,
-                                    const char *value, size_t valueSize) {
-                    std::unique_lock<std::mutex> lck(mtx);
-                    ready = true;
-                    cv.notify_all();
-                }))) {
+        OffloadRqst *removeRqst = OffloadRqst::removePool.get();
+        removeRqst->finalizeRemove(
+            key, keySize, nullptr, 0,
+            [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
+                                const char *key, size_t keySize,
+                                const char *value, size_t valueSize) {
+                std::unique_lock<std::mutex> lck(mtx);
+                ready = true;
+                cv.notify_all();
+            });
+
+        if (!_spOffloadPoller->enqueue(removeRqst)) {
+            OffloadRqst::removePool.put(removeRqst);
             throw QueueFullException();
         }
 
@@ -406,10 +418,11 @@ void KVStore::GetAsync(const Key &key, KVStoreBaseCallback cb,
         if (!isOffloadEnabled())
             throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
+        OffloadRqst *getRqst = OffloadRqst::getPool.get();
         try {
-            if (!_spOffloadPoller->enqueue(
-                    new OffloadRqst(OffloadOperation::GET, key.data(),
-                                    key.size(), nullptr, 0, cb))) {
+            getRqst->finalizeGet(key.data(), key.size(), nullptr, 0, cb);
+            if (!_spOffloadPoller->enqueue(getRqst)) {
+                OffloadRqst::getPool.put(getRqst);
                 throw QueueFullException();
             }
         } catch (OperationFailedException &e) {
@@ -474,16 +487,19 @@ void KVStore::Update(const Key &key, Value &&val,
         std::condition_variable cv;
         bool ready = false;
 
-        if (!_spOffloadPoller->enqueue(new OffloadRqst(
-                OffloadOperation::UPDATE, key.data(), key.size(), val.data(),
-                val.size(),
-                [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
-                                    const char *key, size_t keySize,
-                                    const char *value, size_t valueSize) {
-                    std::unique_lock<std::mutex> lck(mtx);
-                    ready = true;
-                    cv.notify_all();
-                }))) {
+        OffloadRqst *updateRqst = OffloadRqst::getPool.get();
+        updateRqst->finalizeUpdate(
+            key.data(), key.size(), val.data(), val.size(),
+            [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,
+                                const char *key, size_t keySize,
+                                const char *value, size_t valueSize) {
+                std::unique_lock<std::mutex> lck(mtx);
+                ready = true;
+                cv.notify_all();
+            });
+
+        if (!_spOffloadPoller->enqueue(updateRqst)) {
+            OffloadRqst::updatePool.put(updateRqst);
             throw QueueFullException();
         }
         // wait for completion
@@ -523,13 +539,13 @@ void KVStore::UpdateAsync(const Key &key, Value &&value, KVStoreBaseCallback cb,
             cb(this, KEY_NOT_FOUND, key.data(), key.size(), value.data(),
                value.size());
         }
-        OffloadRqst *offRqst = OffloadRqst::updatePool.get();
+        OffloadRqst *updateRqst = OffloadRqst::updatePool.get();
         try {
-            offRqst->setArgs(key.data(), key.size(), value.data(), value.size(),
-                             cb, location);
+            updateRqst->finalizeUpdate(key.data(), key.size(), value.data(),
+                                       value.size(), cb, location);
 
-            if (!_spOffloadPoller->enqueue(offRqst)) {
-                OffloadRqst::updatePool.put(offRqst);
+            if (!_spOffloadPoller->enqueue(updateRqst)) {
+                OffloadRqst::updatePool.put(updateRqst);
                 throw QueueFullException();
             }
         } catch (OperationFailedException &e) {

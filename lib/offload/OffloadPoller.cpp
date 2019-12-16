@@ -94,13 +94,13 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
-        delete rqst;
+        OffloadRqst::getPool.put(rqst);
         return;
     }
 
     if (valCtx.location == LOCATIONS::PMEM) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
-        delete rqst;
+        OffloadRqst::getPool.put(rqst);
         return;
     }
 
@@ -108,7 +108,7 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
 
     char *buff = reinterpret_cast<char *>(
         spdk_dma_zmalloc(size, getBdevCtx()->buf_align, NULL));
-    getBdev()->IoBytesQueued += size;
+    getBdev()->memTracker->IoBytesQueued += size;
 
     auto blkSize = getBdev()->getSizeInBlk(size);
     DeviceTask *ioTask = new (rqst->taskBuffer)
@@ -149,7 +149,8 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         auto valSizeAlign = getBdev()->getAlignedSize(valSize);
         auto buff = reinterpret_cast<char *>(
             spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
-        getBdev()->IoBytesQueued += getBdev()->getOptimalSize(valSize);
+        getBdev()->memTracker->IoBytesQueued +=
+            getBdev()->getOptimalSize(valSize);
 
         memcpy(buff, val, valSize);
         ioTask = new (rqst->taskBuffer)
@@ -173,9 +174,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         } catch (...) {
             /** @todo fix exception handling */
             _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
-            if (rqst->valueSize > 0)
-                delete[] rqst->value;
-            delete rqst;
+            OffloadRqst::updatePool.put(rqst);
             return;
         }
         ioTask->bdevAddr->lba = getFreeLba();
@@ -184,13 +183,14 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
             _rqstClb(rqst, StatusCode::OK);
             if (rqst->valueSize > 0)
                 delete[] rqst->value;
-            delete rqst;
+            OffloadRqst::updatePool.put(rqst);
             return;
         }
         auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
         auto buff = reinterpret_cast<char *>(
             spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
-        getBdev()->IoBytesQueued += getBdev()->getOptimalSize(rqst->valueSize);
+        getBdev()->memTracker->IoBytesQueued +=
+            getBdev()->getOptimalSize(rqst->valueSize);
 
         memcpy(buff, rqst->value, rqst->valueSize);
 
@@ -212,7 +212,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         if (rqst->valueSize > 0)
             delete[] rqst->value;
-        delete rqst;
+        OffloadRqst::updatePool.put(rqst);
         return;
     }
 
@@ -229,7 +229,7 @@ void OffloadPoller::_processRemove(OffloadRqst *rqst) {
         _rqstClb(rqst, rc);
         if (rqst->valueSize > 0)
             delete[] rqst->value;
-        delete rqst;
+        OffloadRqst::removePool.put(rqst);
         return;
     }
 
@@ -237,7 +237,7 @@ void OffloadPoller::_processRemove(OffloadRqst *rqst) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         if (rqst->valueSize > 0)
             delete[] rqst->value;
-        delete rqst;
+        OffloadRqst::removePool.put(rqst);
         return;
     }
 
@@ -246,8 +246,7 @@ void OffloadPoller::_processRemove(OffloadRqst *rqst) {
     freeLbaList->push(_offloadFreeList, lba);
     rtree->Remove(rqst->key);
     _rqstClb(rqst, StatusCode::OK);
-    delete[] rqst->key;
-    delete rqst;
+    OffloadRqst::removePool.put(rqst);
 }
 
 void OffloadPoller::process() {

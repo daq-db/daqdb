@@ -100,7 +100,7 @@ extern "C" struct SpdkBdevCtx {
  */
 class SpdkDevice {
   public:
-    SpdkDevice() : IoBytesQueued(0), IoBytesMaxQueued(0) {}
+    SpdkDevice() : memTracker(this), IoBytesQueued(0), IoBytesMaxQueued(0) {}
     virtual ~SpdkDevice() = default;
 
     virtual int write(DeviceTask *task) = 0;
@@ -133,6 +133,7 @@ class SpdkDevice {
     virtual void setRunning(int running) = 0;
     virtual bool IsRunning(int running) = 0;
 
+    SpdkDevice *memTracker;
     uint64_t _blkNumForLba = 0;
     SpdkBdevCtx spBdevCtx;
     uint64_t IoBytesQueued;

@@ -120,8 +120,10 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
-    bdev->IoBytesQueued =
-        task->size > bdev->IoBytesQueued ? 0 : bdev->IoBytesQueued - task->size;
+    bdev->memTracker->IoBytesQueued =
+        task->size > bdev->memTracker->IoBytesQueued
+            ? 0
+            : bdev->memTracker->IoBytesQueued - task->size;
 
 #ifndef TEST_RAW_IOPS
     spdk_bdev_free_io(bdev_io);
@@ -146,8 +148,10 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
-    bdev->IoBytesQueued =
-        task->size > bdev->IoBytesQueued ? 0 : bdev->IoBytesQueued - task->size;
+    bdev->memTracker->IoBytesQueued =
+        task->size > bdev->memTracker->IoBytesQueued
+            ? 0
+            : bdev->memTracker->IoBytesQueued - task->size;
 
 #ifndef TEST_RAW_IOPS
     spdk_bdev_free_io(bdev_io);
@@ -425,7 +429,7 @@ void SpdkBdev::finilizerThreadMain() {
 }
 
 void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
-    IoBytesMaxQueued = io_cache_size * 128;
+    memTracker->IoBytesMaxQueued = io_cache_size * 128;
 }
 
 void SpdkBdev::enableStats(bool en) { statsEnabled = en; }

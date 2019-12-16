@@ -189,9 +189,11 @@ class SpdkBdev : public SpdkDevice {
     static size_t cpuCoreCounter;
 
     virtual uint32_t canQueue() {
-        return IoBytesQueued >= IoBytesMaxQueued
+        return memTracker->IoBytesQueued >= memTracker->IoBytesMaxQueued
                    ? 0
-                   : (IoBytesMaxQueued - IoBytesQueued) / 4096;
+                   : (memTracker->IoBytesMaxQueued -
+                      memTracker->IoBytesQueued) /
+                         4096;
     }
     virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
         return lba * _blkNumForLba;
