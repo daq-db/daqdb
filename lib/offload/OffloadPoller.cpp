@@ -166,18 +166,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        rqst,
                        OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
-
-        try {
-            rtree->AllocateIOVForKey(
-                rqst->key, reinterpret_cast<uint64_t **>(&ioTask->bdevAddr),
-                sizeof(DeviceAddr));
-        } catch (...) {
-            /** @todo fix exception handling */
-            _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
-            OffloadRqst::updatePool.put(rqst);
-            return;
-        }
-        ioTask->bdevAddr->lba = getFreeLba();
+        ioTask->freeLba = getFreeLba();
     } else if (valCtx.location == LOCATIONS::DISK) {
         if (valCtx.size == 0) {
             _rqstClb(rqst, StatusCode::OK);

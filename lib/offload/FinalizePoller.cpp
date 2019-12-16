@@ -78,6 +78,19 @@ void FinalizePoller::_processGet(DeviceTask *task) {
 void FinalizePoller::_processUpdate(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
+    try {
+        task->rtree->AllocateIOVForKey(
+            task->key, reinterpret_cast<uint64_t **>(&task->bdevAddr),
+            sizeof(DeviceAddr));
+    } catch (...) {
+        if (task->clb)
+            task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
+                      task->keySize, nullptr, 0);
+        OffloadRqst::updatePool.put(task->rqst);
+        return;
+    }
+    task->bdevAddr->lba = task->freeLba;
+
     if (task->result) {
         if (task->updatePmemIOV)
             task->rtree->UpdateValueWrapper(

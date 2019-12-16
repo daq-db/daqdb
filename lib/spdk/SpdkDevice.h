@@ -65,6 +65,7 @@ struct DeviceTask {
     struct spdk_bdev_io_wait_entry bdev_io_wait;
     char key[64];
     bool result;
+    uint64_t freeLba;
 };
 
 extern "C" enum CSpdkBdevState {
