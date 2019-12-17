@@ -46,6 +46,9 @@ void SpdkIoEngine::process() {
     if (requestCount > 0) {
         for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
             DeviceTask *task = requests[RqstIdx];
+            if (!task)
+                continue;
+            task->routing = false;
             switch (task->op) {
             case OffloadOperation::GET: {
                 SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);

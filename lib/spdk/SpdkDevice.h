@@ -66,6 +66,7 @@ struct DeviceTask {
     char key[64];
     bool result;
     uint64_t freeLba;
+    bool routing = true;
 };
 
 extern "C" enum CSpdkBdevState {

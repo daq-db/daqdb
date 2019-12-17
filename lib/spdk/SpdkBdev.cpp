@@ -205,7 +205,7 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
 }
 
 bool SpdkBdev::read(DeviceTask *task) {
-    if (ioEngine)
+    if (ioEngine && task->routing == true)
         return ioEngine->enqueue(task);
     return doRead(task);
 }
@@ -257,7 +257,7 @@ bool SpdkBdev::doRead(DeviceTask *task) {
 }
 
 bool SpdkBdev::write(DeviceTask *task) {
-    if (ioEngine)
+    if (ioEngine && task->routing == true)
         return ioEngine->enqueue(task);
     return doWrite(task);
 }
