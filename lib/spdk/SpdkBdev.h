@@ -171,7 +171,7 @@ class SpdkBdev : public SpdkDevice {
     BdevStats stats;
 
     size_t cpuCore;
-    static const size_t cpuCoreStart = 8;
+    static const size_t cpuCoreStart = 40;
     static size_t cpuCoreCounter;
 
     virtual uint32_t canQueue() {

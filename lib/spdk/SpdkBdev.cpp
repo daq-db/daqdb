@@ -51,8 +51,8 @@ size_t SpdkBdev::cpuCoreCounter = SpdkBdev::cpuCoreStart;
 
 SpdkBdev::SpdkBdev(bool enableStats)
     : state(SpdkBdevState::SPDK_BDEV_INIT), cpuCore(SpdkBdev::getCoreNum()),
-      finalizer(0), finalizerThread(0), isRunning(0),
-      statsEnabled(enableStats) {}
+      finalizer(0), finalizerThread(0), ioEngine(0), ioEngineThread(0),
+      isRunning(0), statsEnabled(enableStats) {}
 
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
@@ -67,7 +67,7 @@ SpdkBdev::~SpdkBdev() {
 }
 
 size_t SpdkBdev::getCoreNum() {
-    SpdkBdev::cpuCoreCounter += 4;
+    SpdkBdev::cpuCoreCounter += 3;
     return SpdkBdev::cpuCoreCounter;
 }
 
