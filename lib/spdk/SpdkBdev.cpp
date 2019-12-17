@@ -53,7 +53,7 @@ SpdkBdev::SpdkBdev(bool enableStats)
     : state(SpdkBdevState::SPDK_BDEV_INIT), cpuCore(SpdkBdev::getCoreNum()),
       cpuCoreFin(cpuCore + 1), cpuCoreIoEng(cpuCoreFin + 1), finalizer(0),
       finalizerThread(0), ioEngine(0), ioEngineThread(0), isRunning(0),
-      statsEnabled(enableStats) {}
+      statsEnabled(enableStats), ioEngineInitDone(0) {}
 
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
@@ -362,6 +362,7 @@ bool SpdkBdev::bdevInit() {
     DAQ_DEBUG("BDEV number of blocks[" + std::to_string(spBdevCtx.blk_num) +
               "]");
 
+    ioEngineInitDone = 1;
     return true;
 }
 
@@ -424,6 +425,8 @@ bool SpdkBdev::init(const SpdkConf &conf) {
                   std::to_string(cpuCoreIoEng) + "] for IoEngine");
     }
 
+    while (!ioEngineInitDone) {
+    }
     setRunning(1);
 
     return true;

@@ -207,6 +207,7 @@ class SpdkBdev : public SpdkDevice {
   private:
     std::atomic<int> isRunning;
     bool statsEnabled;
+    std::atomic<int> ioEngineInitDone;
 };
 
 using BdevTask = DeviceTask;
