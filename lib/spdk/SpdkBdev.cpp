@@ -322,26 +322,8 @@ void SpdkBdev::deinit() {
     spdk_bdev_close(spBdevCtx.bdev_desc);
 }
 
-bool SpdkBdev::init(const SpdkConf &conf) {
-    strcpy(spBdevCtx.bdev_name, conf.getBdevNvmeName().c_str());
-    strcpy(spBdevCtx.bdev_addr, conf.getBdevNvmeAddr().c_str());
-    spBdevCtx.bdev = 0;
-    spBdevCtx.bdev_desc = 0;
+bool SpdkBdev::bdevInit() {
     spdk_bdev_opts bdev_opts;
-
-    if (!conf.getBdev())
-        spBdevCtx.bdev = spdk_bdev_first();
-    else
-        spBdevCtx.bdev = conf.getBdev();
-
-    if (!spBdevCtx.bdev) {
-        DAQ_CRITICAL(std::string("No NVMe devices detected for name[") +
-                     spBdevCtx.bdev_name + "]");
-        spBdevCtx.state = SPDK_BDEV_NOT_FOUND;
-        return false;
-    }
-    DAQ_DEBUG("NVMe devices detected for name[" + spBdevCtx->bdev_name + "]");
-
     int rc = spdk_bdev_open(spBdevCtx.bdev, true, 0, 0, &spBdevCtx.bdev_desc);
     if (rc) {
         DAQ_CRITICAL("Open BDEV failed with error code[" + std::to_string(rc) + "]");
@@ -379,6 +361,28 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     spBdevCtx.blk_num = spdk_bdev_get_num_blocks(spBdevCtx.bdev);
     DAQ_DEBUG("BDEV number of blocks[" + std::to_string(spBdevCtx.blk_num) +
               "]");
+
+    return true;
+}
+
+bool SpdkBdev::init(const SpdkConf &conf) {
+    strcpy(spBdevCtx.bdev_name, conf.getBdevNvmeName().c_str());
+    strcpy(spBdevCtx.bdev_addr, conf.getBdevNvmeAddr().c_str());
+    spBdevCtx.bdev = 0;
+    spBdevCtx.bdev_desc = 0;
+
+    if (!conf.getBdev())
+        spBdevCtx.bdev = spdk_bdev_first();
+    else
+        spBdevCtx.bdev = conf.getBdev();
+
+    if (!spBdevCtx.bdev) {
+        DAQ_CRITICAL(std::string("No NVMe devices detected for name[") +
+                     spBdevCtx.bdev_name + "]");
+        spBdevCtx.state = SPDK_BDEV_NOT_FOUND;
+        return false;
+    }
+    DAQ_DEBUG("NVMe devices detected for name[" + spBdevCtx->bdev_name + "]");
 
     setRunning(3);
 
@@ -455,16 +459,11 @@ void SpdkBdev::ioEngineThreadMain() {
         return;
     }
 
-    struct spdk_io_channel *spdk_bdev_ch =
-        spdk_bdev_get_io_channel(getBdevCtx()->bdev_desc);
-    if (!spdk_bdev_ch) {
-        DAQ_CRITICAL("Spdk thread can't get io channel");
-        spdk_thread_exit(spdk_th);
-        deinit();
-        spdk_app_stop(-1);
+    bool ret = bdevInit();
+    if (ret == false) {
+        DAQ_CRITICAL("Bdev init failed");
         return;
     }
-    getBdevCtx()->io_channel = spdk_bdev_ch;
 
     struct spdk_poller *spdk_io_poller =
         spdk_poller_register(SpdkBdev::ioEngineIoFunction, this, 0);

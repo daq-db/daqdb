@@ -57,6 +57,8 @@ class SpdkBdev : public SpdkDevice {
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
 
+    bool bdevInit();
+
     /*
      * Optimal size is 4k times
      */
