@@ -378,7 +378,7 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     DAQ_DEBUG("BDEV number of blocks[" + std::to_string(spBdevCtx.blk_num) +
               "]");
 
-    setRunning(1);
+    setRunning(3);
 
     /*
      * Set up finalizer
@@ -418,10 +418,14 @@ bool SpdkBdev::init(const SpdkConf &conf) {
                   std::to_string(cpuCoreIoEng) + "] for IoEngine");
     }
 
+    setRunning(1);
+
     return true;
 }
 
 void SpdkBdev::finilizerThreadMain() {
+    while (isRunning == 3) {
+    }
     while (isRunning) {
         finalizer->dequeue();
         finalizer->process();
@@ -429,6 +433,8 @@ void SpdkBdev::finilizerThreadMain() {
 }
 
 void SpdkBdev::ioEngineThreadMain() {
+    while (isRunning == 3) {
+    }
     while (isRunning) {
         ioEngine->dequeue();
         ioEngine->process();
