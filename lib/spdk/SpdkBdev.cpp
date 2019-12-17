@@ -103,6 +103,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     if (bdev->stats.outstanding_io_cnt)
         bdev->stats.outstanding_io_cnt--;
 
+    bdev->stats.write_compl_cnt++;
     (void)bdev->stateMachine();
 
     task->result = success;
@@ -131,6 +132,7 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
     if (bdev->stats.outstanding_io_cnt)
         bdev->stats.outstanding_io_cnt--;
 
+    bdev->stats.read_compl_cnt++;
     (void)bdev->stateMachine();
 
     task->result = success;

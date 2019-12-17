@@ -45,7 +45,7 @@ std::ostringstream &BdevStats::formatReadBuf(std::ostringstream &buf,
 }
 
 void BdevStats::printWritePer(std::ostream &os, const char *bdev_addr) {
-    if (!((write_compl_cnt++) % quant_per)) {
+    if (!(write_compl_cnt % quant_per)) {
         std::ostringstream buf;
         char time_buf[128];
         time_t now = time(0);
@@ -57,7 +57,7 @@ void BdevStats::printWritePer(std::ostream &os, const char *bdev_addr) {
 }
 
 void BdevStats::printReadPer(std::ostream &os, const char *bdev_addr) {
-    if (!((read_compl_cnt++) % quant_per)) {
+    if (!(read_compl_cnt % quant_per)) {
         std::ostringstream buf;
         char time_buf[128];
         time_t now = time(0);
