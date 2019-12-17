@@ -104,8 +104,8 @@ class SpdkDevice {
     SpdkDevice() : memTracker(this), IoBytesQueued(0), IoBytesMaxQueued(0) {}
     virtual ~SpdkDevice() = default;
 
-    virtual int write(DeviceTask *task) = 0;
-    virtual int read(DeviceTask *task) = 0;
+    virtual bool write(DeviceTask *task) = 0;
+    virtual bool read(DeviceTask *task) = 0;
     virtual int reschedule(DeviceTask *task) = 0;
 
     virtual void enableStats(bool en) = 0;

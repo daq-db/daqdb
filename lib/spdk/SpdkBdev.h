@@ -23,6 +23,7 @@
 
 #include "spdk/bdev.h"
 
+#include "BdevStats.h"
 #include "Rqst.h"
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
@@ -39,31 +40,14 @@ enum class SpdkBdevState : std::uint8_t {
 };
 
 class FinalizePoller;
-
-struct BdevStats {
-    uint64_t write_compl_cnt;
-    uint64_t write_err_cnt;
-    uint64_t read_compl_cnt;
-    uint64_t read_err_cnt;
-    bool periodic = true;
-    uint64_t quant_per = (1 << 18);
-    uint64_t outstanding_io_cnt;
-
-    BdevStats()
-        : write_compl_cnt(0), write_err_cnt(0), read_compl_cnt(0),
-          read_err_cnt(0), outstanding_io_cnt(0) {}
-    std::ostringstream &formatWriteBuf(std::ostringstream &buf,
-                                       const char *bdev_addr);
-    std::ostringstream &formatReadBuf(std::ostringstream &buf,
-                                      const char *bdev_addr);
-    void printWritePer(std::ostream &os, const char *bdev_addr);
-    void printReadPer(std::ostream &os, const char *bdev_addr);
-};
+class SpdkIoEngine;
 
 class SpdkBdev : public SpdkDevice {
   public:
     SpdkBdev(bool enableStats = false);
     virtual ~SpdkBdev();
+
+    static size_t getCoreNum();
 
     /**
      * Initialize BDEV device and sets SpdkBdev state.
@@ -98,8 +82,10 @@ class SpdkBdev : public SpdkDevice {
     /*
      * SpdkDevice virtual interface
      */
-    virtual int read(DeviceTask *task);
-    virtual int write(DeviceTask *task);
+    virtual bool read(DeviceTask *task);
+    virtual bool write(DeviceTask *task);
+    bool doRead(DeviceTask *task);
+    bool doWrite(DeviceTask *task);
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);
@@ -204,6 +190,10 @@ class SpdkBdev : public SpdkDevice {
     virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
     virtual void setRunning(int running) { isRunning = running; }
     virtual bool IsRunning(int running) { return isRunning; }
+
+    SpdkIoEngine *ioEngine;
+    std::thread *ioEngineThread;
+    void ioEngineThreadMain(void);
 
     FinalizePoller *finalizer;
     std::thread *finalizerThread;

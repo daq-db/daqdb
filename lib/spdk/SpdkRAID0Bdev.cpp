@@ -23,9 +23,9 @@ SpdkDeviceClass SpdkRAID0Bdev::bdev_class = SpdkDeviceClass::RAID0;
 
 SpdkRAID0Bdev::SpdkRAID0Bdev() : isRunning(0) {}
 
-int SpdkRAID0Bdev::read(DeviceTask *task) { return 0; }
+bool SpdkRAID0Bdev::read(DeviceTask *task) { return 0; }
 
-int SpdkRAID0Bdev::write(DeviceTask *task) { return 0; }
+bool SpdkRAID0Bdev::write(DeviceTask *task) { return 0; }
 
 int SpdkRAID0Bdev::reschedule(DeviceTask *task) { return 0; }
 

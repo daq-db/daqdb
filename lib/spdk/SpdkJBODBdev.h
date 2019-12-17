@@ -54,8 +54,8 @@ class SpdkJBODBdev : public SpdkDevice {
     /*
      * SpdkDevice virtual interface
      */
-    virtual int read(DeviceTask *task);
-    virtual int write(DeviceTask *task);
+    virtual bool read(DeviceTask *task);
+    virtual bool write(DeviceTask *task);
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);

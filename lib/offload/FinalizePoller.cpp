@@ -47,10 +47,9 @@ void FinalizePoller::process() {
             case OffloadOperation::GET:
                 _processGet(task);
                 break;
-            case OffloadOperation::UPDATE: {
+            case OffloadOperation::UPDATE:
                 _processUpdate(task);
                 break;
-            }
             default:
                 break;
             }

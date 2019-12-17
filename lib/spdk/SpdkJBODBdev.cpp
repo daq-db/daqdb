@@ -33,19 +33,19 @@ SpdkJBODBdev::~SpdkJBODBdev() {
     }
 }
 
-int SpdkJBODBdev::read(DeviceTask *task) {
+bool SpdkJBODBdev::read(DeviceTask *task) {
     for (uint32_t i = 0; i < numDevices; i++) {
         if (task->bdevAddr->busAddr.spdkPciAddr ==
             devices[i].addr.busAddr.spdkPciAddr)
             task->bdev = devices[i].bdev;
             return devices[i].bdev->read(task);
     }
-    return -1;
+    return false;
 }
 
-int SpdkJBODBdev::write(DeviceTask *task) {
+bool SpdkJBODBdev::write(DeviceTask *task) {
     task->bdev = devices[currDevice].bdev;
-    int ret = devices[currDevice].bdev->write(task);
+    bool ret = devices[currDevice].bdev->write(task);
     currDevice++;
     currDevice %= numDevices;
     return ret;
