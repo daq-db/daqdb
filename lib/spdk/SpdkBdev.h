@@ -196,6 +196,7 @@ class SpdkBdev : public SpdkDevice {
     SpdkIoEngine *ioEngine;
     std::thread *ioEngineThread;
     void ioEngineThreadMain(void);
+    static int ioEngineIoFunction(void *arg);
 
     FinalizePoller *finalizer;
     std::thread *finalizerThread;

@@ -434,12 +434,58 @@ void SpdkBdev::finilizerThreadMain() {
     }
 }
 
+int SpdkBdev::ioEngineIoFunction(void *arg) {
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(arg);
+    if (bdev->isRunning) {
+        bdev->ioEngine->dequeue();
+        bdev->ioEngine->process();
+    }
+
+    return 0;
+}
+
 void SpdkBdev::ioEngineThreadMain() {
+    struct spdk_thread *spdk_th =
+        spdk_thread_create(getBdevCtx()->bdev_name, 0);
+    if (!spdk_th) {
+        DAQ_CRITICAL(
+            "Spdk spdk_thread_create() can't create context on pthread");
+        deinit();
+        spdk_app_stop(-1);
+        return;
+    }
+
+    struct spdk_io_channel *spdk_bdev_ch =
+        spdk_bdev_get_io_channel(getBdevCtx()->bdev_desc);
+    if (!spdk_bdev_ch) {
+        DAQ_CRITICAL("Spdk thread can't get io channel");
+        spdk_thread_exit(spdk_th);
+        deinit();
+        spdk_app_stop(-1);
+        return;
+    }
+    getBdevCtx()->io_channel = spdk_bdev_ch;
+
+    struct spdk_poller *spdk_io_poller =
+        spdk_poller_register(SpdkBdev::ioEngineIoFunction, this, 0);
+    if (!spdk_io_poller) {
+        DAQ_CRITICAL("Spdk poller can't be created");
+        spdk_thread_exit(spdk_th);
+        deinit();
+        spdk_app_stop(-1);
+        return;
+    }
+
+    /*
+     * Wait for ready
+     */
     while (isRunning == 3) {
     }
-    while (isRunning) {
-        ioEngine->dequeue();
-        ioEngine->process();
+
+    for (;;) {
+        int ret = spdk_thread_poll(spdk_th, 0, 0);
+        if (ret < 0)
+            break;
     }
 }
 
