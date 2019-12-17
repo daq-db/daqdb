@@ -383,6 +383,8 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     DAQ_DEBUG("BDEV number of blocks[" + std::to_string(spBdevCtx.blk_num) +
               "]");
 
+    setRunning(1);
+
     /*
      * Set up finalizer
      */
@@ -399,7 +401,7 @@ bool SpdkBdev::init(const SpdkConf &conf) {
                   std::to_string(_cpuCore) + "]");
     } else {
         DAQ_DEBUG("Cannot set affinity on CPU core [" +
-                  std::to_string(_cpuCore) + "] for OffloadReactor");
+                  std::to_string(_cpuCore) + "] for Finalizer");
     }
 
     /*
@@ -410,17 +412,15 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     CPU_ZERO(&cpuset);
     CPU_SET(cpuCore++, &cpuset);
 
-    set_result = pthread_setaffinity_np(finalizerThread->native_handle(),
+    set_result = pthread_setaffinity_np(ioEngineThread->native_handle(),
                                         sizeof(cpu_set_t), &cpuset);
     if (!set_result) {
         DAQ_DEBUG("SpdkCore thread affinity set on CPU core [" +
                   std::to_string(_cpuCore) + "]");
     } else {
         DAQ_DEBUG("Cannot set affinity on CPU core [" +
-                  std::to_string(_cpuCore) + "] for OffloadReactor");
+                  std::to_string(_cpuCore) + "] for IoEngine");
     }
-
-    setRunning(1);
 
     return true;
 }
