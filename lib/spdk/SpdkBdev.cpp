@@ -51,8 +51,9 @@ size_t SpdkBdev::cpuCoreCounter = SpdkBdev::cpuCoreStart;
 
 SpdkBdev::SpdkBdev(bool enableStats)
     : state(SpdkBdevState::SPDK_BDEV_INIT), cpuCore(SpdkBdev::getCoreNum()),
-      finalizer(0), finalizerThread(0), ioEngine(0), ioEngineThread(0),
-      isRunning(0), statsEnabled(enableStats) {}
+      cpuCoreFin(cpuCore + 1), cpuCoreIoEng(cpuCoreFin + 1), finalizer(0),
+      finalizerThread(0), ioEngine(0), ioEngineThread(0), isRunning(0),
+      statsEnabled(enableStats) {}
 
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
@@ -164,10 +165,8 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
             spdk_app_stop(-1);
         }
     } else {
-        if (bdev->statsEnabled == true) {
-            bdev->stats.read_err_cnt--;
-            bdev->stats.outstanding_io_cnt++;
-        }
+        bdev->stats.read_err_cnt--;
+        bdev->stats.outstanding_io_cnt++;
     }
 }
 
@@ -197,10 +196,8 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
             spdk_app_stop(-1);
         }
     } else {
-        if (bdev->statsEnabled == true) {
-            bdev->stats.write_err_cnt--;
-            bdev->stats.outstanding_io_cnt++;
-        }
+        bdev->stats.write_err_cnt--;
+        bdev->stats.outstanding_io_cnt++;
     }
 }
 
@@ -249,8 +246,7 @@ bool SpdkBdev::doRead(DeviceTask *task) {
             spdk_app_stop(-1);
         }
     } else {
-        if (bdev->statsEnabled == true)
-            stats.outstanding_io_cnt++;
+        stats.outstanding_io_cnt++;
     }
 
     return !r_rc ? true : false;
@@ -302,8 +298,7 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
             spdk_app_stop(-1);
         }
     } else {
-        if (bdev->statsEnabled == true)
-            stats.outstanding_io_cnt++;
+        stats.outstanding_io_cnt++;
     }
 
     return !w_rc ? true : false;
@@ -392,16 +387,16 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     finalizerThread = new std::thread(&SpdkBdev::finilizerThreadMain, this);
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    CPU_SET(cpuCore++, &cpuset);
+    CPU_SET(cpuCoreFin, &cpuset);
 
     int set_result = pthread_setaffinity_np(finalizerThread->native_handle(),
                                             sizeof(cpu_set_t), &cpuset);
     if (!set_result) {
         DAQ_DEBUG("SpdkCore thread affinity set on CPU core [" +
-                  std::to_string(_cpuCore) + "]");
+                  std::to_string(cpuCoreFin) + "]");
     } else {
         DAQ_DEBUG("Cannot set affinity on CPU core [" +
-                  std::to_string(_cpuCore) + "] for Finalizer");
+                  std::to_string(cpuCoreFin) + "] for Finalizer");
     }
 
     /*
@@ -409,17 +404,18 @@ bool SpdkBdev::init(const SpdkConf &conf) {
      */
     ioEngine = new SpdkIoEngine();
     ioEngineThread = new std::thread(&SpdkBdev::ioEngineThreadMain, this);
-    CPU_ZERO(&cpuset);
-    CPU_SET(cpuCore++, &cpuset);
+    cpu_set_t cpuset1;
+    CPU_ZERO(&cpuset1);
+    CPU_SET(cpuCoreIoEng, &cpuset1);
 
     set_result = pthread_setaffinity_np(ioEngineThread->native_handle(),
-                                        sizeof(cpu_set_t), &cpuset);
+                                        sizeof(cpu_set_t), &cpuset1);
     if (!set_result) {
         DAQ_DEBUG("SpdkCore thread affinity set on CPU core [" +
-                  std::to_string(_cpuCore) + "]");
+                  std::to_string(cpuCoreIoEng) + "]");
     } else {
         DAQ_DEBUG("Cannot set affinity on CPU core [" +
-                  std::to_string(_cpuCore) + "] for IoEngine");
+                  std::to_string(cpuCoreIoEng) + "] for IoEngine");
     }
 
     return true;

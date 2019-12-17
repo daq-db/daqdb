@@ -171,6 +171,8 @@ class SpdkBdev : public SpdkDevice {
     BdevStats stats;
 
     size_t cpuCore;
+    size_t cpuCoreFin;
+    size_t cpuCoreIoEng;
     static const size_t cpuCoreStart = 40;
     static size_t cpuCoreCounter;
 
