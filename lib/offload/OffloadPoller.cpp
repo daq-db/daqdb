@@ -156,8 +156,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
     } else if (rqst->loc == LOCATIONS::DISK) {
         if (rqst->valueSize == 0) {
             _rqstClb(rqst, StatusCode::OK);
-            if (rqst->valueSize > 0)
-                delete[] rqst->value;
             OffloadRqst::updatePool.put(rqst);
             return;
         }

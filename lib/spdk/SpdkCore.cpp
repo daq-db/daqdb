@@ -55,7 +55,7 @@ const char *SpdkCore::spdkHugepageDirname = "/mnt/huge_1GB";
 SpdkCore::SpdkCore(OffloadOptions _offloadOptions)
     : state(SpdkState::SPDK_INIT), offloadOptions(_offloadOptions), poller(0),
       _spdkThread(0), _loopThread(0), _ready(false), _cpuCore(1),
-      _spdkConf(offloadOptions) {
+      _spdkConf(offloadOptions), _spdkPoller(0), _spdkPollerStarter(0) {
     removeConfFile();
     bool conf_file_ok = createConfFile();
 
@@ -206,8 +206,8 @@ void SpdkCore::spdkStart(void *arg) {
     }
 
     spdkCore->poller->setRunning(1);
-    spdkCore->setSpdkPoller(
-        spdk_poller_register(SpdkCore::spdkPollerFunction, spdkCore, 0));
+    spdkCore->setSpdkPollerStarter(
+        spdk_poller_register(SpdkCore::spdkPollerStarter, spdkCore, 0));
 
     bdev->setReady();
     spdkCore->signalReady();
@@ -229,10 +229,29 @@ void SpdkCore::_spdkThreadMain(void) {
     spdk_app_fini();
 }
 
+int SpdkCore::spdkPollerStarter(void *arg) {
+    SpdkCore *spdkCore = reinterpret_cast<SpdkCore *>(arg);
+    Poller<OffloadRqst> *poller = spdkCore->poller;
+    SpdkDevice *bdev = spdkCore->spBdev.get();
+
+    int ret = 0;
+    struct spdk_thread *this_thread = spdk_get_thread();
+    spdkCore->setSpdkPoller(
+        spdk_poller_register(SpdkCore::spdkPollerFunction, spdkCore, 0));
+
+    for (;;) {
+        int ret = spdk_thread_poll(this_thread, 0, 0);
+        if (ret < 0)
+            break;
+    }
+    return ret;
+}
+
 int SpdkCore::spdkPollerFunction(void *arg) {
     SpdkCore *spdkCore = reinterpret_cast<SpdkCore *>(arg);
     Poller<OffloadRqst> *poller = spdkCore->poller;
     SpdkDevice *bdev = spdkCore->spBdev.get();
+
     uint32_t to_qu_cnt = bdev->canQueue();
     if (to_qu_cnt) {
         poller->dequeue(to_qu_cnt);
@@ -244,6 +263,7 @@ int SpdkCore::spdkPollerFunction(void *arg) {
         bdev->deinit();
         spdk_app_stop(0);
         bdev->setRunning(0);
+        return -1;
     }
 
     return 0;
