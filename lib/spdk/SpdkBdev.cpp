@@ -169,7 +169,6 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
         }
     } else {
         bdev->stats.read_err_cnt--;
-        bdev->stats.outstanding_io_cnt++;
     }
 }
 
@@ -200,7 +199,6 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
         }
     } else {
         bdev->stats.write_err_cnt--;
-        bdev->stats.outstanding_io_cnt++;
     }
 }
 
@@ -252,8 +250,6 @@ bool SpdkBdev::doRead(DeviceTask *task) {
             bdev->deinit();
             spdk_app_stop(-1);
         }
-    } else {
-        stats.outstanding_io_cnt++;
     }
 
     return !r_rc ? true : false;
@@ -314,8 +310,6 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
             bdev->deinit();
             spdk_app_stop(-1);
         }
-    } else {
-        stats.outstanding_io_cnt++;
     }
 
     return !w_rc ? true : false;
@@ -324,6 +318,7 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
 int SpdkBdev::reschedule(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
+    bdev->stats.outstanding_io_cnt++;
     task->bdev_io_wait.bdev = spBdevCtx.bdev;
     task->bdev_io_wait.cb_fn = SpdkBdev::writeQueueIoWait;
     task->bdev_io_wait.cb_arg = task;

@@ -207,7 +207,7 @@ void SpdkCore::spdkStart(void *arg) {
 
     spdkCore->poller->setRunning(1);
     spdkCore->setSpdkPoller(
-        spdk_poller_register(SpdkCore::spdkPollerFunction, spdkCore, 1000000));
+        spdk_poller_register(SpdkCore::spdkPollerFunction, spdkCore, 0));
 
     bdev->setReady();
     spdkCore->signalReady();
@@ -216,8 +216,7 @@ void SpdkCore::spdkStart(void *arg) {
     spdk_unaffinitize_thread();
     struct spdk_thread *this_thread = spdk_get_thread();
     for (;;) {
-        if (spdk_thread_poll(this_thread, 0, 0) >
-            0) // Function poller wants to quit
+        if (spdk_thread_poll(this_thread, 0, 0) > 0)
             break;
     }
 }
