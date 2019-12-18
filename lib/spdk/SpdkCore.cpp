@@ -235,6 +235,7 @@ int SpdkCore::spdkPollerStarter(void *arg) {
     SpdkDevice *bdev = spdkCore->spBdev.get();
 
     int ret = 0;
+    spdk_unaffinitize_thread(); // don't want affinity
     struct spdk_thread *this_thread = spdk_get_thread();
     spdkCore->setSpdkPoller(
         spdk_poller_register(SpdkCore::spdkPollerFunction, spdkCore, 0));
