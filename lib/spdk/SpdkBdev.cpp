@@ -217,6 +217,10 @@ bool SpdkBdev::doRead(DeviceTask *task) {
         return false;
     }
 
+    char *buff = reinterpret_cast<char *>(
+        spdk_dma_zmalloc(task->size, bdev->spBdevCtx.buf_align, NULL));
+    task->buff = buff;
+
 #ifdef TEST_RAW_IOPS
     int r_rc = 0;
     SpdkBdev::readComplete(reinterpret_cast<struct spdk_bdev_io *>(task->buff),
@@ -267,6 +271,16 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
         spdk_dma_free(task->buff);
         return false;
     }
+
+    auto valSize = task->rqst->valueSize;
+    auto valSizeAlign = bdev->getAlignedSize(valSize);
+    auto buff = reinterpret_cast<char *>(
+        spdk_dma_zmalloc(valSizeAlign, bdev->spBdevCtx.buf_align, NULL));
+
+    bdev->memTracker->IoBytesQueued += bdev->getOptimalSize(valSize);
+
+    memcpy(buff, task->rqst->value, valSize);
+    task->buff = buff;
 
 #ifdef TEST_RAW_IOPS
     int w_rc = 0;
@@ -494,7 +508,7 @@ void SpdkBdev::ioEngineThreadMain() {
     }
 
     /*
-     * Wait for ready
+     * Wait for ready on
      */
     while (isRunning == 3) {
     }

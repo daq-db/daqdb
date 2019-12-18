@@ -106,13 +106,11 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
 
     auto size = getBdev()->getAlignedSize(valCtx.size);
 
-    char *buff = reinterpret_cast<char *>(
-        spdk_dma_zmalloc(size, getBdevCtx()->buf_align, NULL));
     getBdev()->memTracker->IoBytesQueued += size;
 
     auto blkSize = getBdev()->getSizeInBlk(size);
     DeviceTask *ioTask = new (rqst->taskBuffer)
-        DeviceTask{buff,
+        DeviceTask{0,
                    getBdev()->getOptimalSize(valCtx.size),
                    blkSize,
                    rqst->keySize,
@@ -131,31 +129,19 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
 
 void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
     DeviceTask *ioTask = nullptr;
-    ConstValCtx valCtx;
 
     if (rqst == nullptr) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
         return;
     }
 
-    valCtx.val = rqst->value;
-    valCtx.size = rqst->valueSize;
-    valCtx.location = rqst->loc;
+    auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
+    if (rqst->loc == LOCATIONS::PMEM) {
+        const char *val = static_cast<const char *>(rqst->value);
 
-    if (valCtx.location == LOCATIONS::PMEM) {
-        const char *val = static_cast<const char *>(valCtx.val);
-        size_t valSize = valCtx.size;
-
-        auto valSizeAlign = getBdev()->getAlignedSize(valSize);
-        auto buff = reinterpret_cast<char *>(
-            spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
-        getBdev()->memTracker->IoBytesQueued +=
-            getBdev()->getOptimalSize(valSize);
-
-        memcpy(buff, val, valSize);
         ioTask = new (rqst->taskBuffer)
-            DeviceTask{buff,
-                       getBdev()->getOptimalSize(valSize),
+            DeviceTask{0,
+                       getBdev()->getOptimalSize(rqst->valueSize),
                        getBdev()->getSizeInBlk(valSizeAlign),
                        rqst->keySize,
                        nullptr,
@@ -167,24 +153,17 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
         ioTask->freeLba = getFreeLba();
-    } else if (valCtx.location == LOCATIONS::DISK) {
-        if (valCtx.size == 0) {
+    } else if (rqst->loc == LOCATIONS::DISK) {
+        if (rqst->valueSize == 0) {
             _rqstClb(rqst, StatusCode::OK);
             if (rqst->valueSize > 0)
                 delete[] rqst->value;
             OffloadRqst::updatePool.put(rqst);
             return;
         }
-        auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
-        auto buff = reinterpret_cast<char *>(
-            spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
-        getBdev()->memTracker->IoBytesQueued +=
-            getBdev()->getOptimalSize(rqst->valueSize);
-
-        memcpy(buff, rqst->value, rqst->valueSize);
 
         ioTask = new (rqst->taskBuffer)
-            DeviceTask{buff,
+            DeviceTask{0,
                        getBdev()->getOptimalSize(rqst->valueSize),
                        getBdev()->getSizeInBlk(valSizeAlign),
                        rqst->keySize,
@@ -196,7 +175,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        rqst,
                        OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
-        memcpy(ioTask->bdevAddr, valCtx.val, sizeof(*ioTask->bdevAddr));
+        memcpy(ioTask->bdevAddr, rqst->value, sizeof(*ioTask->bdevAddr));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
         if (rqst->valueSize > 0)
