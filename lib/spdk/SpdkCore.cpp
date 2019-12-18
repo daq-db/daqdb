@@ -55,7 +55,7 @@ const char *SpdkCore::spdkHugepageDirname = "/mnt/huge_1GB";
 SpdkCore::SpdkCore(OffloadOptions _offloadOptions)
     : state(SpdkState::SPDK_INIT), offloadOptions(_offloadOptions), poller(0),
       _spdkThread(0), _loopThread(0), _ready(false), _cpuCore(1),
-      _spdkConf(offloadOptions), _spdkPoller(0), _spdkPollerStarter(0) {
+      _spdkConf(offloadOptions), _spdkPoller(0) {
     removeConfFile();
     bool conf_file_ok = createConfFile();
 
@@ -206,12 +206,20 @@ void SpdkCore::spdkStart(void *arg) {
     }
 
     spdkCore->poller->setRunning(1);
-    spdkCore->setSpdkPollerStarter(
-        spdk_poller_register(SpdkCore::spdkPollerStarter, spdkCore, 1000000));
+    spdkCore->setSpdkPoller(
+        spdk_poller_register(SpdkCore::spdkPollerFunction, spdkCore, 1000000));
 
     bdev->setReady();
     spdkCore->signalReady();
     spdkCore->restoreSignals();
+
+    spdk_unaffinitize_thread();
+    struct spdk_thread *this_thread = spdk_get_thread();
+    for (;;) {
+        if (spdk_thread_poll(this_thread, 0, 0) >
+            0) // Function poller wants to quit
+            break;
+    }
 }
 
 void SpdkCore::_spdkThreadMain(void) {
@@ -229,31 +237,12 @@ void SpdkCore::_spdkThreadMain(void) {
     spdk_app_fini();
 }
 
-int SpdkCore::spdkPollerStarter(void *arg) {
-    SpdkCore *spdkCore = reinterpret_cast<SpdkCore *>(arg);
-    Poller<OffloadRqst> *poller = spdkCore->poller;
-    SpdkDevice *bdev = spdkCore->spBdev.get();
-
-    int ret = 0;
-    spdk_unaffinitize_thread(); // don't want affinity
-    struct spdk_thread *this_thread = spdk_get_thread();
-    spdkCore->setSpdkPoller(
-        spdk_poller_register(SpdkCore::spdkPollerFunction, spdkCore, 0));
-
-    for (;;) {
-        int ret = spdk_thread_poll(this_thread, 0, 0);
-        if (ret < 0)
-            break;
-    }
-    return ret;
-}
-
 int SpdkCore::spdkPollerFunction(void *arg) {
     SpdkCore *spdkCore = reinterpret_cast<SpdkCore *>(arg);
     Poller<OffloadRqst> *poller = spdkCore->poller;
     SpdkDevice *bdev = spdkCore->spBdev.get();
 
-    uint32_t to_qu_cnt = bdev->canQueue();
+    uint32_t to_qu_cnt = 400; // bdev->canQueue();
     if (to_qu_cnt) {
         poller->dequeue(to_qu_cnt);
         poller->process();
@@ -264,7 +253,7 @@ int SpdkCore::spdkPollerFunction(void *arg) {
         bdev->deinit();
         spdk_app_stop(0);
         bdev->setRunning(0);
-        return -1;
+        return 1;
     }
 
     return 0;

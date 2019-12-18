@@ -80,11 +80,7 @@ class SpdkCore {
 
     void setPoller(Poller<OffloadRqst> *pol) { poller = pol; }
 
-    static int spdkPollerStarter(void *arg);
     static int spdkPollerFunction(void *arg);
-    void setSpdkPollerStarter(struct spdk_poller *spdk_poller) {
-        _spdkPollerStarter = spdk_poller;
-    }
     void setSpdkPoller(struct spdk_poller *spdk_poller) {
         _spdkPoller = spdk_poller;
     }
@@ -113,7 +109,6 @@ class SpdkCore {
     std::condition_variable _cv;
 
     struct spdk_poller *_spdkPoller;
-    struct spdk_poller *_spdkPollerStarter;
 
     inline bool isNvmeInOptions() {
         return offloadOptions._devs.size() ? true : false;
