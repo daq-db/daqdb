@@ -373,9 +373,6 @@ bool SpdkBdev::bdevInit() {
     }
 
     spdk_bdev_get_opts(&bdev_opts);
-    bdev_opts.bdev_io_cache_size = bdev_opts.bdev_io_pool_size >> 1;
-    spdk_bdev_set_opts(&bdev_opts);
-    spdk_bdev_get_opts(&bdev_opts);
     DAQ_DEBUG("bdev.bdev_io_pool_size[" + bdev_opts.bdev_io_pool_size + "]" +
               " bdev.bdev.io_cache_size[" + bdev_opts.bdev_io_cache_size + "]");
 

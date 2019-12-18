@@ -207,7 +207,7 @@ void SpdkCore::spdkStart(void *arg) {
 
     spdkCore->poller->setRunning(1);
     spdkCore->setSpdkPollerStarter(
-        spdk_poller_register(SpdkCore::spdkPollerStarter, spdkCore, 0));
+        spdk_poller_register(SpdkCore::spdkPollerStarter, spdkCore, 1000000));
 
     bdev->setReady();
     spdkCore->signalReady();
