@@ -323,15 +323,19 @@ void SpdkBdev::deinit() {
     spdk_bdev_close(spBdevCtx.bdev_desc);
 }
 
+struct spdk_bdev *SpdkBdev::prevBdev = 0;
+;
 bool SpdkBdev::bdevInit() {
     if (confBdevNum == -1) { // single Bdev
         spBdevCtx.bdev = spdk_bdev_first();
     } else { // JBOD or RAID0
-        if (!confBdevNum)
+        if (!confBdevNum) {
             spBdevCtx.bdev = spdk_bdev_first_leaf();
-        else if (confBdevNum > 0)
-            spBdevCtx.bdev = spdk_bdev_next_leaf(spBdevCtx.bdev);
-        else {
+            SpdkBdev::prevBdev = spBdevCtx.bdev;
+        } else if (confBdevNum > 0) {
+            spBdevCtx.bdev = spdk_bdev_next_leaf(SpdkBdev::prevBdev);
+            SpdkBdev::prevBdev = spBdevCtx.bdev;
+        } else {
             DAQ_CRITICAL("Get leaf BDEV failed");
             spBdevCtx.state = SPDK_BDEV_NOT_FOUND;
             return false;

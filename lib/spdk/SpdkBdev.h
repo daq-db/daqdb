@@ -167,6 +167,7 @@ class SpdkBdev : public SpdkDevice {
     struct spdk_poller *_spdkPoller;
     volatile State _IoState;
     int confBdevNum;
+    static struct spdk_bdev *prevBdev;
 
   public:
     static SpdkDeviceClass bdev_class;
