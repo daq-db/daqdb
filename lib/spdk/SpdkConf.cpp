@@ -26,7 +26,8 @@ namespace DaqDB {
 
 SpdkConf::SpdkConf(const OffloadOptions &_offloadOptions)
     : _devType(_offloadOptions.devType), _name(_offloadOptions.name),
-      _raid0StripeSize(_offloadOptions.raid0StripeSize), _bdev(0) {
+      _raid0StripeSize(_offloadOptions.raid0StripeSize), _bdev(0),
+      _bdevNum(-1) {
     copyDevs(_offloadOptions._devs);
 }
 
@@ -66,6 +67,7 @@ SpdkConf &SpdkConf::operator=(const SpdkConf &_r) {
     this->_devType = _r._devType;
     this->_name = _r._name;
     this->_devs = _r._devs;
+    this->_bdevNum = _r._bdevNum;
     return *this;
 }
 

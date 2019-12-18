@@ -64,8 +64,7 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         return false;
     }
 
-    struct spdk_bdev *bdev = spdk_bdev_first_leaf();
-
+    int bdevNum = 0;
     for (auto d : conf.getDevs()) {
         devices[numDevices].addr.lba = -1; // max
         devices[numDevices].addr.busAddr.spdkPciAddr = d.pciAddr;
@@ -74,7 +73,7 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         devices[numDevices].bdev->memTracker = this;
 
         SpdkConf currConf(SpdkConfDevType::BDEV, d.devName, 0);
-        currConf.setBdev(bdev);
+        currConf.setBdevNum(bdevNum++);
         currConf.addDev(d);
         bool ret = devices[numDevices].bdev->init(currConf);
         if (ret == false) {
@@ -82,7 +81,6 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         }
         spBdevCtx = devices[numDevices].bdev->spBdevCtx;
         numDevices++;
-        bdev = spdk_bdev_next_leaf(bdev);
     }
     return true;
 }

@@ -61,6 +61,8 @@ class SpdkConf {
     void setBdev(struct spdk_bdev *bdev) { _bdev = bdev; }
     const std::vector<SpdkBdevConf> &getDevs() const { return _devs; }
     void addDev(SpdkBdevConf dev);
+    int getBdevNum() const { return _bdevNum; }
+    void setBdevNum(int bdevNum) { _bdevNum = bdevNum; }
 
   private:
     SpdkConfDevType _devType;
@@ -68,6 +70,7 @@ class SpdkConf {
     size_t _raid0StripeSize;
     std::vector<SpdkBdevConf> _devs;
     struct spdk_bdev *_bdev;
+    int _bdevNum;
 };
 
 } // namespace DaqDB

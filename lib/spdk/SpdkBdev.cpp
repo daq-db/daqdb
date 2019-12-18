@@ -50,10 +50,11 @@ SpdkDeviceClass SpdkBdev::bdev_class = SpdkDeviceClass::BDEV;
 size_t SpdkBdev::cpuCoreCounter = SpdkBdev::cpuCoreStart;
 
 SpdkBdev::SpdkBdev(bool enableStats)
-    : state(SpdkBdevState::SPDK_BDEV_INIT), cpuCore(SpdkBdev::getCoreNum()),
-      cpuCoreFin(cpuCore + 1), cpuCoreIoEng(cpuCoreFin + 1), finalizer(0),
-      finalizerThread(0), ioEngine(0), ioEngineThread(0), isRunning(0),
-      statsEnabled(enableStats), ioEngineInitDone(0) {}
+    : state(SpdkBdevState::SPDK_BDEV_INIT), _spdkPoller(0), confBdevNum(-1),
+      cpuCore(SpdkBdev::getCoreNum()), cpuCoreFin(cpuCore + 1),
+      cpuCoreIoEng(cpuCoreFin + 1), finalizer(0), finalizerThread(0),
+      ioEngine(0), ioEngineThread(0), isRunning(0), statsEnabled(enableStats),
+      ioEngineInitDone(0) {}
 
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
@@ -323,6 +324,28 @@ void SpdkBdev::deinit() {
 }
 
 bool SpdkBdev::bdevInit() {
+    if (confBdevNum == -1) { // single Bdev
+        spBdevCtx.bdev = spdk_bdev_first();
+    } else { // JBOD or RAID0
+        if (!confBdevNum)
+            spBdevCtx.bdev = spdk_bdev_first_leaf();
+        else if (confBdevNum > 0)
+            spBdevCtx.bdev = spdk_bdev_next_leaf(spBdevCtx.bdev);
+        else {
+            DAQ_CRITICAL("Get leaf BDEV failed");
+            spBdevCtx.state = SPDK_BDEV_NOT_FOUND;
+            return false;
+        }
+    }
+
+    if (!spBdevCtx.bdev) {
+        DAQ_CRITICAL(std::string("No NVMe devices detected for name[") +
+                     spBdevCtx.bdev_name + "]");
+        spBdevCtx.state = SPDK_BDEV_NOT_FOUND;
+        return false;
+    }
+    DAQ_DEBUG("NVMe devices detected for name[" + spBdevCtx->bdev_name + "]");
+
     spdk_bdev_opts bdev_opts;
     int rc = spdk_bdev_open(spBdevCtx.bdev, true, 0, 0, &spBdevCtx.bdev_desc);
     if (rc) {
@@ -367,23 +390,11 @@ bool SpdkBdev::bdevInit() {
 }
 
 bool SpdkBdev::init(const SpdkConf &conf) {
+    confBdevNum = conf.getBdevNum();
     strcpy(spBdevCtx.bdev_name, conf.getBdevNvmeName().c_str());
     strcpy(spBdevCtx.bdev_addr, conf.getBdevNvmeAddr().c_str());
     spBdevCtx.bdev = 0;
     spBdevCtx.bdev_desc = 0;
-
-    if (!conf.getBdev())
-        spBdevCtx.bdev = spdk_bdev_first();
-    else
-        spBdevCtx.bdev = conf.getBdev();
-
-    if (!spBdevCtx.bdev) {
-        DAQ_CRITICAL(std::string("No NVMe devices detected for name[") +
-                     spBdevCtx.bdev_name + "]");
-        spBdevCtx.state = SPDK_BDEV_NOT_FOUND;
-        return false;
-    }
-    DAQ_DEBUG("NVMe devices detected for name[" + spBdevCtx->bdev_name + "]");
 
     setRunning(3);
 
@@ -452,8 +463,7 @@ int SpdkBdev::ioEngineIoFunction(void *arg) {
 }
 
 void SpdkBdev::ioEngineThreadMain() {
-    struct spdk_thread *spdk_th =
-        spdk_thread_create(getBdevCtx()->bdev_name, 0);
+    struct spdk_thread *spdk_th = spdk_thread_create(spBdevCtx.bdev_name, 0);
     if (!spdk_th) {
         DAQ_CRITICAL(
             "Spdk spdk_thread_create() can't create context on pthread");

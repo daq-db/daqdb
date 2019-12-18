@@ -166,6 +166,7 @@ class SpdkBdev : public SpdkDevice {
     std::atomic<SpdkBdevState> state;
     struct spdk_poller *_spdkPoller;
     volatile State _IoState;
+    int confBdevNum;
 
   public:
     static SpdkDeviceClass bdev_class;
