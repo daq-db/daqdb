@@ -461,6 +461,7 @@ void SpdkBdev::ioEngineThreadMain() {
         spdk_app_stop(-1);
         return;
     }
+    spdk_set_thread(spdk_th);
 
     bool ret = bdevInit();
     if (ret == false) {
