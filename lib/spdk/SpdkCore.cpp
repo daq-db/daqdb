@@ -205,6 +205,7 @@ void SpdkCore::spdkStart(void *arg) {
         return;
     }
 
+    bdev->setRunning(1);
     spdkCore->poller->setRunning(1);
 
     bdev->setReady();
