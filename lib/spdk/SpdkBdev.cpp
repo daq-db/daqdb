@@ -489,6 +489,12 @@ void SpdkBdev::ioEngineThreadMain() {
         return;
     }
 
+    /*
+     * Wait for ready on
+     */
+    while (isRunning == 3) {
+    }
+
     struct spdk_poller *spdk_io_poller =
         spdk_poller_register(SpdkBdev::ioEngineIoFunction, this, 0);
     if (!spdk_io_poller) {
@@ -500,11 +506,9 @@ void SpdkBdev::ioEngineThreadMain() {
     }
 
     /*
-     * Wait for ready on
+     * Ensure only IOs and events for this SPDK thread are processed
+     * by this Bdev
      */
-    while (isRunning == 3) {
-    }
-
     for (;;) {
         int ret = spdk_thread_poll(spdk_th, 0, 0);
         if (ret < 0)

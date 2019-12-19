@@ -44,7 +44,7 @@ class FinalizePoller : public Poller<DeviceTask> {
 
     void process() final;
 
-  private:
+  protected:
     void _processGet(DeviceTask *task);
     void _processUpdate(DeviceTask *task);
 };

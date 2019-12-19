@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <unistd.h>
+
 #include "spdk/bdev.h"
 
 #include "SpdkJBODBdev.h"
@@ -27,13 +29,29 @@ SpdkJBODBdev::SpdkJBODBdev(bool _statsEnabled)
     : statsEnabled(_statsEnabled), isRunning(0) {}
 
 SpdkJBODBdev::~SpdkJBODBdev() {
+    IOQuiesce();
+    bool isQuiescent = false;
+    for (int i = 0; i < 100; i++) {
+        isQuiescent = isIOQuiescent();
+        if (isQuiescent == true)
+            break;
+        usleep(1000);
+    }
     for (; numDevices; numDevices--) {
         devices[numDevices - 1].bdev->setRunning(0);
+    }
+    if (isQuiescent == false)
+        IOAbort();
+
+    for (; numDevices; numDevices--) {
         delete devices[numDevices - 1].bdev;
     }
 }
 
 bool SpdkJBODBdev::read(DeviceTask *task) {
+    if (!isRunning)
+        return false;
+
     for (uint32_t i = 0; i < numDevices; i++) {
         if (task->bdevAddr->busAddr.spdkPciAddr ==
             devices[i].addr.busAddr.spdkPciAddr)
@@ -44,6 +62,9 @@ bool SpdkJBODBdev::read(DeviceTask *task) {
 }
 
 bool SpdkJBODBdev::write(DeviceTask *task) {
+    if (!isRunning)
+        return false;
+
     task->bdev = devices[currDevice].bdev;
     bool ret = devices[currDevice].bdev->write(task);
     currDevice++;
@@ -92,10 +113,31 @@ void SpdkJBODBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
 }
 
 uint32_t SpdkJBODBdev::canQueue() {
-    return memTracker->IoBytesQueued >= memTracker->IoBytesMaxQueued
-               ? 0
-               : (memTracker->IoBytesMaxQueued - memTracker->IoBytesQueued) /
-                     4096;
+    uint32_t cnt =
+        memTracker->IoBytesQueued >= memTracker->IoBytesMaxQueued
+            ? 0
+            : (memTracker->IoBytesMaxQueued - memTracker->IoBytesQueued) / 4096;
+    return !cnt ? 200 : cnt;
+}
+
+void SpdkJBODBdev::IOQuiesce() {
+    for (uint32_t i = 0; i < numDevices; i++) {
+        devices[i].bdev->IOQuiesce();
+    }
+}
+
+bool SpdkJBODBdev::isIOQuiescent() {
+    for (uint32_t i = 0; i < numDevices; i++) {
+        if (devices[i].bdev->isIOQuiescent() == false)
+            return false;
+    }
+    return true;
+}
+
+void SpdkJBODBdev::IOAbort() {
+    for (uint32_t i = 0; i < numDevices; i++) {
+        devices[i].bdev->IOAbort();
+    }
 }
 
 } // namespace DaqDB
