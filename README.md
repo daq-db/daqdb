@@ -10,6 +10,7 @@
     - [Initial Steps](#initial-steps)
       - [SPDK](#spdk)
       - [Network](#network)
+      - [Offload](#offload)
     - [Unit Tests](#unit-tests)
     - [Tools and Examples](#tools-and-examples)
       - [Minidaq benchmark](#minidaq-benchmark)
@@ -114,6 +115,14 @@ Mellanox ConnectX-4 or newer Ethernet NICs are supported at the moment.
 Please see setup guide [here](doc/network_setup_guide.md)
 
 ---
+
+##### Offload
+
+Offload of KV pairs is supported to SSD devives. For the performance reasons it's recommended to use NVMe Optane drives.
+
+The Offload supports two types of congurations:
+- Single drive
+- JBOD 
 
 #### Unit Tests
 
