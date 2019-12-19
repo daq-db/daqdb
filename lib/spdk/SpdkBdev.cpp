@@ -328,6 +328,9 @@ int SpdkBdev::reschedule(DeviceTask *task) {
 }
 
 void SpdkBdev::deinit() {
+    isRunning = 5;
+    while (isRunning == 5) {
+    }
     spdk_put_io_channel(spBdevCtx.io_channel);
     spdk_bdev_close(spBdevCtx.bdev_desc);
 }
@@ -515,10 +518,13 @@ void SpdkBdev::ioEngineThreadMain() {
      * by this Bdev
      */
     for (;;) {
+        if (isRunning == 4)
+            break;
         int ret = spdk_thread_poll(spdk_th, 0, 0);
         if (ret < 0)
             break;
     }
+    isRunning = 6;
 
     spdk_poller_unregister(&spdk_io_poller);
 }
