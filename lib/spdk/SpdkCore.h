@@ -45,9 +45,7 @@ class SpdkCore {
      * _offloadOptions, true otherwise
      */
     bool createConfFile(void);
-
     void removeConfFile(void);
-
     bool isOffloadEnabled() {
         if (state == SpdkState::SPDK_READY)
             return spBdev->isOffloadEnabled();
@@ -55,17 +53,13 @@ class SpdkCore {
             return false;
     }
     bool spdkEnvInit(void);
-
     SpdkDevice *getBdev(void) { return spBdev.get(); }
-
     bool isSpdkReady() {
         return state == SpdkState::SPDK_READY ? true : false;
     }
-
     bool isBdevFound() {
         return state == SpdkState::SPDK_READY && spBdev->isBdevFound() == true;
     }
-
     void restoreSignals();
 
     std::atomic<SpdkState> state;
@@ -77,23 +71,14 @@ class SpdkCore {
 
     void signalReady();
     bool waitReady();
-
     void setPoller(Poller<OffloadRqst> *pol) { poller = pol; }
-
-    static int spdkPollerFunction(void *arg);
-    void setSpdkPoller(struct spdk_poller *spdk_poller) {
-        _spdkPoller = spdk_poller;
-    }
-    struct spdk_poller *getSpdkPoller() {
-        return _spdkPoller;
-    }
+    static int spdkCoreMainLoop(SpdkCore *spdkCore);
 
     /*
      * Callback function called by SPDK spdk_app_start in the context of an SPDK
      * thread.
      */
     static void spdkStart(void *arg);
-
     void startSpdk();
 
   private:
@@ -107,8 +92,6 @@ class SpdkCore {
 
     std::mutex _syncMutex;
     std::condition_variable _cv;
-
-    struct spdk_poller *_spdkPoller;
 
     inline bool isNvmeInOptions() {
         return offloadOptions._devs.size() ? true : false;
