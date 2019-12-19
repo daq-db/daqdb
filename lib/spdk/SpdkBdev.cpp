@@ -454,6 +454,8 @@ bool SpdkBdev::init(const SpdkConf &conf) {
 }
 
 void SpdkBdev::finilizerThreadMain() {
+    std::string finThreadName = std::string(spBdevCtx.bdev_name) + "_finilizer";
+    pthread_setname_np(pthread_self(), finThreadName.c_str());
     while (isRunning == 3) {
     }
     while (isRunning) {
@@ -473,6 +475,9 @@ int SpdkBdev::ioEngineIoFunction(void *arg) {
 }
 
 void SpdkBdev::ioEngineThreadMain() {
+    std::string finThreadName = std::string(spBdevCtx.bdev_name) + "_io";
+    pthread_setname_np(pthread_self(), finThreadName.c_str());
+
     struct spdk_thread *spdk_th = spdk_thread_create(spBdevCtx.bdev_name, 0);
     if (!spdk_th) {
         DAQ_CRITICAL(
@@ -514,6 +519,8 @@ void SpdkBdev::ioEngineThreadMain() {
         if (ret < 0)
             break;
     }
+
+    spdk_poller_unregister(&spdk_io_poller);
 }
 
 void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
