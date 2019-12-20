@@ -71,6 +71,7 @@ void FinalizePoller::_processGet(DeviceTask *task) {
                       task->keySize, nullptr, 0);
     }
 
+    spdk_dma_free(task->buff);
     OffloadRqst::getPool.put(task->rqst);
 }
 

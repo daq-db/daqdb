@@ -120,7 +120,6 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                             void *cb_arg) {
     BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
-    spdk_dma_free(task->buff);
     bdev->memTracker->IoBytesQueued =
         task->size > bdev->memTracker->IoBytesQueued
             ? 0
