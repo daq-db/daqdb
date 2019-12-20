@@ -77,9 +77,9 @@ class RTreeEngine {
     virtual void AllocValueForKey(const char *key, size_t size,
                                   char **value) = 0;
     virtual void
-    AllocateIOVForKey(const char *key, uint64_t **ptr,
+    AllocateIOVForKey(const char *key, DeviceAddr **ptr,
                       size_t size) = 0; // allocate IOV vector for given Key
-    virtual void UpdateValueWrapper(const char *key, uint64_t *ptr,
+    virtual void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
                                     size_t size) = 0;
 };
 } // namespace DaqDB

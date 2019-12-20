@@ -173,8 +173,10 @@ class ARTree : public DaqDB::RTreeEngine {
              int32_t valuebytes) final;
     void Remove(const char *key) final; // remove value for key
     void AllocValueForKey(const char *key, size_t size, char **value) final;
-    void AllocateIOVForKey(const char *key, uint64_t **ptr, size_t size) final;
-    void UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) final;
+    void AllocateIOVForKey(const char *key, DeviceAddr **ptr,
+                           size_t size) final;
+    void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
+                            size_t size) final;
     void printKey(const char *key);
     void decrementParent(persistent_ptr<Node> node);
     void removeFromParent(persistent_ptr<ValueWrapper> valPrstPtr);

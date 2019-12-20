@@ -159,9 +159,10 @@ void RTree::AllocValueForKey(const char *key, size_t size, char **value) {
  * Vector is reserved and it's address is returned.
  * Action related to reservation is stored in ValueWrapper in actionUpdate
  */
-void RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV, size_t size) {
+void RTree::AllocateIOVForKey(const char *key, DeviceAddr **ptrIOV,
+                              size_t size) {
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    val->actionUpdate = new pobj_action[3];
+    val->actionUpdate = new pobj_action[4];
     pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
                                    &(val->actionUpdate[0]), size, IOV);
     if (OID_IS_NULL(poid)) {
@@ -169,7 +170,7 @@ void RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV, size_t size) {
         val->actionUpdate = nullptr;
         throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
     }
-    *ptrIOV = reinterpret_cast<uint64_t *>(pmemobj_direct(poid));
+    *ptrIOV = reinterpret_cast<DeviceAddr *>(pmemobj_direct(poid));
 }
 
 /*
@@ -177,16 +178,18 @@ void RTree::AllocateIOVForKey(const char *key, uint64_t **ptrIOV, size_t size) {
  *	Calls persist on IOVVector.
  *	Removes value buffer allocated in PMEM.
  */
-void RTree::UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) {
+void RTree::UpdateValueWrapper(const char *key, DeviceAddr *ptr, size_t size) {
     pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
     ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
-                      val->locationPtr.IOVptr.get(),
-                      reinterpret_cast<uint64_t>(*ptr));
+                      &val->locationPtr.IOVptr->lba, ptr->lba);
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
+                      &val->locationPtr.IOVptr->busAddr.busAddr,
+                      ptr->busAddr.busAddr);
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[3]),
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
                       DISK);
-    pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 3);
+    pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 4);
     pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
     delete val->actionValue;
     delete val->actionUpdate;

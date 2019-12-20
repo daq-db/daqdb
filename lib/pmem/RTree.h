@@ -63,7 +63,7 @@ struct ValueWrapper {
     p<int> location;
     union locationPtr {
         persistent_ptr<char> value; // for location == PMEM
-        persistent_ptr<uint64_t> IOVptr;
+        persistent_ptr<DeviceAddr> IOVptr;
         locationPtr() : value(nullptr){};
     } locationPtr;
 
@@ -119,8 +119,10 @@ class RTree : public DaqDB::RTreeEngine {
              int32_t valuebytes) final;
     void Remove(const char *key) final; // remove value for key
     void AllocValueForKey(const char *key, size_t size, char **value) final;
-    void AllocateIOVForKey(const char *key, uint64_t **ptr, size_t size) final;
-    void UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) final;
+    void AllocateIOVForKey(const char *key, DeviceAddr **ptr,
+                           size_t size) final;
+    void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
+                            size_t size) final;
 
   private:
     Tree *tree;
