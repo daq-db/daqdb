@@ -483,6 +483,17 @@ void KVStore::Update(const Key &key, Value &&val,
         if (!isOffloadEnabled())
             throw OperationFailedException(Status(OFFLOAD_DISABLED_ERROR));
 
+        uint8_t location;
+        try {
+            void *newValData;
+            size_t newValSize;
+            _spRtree->Get(key.data(), key.size(), &newValData, &newValSize,
+                          &location);
+            val = Value(static_cast<char *>(newValData), newValSize);
+        } catch (...) {
+            throw OperationFailedException(Status(KEY_NOT_FOUND));
+        }
+
         std::mutex mtx;
         std::condition_variable cv;
         bool ready = false;
@@ -496,7 +507,8 @@ void KVStore::Update(const Key &key, Value &&val,
                 std::unique_lock<std::mutex> lck(mtx);
                 ready = true;
                 cv.notify_all();
-            });
+            },
+            location);
 
         if (!_spOffloadPoller->enqueue(updateRqst)) {
             OffloadRqst::updatePool.put(updateRqst);
