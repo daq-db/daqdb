@@ -32,19 +32,19 @@ typedef OffloadDevType SpdkDeviceClass;
 
 class SpdkDevice;
 
-struct DeviceAddr {
-    uint64_t lba;
-    union BusAddr {
-        uint64_t busAddr;
-        struct spdk_pci_addr spdkPciAddr;
-    } busAddr __attribute__((packed));
-};
+// struct DeviceAddr {
+//    uint64_t lba;
+//    union BusAddr {
+//        uint64_t busAddr;
+//        struct spdk_pci_addr spdkPciAddr;
+//    } busAddr __attribute__((packed));
+//};
 
-inline bool operator==(const struct spdk_pci_addr &l,
-                       const struct spdk_pci_addr &r) {
-    return l.domain == r.domain && l.bus == r.bus && l.dev == r.dev &&
-           l.func == r.func;
-}
+// inline bool operator==(const struct spdk_pci_addr &l,
+//                       const struct spdk_pci_addr &r) {
+//    return l.domain == r.domain && l.bus == r.bus && l.dev == r.dev &&
+//           l.func == r.func;
+//}
 
 struct DeviceTask {
   public:
@@ -94,7 +94,7 @@ extern "C" struct SpdkBdevCtx {
     uint32_t io_cache_size = 0;
     uint32_t io_min_size = 4096;
     CSpdkBdevState state;
-    struct spdk_pci_addr pci_addr;
+    struct PciAddr pci_addr;
 };
 
 /*

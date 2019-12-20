@@ -583,9 +583,10 @@ void ARTree::UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) {
     valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key, false);
     val =
         reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
-    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
-                      val->locationPtr.IOVptr.get(),
-                      reinterpret_cast<uint64_t>(*ptr));
+    pmemobj_set_value(
+        tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
+        reinterpret_cast<uint64_t *>(val->locationPtr.IOVptr.get()),
+        reinterpret_cast<uint64_t>(*ptr));
     pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
                       DISK);

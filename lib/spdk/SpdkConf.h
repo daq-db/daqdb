@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "spdk/env.h"
+#include "RTreeEngine.h"
 
 namespace DaqDB {
 
@@ -25,7 +25,7 @@ typedef OffloadDevType SpdkConfDevType;
 struct SpdkBdevConf {
     std::string devName = "";
     std::string nvmeAddr = "";
-    struct spdk_pci_addr pciAddr;
+    struct PciAddr pciAddr;
     std::string nvmeName = "";
 };
 
@@ -40,12 +40,12 @@ class SpdkConf {
 
     SpdkConf &operator=(const SpdkConf &_r);
 
-    struct spdk_pci_addr parsePciAddr(const std::string &nvmeAddr);
+    struct PciAddr parsePciAddr(const std::string &nvmeAddr);
     void copyDevs(const std::vector<OffloadDevDescriptor> &_offloadDevs);
 
     const std::string &getBdevNvmeName() const;
     const std::string &getBdevNvmeAddr() const;
-    struct spdk_pci_addr getBdevSpdkPciAddr();
+    struct PciAddr getBdevSpdkPciAddr();
 
     SpdkConfDevType getSpdkConfDevType() const { return _devType; }
     void setSpdkConfDevType(SpdkConfDevType devType) { _devType = devType; }

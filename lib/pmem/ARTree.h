@@ -88,7 +88,7 @@ struct ValueWrapper {
     p<int> location;
     union locationPtr {
         persistent_ptr<char> value; // for location == PMEM
-        persistent_ptr<uint64_t> IOVptr;
+        persistent_ptr<DeviceAddr> IOVptr;
         locationPtr() : value(nullptr){};
     } locationPtr;
     p<size_t> size;

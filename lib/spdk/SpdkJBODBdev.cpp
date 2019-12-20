@@ -53,8 +53,7 @@ bool SpdkJBODBdev::read(DeviceTask *task) {
         return false;
 
     for (uint32_t i = 0; i < numDevices; i++) {
-        if (task->bdevAddr->busAddr.spdkPciAddr ==
-            devices[i].addr.busAddr.spdkPciAddr)
+        if (task->bdevAddr->busAddr.pciAddr == devices[i].addr.busAddr.pciAddr)
             task->bdev = devices[i].bdev;
             return devices[i].bdev->read(task);
     }
@@ -88,7 +87,7 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
     int bdevNum = 0;
     for (auto d : conf.getDevs()) {
         devices[numDevices].addr.lba = -1; // max
-        devices[numDevices].addr.busAddr.spdkPciAddr = d.pciAddr;
+        devices[numDevices].addr.busAddr.pciAddr = d.pciAddr;
         devices[numDevices].num = numDevices;
         devices[numDevices].bdev = new SpdkBdev(statsEnabled);
         devices[numDevices].bdev->memTracker = this;

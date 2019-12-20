@@ -32,6 +32,26 @@ enum LOCATIONS { EMPTY, PMEM, DISK };
 
 namespace DaqDB {
 
+struct PciAddr {
+    uint32_t domain;
+    uint8_t bus;
+    uint8_t dev;
+    uint8_t func;
+} __attribute__((packed));
+
+inline bool operator==(const struct PciAddr &l, const struct PciAddr &r) {
+    return l.domain == r.domain && l.bus == r.bus && l.dev == r.dev &&
+           l.func == r.func;
+}
+
+struct DeviceAddr {
+    uint64_t lba;
+    union BusAddr {
+        uint64_t busAddr;
+        struct PciAddr pciAddr;
+    } busAddr __attribute__((packed));
+};
+
 class RTreeEngine {
   public:
     static RTreeEngine *Open(const string &path, // path to persistent pool

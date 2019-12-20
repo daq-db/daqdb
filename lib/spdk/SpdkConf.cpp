@@ -35,8 +35,8 @@ SpdkConf::SpdkConf(SpdkConfDevType devType, std::string name,
                    size_t raid0StripeSize)
     : _devType(devType), _name(name), _raid0StripeSize(raid0StripeSize) {}
 
-struct spdk_pci_addr SpdkConf::parsePciAddr(const std::string &nvmeAddr) {
-    struct spdk_pci_addr addr;
+struct PciAddr SpdkConf::parsePciAddr(const std::string &nvmeAddr) {
+    struct PciAddr addr;
     int ret = sscanf(nvmeAddr.c_str(), "%x.%X.%X.%X", &addr.domain, &addr.bus,
                      &addr.dev, &addr.func);
     if (ret != 4)
@@ -59,7 +59,7 @@ const std::string &SpdkConf::getBdevNvmeAddr() const {
     return _devs[0].nvmeAddr;
 }
 
-struct spdk_pci_addr SpdkConf::getBdevSpdkPciAddr() {
+struct PciAddr SpdkConf::getBdevSpdkPciAddr() {
     return _devs[0].pciAddr;
 }
 

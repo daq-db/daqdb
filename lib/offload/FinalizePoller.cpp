@@ -88,7 +88,7 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
         OffloadRqst::updatePool.put(task->rqst);
         return;
     }
-    task->bdevAddr->busAddr.spdkPciAddr = bdev->spBdevCtx.pci_addr;
+    task->bdevAddr->busAddr.pciAddr = bdev->spBdevCtx.pci_addr;
     task->bdevAddr->lba = task->freeLba;
 
     if (task->result) {
