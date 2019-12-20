@@ -73,9 +73,11 @@ void PmemPoller::_processTransfer(const PmemRqst *rqst) {
         _rqstClb(rqst, StatusCode::OFFLOAD_DISABLED_ERROR);
     }
     try {
-        if (!offloadPoller->enqueue(new OffloadRqst(OffloadOperation::GET,
-                                                    rqst->key, rqst->keySize,
-                                                    nullptr, 0, rqst->clb))) {
+        OffloadRqst *getRqst = OffloadRqst::getPool.get();
+        getRqst->finalizeGet(rqst->key, rqst->keySize, nullptr, 0, rqst->clb);
+
+        if (!offloadPoller->enqueue(getRqst)) {
+            OffloadRqst::getPool.put(getRqst);
             _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
         }
     } catch (OperationFailedException &e) {

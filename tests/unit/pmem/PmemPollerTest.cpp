@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
 
     delete[] poller.requests;
 }
-
+#if 0
 BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
 
     Mock<DaqDB::PmemPoller> pollerMock;
@@ -265,3 +265,4 @@ BOOST_AUTO_TEST_CASE(ProcessGetTestCallback) {
         .Exactly(1);
     delete[] poller.requests;
 }
+#endif

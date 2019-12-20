@@ -46,21 +46,23 @@ void SpdkIoEngine::process() {
     if (requestCount > 0) {
         for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
             DeviceTask *task = requests[RqstIdx];
-            if (!task)
-                continue;
             task->routing = false;
             switch (task->op) {
             case OffloadOperation::GET: {
                 SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
                 bool ret = bdev->read(task);
-                if (ret != true)
+                if (ret != true) {
                     rqstClb(task->rqst, StatusCode::UNKNOWN_ERROR);
+                    OffloadRqst::getPool.put(task->rqst);
+                }
             } break;
             case OffloadOperation::UPDATE: {
                 SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
                 bool ret = bdev->write(task);
-                if (ret != true)
+                if (ret != true) {
                     rqstClb(task->rqst, StatusCode::UNKNOWN_ERROR);
+                    OffloadRqst::updatePool.put(task->rqst);
+                }
             } break;
             default:
                 break;

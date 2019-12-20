@@ -487,7 +487,7 @@ void KVStore::Update(const Key &key, Value &&val,
         std::condition_variable cv;
         bool ready = false;
 
-        OffloadRqst *updateRqst = OffloadRqst::getPool.get();
+        OffloadRqst *updateRqst = OffloadRqst::updatePool.get();
         updateRqst->finalizeUpdate(
             key.data(), key.size(), val.data(), val.size(),
             [&mtx, &cv, &ready](KVStoreBase *kvs, Status status,

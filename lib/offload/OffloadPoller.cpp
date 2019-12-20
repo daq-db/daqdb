@@ -123,8 +123,10 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
                    OffloadOperation::GET};
     memcpy(ioTask->key, rqst->key, rqst->keySize);
 
-    if (getBdev()->read(ioTask) != true)
+    if (getBdev()->read(ioTask) != true) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+        OffloadRqst::getPool.put(rqst);
+    }
 }
 
 void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
@@ -182,8 +184,10 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         return;
     }
 
-    if (getBdev()->write(ioTask) != true)
+    if (getBdev()->write(ioTask) != true) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+        OffloadRqst::updatePool.put(rqst);
+    }
 }
 
 void OffloadPoller::_processRemove(OffloadRqst *rqst) {
