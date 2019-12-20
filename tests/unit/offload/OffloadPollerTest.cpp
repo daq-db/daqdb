@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     VerifyNoOtherInvocations(Method(bdevMock, read));
     VerifyNoOtherInvocations(Method(bdevMock, write));
 }
-
+#if 0
 BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
     Mock<DaqDB::OffloadPoller> pollerMock;
     Mock<DaqDB::RTree> rtreeMock;
@@ -217,3 +217,4 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
         .Exactly(1);
     delete[] poller.requests;
 }
+#endif

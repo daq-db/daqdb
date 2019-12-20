@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     VerifyNoOtherInvocations(OverloadedMethod(
         rtreeMock, Put, void(const char *, int32_t, const char *, int32_t)));
 }
-
+#if 0
 BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
 
     Mock<DaqDB::PmemPoller> pollerMock;
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(ProcessPutRqst) {
 
     delete[] poller.requests;
 }
-#if 0
+
 BOOST_AUTO_TEST_CASE(ProcessMultiplePutRqst) {
 
     Mock<DaqDB::PmemPoller> pollerMock;
