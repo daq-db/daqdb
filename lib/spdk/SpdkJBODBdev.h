@@ -27,7 +27,7 @@
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
 #include <Logger.h>
-#include <RTree.h>
+#include <RTreeEngine.h>
 
 namespace DaqDB {
 

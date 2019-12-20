@@ -25,6 +25,9 @@
 #include <libpmemobj++/transaction.hpp>
 #include <string>
 
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+
 using std::string;
 using std::to_string;
 

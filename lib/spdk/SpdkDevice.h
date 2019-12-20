@@ -21,7 +21,7 @@
 
 #include <Logger.h>
 #include <Options.h>
-#include <RTree.h>
+#include <RTreeEngine.h>
 
 namespace DaqDB {
 

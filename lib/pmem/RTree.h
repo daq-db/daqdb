@@ -45,7 +45,7 @@ using namespace pmem::obj;
 // Allocation class alignment
 #define ALLOC_CLASS_ALIGNMENT 0
 // Units per allocation block.
-#define ALLOC_CLASS_UNITS_PER_BLOCK 1000
+#define ALLOC_CLASS_UNITS_PER_BLOCK 100
 #define BITS_IN_BYTE 8
 
 enum OBJECT_TYPES { VALUE, IOV };
