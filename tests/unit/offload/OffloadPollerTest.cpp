@@ -16,8 +16,8 @@
 
 #include <cstdint>
 
-#include "../../lib/pmem/RTree.h"
 #include "../../lib/offload/OffloadPoller.cpp"
+#include "../../lib/pmem/RTree.h"
 #include "../../lib/spdk/SpdkBdev.h"
 #include "../../lib/spdk/SpdkCore.h"
 
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
     Mock<DaqDB::RTree> rtreeMock;
 
     uint64_t lbaRef = 123;
-    struct DaqDB::PciAddr pciAddrRef = {0,8,8,0};
+    struct DaqDB::PciAddr pciAddrRef = {0, 8, 8, 0};
     size_t valSizeRef = 4;
     char valRef[] = "1234";
     uint8_t location = PMEM;
