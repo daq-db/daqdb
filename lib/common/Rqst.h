@@ -43,7 +43,7 @@ class Rqst {
     Rqst(const T op, const char *key, const size_t keySize, const char *value,
          size_t valueSize, KVStoreBase::KVStoreBaseCallback clb,
          uint8_t loc = 0)
-        : op(op), key(keyBuffer), keySize(keySize), value(value),
+        : op(op), key(key), keySize(keySize), value(value),
           valueSize(valueSize), clb(clb), loc(loc) {
         memcpy(keyBuffer, key, keySize);
     }
@@ -71,8 +71,6 @@ class Rqst {
         op = T::GET;
         key = _key;
         keySize = _keySize;
-        memcpy(keyBuffer, key, keySize);
-        key = keyBuffer;
         value = _value;
         valueSize = _valueSize;
         clb = _clb;
@@ -83,8 +81,6 @@ class Rqst {
         op = T::REMOVE;
         key = _key;
         keySize = _keySize;
-        memcpy(keyBuffer, key, keySize);
-        key = keyBuffer;
         value = _value;
         valueSize = _valueSize;
         clb = _clb;

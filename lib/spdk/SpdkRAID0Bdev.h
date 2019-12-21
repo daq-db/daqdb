@@ -64,10 +64,10 @@ class SpdkRAID0Bdev : public SpdkDevice {
     virtual uint32_t canQueue() { return 1024; }
     virtual SpdkBdevCtx *getBdevCtx() { return &spBdevCtx; }
     virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
-        return lba * _blkNumForLba;
+        return lba * blkNumForLba;
     }
     virtual void setBlockNumForLba(uint64_t blk_num_flba) {
-        _blkNumForLba = blk_num_flba;
+        blkNumForLba = blk_num_flba;
     }
     virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
     virtual uint32_t getBlockSize() { return spBdevCtx.blk_size; }

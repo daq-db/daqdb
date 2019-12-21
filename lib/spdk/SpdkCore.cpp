@@ -59,7 +59,7 @@ SpdkCore::SpdkCore(OffloadOptions _offloadOptions)
     removeConfFile();
     bool conf_file_ok = createConfFile();
 
-    spBdev.reset(SpdkBdevFactory::getBdev(offloadOptions.devType));
+    spBdev = SpdkBdevFactory::getBdev(offloadOptions.devType);
     spBdev->enableStats(false);
 
     if (conf_file_ok == false) {
@@ -67,7 +67,7 @@ SpdkCore::SpdkCore(OffloadOptions _offloadOptions)
             state = SpdkState::SPDK_ERROR;
         else
             state = SpdkState::SPDK_READY;
-        dynamic_cast<SpdkBdev *>(spBdev.get())->state =
+        dynamic_cast<SpdkBdev *>(spBdev)->state =
             SpdkBdevState::SPDK_BDEV_NOT_FOUND;
     } else
         state = SpdkState::SPDK_READY;
@@ -181,7 +181,7 @@ void SpdkCore::startSpdk() {
  */
 void SpdkCore::spdkStart(void *arg) {
     SpdkCore *spdkCore = reinterpret_cast<SpdkCore *>(arg);
-    SpdkDevice *bdev = spdkCore->spBdev.get();
+    SpdkDevice *bdev = spdkCore->spBdev;
     SpdkBdevCtx *bdev_c = bdev->getBdevCtx();
 
     bool rc = bdev->init(spdkCore->_spdkConf);
@@ -236,7 +236,7 @@ void SpdkCore::_spdkThreadMain(void) {
 
 int SpdkCore::spdkCoreMainLoop(SpdkCore *spdkCore) {
     Poller<OffloadRqst> *poller = spdkCore->poller;
-    SpdkDevice *bdev = spdkCore->spBdev.get();
+    SpdkDevice *bdev = spdkCore->spBdev;
 
     uint32_t to_qu_cnt = bdev->canQueue();
     if (to_qu_cnt) {

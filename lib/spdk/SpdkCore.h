@@ -53,7 +53,7 @@ class SpdkCore {
             return false;
     }
     bool spdkEnvInit(void);
-    SpdkDevice *getBdev(void) { return spBdev.get(); }
+    SpdkDevice *getBdev(void) { return spBdev; }
     bool isSpdkReady() {
         return state == SpdkState::SPDK_READY ? true : false;
     }
@@ -63,7 +63,7 @@ class SpdkCore {
     void restoreSignals();
 
     std::atomic<SpdkState> state;
-    std::unique_ptr<SpdkDevice> spBdev;
+    SpdkDevice *spBdev;
     OffloadOptions offloadOptions;
     Poller<OffloadRqst> *poller;
 

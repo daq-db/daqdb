@@ -19,7 +19,7 @@
 
 #include <iostream>
 #include <pthread.h>
-#include <string>
+
 #include <thread>
 
 #include <boost/asio.hpp>
@@ -37,7 +37,7 @@
 
 #include "OffloadPoller.h"
 #include <Logger.h>
-#include <RTree.h>
+#include <RTreeEngine.h>
 #include <daqdb/Status.h>
 
 
@@ -69,7 +69,7 @@ void OffloadPoller::initFreeList() {
             initNeeded = true;
         }
         freeLbaList = _offloadFreeList.get_root().get();
-        freeLbaList->maxLba = getBdevCtx()->blk_num / getBdev()->_blkNumForLba;
+        freeLbaList->maxLba = getBdevCtx()->blk_num / getBdev()->blkNumForLba;
         if (initNeeded) {
             freeLbaList->push(_offloadFreeList, -1);
         }
@@ -104,26 +104,26 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
         return;
     }
 
-    auto size = getBdev()->getAlignedSize(valCtx.size);
+    SpdkDevice *spdkDev = getBdev();
+    size_t algnSize = spdkDev->getAlignedSize(valCtx.size);
+    spdkDev->memTracker->IoBytesQueued += algnSize;
+    auto blkSize = spdkDev->getSizeInBlk(algnSize);
 
-    getBdev()->memTracker->IoBytesQueued += size;
-
-    auto blkSize = getBdev()->getSizeInBlk(size);
-    DeviceTask *ioTask = new (rqst->taskBuffer)
-        DeviceTask{0,
-                   getBdev()->getOptimalSize(valCtx.size),
-                   blkSize,
-                   rqst->keySize,
-                   static_cast<DeviceAddr *>(valCtx.val),
-                   false,
-                   rtree,
-                   rqst->clb,
-                   getBdev(),
-                   rqst,
-                   OffloadOperation::GET};
+    DeviceTask *ioTask =
+        new (rqst->taskBuffer) DeviceTask{0,
+                                          spdkDev->getOptimalSize(valCtx.size),
+                                          blkSize,
+                                          rqst->keySize,
+                                          static_cast<DeviceAddr *>(valCtx.val),
+                                          false,
+                                          rtree,
+                                          rqst->clb,
+                                          spdkDev,
+                                          rqst,
+                                          OffloadOperation::GET};
     memcpy(ioTask->key, rqst->key, rqst->keySize);
 
-    if (getBdev()->read(ioTask) != true) {
+    if (spdkDev->read(ioTask) != true) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
         OffloadRqst::getPool.put(rqst);
     }
@@ -137,20 +137,21 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         return;
     }
 
-    auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
+    SpdkDevice *spdkDev = getBdev();
+    auto valSizeAlign = spdkDev->getAlignedSize(rqst->valueSize);
     if (rqst->loc == LOCATIONS::PMEM) {
         const char *val = static_cast<const char *>(rqst->value);
 
         ioTask = new (rqst->taskBuffer)
             DeviceTask{0,
-                       getBdev()->getOptimalSize(rqst->valueSize),
-                       getBdev()->getSizeInBlk(valSizeAlign),
+                       spdkDev->getOptimalSize(rqst->valueSize),
+                       spdkDev->getSizeInBlk(valSizeAlign),
                        rqst->keySize,
                        nullptr,
                        true,
                        rtree,
                        rqst->clb,
-                       getBdev(),
+                       spdkDev,
                        rqst,
                        OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
@@ -164,14 +165,14 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
 
         ioTask = new (rqst->taskBuffer)
             DeviceTask{0,
-                       getBdev()->getOptimalSize(rqst->valueSize),
-                       getBdev()->getSizeInBlk(valSizeAlign),
+                       spdkDev->getOptimalSize(rqst->valueSize),
+                       spdkDev->getSizeInBlk(valSizeAlign),
                        rqst->keySize,
                        new DeviceAddr,
                        false,
                        rtree,
                        rqst->clb,
-                       getBdev(),
+                       spdkDev,
                        rqst,
                        OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
@@ -184,7 +185,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         return;
     }
 
-    if (getBdev()->write(ioTask) != true) {
+    if (spdkDev->write(ioTask) != true) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
         OffloadRqst::updatePool.put(rqst);
     }

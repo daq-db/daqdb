@@ -456,7 +456,7 @@ bool SpdkBdev::init(const SpdkConf &conf) {
 }
 
 void SpdkBdev::finilizerThreadMain() {
-    std::string finThreadName = std::string(spBdevCtx.bdev_name) + "_finilizer";
+    std::string finThreadName = std::string(spBdevCtx.bdev_name) + "_finalizer";
     pthread_setname_np(pthread_self(), finThreadName.c_str());
     while (isRunning == 3) {
     }
@@ -533,4 +533,5 @@ void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
 }
 
 void SpdkBdev::enableStats(bool en) { statsEnabled = en; }
+
 } // namespace DaqDB

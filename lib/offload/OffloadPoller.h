@@ -51,15 +51,12 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
     void initFreeList();
 
-    SpdkDevice *getBdev() { return spdkCore->spBdev.get(); }
-
-    SpdkBdevCtx *getBdevCtx() { return spdkCore->spBdev->getBdevCtx(); }
-
-    inline spdk_bdev_desc *getBdevDesc() {
+    virtual SpdkDevice *getBdev() { return spdkCore->spBdev; }
+    virtual SpdkBdevCtx *getBdevCtx() { return spdkCore->spBdev->getBdevCtx(); }
+    virtual spdk_bdev_desc *getBdevDesc() {
         return spdkCore->spBdev->getBdevCtx()->bdev_desc;
     }
-
-    inline spdk_io_channel *getBdevIoChannel() {
+    virtual spdk_io_channel *getBdevIoChannel() {
         return spdkCore->spBdev->getBdevCtx()->io_channel;
     }
 
@@ -91,7 +88,6 @@ class OffloadPoller : public Poller<OffloadRqst> {
 
     pool<DaqDB::OffloadFreeList> _offloadFreeList;
 
-    std::string bdevName;
     const static char *pmemFreeListFilename;
 };
 

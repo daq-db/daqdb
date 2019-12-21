@@ -57,37 +57,26 @@ class SpdkBdev : public SpdkDevice {
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
 
-    bool bdevInit();
+    virtual bool bdevInit();
 
     /*
      * Optimal size is 4k times
      */
-    inline virtual size_t getOptimalSize(size_t size) {
-        return size ? (((size - 1) / 4096 + 1) * spBdevCtx.io_min_size) : 0;
-    }
-    inline virtual size_t getAlignedSize(size_t size) {
-        return getOptimalSize(size) + spBdevCtx.blk_size - 1 &
-               ~(spBdevCtx.blk_size - 1);
-    }
-    inline virtual uint32_t getSizeInBlk(size_t &size) {
-        return getOptimalSize(size) / spBdevCtx.blk_size;
-    }
-    void virtual setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
+    virtual size_t getOptimalSize(size_t size);
+    virtual size_t getAlignedSize(size_t size);
+    virtual uint32_t getSizeInBlk(size_t &size);
+    virtual void setReady();
+    virtual bool isOffloadEnabled();
+    virtual bool isBdevFound();
+    virtual SpdkBdevCtx *getBdevCtx();
 
-    virtual bool isOffloadEnabled() {
-        return spBdevCtx.state == SPDK_BDEV_READY;
-    }
-    virtual bool isBdevFound() {
-        return state != SpdkBdevState::SPDK_BDEV_NOT_FOUND;
-    }
-    virtual SpdkBdevCtx *getBdevCtx() { return &spBdevCtx; }
     /*
      * SpdkDevice virtual interface
      */
     virtual bool read(DeviceTask *task);
     virtual bool write(DeviceTask *task);
-    bool doRead(DeviceTask *task);
-    bool doWrite(DeviceTask *task);
+    virtual bool doRead(DeviceTask *task);
+    virtual bool doWrite(DeviceTask *task);
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);
@@ -139,29 +128,7 @@ class SpdkBdev : public SpdkDevice {
     virtual bool isIOQuiescent();
     virtual void IOAbort();
 
-    bool stateMachine() {
-        switch (_IoState) {
-        case SpdkBdev::State::BDEV_IO_INIT:
-        case SpdkBdev::State::BDEV_IO_READY:
-            break;
-        case SpdkBdev::State::BDEV_IO_ERROR:
-            deinit();
-            break;
-        case SpdkBdev::State::BDEV_IO_QUIESCING:
-            if (!stats.outstanding_io_cnt) {
-                _IoState = SpdkBdev::State::BDEV_IO_QUIESCENT;
-            }
-            return true;
-        case SpdkBdev::State::BDEV_IO_QUIESCENT:
-            return true;
-        case SpdkBdev::State::BDEV_IO_STOPPED:
-            break;
-        case SpdkBdev::State::BDEV_IO_ABORTED:
-            deinit();
-            return true;
-        }
-        return false;
-    }
+    virtual bool stateMachine();
 
     std::atomic<SpdkBdevState> state;
     struct spdk_poller *_spdkPoller;
@@ -188,10 +155,10 @@ class SpdkBdev : public SpdkDevice {
                          4096;
     }
     virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
-        return lba * _blkNumForLba;
+        return lba * blkNumForLba;
     }
     virtual void setBlockNumForLba(uint64_t blk_num_flba) {
-        _blkNumForLba = blk_num_flba;
+        blkNumForLba = blk_num_flba;
     }
     virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
     virtual void setRunning(int running) { isRunning = running; }
@@ -212,6 +179,54 @@ class SpdkBdev : public SpdkDevice {
     std::atomic<int> ioEngineInitDone;
 };
 
+inline size_t SpdkBdev::getOptimalSize(size_t size) {
+    return size ? (((size - 1) / 4096 + 1) * spBdevCtx.io_min_size) : 0;
+}
+
+inline size_t SpdkBdev::getAlignedSize(size_t size) {
+    return getOptimalSize(size) + spBdevCtx.blk_size - 1 &
+           ~(spBdevCtx.blk_size - 1);
+}
+
+inline uint32_t SpdkBdev::getSizeInBlk(size_t &size) {
+    return getOptimalSize(size) / spBdevCtx.blk_size;
+}
+
+inline void SpdkBdev::setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
+
+inline bool SpdkBdev::isOffloadEnabled() {
+    return spBdevCtx.state == SPDK_BDEV_READY;
+}
+
+inline bool SpdkBdev::isBdevFound() {
+    return state != SpdkBdevState::SPDK_BDEV_NOT_FOUND;
+}
+
+inline SpdkBdevCtx *SpdkBdev::getBdevCtx() { return &spBdevCtx; }
+
+inline bool SpdkBdev::stateMachine() {
+    switch (_IoState) {
+    case SpdkBdev::State::BDEV_IO_INIT:
+    case SpdkBdev::State::BDEV_IO_READY:
+        break;
+    case SpdkBdev::State::BDEV_IO_ERROR:
+        deinit();
+        break;
+    case SpdkBdev::State::BDEV_IO_QUIESCING:
+        if (!stats.outstanding_io_cnt) {
+            _IoState = SpdkBdev::State::BDEV_IO_QUIESCENT;
+        }
+        return true;
+    case SpdkBdev::State::BDEV_IO_QUIESCENT:
+        return true;
+    case SpdkBdev::State::BDEV_IO_STOPPED:
+        break;
+    case SpdkBdev::State::BDEV_IO_ABORTED:
+        deinit();
+        return true;
+    }
+    return false;
+}
 using BdevTask = DeviceTask;
 
 } // namespace DaqDB
