@@ -28,6 +28,14 @@ Value allocValue(KVStoreBase *kvs, const uint64_t keyId, const string &value) {
     return result;
 }
 
+Value allocValueValue(KVStoreBase *kvs, const uint64_t keyId,
+                      const Value &value) {
+    auto key = allocKey(kvs, keyId);
+    Value result = kvs->Alloc(key, value.size());
+    memcpy(result.data(), value.data(), value.size());
+    return result;
+}
+
 Key allocKey(KVStoreBase *kvs, const uint64_t id) {
     Key keyBuff = kvs->AllocKey(KeyValAttribute::NOT_BUFFERED);
     FuncTestKey *fKeyPtr = reinterpret_cast<FuncTestKey *>(keyBuff.data());
@@ -101,6 +109,20 @@ void daqdb_put(KVStoreBase *kvs, const uint64_t keyId,
                const std::string &value) {
     auto key = allocKey(kvs, keyId);
     auto val = allocValue(kvs, keyId, value);
+    DAQDB_INFO << format("Put: [%1%]") % keyId;
+
+    try {
+        kvs->Put(move(key), move(val));
+    } catch (OperationFailedException &e) {
+        BOOST_LOG_SEV(lg::get(), bt::info)
+            << "Error: cannot put element: " << e.status().to_string() << flush;
+    }
+}
+
+void daqdb_put_value(KVStoreBase *kvs, const uint64_t keyId,
+                     const Value &value) {
+    auto key = allocKey(kvs, keyId);
+    auto val = allocValueValue(kvs, keyId, value);
     DAQDB_INFO << format("Put: [%1%]") % keyId;
 
     try {
@@ -185,6 +207,20 @@ void daqdb_async_put(KVStoreBase *kvs, const uint64_t keyId,
                      KVStoreBase::KVStoreBaseCallback cb) {
     auto key = allocKey(kvs, keyId);
     auto val = allocValue(kvs, keyId, value);
+    try {
+        PutOptions options(PrimaryKeyAttribute::EMPTY);
+        kvs->PutAsync(move(key), move(val), cb, move(options));
+    } catch (OperationFailedException &e) {
+        BOOST_LOG_SEV(lg::get(), bt::info)
+            << "Error: cannot put element: " << e.status().to_string() << flush;
+    }
+}
+
+void daqdb_async_put_value(KVStoreBase *kvs, const uint64_t keyId,
+                           const Value &value,
+                           KVStoreBase::KVStoreBaseCallback cb) {
+    auto key = allocKey(kvs, keyId);
+    auto val = allocValueValue(kvs, keyId, value);
     try {
         PutOptions options(PrimaryKeyAttribute::EMPTY);
         kvs->PutAsync(move(key), move(val), cb, move(options));

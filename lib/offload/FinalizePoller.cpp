@@ -64,7 +64,7 @@ void FinalizePoller::_processGet(DeviceTask *task) {
     if (task->result) {
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff, task->size);
+                      task->buff, task->rqst->valueSize);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
@@ -97,7 +97,7 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
                                             sizeof(DeviceAddr));
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff, task->size);
+                      task->buff, task->rqst->valueSize);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,

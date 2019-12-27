@@ -109,6 +109,7 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
     spdkDev->memTracker->IoBytesQueued += algnSize;
     auto blkSize = spdkDev->getSizeInBlk(algnSize);
 
+    rqst->valueSize = valCtx.size;
     DeviceTask *ioTask =
         new (rqst->taskBuffer) DeviceTask{0,
                                           spdkDev->getOptimalSize(valCtx.size),

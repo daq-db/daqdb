@@ -42,6 +42,9 @@ DaqDB::Value daqdb_get(DaqDB::KVStoreBase *kvs, const uint64_t id);
 void daqdb_put(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
                const std::string &value);
 
+void daqdb_put_value(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
+                     const DaqDB::Value &value);
+
 void daqdb_update(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
                   DaqDB::Value &val, const DaqDB::UpdateOptions &options);
 
@@ -58,6 +61,10 @@ void daqdb_async_get(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
 void daqdb_async_put(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
                      const std::string &value,
                      DaqDB::KVStoreBase::KVStoreBaseCallback cb);
+
+void daqdb_async_put_value(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
+                           const DaqDB::Value &value,
+                           DaqDB::KVStoreBase::KVStoreBaseCallback cb);
 
 void daqdb_async_update(DaqDB::KVStoreBase *kvs, const uint64_t keyId,
                         DaqDB::Value &val,

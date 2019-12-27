@@ -111,12 +111,14 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    map<string, function<bool(DaqDB::KVStoreBase *)> > tests =
+    map<string, function<bool(DaqDB::KVStoreBase *)>> tests =
         boost::assign::map_list_of("testSyncOperations", testSyncOperations)(
             "testMultiplePuts", testMultiplePuts)("testASyncOperations",
                                                   testAsyncOperations)(
             "testSyncOffloadOperations", testSyncOffloadOperations)(
             "testAsyncOffloadOperations", testAsyncOffloadOperations)(
+            "testSyncOffloadExtOperations", testSyncOffloadExtOperations)(
+            "testAsyncOffloadExtOperations", testAsyncOffloadExtOperations)(
             "testDhtConnect", testDhtConnect)("testValueSizes", testValueSizes);
 
     unsigned short failsCount = 0;
