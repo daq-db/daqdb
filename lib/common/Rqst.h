@@ -98,6 +98,7 @@ class Rqst {
     KVStoreBase::KVStoreBaseCallback clb;
     uint8_t loc;
     unsigned char taskBuffer[256];
+    uint64_t devAddrBuf[2];
 
     static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> updatePool;
     static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> getPool;

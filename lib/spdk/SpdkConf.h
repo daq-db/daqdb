@@ -45,7 +45,7 @@ class SpdkConf {
 
     const std::string &getBdevNvmeName() const;
     const std::string &getBdevNvmeAddr() const;
-    struct PciAddr getBdevSpdkPciAddr();
+    struct PciAddr getBdevSpdkPciAddr() const;
 
     SpdkConfDevType getSpdkConfDevType() const { return _devType; }
     void setSpdkConfDevType(SpdkConfDevType devType) { _devType = devType; }

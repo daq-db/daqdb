@@ -97,6 +97,7 @@ void MinidaqFfNodeSeq::_Task(Key &&key, std::atomic<std::uint64_t> &cnt,
                                 cnt++;
                             }
                         });
+                    _kvs->Free(key, std::move(value));
                     /** @todo c++ does not allow it in lambda,
                      *        this is not thread-safe
                      */

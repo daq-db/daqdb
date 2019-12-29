@@ -105,15 +105,12 @@ void OffloadPoller::_processGet(OffloadRqst *rqst) {
     }
 
     SpdkDevice *spdkDev = getBdev();
-    size_t algnSize = spdkDev->getAlignedSize(valCtx.size);
-    spdkDev->memTracker->IoBytesQueued += algnSize;
-    auto blkSize = spdkDev->getSizeInBlk(algnSize);
 
     rqst->valueSize = valCtx.size;
     DeviceTask *ioTask =
         new (rqst->taskBuffer) DeviceTask{0,
                                           spdkDev->getOptimalSize(valCtx.size),
-                                          blkSize,
+                                          0,
                                           rqst->keySize,
                                           static_cast<DeviceAddr *>(valCtx.val),
                                           false,
@@ -141,8 +138,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
     SpdkDevice *spdkDev = getBdev();
     auto valSizeAlign = spdkDev->getAlignedSize(rqst->valueSize);
     if (rqst->loc == LOCATIONS::PMEM) {
-        const char *val = static_cast<const char *>(rqst->value);
-
         ioTask = new (rqst->taskBuffer)
             DeviceTask{0,
                        spdkDev->getOptimalSize(rqst->valueSize),
@@ -169,7 +164,7 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        spdkDev->getOptimalSize(rqst->valueSize),
                        spdkDev->getSizeInBlk(valSizeAlign),
                        rqst->keySize,
-                       new DeviceAddr,
+                       new (rqst->devAddrBuf) DeviceAddr,
                        false,
                        rtree,
                        rqst->clb,
@@ -180,8 +175,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
         memcpy(ioTask->bdevAddr, rqst->value, sizeof(*ioTask->bdevAddr));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
-        if (rqst->valueSize > 0)
-            delete[] rqst->value;
         OffloadRqst::updatePool.put(rqst);
         return;
     }

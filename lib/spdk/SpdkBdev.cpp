@@ -214,6 +214,11 @@ bool SpdkBdev::doRead(DeviceTask *task) {
         return false;
     }
 
+    size_t algnSize = bdev->getAlignedSize(task->rqst->valueSize);
+    auto blkSize = bdev->getSizeInBlk(algnSize);
+    task->blockSize = blkSize;
+    bdev->memTracker->IoBytesQueued += algnSize;
+
     char *buff = reinterpret_cast<char *>(
         spdk_dma_zmalloc(task->size, bdev->spBdevCtx.buf_align, NULL));
     task->buff = buff;
@@ -407,6 +412,7 @@ bool SpdkBdev::init(const SpdkConf &conf) {
     strcpy(spBdevCtx.bdev_addr, conf.getBdevNvmeAddr().c_str());
     spBdevCtx.bdev = 0;
     spBdevCtx.bdev_desc = 0;
+    spBdevCtx.pci_addr = conf.getBdevSpdkPciAddr();
 
     setRunning(3);
 

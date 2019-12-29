@@ -37,7 +37,7 @@ SpdkConf::SpdkConf(SpdkConfDevType devType, std::string name,
 
 struct PciAddr SpdkConf::parsePciAddr(const std::string &nvmeAddr) {
     struct PciAddr addr;
-    int ret = sscanf(nvmeAddr.c_str(), "%x.%X.%X.%X", &addr.domain, &addr.bus,
+    int ret = sscanf(nvmeAddr.c_str(), "%x:%X:%X.%X", &addr.domain, &addr.bus,
                      &addr.dev, &addr.func);
     if (ret != 4)
         memset(&addr, 0xff, sizeof(addr));
@@ -59,7 +59,7 @@ const std::string &SpdkConf::getBdevNvmeAddr() const {
     return _devs[0].nvmeAddr;
 }
 
-struct PciAddr SpdkConf::getBdevSpdkPciAddr() {
+struct PciAddr SpdkConf::getBdevSpdkPciAddr() const {
     return _devs[0].pciAddr;
 }
 
