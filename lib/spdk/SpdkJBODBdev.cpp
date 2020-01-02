@@ -53,9 +53,11 @@ bool SpdkJBODBdev::read(DeviceTask *task) {
         return false;
 
     for (uint32_t i = 0; i < numDevices; i++) {
-        if (task->bdevAddr->busAddr.pciAddr == devices[i].addr.busAddr.pciAddr)
+        if (task->bdevAddr->busAddr.pciAddr ==
+            devices[i].addr.busAddr.pciAddr) {
             task->bdev = devices[i].bdev;
             return devices[i].bdev->read(task);
+        }
     }
     return false;
 }
