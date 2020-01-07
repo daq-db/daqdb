@@ -33,6 +33,12 @@ void SpdkRAID0Bdev::deinit() {}
 
 bool SpdkRAID0Bdev::init(const SpdkConf &conf) { return true; }
 
+void SpdkRAID0Bdev::initFreeList() {}
+
+int64_t SpdkRAID0Bdev::getFreeLba() { return -1; }
+
+void SpdkRAID0Bdev::putFreeLba(const DeviceAddr *devAddr) {}
+
 void SpdkRAID0Bdev::enableStats(bool en) {}
 
 void SpdkRAID0Bdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {

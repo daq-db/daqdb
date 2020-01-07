@@ -151,7 +151,6 @@ void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
                        rqst,
                        OffloadOperation::UPDATE};
         memcpy(ioTask->key, rqst->key, rqst->keySize);
-        ioTask->freeLba = getFreeLba();
     } else if (rqst->loc == LOCATIONS::DISK) {
         if (rqst->valueSize == 0) {
             _rqstClb(rqst, StatusCode::OK);
@@ -208,7 +207,7 @@ void OffloadPoller::_processRemove(OffloadRqst *rqst) {
 
     uint64_t lba = *(static_cast<uint64_t *>(valCtx.val));
 
-    freeLbaList->push(_offloadFreeList, lba);
+    getBdev()->putFreeLba(static_cast<const DeviceAddr *>(valCtx.val));
     rtree->Remove(rqst->key);
     _rqstClb(rqst, StatusCode::OK);
     OffloadRqst::removePool.put(rqst);

@@ -50,6 +50,9 @@ class SpdkJBODBdev : public SpdkDevice {
      */
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
+    virtual void initFreeList();
+    virtual int64_t getFreeLba();
+    virtual void putFreeLba(const DeviceAddr *devAddr);
 
     /*
      * SpdkDevice virtual interface
@@ -82,9 +85,7 @@ class SpdkJBODBdev : public SpdkDevice {
     virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
         return lba * blkNumForLba;
     }
-    virtual void setBlockNumForLba(uint64_t blk_num_flba) {
-        blkNumForLba = blk_num_flba;
-    }
+    virtual void setBlockNumForLba(uint64_t blk_num_flba);
     virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
     virtual uint32_t getBlockSize() { return spBdevCtx.blk_size; }
     virtual uint32_t getIoPoolSize() { return spBdevCtx.io_pool_size; }

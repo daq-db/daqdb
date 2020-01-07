@@ -21,6 +21,9 @@
 #include <sstream>
 #include <string>
 
+#include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
+
 #include "spdk/stdinc.h"
 #include "spdk/cpuset.h"
 #include "spdk/queue.h"
@@ -40,6 +43,12 @@
 namespace DaqDB {
 
 //#define TEST_RAW_IOPS
+
+const char *SpdkBdev::lbaMgmtFileprefix = "/mnt/pmem/bdev_free_lba_list_";
+
+const unsigned int poolFreelistSize = 1ULL * 1024 * 1024 * 1024;
+const char *poolLayout = "queue";
+#define CREATE_MODE_RW (S_IWUSR | S_IRUSR)
 
 /*
  * SpdkBdev
@@ -272,6 +281,9 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
         return false;
     }
 
+    if (task->rqst->loc == LOCATIONS::PMEM)
+        task->freeLba = getFreeLba();
+
     auto valSize = task->rqst->valueSize;
     auto valSizeAlign = bdev->getAlignedSize(valSize);
     auto buff = reinterpret_cast<char *>(
@@ -340,7 +352,32 @@ void SpdkBdev::deinit() {
 }
 
 struct spdk_bdev *SpdkBdev::prevBdev = 0;
-;
+
+int64_t SpdkBdev::getFreeLba() { return freeLbaList->get(_offloadFreeList); }
+
+void SpdkBdev::putFreeLba(const DeviceAddr *devAddr) {
+    freeLbaList->push(_offloadFreeList, devAddr->lba);
+}
+
+void SpdkBdev::initFreeList() {
+    auto initNeeded = false;
+    std::string fileName =
+        std::string(SpdkBdev::lbaMgmtFileprefix) + spBdevCtx.bdev_name + ".pm";
+    if (boost::filesystem::exists(fileName.c_str())) {
+        _offloadFreeList =
+            pool<OffloadFreeList>::open(fileName.c_str(), poolLayout);
+    } else {
+        _offloadFreeList = pool<OffloadFreeList>::create(
+            fileName.c_str(), poolLayout, poolFreelistSize, CREATE_MODE_RW);
+        initNeeded = true;
+    }
+    freeLbaList = _offloadFreeList.get_root().get();
+    freeLbaList->maxLba = spBdevCtx.blk_num / blkNumForLba;
+    if (initNeeded) {
+        freeLbaList->push(_offloadFreeList, -1);
+    }
+}
+
 bool SpdkBdev::bdevInit() {
     if (confBdevNum == -1) { // single Bdev
         spBdevCtx.bdev = spdk_bdev_first();

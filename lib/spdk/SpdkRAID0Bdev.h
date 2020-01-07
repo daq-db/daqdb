@@ -43,6 +43,9 @@ class SpdkRAID0Bdev : public SpdkDevice {
      */
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
+    virtual void initFreeList();
+    virtual int64_t getFreeLba();
+    virtual void putFreeLba(const DeviceAddr *devAddr);
 
     /*
      * SpdkDevice virtual interface

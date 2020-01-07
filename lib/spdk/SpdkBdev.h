@@ -24,6 +24,7 @@
 #include "spdk/bdev.h"
 
 #include "BdevStats.h"
+#include "OffloadFreeList.h"
 #include "Rqst.h"
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
@@ -56,7 +57,9 @@ class SpdkBdev : public SpdkDevice {
      */
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
-
+    virtual void initFreeList();
+    virtual int64_t getFreeLba();
+    virtual void putFreeLba(const DeviceAddr *devAddr);
     virtual bool bdevInit();
 
     /*
@@ -173,10 +176,16 @@ class SpdkBdev : public SpdkDevice {
     std::thread *finalizerThread;
     void finilizerThreadMain(void);
 
+    OffloadFreeList *freeLbaList = nullptr;
+
+    std::atomic<int> ioEngineInitDone;
+
   private:
     std::atomic<int> isRunning;
     bool statsEnabled;
-    std::atomic<int> ioEngineInitDone;
+
+    pool<DaqDB::OffloadFreeList> _offloadFreeList;
+    const static char *lbaMgmtFileprefix;
 };
 
 inline size_t SpdkBdev::getOptimalSize(size_t size) {
