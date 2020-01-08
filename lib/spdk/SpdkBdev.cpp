@@ -63,7 +63,7 @@ SpdkBdev::SpdkBdev(bool enableStats)
       cpuCore(SpdkBdev::getCoreNum()), cpuCoreFin(cpuCore + 1),
       cpuCoreIoEng(cpuCoreFin + 1), finalizer(0), finalizerThread(0),
       ioEngine(0), ioEngineThread(0), isRunning(0), statsEnabled(enableStats),
-      ioEngineInitDone(0) {}
+      ioEngineInitDone(0), maxIoBufs(0), ioBufsInUse(0), maxCacheIoBufs(0) {}
 
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
@@ -101,10 +101,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
     BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     spdk_dma_free(task->buff);
-    bdev->memTracker->IoBytesQueued =
-        task->size > bdev->memTracker->IoBytesQueued
-            ? 0
-            : bdev->memTracker->IoBytesQueued - task->size;
+    bdev->ioBufsInUse--;
 
 #ifndef TEST_RAW_IOPS
     spdk_bdev_free_io(bdev_io);
@@ -129,10 +126,6 @@ void SpdkBdev::readComplete(struct spdk_bdev_io *bdev_io, bool success,
                             void *cb_arg) {
     BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
-    bdev->memTracker->IoBytesQueued =
-        task->size > bdev->memTracker->IoBytesQueued
-            ? 0
-            : bdev->memTracker->IoBytesQueued - task->size;
 
 #ifndef TEST_RAW_IOPS
     spdk_bdev_free_io(bdev_io);
@@ -220,16 +213,17 @@ bool SpdkBdev::doRead(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
         spdk_dma_free(task->buff);
+        bdev->ioBufsInUse--;
         return false;
     }
 
     size_t algnSize = bdev->getAlignedSize(task->rqst->valueSize);
     auto blkSize = bdev->getSizeInBlk(algnSize);
     task->blockSize = blkSize;
-    bdev->memTracker->IoBytesQueued += algnSize;
 
     char *buff = reinterpret_cast<char *>(
         spdk_dma_zmalloc(task->size, bdev->spBdevCtx.buf_align, NULL));
+    bdev->ioBufsInUse++;
     task->buff = buff;
 
 #ifdef TEST_RAW_IOPS
@@ -278,6 +272,7 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
         spdk_dma_free(task->buff);
+        bdev->ioBufsInUse--;
         return false;
     }
 
@@ -288,8 +283,7 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
     auto valSizeAlign = bdev->getAlignedSize(valSize);
     auto buff = reinterpret_cast<char *>(
         spdk_dma_zmalloc(valSizeAlign, bdev->spBdevCtx.buf_align, NULL));
-
-    bdev->memTracker->IoBytesQueued += bdev->getOptimalSize(valSize);
+    bdev->ioBufsInUse++;
 
     memcpy(buff, task->rqst->value, valSize);
     task->buff = buff;
@@ -416,7 +410,10 @@ bool SpdkBdev::bdevInit() {
               " bdev.bdev.io_cache_size[" + bdev_opts.bdev_io_cache_size + "]");
 
     spBdevCtx.io_pool_size = bdev_opts.bdev_io_pool_size;
+    maxIoBufs = spBdevCtx.io_pool_size;
+
     spBdevCtx.io_cache_size = bdev_opts.bdev_io_cache_size;
+    maxCacheIoBufs = spBdevCtx.io_cache_size;
 
     spBdevCtx.io_channel = spdk_bdev_get_io_channel(spBdevCtx.bdev_desc);
     if (!spBdevCtx.io_channel) {
@@ -512,8 +509,11 @@ void SpdkBdev::finilizerThreadMain() {
 int SpdkBdev::ioEngineIoFunction(void *arg) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(arg);
     if (bdev->isRunning) {
-        bdev->ioEngine->dequeue();
-        bdev->ioEngine->process();
+        uint32_t can_queue_cnt = bdev->canQueue();
+        if (can_queue_cnt) {
+            bdev->ioEngine->dequeue(can_queue_cnt);
+            bdev->ioEngine->process();
+        }
     }
 
     return 0;
@@ -571,9 +571,7 @@ void SpdkBdev::ioEngineThreadMain() {
     spdk_poller_unregister(&spdk_io_poller);
 }
 
-void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
-    memTracker->IoBytesMaxQueued = io_cache_size * 128;
-}
+void SpdkBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {}
 
 void SpdkBdev::enableStats(bool en) { statsEnabled = en; }
 

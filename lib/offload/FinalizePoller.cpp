@@ -72,6 +72,7 @@ void FinalizePoller::_processGet(DeviceTask *task) {
     }
 
     spdk_dma_free(task->buff);
+    bdev->ioBufsInUse--;
     OffloadRqst::getPool.put(task->rqst);
 }
 

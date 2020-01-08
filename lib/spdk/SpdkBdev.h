@@ -151,11 +151,8 @@ class SpdkBdev : public SpdkDevice {
     static size_t cpuCoreCounter;
 
     virtual uint32_t canQueue() {
-        return memTracker->IoBytesQueued >= memTracker->IoBytesMaxQueued
-                   ? 0
-                   : (memTracker->IoBytesMaxQueued -
-                      memTracker->IoBytesQueued) /
-                         4096;
+        uint32_t canQue = maxIoBufs > ioBufsInUse ? maxIoBufs - ioBufsInUse : 0;
+        return canQue;
     }
     virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
         return lba * blkNumForLba;
@@ -179,6 +176,9 @@ class SpdkBdev : public SpdkDevice {
     OffloadFreeList *freeLbaList = nullptr;
 
     std::atomic<int> ioEngineInitDone;
+    uint32_t maxIoBufs;
+    uint32_t maxCacheIoBufs;
+    uint32_t ioBufsInUse;
 
   private:
     std::atomic<int> isRunning;

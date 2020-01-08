@@ -86,7 +86,6 @@ BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
 
     Mock<DaqDB::SpdkBdev> bdevMock;
     DaqDB::SpdkBdev &spdkBdev = bdevMock.get();
-    spdkBdev.memTracker = &spdkBdev;
 
     spdkBdev.spBdevCtx.blk_size = 512;
     spdkBdev.spBdevCtx.blk_num = 1024;
@@ -166,7 +165,6 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
 
     Mock<DaqDB::SpdkBdev> bdevMock;
     DaqDB::SpdkBdev &spdkBdev = bdevMock.get();
-    spdkBdev.memTracker = &spdkBdev;
     spdkBdev.spBdevCtx.blk_size = 512;
     spdkBdev.spBdevCtx.blk_num = 1024;
     spdkBdev.spBdevCtx.buf_align = 1;
@@ -256,7 +254,6 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
 
     Mock<DaqDB::SpdkBdev> bdevMock;
     DaqDB::SpdkBdev &spdkBdev = bdevMock.get();
-    spdkBdev.memTracker = &spdkBdev;
     spdkBdev.spBdevCtx.blk_size = 512;
     spdkBdev.spBdevCtx.blk_num = 1024;
     spdkBdev.spBdevCtx.buf_align = 1;

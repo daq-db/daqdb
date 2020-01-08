@@ -239,11 +239,8 @@ int SpdkCore::spdkCoreMainLoop(SpdkCore *spdkCore) {
     Poller<OffloadRqst> *poller = spdkCore->poller;
     SpdkDevice *bdev = spdkCore->spBdev;
 
-    uint32_t to_qu_cnt = bdev->canQueue();
-    if (to_qu_cnt) {
-        poller->dequeue(to_qu_cnt);
-        poller->process();
-    }
+    poller->dequeue();
+    poller->process();
 
     if (poller->isOffloadRunning() == false) {
         bdev->deinit();

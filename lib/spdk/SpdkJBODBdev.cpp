@@ -92,7 +92,6 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         devices[numDevices].addr.busAddr.pciAddr = d.pciAddr;
         devices[numDevices].num = numDevices;
         devices[numDevices].bdev = new SpdkBdev(statsEnabled);
-        devices[numDevices].bdev->memTracker = this;
 
         SpdkConf currConf(SpdkConfDevType::BDEV, d.devName, 0);
         currConf.setBdevNum(bdevNum++);
@@ -104,6 +103,12 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
         spBdevCtx = devices[numDevices].bdev->spBdevCtx;
         numDevices++;
     }
+
+    for (uint32_t i = 0; i < numDevices; i++) {
+        devices[i].bdev->maxCacheIoBufs = spBdevCtx.io_cache_size / numDevices;
+        devices[i].bdev->maxIoBufs = spBdevCtx.io_pool_size / numDevices;
+    }
+
     return true;
 }
 
@@ -115,9 +120,7 @@ void SpdkJBODBdev::initFreeList() {
 
 void SpdkJBODBdev::enableStats(bool en) { statsEnabled = en; }
 
-void SpdkJBODBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {
-    memTracker->IoBytesMaxQueued = io_cache_size * 128;
-}
+void SpdkJBODBdev::setMaxQueued(uint32_t io_cache_size, uint32_t blk_size) {}
 
 void SpdkJBODBdev::setBlockNumForLba(uint64_t blk_num_flba) {
     blkNumForLba = blk_num_flba;
@@ -141,13 +144,7 @@ void SpdkJBODBdev::putFreeLba(const DeviceAddr *devAddr) {
     }
 }
 
-uint32_t SpdkJBODBdev::canQueue() {
-    uint32_t cnt =
-        memTracker->IoBytesQueued >= memTracker->IoBytesMaxQueued
-            ? 0
-            : (memTracker->IoBytesMaxQueued - memTracker->IoBytesQueued) / 4096;
-    return !cnt ? 200 : cnt;
-}
+uint32_t SpdkJBODBdev::canQueue() { return -1; }
 
 void SpdkJBODBdev::IOQuiesce() {
     for (uint32_t i = 0; i < numDevices; i++) {

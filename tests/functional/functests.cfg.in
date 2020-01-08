@@ -53,8 +53,8 @@ neighbors : ({
  *   }; 
  */
 offload_unit_alloc_size = 16384;
-offload_nvme_addr = "0000:88:00.0";
-offload_nvme_name = "Nvme0";
+offload_nvme_addr = "0000:89:00.0";
+offload_nvme_name = "Nvme1";
 offload_dev_type = "bdev"
 
 //************************************ EOF ************************************
