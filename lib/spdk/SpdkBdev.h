@@ -25,6 +25,7 @@
 
 #include "BdevStats.h"
 #include "OffloadFreeList.h"
+#include "OffloadLbaAlloc.h"
 #include "Rqst.h"
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
@@ -58,8 +59,8 @@ class SpdkBdev : public SpdkDevice {
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
     virtual void initFreeList();
-    virtual int64_t getFreeLba();
-    virtual void putFreeLba(const DeviceAddr *devAddr);
+    virtual int64_t getFreeLba(size_t ioSize);
+    virtual void putFreeLba(const DeviceAddr *devAddr, size_t ioSize);
     virtual bool bdevInit();
 
     /*
@@ -78,8 +79,10 @@ class SpdkBdev : public SpdkDevice {
      */
     virtual bool read(DeviceTask *task);
     virtual bool write(DeviceTask *task);
+    virtual bool remove(DeviceTask *task);
     virtual bool doRead(DeviceTask *task);
     virtual bool doWrite(DeviceTask *task);
+    virtual bool doRemove(DeviceTask *task);
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);
@@ -173,7 +176,7 @@ class SpdkBdev : public SpdkDevice {
     std::thread *finalizerThread;
     void finilizerThreadMain(void);
 
-    OffloadFreeList *freeLbaList = nullptr;
+    OffloadLbaAlloc *lbaAllocator = nullptr;
 
     std::atomic<int> ioEngineInitDone;
     uint32_t maxIoBufs;
@@ -184,7 +187,6 @@ class SpdkBdev : public SpdkDevice {
     std::atomic<int> isRunning;
     bool statsEnabled;
 
-    pool<DaqDB::OffloadFreeList> _offloadFreeList;
     const static char *lbaMgmtFileprefix;
 };
 

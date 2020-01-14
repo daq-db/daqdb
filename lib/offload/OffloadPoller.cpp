@@ -207,10 +207,24 @@ void OffloadPoller::_processRemove(OffloadRqst *rqst) {
 
     uint64_t lba = *(static_cast<uint64_t *>(valCtx.val));
 
-    getBdev()->putFreeLba(static_cast<const DeviceAddr *>(valCtx.val));
-    rtree->Remove(rqst->key);
-    _rqstClb(rqst, StatusCode::OK);
-    OffloadRqst::removePool.put(rqst);
+    SpdkDevice *spdkDev = getBdev();
+    DeviceTask *ioTask = new (rqst->taskBuffer)
+        DeviceTask{0,
+                   spdkDev->getOptimalSize(rqst->valueSize),
+                   0,
+                   rqst->keySize,
+                   static_cast<DeviceAddr *>(valCtx.val),
+                   false,
+                   rtree,
+                   rqst->clb,
+                   spdkDev,
+                   rqst,
+                   OffloadOperation::REMOVE};
+
+    if (spdkDev->remove(ioTask) != true) {
+        _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+        OffloadRqst::removePool.put(rqst);
+    }
 }
 
 void OffloadPoller::process() {

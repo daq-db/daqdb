@@ -47,6 +47,7 @@ class FinalizePoller : public Poller<DeviceTask> {
   protected:
     void _processGet(DeviceTask *task);
     void _processUpdate(DeviceTask *task);
+    void _processRemove(DeviceTask *task);
 };
 
 } // namespace DaqDB

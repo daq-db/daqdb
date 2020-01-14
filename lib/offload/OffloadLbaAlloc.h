@@ -40,6 +40,7 @@ class OffloadLbaAlloc {
     int64_t getLba(size_t ioSize);
     void putLba(int64_t lba, size_t ioSize);
 
+  protected:
     int64_t getBlock(LbaBucket &bucket, size_t ioSize);
     void putBlock(LbaBucket &bucket, size_t ioSize);
 

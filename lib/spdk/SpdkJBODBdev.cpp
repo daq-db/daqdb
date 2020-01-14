@@ -73,6 +73,20 @@ bool SpdkJBODBdev::write(DeviceTask *task) {
     return ret;
 }
 
+bool SpdkJBODBdev::remove(DeviceTask *task) {
+    if (!isRunning)
+        return false;
+
+    for (uint32_t i = 0; i < numDevices; i++) {
+        if (task->bdevAddr->busAddr.pciAddr ==
+            devices[i].addr.busAddr.pciAddr) {
+            task->bdev = devices[i].bdev;
+            return devices[i].bdev->remove(task);
+        }
+    }
+    return false;
+}
+
 int SpdkJBODBdev::reschedule(DeviceTask *task) { return 0; }
 
 void SpdkJBODBdev::deinit() {
@@ -130,15 +144,15 @@ void SpdkJBODBdev::setBlockNumForLba(uint64_t blk_num_flba) {
     }
 }
 
-int64_t SpdkJBODBdev::getFreeLba() { return -1; }
+int64_t SpdkJBODBdev::getFreeLba(size_t ioSize) { return -1; }
 
-void SpdkJBODBdev::putFreeLba(const DeviceAddr *devAddr) {
+void SpdkJBODBdev::putFreeLba(const DeviceAddr *devAddr, size_t ioSize) {
     if (!isRunning)
         return;
 
     for (uint32_t i = 0; i < numDevices; i++) {
         if (devAddr->busAddr.pciAddr == devices[i].addr.busAddr.pciAddr) {
-            devices[i].bdev->putFreeLba(devAddr);
+            devices[i].bdev->putFreeLba(devAddr, ioSize);
             return;
         }
     }

@@ -44,14 +44,15 @@ class SpdkRAID0Bdev : public SpdkDevice {
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
     virtual void initFreeList();
-    virtual int64_t getFreeLba();
-    virtual void putFreeLba(const DeviceAddr *devAddr);
+    virtual int64_t getFreeLba(size_t ioSize);
+    virtual void putFreeLba(const DeviceAddr *devAddr, size_t ioSize);
 
     /*
      * SpdkDevice virtual interface
      */
     virtual bool read(DeviceTask *task);
     virtual bool write(DeviceTask *task);
+    virtual bool remove(DeviceTask *task);
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);

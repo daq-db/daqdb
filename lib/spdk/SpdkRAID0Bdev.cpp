@@ -23,9 +23,11 @@ SpdkDeviceClass SpdkRAID0Bdev::bdev_class = SpdkDeviceClass::RAID0;
 
 SpdkRAID0Bdev::SpdkRAID0Bdev() : isRunning(0) {}
 
-bool SpdkRAID0Bdev::read(DeviceTask *task) { return 0; }
+bool SpdkRAID0Bdev::read(DeviceTask *task) { return true; }
 
-bool SpdkRAID0Bdev::write(DeviceTask *task) { return 0; }
+bool SpdkRAID0Bdev::write(DeviceTask *task) { return true; }
+
+bool SpdkRAID0Bdev::remove(DeviceTask *task) { return true; }
 
 int SpdkRAID0Bdev::reschedule(DeviceTask *task) { return 0; }
 
@@ -35,9 +37,9 @@ bool SpdkRAID0Bdev::init(const SpdkConf &conf) { return true; }
 
 void SpdkRAID0Bdev::initFreeList() {}
 
-int64_t SpdkRAID0Bdev::getFreeLba() { return -1; }
+int64_t SpdkRAID0Bdev::getFreeLba(size_t ioSize) { return -1; }
 
-void SpdkRAID0Bdev::putFreeLba(const DeviceAddr *devAddr) {}
+void SpdkRAID0Bdev::putFreeLba(const DeviceAddr *devAddr, size_t ioSize) {}
 
 void SpdkRAID0Bdev::enableStats(bool en) {}
 

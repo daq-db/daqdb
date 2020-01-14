@@ -50,6 +50,9 @@ void FinalizePoller::process() {
             case OffloadOperation::UPDATE:
                 _processUpdate(task);
                 break;
+            case OffloadOperation::REMOVE:
+                _processRemove(task);
+                break;
             default:
                 break;
             }
@@ -106,6 +109,23 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
     }
 
     OffloadRqst::updatePool.put(task->rqst);
+}
+
+void FinalizePoller::_processRemove(DeviceTask *task) {
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
+
+    if (task->result) {
+        task->rtree->Remove(task->rqst->key);
+        if (task->clb)
+            task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
+                      nullptr, 0);
+    } else {
+        if (task->clb)
+            task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
+                      task->keySize, nullptr, 0);
+    }
+
+    OffloadRqst::removePool.put(task->rqst);
 }
 
 } // namespace DaqDB

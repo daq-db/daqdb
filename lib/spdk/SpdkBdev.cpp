@@ -276,11 +276,10 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
         return false;
     }
 
-    if (task->rqst->loc == LOCATIONS::PMEM)
-        task->freeLba = getFreeLba();
-
     auto valSize = task->rqst->valueSize;
     auto valSizeAlign = bdev->getAlignedSize(valSize);
+    if (task->rqst->loc == LOCATIONS::PMEM)
+        task->freeLba = getFreeLba(valSizeAlign);
     auto buff = reinterpret_cast<char *>(
         spdk_dma_zmalloc(valSizeAlign, bdev->spBdevCtx.buf_align, NULL));
     bdev->ioBufsInUse++;
@@ -325,6 +324,27 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
     return !w_rc ? true : false;
 }
 
+bool SpdkBdev::remove(DeviceTask *task) {
+    if (ioEngine && task->routing == true)
+        return ioEngine->enqueue(task);
+    return doRemove(task);
+}
+
+bool SpdkBdev::doRemove(DeviceTask *task) {
+    if (stateMachine() == true) {
+        return false;
+    }
+
+    auto valSize = task->rqst->valueSize;
+    auto valSizeAlign = getAlignedSize(valSize);
+
+    putFreeLba(task->bdevAddr, valSizeAlign);
+    task->result = true;
+    finalizer->enqueue(task);
+
+    return true;
+}
+
 int SpdkBdev::reschedule(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
@@ -347,29 +367,19 @@ void SpdkBdev::deinit() {
 
 struct spdk_bdev *SpdkBdev::prevBdev = 0;
 
-int64_t SpdkBdev::getFreeLba() { return freeLbaList->get(_offloadFreeList); }
+int64_t SpdkBdev::getFreeLba(size_t ioSize) {
+    return lbaAllocator->getLba(ioSize);
+}
 
-void SpdkBdev::putFreeLba(const DeviceAddr *devAddr) {
-    freeLbaList->push(_offloadFreeList, devAddr->lba);
+void SpdkBdev::putFreeLba(const DeviceAddr *devAddr, size_t ioSize) {
+    lbaAllocator->putLba(devAddr->lba, ioSize);
 }
 
 void SpdkBdev::initFreeList() {
-    auto initNeeded = false;
     std::string fileName =
         std::string(SpdkBdev::lbaMgmtFileprefix) + spBdevCtx.bdev_name + ".pm";
-    if (boost::filesystem::exists(fileName.c_str())) {
-        _offloadFreeList =
-            pool<OffloadFreeList>::open(fileName.c_str(), poolLayout);
-    } else {
-        _offloadFreeList = pool<OffloadFreeList>::create(
-            fileName.c_str(), poolLayout, poolFreelistSize, CREATE_MODE_RW);
-        initNeeded = true;
-    }
-    freeLbaList = _offloadFreeList.get_root().get();
-    freeLbaList->maxLba = spBdevCtx.blk_num / blkNumForLba;
-    if (initNeeded) {
-        freeLbaList->push(_offloadFreeList, -1);
-    }
+    lbaAllocator =
+        new OffloadLbaAlloc(true, fileName, spBdevCtx.blk_num, blkNumForLba);
 }
 
 bool SpdkBdev::bdevInit() {
