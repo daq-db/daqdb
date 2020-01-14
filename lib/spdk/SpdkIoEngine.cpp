@@ -64,6 +64,14 @@ void SpdkIoEngine::process() {
                     OffloadRqst::updatePool.put(task->rqst);
                 }
             } break;
+            case OffloadOperation::REMOVE: {
+                SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
+                bool ret = bdev->remove(task);
+                if (ret != true) {
+                    rqstClb(task->rqst, StatusCode::UNKNOWN_ERROR);
+                    OffloadRqst::removePool.put(task->rqst);
+                }
+            } break;
             default:
                 break;
             }
