@@ -340,9 +340,7 @@ bool SpdkBdev::doRemove(DeviceTask *task) {
 
     putFreeLba(task->bdevAddr, valSizeAlign);
     task->result = true;
-    finalizer->enqueue(task);
-
-    return true;
+    return finalizer->enqueue(task);
 }
 
 int SpdkBdev::reschedule(DeviceTask *task) {
