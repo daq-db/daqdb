@@ -36,13 +36,14 @@
 
 namespace DaqDB {
 
-FinalizePoller::FinalizePoller()
-    : Poller<DeviceTask>(true, SPDK_RING_TYPE_SP_SC) {}
+FinalizePoller::FinalizePoller() : BlockingPoller<DeviceTask>() {}
 
 void FinalizePoller::process() {
     if (requestCount > 0) {
         for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
             DeviceTask *task = requests[RqstIdx];
+            if (!task) // due to possible timeout
+                continue;
             switch (task->op) {
             case OffloadOperation::GET:
                 _processGet(task);
