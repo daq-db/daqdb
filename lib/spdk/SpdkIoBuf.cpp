@@ -83,6 +83,14 @@ SpdkIoBufMgr *SpdkIoBufMgr::getSpdkIoBufMgr() {
     return SpdkIoBufMgr::instance;
 }
 
+void SpdkIoBufMgr::putSpdkIoBufMgr() {
+    if (SpdkIoBufMgr::instance) {
+        WriteLock r_lock(instanceMutex);
+        delete SpdkIoBufMgr::instance;
+        SpdkIoBufMgr::instance = 0;
+    }
+}
+
 SpdkIoBufMgr::SpdkIoBufMgr() {
     block[0] = new SpdkIoSizedBuf<4096>(4096, 0);
     block[1] = new SpdkIoSizedBuf<2 * 4096>(2 * 4096, 1);

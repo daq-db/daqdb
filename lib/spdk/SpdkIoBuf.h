@@ -137,6 +137,7 @@ class SpdkIoBufMgr {
     static Lock instanceMutex;
     static SpdkIoBufMgr *instance;
     static SpdkIoBufMgr *getSpdkIoBufMgr();
+    static void putSpdkIoBufMgr();
 };
 
 } // namespace DaqDB
