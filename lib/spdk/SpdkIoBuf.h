@@ -73,7 +73,10 @@ template <uint32_t Size>
 SpdkIoSizedBuf<Size>::SpdkIoSizedBuf(uint32_t _bufSize, int _backIdx)
     : spdkDmaBuf(0), bufSize(_bufSize), backIdx(_backIdx) {}
 
-template <uint32_t Size> SpdkIoSizedBuf<Size>::~SpdkIoSizedBuf() {}
+template <uint32_t Size> SpdkIoSizedBuf<Size>::~SpdkIoSizedBuf() {
+    if (getSpdkDmaBuf())
+        spdk_dma_free(getSpdkDmaBuf());
+}
 
 template <uint32_t Size> SpdkIoBuf *SpdkIoSizedBuf<Size>::getWriteBuf() {
     return writePool.get();

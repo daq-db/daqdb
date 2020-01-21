@@ -45,7 +45,6 @@ void SpdkIoBufMgr::putIoWriteBuf(SpdkIoBuf *ioBuf) {
     if (ioBuf->getIdx() != -1)
         ioBuf->putWriteBuf(ioBuf);
     else {
-        spdk_dma_free(ioBuf->getSpdkDmaBuf());
         delete ioBuf;
     }
 }
@@ -55,7 +54,7 @@ SpdkIoBuf *SpdkIoBufMgr::getIoReadBuf(uint32_t ioSize, uint32_t align) {
     uint32_t bufIdx = ioSize / 4096;
     if (bufIdx < 8) {
         buf = block[bufIdx]->getReadBuf();
-
+        buf->setIdx(bufIdx);
         if (!buf->getSpdkDmaBuf())
             buf->setSpdkDmaBuf(
                 spdk_dma_zmalloc(static_cast<size_t>(ioSize), align, NULL));
@@ -70,10 +69,8 @@ SpdkIoBuf *SpdkIoBufMgr::getIoReadBuf(uint32_t ioSize, uint32_t align) {
 void SpdkIoBufMgr::putIoReadBuf(SpdkIoBuf *ioBuf) {
     if (ioBuf->getIdx() != -1)
         ioBuf->putReadBuf(ioBuf);
-    else {
-        spdk_dma_free(ioBuf->getSpdkDmaBuf());
+    else
         delete ioBuf;
-    }
 }
 
 SpdkIoBufMgr::SpdkIoBufMgr() {
