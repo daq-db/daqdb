@@ -73,6 +73,16 @@ void SpdkIoBufMgr::putIoReadBuf(SpdkIoBuf *ioBuf) {
         delete ioBuf;
 }
 
+Lock SpdkIoBufMgr::instanceMutex;
+SpdkIoBufMgr *SpdkIoBufMgr::instance = 0;
+SpdkIoBufMgr *SpdkIoBufMgr::getSpdkIoBufMgr() {
+    if (!SpdkIoBufMgr::instance) {
+        WriteLock r_lock(instanceMutex);
+        SpdkIoBufMgr::instance = new SpdkIoBufMgr();
+    }
+    return SpdkIoBufMgr::instance;
+}
+
 SpdkIoBufMgr::SpdkIoBufMgr() {
     block[0] = new SpdkIoSizedBuf<4096>(4096, 0);
     block[1] = new SpdkIoSizedBuf<2 * 4096>(2 * 4096, 1);

@@ -68,14 +68,14 @@ void FinalizePoller::_processGet(DeviceTask *task) {
     if (task->result) {
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff, task->rqst->valueSize);
+                      task->buff->getSpdkDmaBuf(), task->rqst->valueSize);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
                       task->keySize, nullptr, 0);
     }
 
-    spdk_dma_free(task->buff);
+    bdev->ioPoolMgr->putIoReadBuf(task->buff);
     bdev->ioBufsInUse--;
     OffloadRqst::getPool.put(task->rqst);
 }
@@ -102,7 +102,7 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
                                             sizeof(DeviceAddr));
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff, task->rqst->valueSize);
+                      task->buff->getSpdkDmaBuf(), task->rqst->valueSize);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,

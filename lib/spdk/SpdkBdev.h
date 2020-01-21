@@ -29,6 +29,7 @@
 #include "Rqst.h"
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
+#include "SpdkIoBuf.h"
 #include <Logger.h>
 #include <RTreeEngine.h>
 
@@ -182,6 +183,8 @@ class SpdkBdev : public SpdkDevice {
     uint32_t maxIoBufs;
     uint32_t maxCacheIoBufs;
     uint32_t ioBufsInUse;
+
+    SpdkIoBufMgr *ioPoolMgr;
 
   private:
     std::atomic<int> isRunning;

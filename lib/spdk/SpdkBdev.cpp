@@ -63,7 +63,8 @@ SpdkBdev::SpdkBdev(bool enableStats)
       cpuCore(SpdkBdev::getCoreNum()), cpuCoreFin(cpuCore + 1),
       cpuCoreIoEng(cpuCoreFin + 1), finalizer(0), finalizerThread(0),
       ioEngine(0), ioEngineThread(0), isRunning(0), statsEnabled(enableStats),
-      ioEngineInitDone(0), maxIoBufs(0), ioBufsInUse(0), maxCacheIoBufs(0) {}
+      ioEngineInitDone(0), maxIoBufs(0), ioBufsInUse(0), maxCacheIoBufs(0),
+      ioPoolMgr(SpdkIoBufMgr::getSpdkIoBufMgr()) {}
 
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
@@ -100,7 +101,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                              void *cb_arg) {
     BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
-    spdk_dma_free(task->buff);
+    bdev->ioPoolMgr->putIoWriteBuf(task->buff);
     bdev->ioBufsInUse--;
 
 #ifndef TEST_RAW_IOPS
@@ -152,9 +153,9 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     int r_rc = spdk_bdev_read_blocks(
-        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->bdevAddr->lba, task->blockSize,
-        SpdkBdev::readComplete, task);
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel,
+        task->buff->getSpdkDmaBuf(), task->blockSize * task->bdevAddr->lba,
+        task->blockSize, SpdkBdev::readComplete, task);
 
     /* If a read IO still fails due to shortage of io buffers, queue it up for
      * later execution */
@@ -182,9 +183,9 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     int w_rc = spdk_bdev_write_blocks(
-        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->freeLba, task->blockSize,
-        SpdkBdev::writeComplete, task);
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel,
+        task->buff->getSpdkDmaBuf(), task->blockSize * task->freeLba,
+        task->blockSize, SpdkBdev::writeComplete, task);
 
     /* If a write IO still fails due to shortage of io buffers, queue it up for
      * later execution */
@@ -212,7 +213,7 @@ bool SpdkBdev::read(DeviceTask *task) {
 bool SpdkBdev::doRead(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
-        spdk_dma_free(task->buff);
+        ioPoolMgr->putIoReadBuf(task->buff);
         bdev->ioBufsInUse--;
         return false;
     }
@@ -221,10 +222,8 @@ bool SpdkBdev::doRead(DeviceTask *task) {
     auto blkSize = bdev->getSizeInBlk(algnSize);
     task->blockSize = blkSize;
 
-    char *buff = reinterpret_cast<char *>(
-        spdk_dma_zmalloc(task->size, bdev->spBdevCtx.buf_align, NULL));
     bdev->ioBufsInUse++;
-    task->buff = buff;
+    task->buff = ioPoolMgr->getIoReadBuf(task->size, bdev->spBdevCtx.buf_align);
 
 #ifdef TEST_RAW_IOPS
     int r_rc = 0;
@@ -232,9 +231,9 @@ bool SpdkBdev::doRead(DeviceTask *task) {
                            true, task);
 #else
     int r_rc = spdk_bdev_read_blocks(
-        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->bdevAddr->lba, task->blockSize,
-        SpdkBdev::readComplete, task);
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel,
+        task->buff->getSpdkDmaBuf(), task->blockSize * task->bdevAddr->lba,
+        task->blockSize, SpdkBdev::readComplete, task);
 #endif
     if (r_rc) {
         stats.read_err_cnt++;
@@ -271,7 +270,7 @@ bool SpdkBdev::write(DeviceTask *task) {
 bool SpdkBdev::doWrite(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
-        spdk_dma_free(task->buff);
+        ioPoolMgr->putIoWriteBuf(task->buff);
         bdev->ioBufsInUse--;
         return false;
     }
@@ -280,12 +279,11 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
     auto valSizeAlign = bdev->getAlignedSize(valSize);
     if (task->rqst->loc == LOCATIONS::PMEM)
         task->freeLba = getFreeLba(valSizeAlign);
-    auto buff = reinterpret_cast<char *>(
-        spdk_dma_zmalloc(valSizeAlign, bdev->spBdevCtx.buf_align, NULL));
     bdev->ioBufsInUse++;
+    task->buff =
+        ioPoolMgr->getIoWriteBuf(valSizeAlign, bdev->spBdevCtx.buf_align);
 
-    memcpy(buff, task->rqst->value, valSize);
-    task->buff = buff;
+    memcpy(task->buff->getSpdkDmaBuf(), task->rqst->value, valSize);
 
 #ifdef TEST_RAW_IOPS
     int w_rc = 0;
@@ -293,9 +291,9 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
                             true, task);
 #else
     int w_rc = spdk_bdev_write_blocks(
-        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->freeLba, task->blockSize,
-        SpdkBdev::writeComplete, task);
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel,
+        task->buff->getSpdkDmaBuf(), task->blockSize * task->freeLba,
+        task->blockSize, SpdkBdev::writeComplete, task);
 #endif
 
     if (w_rc) {

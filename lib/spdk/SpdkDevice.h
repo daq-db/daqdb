@@ -31,10 +31,11 @@ using OffloadRqst = Rqst<OffloadOperation>;
 typedef OffloadDevType SpdkDeviceClass;
 
 class SpdkDevice;
+class SpdkIoBuf;
 
 struct DeviceTask {
   public:
-    char *buff;
+    SpdkIoBuf *buff;
     size_t size = 0;
     uint32_t blockSize = 0;
     size_t keySize = 0;

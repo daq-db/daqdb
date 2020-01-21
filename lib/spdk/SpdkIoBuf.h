@@ -33,7 +33,7 @@ class SpdkIoBuf {
     virtual void putWriteBuf(SpdkIoBuf *ioBuf) = 0;
     virtual SpdkIoBuf *getReadBuf() = 0;
     virtual void putReadBuf(SpdkIoBuf *ioBuf) = 0;
-    virtual void *getSpdkDmaBuf() = 0;
+    virtual char *getSpdkDmaBuf() = 0;
     virtual void setSpdkDmaBuf(void *spdkBuf) = 0;
     virtual int getIdx() = 0;
     virtual void setIdx(int idx) = 0;
@@ -50,7 +50,7 @@ template <uint32_t Size> class SpdkIoSizedBuf : public SpdkIoBuf {
     virtual void putWriteBuf(SpdkIoBuf *ioBuf);
     virtual SpdkIoBuf *getReadBuf();
     virtual void putReadBuf(SpdkIoBuf *ioBuf);
-    virtual void *getSpdkDmaBuf();
+    virtual char *getSpdkDmaBuf();
     virtual void setSpdkDmaBuf(void *spdkBuf);
     virtual int getIdx();
     virtual void setIdx(int idx);
@@ -96,8 +96,8 @@ void SpdkIoSizedBuf<Size>::putReadBuf(SpdkIoBuf *ioBuf) {
     readPool.put(dynamic_cast<SpdkIoSizedBuf<Size> *>(ioBuf));
 }
 
-template <uint32_t Size> void *SpdkIoSizedBuf<Size>::getSpdkDmaBuf() {
-    return spdkDmaBuf;
+template <uint32_t Size> char *SpdkIoSizedBuf<Size>::getSpdkDmaBuf() {
+    return reinterpret_cast<char *>(spdkDmaBuf);
 }
 
 template <uint32_t Size>
@@ -133,6 +133,10 @@ class SpdkIoBufMgr {
 
     static const uint32_t blockSize = 8;
     SpdkIoBuf *block[blockSize];
+
+    static Lock instanceMutex;
+    static SpdkIoBufMgr *instance;
+    static SpdkIoBufMgr *getSpdkIoBufMgr();
 };
 
 } // namespace DaqDB
