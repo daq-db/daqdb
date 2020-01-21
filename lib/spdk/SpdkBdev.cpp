@@ -213,7 +213,8 @@ bool SpdkBdev::read(DeviceTask *task) {
 bool SpdkBdev::doRead(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
-        ioPoolMgr->putIoReadBuf(task->buff);
+        if (task->buff)
+            ioPoolMgr->putIoReadBuf(task->buff);
         bdev->ioBufsInUse--;
         return false;
     }
@@ -270,7 +271,8 @@ bool SpdkBdev::write(DeviceTask *task) {
 bool SpdkBdev::doWrite(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
-        ioPoolMgr->putIoWriteBuf(task->buff);
+        if (task->buff)
+            ioPoolMgr->putIoWriteBuf(task->buff);
         bdev->ioBufsInUse--;
         return false;
     }
