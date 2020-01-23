@@ -291,8 +291,8 @@ bool testAsyncOffloadExtOperations(KVStoreBase *kvs) {
                 unique_lock<mutex> lck(mtx);
 
                 if (status.ok()) {
-                    DAQDB_INFO
-                        << boost::format("GetAsync: [%1%]") % keyToStr(argKey);
+                    DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") %
+                                      keyToStr(argKey) % valueSize;
                     uint64_t ukey = *reinterpret_cast<const uint64_t *>(argKey);
                     Value uval(const_cast<char *>(value), valueSize);
                     kvsetRes.addKv(pair<uint64_t, Value>(ukey, uval));
