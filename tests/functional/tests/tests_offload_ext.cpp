@@ -127,8 +127,11 @@ bool KVSet64::operator==(const KVSet64 &r) {
                 break;
             }
         }
-        if (keyFound == false)
+        if (keyFound == false) {
+            DAQDB_INFO << format("Error: key not found ref.key[%1%]") %
+                              tr.first;
             return false;
+        }
     }
     return true;
 }
