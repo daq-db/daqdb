@@ -118,8 +118,13 @@ bool KVSet64::operator==(const KVSet64 &r) {
                 keyFound = true;
                 if (tr.second.size() != tl.second.size() ||
                     memcmp(tr.second.data(), tl.second.data(),
-                           tl.second.size()))
+                           tl.second.size())) {
+                    DAQDB_INFO << format("Error: wrong value ref.val.size[%1%] "
+                                         "== res.val.size[%2%]") %
+                                      tr.second.size() % tl.second.size();
                     return false;
+                }
+                break;
             }
         }
         if (keyFound == false)
