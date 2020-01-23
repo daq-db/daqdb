@@ -291,11 +291,13 @@ bool testAsyncOffloadExtOperations(KVStoreBase *kvs) {
                 unique_lock<mutex> lck(mtx);
 
                 if (status.ok()) {
+                    char *resData = new char[valueSize];
+                    memcpy(resData, value, valueSize);
                     DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") %
                                       keyToStr(argKey) % valueSize;
                     uint64_t ukey = *reinterpret_cast<const uint64_t *>(argKey);
-                    Value uval(const_cast<char *>(value), valueSize);
-                    kvsetRes.addKv(pair<uint64_t, Value>(ukey, uval));
+                    Value uval(resData, valueSize);
+                    kvsetRes.addKv(pair<uint64_t, Value>(kv.first, uval));
                 } else {
                     DAQDB_INFO
                         << boost::format("Error: cannot get element: %1%") %
@@ -375,11 +377,13 @@ bool testAsyncOffloadExtOperations(KVStoreBase *kvs) {
                 unique_lock<mutex> lck(mtx);
 
                 if (status.ok()) {
+                    char *resData = new char[valueSize];
+                    memcpy(resData, value, valueSize);
                     DAQDB_INFO << boost::format("GetAsync: [%1%] = %2%") %
                                       keyToStr(argKey) % valueSize;
                     uint64_t ukey = *reinterpret_cast<const uint64_t *>(argKey);
-                    Value uval(const_cast<char *>(value), valueSize);
-                    kvsetRes.addKv(pair<uint64_t, Value>(ukey, uval));
+                    Value uval(resData, valueSize);
+                    kvsetRes.addKv(pair<uint64_t, Value>(kv.first, uval));
                 } else {
                     DAQDB_INFO
                         << boost::format("Error: cannot get element: %1%") %
