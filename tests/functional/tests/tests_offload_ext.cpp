@@ -128,8 +128,10 @@ bool KVSet64::operator==(const KVSet64 &r) {
             }
         }
         if (keyFound == false) {
+            const char *keyData = reinterpret_cast<const char *>(&tr.first);
+            Key key(const_cast<char *>(keyData), sizeof(tr.first));
             DAQDB_INFO << format("Error: key not found ref.key[%1%]") %
-                              tr.first;
+                              keyToStr(key);
             return false;
         }
     }
