@@ -104,6 +104,13 @@ void KVSet64::generateUniformIntNoDups(size_t setSize, uint64_t maxVal) {
 }
 
 bool KVSet64::operator==(const KVSet64 &r) {
+    if (kvpairs.size() != r.kvpairs.size()) {
+        DAQDB_INFO
+            << format("Error: wrong result ref.size[%1%] == res.size[%2%]") %
+                   kvpairs.size() % r.kvpairs.size();
+        return false;
+    }
+
     for (auto &tr : r.kvpairs) {
         bool keyFound = false;
         for (auto &tl : kvpairs) {
