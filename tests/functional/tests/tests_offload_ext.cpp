@@ -55,7 +55,15 @@ class KVSet64 {
 
 void KVSet64::addKv(const pair<uint64_t, Value> &kv) { kvpairs.push_back(kv); }
 
-void KVSet64::clearAll() { kvpairs.clear(); }
+void KVSet64::clearAll() {
+    for (auto &kv : kvpairs) {
+        if (kv.second.size() && kv.second.data()) {
+            delete[] kv.second.data();
+            kv.second.size();
+        }
+    }
+    kvpairs.clear();
+}
 
 uint64_t KVSet64::generateKeyNoDup(default_random_engine &gen,
                                    uniform_int_distribution<uint64_t> &dist) {
