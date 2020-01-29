@@ -24,17 +24,17 @@ AllocStrategy *DefaultAllocStrategy::copy() const {
     return new DefaultAllocStrategy(*this);
 }
 
-unsigned int DefaultAllocStrategy::preallocateCount() const { return 0; }
+unsigned int DefaultAllocStrategy::preallocateCount() const { return defaultPreallocCount; }
 
-unsigned int DefaultAllocStrategy::incrementQuant() const { return 320; }
+unsigned int DefaultAllocStrategy::incrementQuant() const { return defaultIncCount; }
 
-unsigned int DefaultAllocStrategy::decrementQuant() const { return 0; }
+unsigned int DefaultAllocStrategy::decrementQuant() const { return defaultDecCount; }
 
-unsigned int DefaultAllocStrategy::minIncQuant() const { return 4; }
+unsigned int DefaultAllocStrategy::minIncQuant() const { return defaultMinIncQuant; }
 
-unsigned int DefaultAllocStrategy::maxIncQuant() const { return 10; }
+unsigned int DefaultAllocStrategy::maxIncQuant() const { return defaultMaxIncQuant; }
 
-unsigned int DefaultAllocStrategy::minDecQuant() const { return 0; }
+unsigned int DefaultAllocStrategy::minDecQuant() const { return defaultMinDecQuant; }
 
-unsigned int DefaultAllocStrategy::maxDecQuant() const { return 0; }
+unsigned int DefaultAllocStrategy::maxDecQuant() const { return defaultMaxDecQuant; }
 } // namespace DaqDB

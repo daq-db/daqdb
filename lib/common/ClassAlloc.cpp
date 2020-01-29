@@ -36,5 +36,3 @@ void *getNewPtr(size_t size_, size_t inc_) {
     return (char *)::malloc(size_ + inc_) + inc_;
 #endif
 }
-
-namespace DaqDB {} // namespace DaqDB

@@ -33,7 +33,7 @@
 namespace DaqDB {
 const unsigned int MAX_POOL_BUCKETS = 64;
 
-template <class T, class Alloc> class GeneralPool : public GeneralPoolBase {
+template <class T, class Alloc = DaqDB::ClassAlloc<T>> class GeneralPool : public GeneralPoolBase {
   public:
     friend class MemMgr;
 
