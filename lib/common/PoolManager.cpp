@@ -21,7 +21,7 @@
 
 #include "PoolManager.h"
 
-namespace MemMgmt {
+namespace DaqDB {
 PoolManager *PoolManager::instance = 0;
 Lock PoolManager::instMutex;
 
@@ -168,5 +168,5 @@ char *PoolManager::printDateTime(const time_t &dtm) {
     return dt;
 }
 #endif
-} // namespace MemMgmt
-  // namespace MemMgmt
+} // namespace DaqDB
+  // namespace DaqDB

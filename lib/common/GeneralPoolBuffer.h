@@ -21,7 +21,7 @@ using namespace std;
 #include <stdlib.h>
 #include <string.h>
 
-namespace MemMgmt {
+namespace DaqDB {
 const unsigned int MAX_BUFFER_SLOTS = 1024;
 const unsigned int OBJ_PADDING = sizeof(unsigned int);
 
@@ -88,4 +88,4 @@ inline void GeneralPoolBuffer<T, Alloc>::zeroOut(unsigned int howMany_) {
     memset((void *)slots, '\0', (size_t)(howMany_ * sizeof(T *)));
 }
 
-} // namespace MemMgmt
+} // namespace DaqDB

@@ -16,7 +16,7 @@
 
 #pragma once
 
-namespace MemMgmt {
+namespace DaqDB {
 class AllocStrategy {
   public:
     AllocStrategy() = default;
@@ -34,4 +34,4 @@ class AllocStrategy {
     AllocStrategy(const AllocStrategy &right);
     AllocStrategy &operator=(const AllocStrategy &right);
 };
-} // namespace MemMgmt
+} // namespace DaqDB

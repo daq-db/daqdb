@@ -22,7 +22,7 @@
 using namespace std;
 #include <stdlib.h>
 
-namespace MemMgmt {
+namespace DaqDB {
 template <class W> class ClassMemoryAlloc {
   public:
     static void *New(unsigned int padd_);
@@ -74,4 +74,4 @@ template <class W> inline const char *ClassMemoryAlloc<W>::getName() {
 
     return ti.name();
 }
-} // namespace MemMgmt
+} // namespace DaqDB

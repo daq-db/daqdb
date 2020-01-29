@@ -16,7 +16,7 @@
 
 #include "DefaultAllocStrategy.h"
 
-namespace MemMgmt {
+namespace DaqDB {
 
 DefaultAllocStrategy::DefaultAllocStrategy(const DefaultAllocStrategy &right) {}
 
@@ -37,4 +37,4 @@ unsigned int DefaultAllocStrategy::maxIncQuant() const { return 10; }
 unsigned int DefaultAllocStrategy::minDecQuant() const { return 0; }
 
 unsigned int DefaultAllocStrategy::maxDecQuant() const { return 0; }
-} // namespace MemMgmt
+} // namespace DaqDB

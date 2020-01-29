@@ -30,7 +30,7 @@
 
 #include <typeinfo>
 
-namespace MemMgmt {
+namespace DaqDB {
 const unsigned int MAX_POOL_BUCKETS = 64;
 
 template <class T, class Alloc> class GeneralPool : public GeneralPoolBase {
@@ -494,4 +494,4 @@ template <class T, class Alloc>
 inline void GeneralPool<T, Alloc>::setStrategy(AllocStrategy *value) {
     strategy = value;
 }
-} // namespace MemMgmt
+} // namespace DaqDB

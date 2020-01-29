@@ -149,10 +149,10 @@ struct OffloadDevDescriptor {
 
 struct OffloadOptions {
     OffloadDevType devType = BDEV;
-    std::string name;
-    size_t allocUnitSize = 16 * 1024;
-    size_t raid0StripeSize = 128;
-    std::vector<OffloadDevDescriptor> _devs;
+    std::string name;                        // Unique name 
+    size_t allocUnitSize = 16 * 1024;        // Allocation unit size shared across the drives in a set
+    size_t raid0StripeSize = 128;            // Stripe size, applicable to RAIDx only
+    std::vector<OffloadDevDescriptor> _devs; // List of individual drives comprising the set
 };
 
 struct RuntimeOptions {

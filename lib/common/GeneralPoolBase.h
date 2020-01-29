@@ -23,7 +23,7 @@ typedef std::mutex Lock;
 typedef std::unique_lock<Lock> WriteLock;
 typedef std::unique_lock<Lock> ReadLock;
 
-namespace MemMgmt {
+namespace DaqDB {
 class GeneralPoolBase {
   public:
     GeneralPoolBase(unsigned short id_, const char *name_);
@@ -70,4 +70,4 @@ inline void GeneralPoolBase::setStackTraceFile(FILE *value) {
 inline const unsigned short GeneralPoolBase::getUserId() const {
     return userId;
 }
-} // namespace MemMgmt
+} // namespace DaqDB

@@ -16,9 +16,9 @@
 
 #include "GeneralPoolBucket.h"
 
-namespace MemMgmt {
+namespace DaqDB {
 #ifdef _MEM_STATS_
 Lock gl_mem_mutex;
 #endif
-} // namespace MemMgmt
-  // namespace MemMgmt
+} // namespace DaqDB
+  // namespace DaqDB

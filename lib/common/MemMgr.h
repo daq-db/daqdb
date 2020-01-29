@@ -20,7 +20,7 @@
 #include "GeneralPool.h"
 #include "GlobalMemoryAlloc.h"
 
-namespace MemMgmt {
+namespace DaqDB {
 class MemMgr {
   public:
     struct Size4 {
@@ -115,7 +115,7 @@ class MemMgr {
 
 inline MemMgr::~MemMgr() {}
 
-} // namespace MemMgmt
+} // namespace DaqDB
 
 #ifdef _MM_GMP_ON_
 void *operator new(size_t size);
@@ -123,11 +123,11 @@ void *operator new[](size_t size);
 void operator delete(void *ptr)__THROWSPEC_NULL;
 void operator delete[](void *ptr) __THROWSPEC_NULL;
 
-extern MemMgmt::MemMgr theMemMgr;
+extern DaqDB::MemMgr theMemMgr;
 
 void *operator new(size_t size) {
     void *ptr = 0;
-    if (MemMgmt::MemMgr::started)
+    if (DaqDB::MemMgr::started)
         ptr = theMemMgr.getMem(size);
     else
         ptr = malloc(size);
@@ -141,7 +141,7 @@ void *operator new(size_t size) {
 
 void *operator new[](size_t size) {
     void *ptr = 0;
-    if (MemMgmt::MemMgr::started)
+    if (DaqDB::MemMgr::started)
         ptr = theMemMgr.getMem(size);
     else
         ptr = malloc(size);
@@ -162,7 +162,7 @@ void operator delete(void *ptr)__THROWSPEC_NULL {
     if (!ptr)
         return;
 
-    if (MemMgmt::MemMgr::started)
+    if (DaqDB::MemMgr::started)
         theMemMgr.putMem(ptr);
     else
         free(ptr);
@@ -177,7 +177,7 @@ void operator delete[](void *ptr) __THROWSPEC_NULL {
     if (!ptr)
         return;
 
-    if (MemMgmt::MemMgr::started)
+    if (DaqDB::MemMgr::started)
         theMemMgr.putMem(ptr);
     else
         free(ptr);

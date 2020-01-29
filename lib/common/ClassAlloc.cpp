@@ -37,4 +37,4 @@ void *getNewPtr(size_t size_, size_t inc_) {
 #endif
 }
 
-namespace MemMgmt {} // namespace MemMgmt
+namespace DaqDB {} // namespace DaqDB

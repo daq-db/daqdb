@@ -37,7 +37,7 @@ using namespace std;
 // extern "C" void U_STACK_TRACE(void);
 #endif
 
-namespace MemMgmt {
+namespace DaqDB {
 #ifdef _MEM_STATS_
 extern Lock gl_mem_mutex;
 #endif
@@ -1015,4 +1015,4 @@ template <class T, class Alloc>
 inline void GeneralPoolBucket<T, Alloc>::setStackTraceFile(FILE *value) {
     stackTraceFile = value;
 }
-} // namespace MemMgmt
+} // namespace DaqDB

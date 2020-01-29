@@ -30,7 +30,7 @@ typedef std::mutex Lock;
 typedef std::unique_lock<Lock> WriteLock;
 typedef std::unique_lock<Lock> ReadLock;
 
-namespace MemMgmt {
+namespace DaqDB {
 class PoolManager {
   public:
     typedef map<unsigned int, GeneralPoolBase *, less<unsigned int>>
@@ -66,4 +66,4 @@ class PoolManager {
     bool statsOn;
 #endif
 };
-} // namespace MemMgmt
+} // namespace DaqDB

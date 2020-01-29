@@ -23,7 +23,7 @@ using namespace std;
 
 void *getNewPtr(size_t siz_, size_t inc_);
 
-namespace MemMgmt {
+namespace DaqDB {
 template <class Z> class ClassAlloc {
   public:
     static Z *New(unsigned int padd_);
@@ -71,4 +71,4 @@ template <class Z> inline const char *ClassAlloc<Z>::getName() {
 
     return ti.name();
 }
-} // namespace MemMgmt
+} // namespace DaqDB
