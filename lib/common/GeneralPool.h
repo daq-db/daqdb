@@ -63,7 +63,6 @@ template <class T, class Alloc = DaqDB::ClassAlloc<T>> class GeneralPool : publi
     AllocStrategy *strategy;
     unsigned int counter;
     unsigned int objSize;
-    // gint                        bucket_locks[MAX_POOL_BUCKETS];
     GeneralPoolBucket<T, Alloc> buckets[MAX_POOL_BUCKETS];
 };
 
@@ -111,7 +110,6 @@ inline GeneralPool<T, Alloc>::GeneralPool(unsigned short id_, const char *name_,
         buckets[cnt].setRttiName(rttiName);
 
 #ifdef _MEM_STATS_
-        // buckets[cnt].setStackTraceFile(stackTraceFile);
         buckets[cnt].setStackTraceThreshold(stack_th);
 #endif
 
@@ -168,7 +166,6 @@ inline GeneralPool<T, Alloc>::GeneralPool(const char *name_,
         buckets[cnt].setRttiName(rttiName);
 
 #ifdef _MEM_STATS_
-        // buckets[cnt].setStackTraceFile(stackTraceFile);
         buckets[cnt].setStackTraceThreshold(stack_th);
 #endif
 
@@ -203,6 +200,10 @@ template <class T, class Alloc> inline GeneralPool<T, Alloc>::~GeneralPool() {
     pm.unregisterPool(this);
 }
 
+/*
+ * Virtual method allowing PoolManager to manage the pool asynchronously. 
+ * Invoked by PoolMgr periodically or upon a specific event.
+ */
 template <class T, class Alloc> inline void GeneralPool<T, Alloc>::manage() {
 #ifdef _MM_DEBUG_
 #ifndef _MM_GMP_ON_

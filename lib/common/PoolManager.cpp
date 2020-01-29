@@ -29,7 +29,7 @@ PoolManager::PoolManager()
     : collector(0)
 #ifdef _MEM_STATS_
       ,
-      statsFile(0), statsInterval(5), statsOn(false)
+      statsFile(0), statsInterval(defaultStatsInterval), statsOn(false)
 #endif
 {
 #ifdef _MEM_STATS_
@@ -68,12 +68,12 @@ void PoolManager::start(PoolManager *arg) {
     for (;;) {
         // sleep a little bit
 #ifdef _MEM_STATS_
-        if (arg->statsInterval < 5 && arg->statsOn == true)
+        if (arg->statsInterval < defaultStatsInterval && arg->statsOn == true)
             sleep(arg->statsInterval);
         else
-            sleep(5);
+            ntervalsleep(defaultSleep);
 #else
-        sleep(5);
+        sleep(defaultSleepInterval);
 #endif
 
         {
@@ -169,4 +169,3 @@ char *PoolManager::printDateTime(const time_t &dtm) {
 }
 #endif
 } // namespace DaqDB
-  // namespace DaqDB

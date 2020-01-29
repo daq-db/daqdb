@@ -50,8 +50,6 @@ class PoolManager {
 
   private:
     PoolManager();
-    // PoolManager(const PoolManager &right);
-    // PoolManager & operator=(const PoolManager &right);
 
     static PoolManager *instance;
     Lock mutex;
@@ -59,11 +57,13 @@ class PoolManager {
     static Lock instMutex;
 
     std::thread *collector;
+    static const int defaultSleepInterval = 5;
 
 #ifdef _MEM_STATS_
     FILE *statsFile;
     int statsInterval;
     bool statsOn;
+    static const int defaultStatsInterval = 5;
 #endif
 };
 } // namespace DaqDB

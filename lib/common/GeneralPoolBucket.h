@@ -34,7 +34,6 @@ using namespace std;
 #include <string.h>
 #include <unistd.h>
 
-// extern "C" void U_STACK_TRACE(void);
 #endif
 
 namespace DaqDB {
@@ -133,7 +132,7 @@ template <class T, class Alloc> class GeneralPoolBucket {
 template <class T, class Alloc>
 inline GeneralPoolBucket<T, Alloc>::GeneralPoolBucket()
     : head(0), tail(0), full(false), empty(true), quantInc(0), quantDec(0),
-      numBuffers(0), stamp(0), totalMax(MAX_BUCKET_BUFFERS * MAX_BUFFER_SLOTS),
+      numBuffers(0), bucketNum(0), stamp(0), totalMax(MAX_BUCKET_BUFFERS * MAX_BUFFER_SLOTS),
       currentMax(0), objSize(Alloc::objectSize()), padding(2 * OBJ_PADDING),
       stackTraceFile(0)
 #ifdef _MEM_STATS_
@@ -246,13 +245,13 @@ inline T *GeneralPoolBucket<T, Alloc>::getNoLock() {
     tail++;
     tail %= currentMax;
 
-    // if tail cought up with the head the bucket is empty
-    // it's however impossible since the capacity never drops under 10
+    // if tail caught up with head the bucket is empty
+    // it's impossible since the capacity never drops under 10
     if (tail == head) {
         empty = true;
     }
 
-    // it's not full any mor esince we've taken one out
+    // it's not full any more since we've taken one out
     full = false;
 
 #ifdef _MM_DEBUG_
@@ -263,6 +262,7 @@ inline T *GeneralPoolBucket<T, Alloc>::getNoLock() {
 #endif
 
     unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
+    // bucket number is shifted by BUCKET_NUMBER_SHIFT 
     unsigned int o_bucket_number =
         (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
 
@@ -384,6 +384,7 @@ inline void GeneralPoolBucket<T, Alloc>::putNoLock(T *obj_) {
 #endif
 
     unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
+    // bucket number is shifted by BUCKET_NUMBER_SHIFT 
     unsigned int o_bucket_number =
         (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
 
@@ -401,85 +402,9 @@ inline void GeneralPoolBucket<T, Alloc>::putNoLock(T *obj_) {
     return;
 }
 
-#if 0
-template<class T, class Alloc>
-inline void GeneralPoolBucket<T, Alloc>::putNoLock(T *obj_)
-{
-    // make buffers if necessary
-    if (full == true || !numBuffers) {
-        makeBuffer();
-        if (full == true) {
-            return;
-        }
-    }
-
-    // get a snapshot of this bucket
-    unsigned int buf_idx = head / MAX_BUFFER_SLOTS;
-    unsigned int slot_idx = head % MAX_BUFFER_SLOTS;
-
-    // if the slot is not NULL - error
-    if (buffers[buf_idx]->slots[slot_idx]) {
-#ifndef _MM_GMP_ON_
-        cerr << "Slot (no lock) should be NULL, b_idx: " << buf_idx
-                << " s_idx: " << slot_idx << endl << flush;
-        cerr << "-> Bucket ";
-#else
-        fprintf(stderr, "Slot (no lock) should be NULL, b_idx: %d s_idx: %d\n", buf_idx, slot_idx);
-        fflush(stderr);
-        fprintf(stderr, "-> Bucket");
-#endif
-        dumpNoLock();
-        abort();
-    }
-
-    // return it
-    buffers[buf_idx]->slots[slot_idx] = obj_;
-
-    // advance the head
-    head++;
-    head %= currentMax;
-
-    // check if it's full
-    if (head == tail) {
-        full = true;
-    }
-
-    // it's not empty since we've just put one in
-    empty = false;
-
-#ifdef _MM_DEBUG_
-
-#ifndef _MM_GMP_ON_
-    unsigned int o_stamp = *(unsigned int *)((char *)obj_ + objSize);
-#else
-    unsigned int o_stamp = *(unsigned int *)((char *)obj_ - OBJ_PADDING);
-#endif
-
-    unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
-    unsigned int o_bucket_number = (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
-
-#ifndef _MM_GMP_ON_
-    cout << "GeneralPoolBucket<T,Alloc>::putNoLock() "
-    << " obj_: " << obj_
-    << " tail: " << tail
-    << " head: " << head
-    << " currentMax: " << currentMax
-    << " numBuffers: " << numBuffers
-    << " stamp: " << stamp
-    << " full: " << full
-    << " empty: " << empty
-    << " bs: " << o_bucket_size
-    << " bn: " << o_bucket_number
-    << " buf_idx: " << buf_idx
-    << " slot_idx: " << slot_idx
-    << endl << flush;
-#endif
-#endif
-
-    return;
-}
-#endif
-
+/*
+ * Construct count_ objects of T type using Alloc allocator
+ */
 template <class T, class Alloc>
 inline void GeneralPoolBucket<T, Alloc>::make(unsigned int count_) {
     for (unsigned int cnt = 0; cnt < count_; cnt++) {
@@ -610,6 +535,7 @@ inline void GeneralPoolBucket<T, Alloc>::dumpNoLock() {
 #endif
 
             unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
+            // bucket number is shifted by BUCKET_NUMBER_SHIFT 
             unsigned int o_bucket_number =
                 (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
 
@@ -635,6 +561,7 @@ inline void GeneralPoolBucket<T, Alloc>::dumpNoLock() {
 
 template <class T, class Alloc>
 inline void GeneralPoolBucket<T, Alloc>::makeStamp() {
+    // bucket number is shifted by BUCKET_NUMBER_SHIFT 
     stamp = (bucketNum << BUCKET_NUMBER_SHIFT) + objSize;
 
 #ifdef _MM_DEBUG_
@@ -702,11 +629,9 @@ inline void GeneralPoolBucket<T, Alloc>::makeBuffer() {
     // out of space - abort
     if (numBuffers >= MAX_BUCKET_BUFFERS) {
 #ifndef _MM_GMP_ON_
-        cerr << "No more buffers can be allocated "
-             << " See Jan Lisowiec" << endl
-             << flush;
+        cerr << "No more buffers can be allocated " << flush;
 #else
-        fprintf(stderr, "No more buffers can be allocated See Jan Lisowiec\n");
+        fprintf(stderr, "No more buffers can be allocated\n");
         fflush(stderr);
 #endif
         dump();
@@ -743,6 +668,7 @@ inline void GeneralPoolBucket<T, Alloc>::makeBuffer() {
 #endif
 
             unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
+            // bucket number is shifted by BUCKET_NUMBER_SHIFT 
             unsigned int o_bucket_number =
                 (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
 
@@ -852,7 +778,7 @@ inline void GeneralPoolBucket<T, Alloc>::traceStack() {
     // lock the global mutex
     ReadLock r_lock(gl_mem_mutex);
 
-#if 0
+#ifdef __STACK_TRACE_ON__
 
     // check if the file is opened
     if ( !stackTraceFile ) {
@@ -898,19 +824,6 @@ inline void GeneralPoolBucket<T, Alloc>::traceStack() {
         }
     }
 
-#endif
-
-    // print a header
-    // fprintf(stderr, "(*) **** %d traceStack() for %s shows ****\n",
-    // memAllocs, rttiName);
-
-    // trace the stack
-    // U_STACK_TRACE();
-
-    // flush stderr
-    // fflush(stderr);
-
-#if 0
     // flush stderr
     fflush(stderr);
 
