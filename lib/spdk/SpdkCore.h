@@ -16,12 +16,6 @@
 
 #pragma once
 
-#include <string>
-
-#include <daqdb/Options.h>
-
-#include "SpdkBdev.h"
-
 namespace DaqDB {
 
 const std::string SPDK_APP_ENV_NAME = "DaqDB";
@@ -34,9 +28,13 @@ enum class SpdkState : std::uint8_t {
     SPDK_STOPPED
 };
 
+using namespace std;
+namespace bf = boost::filesystem;
+
 class SpdkCore {
   public:
-    SpdkCore(OffloadOptions offloadOptions);
+    SpdkCore(OffloadOptions _offloadOptions);
+    ~SpdkCore();
 
     /**
      * SPDK requires passing configuration through file.
@@ -47,47 +45,60 @@ class SpdkCore {
      * _offloadOptions, true otherwise
      */
     bool createConfFile(void);
-
     void removeConfFile(void);
-
-    inline bool isOffloadEnabled() {
+    bool isOffloadEnabled() {
         if (state == SpdkState::SPDK_READY)
-            return (spBdev->spBdevCtx->state == SPDK_BDEV_READY);
+            return spBdev->isOffloadEnabled();
         else
             return false;
     }
     bool spdkEnvInit(void);
-
-    SpdkBdev *getBdev(void) {
-        return spBdev.get();
-    }
-
+    SpdkDevice *getBdev(void) { return spBdev; }
     bool isSpdkReady() {
         return state == SpdkState::SPDK_READY ? true : false;
     }
-
     bool isBdevFound() {
-        return state == SpdkState::SPDK_READY && spBdev->state != SpdkBdevState::SPDK_BDEV_NOT_FOUND ? true : false;
+        return state == SpdkState::SPDK_READY && spBdev->isBdevFound() == true;
     }
-
     void restoreSignals();
 
     std::atomic<SpdkState> state;
-
-    std::unique_ptr<SpdkBdev> spBdev;
+    SpdkDevice *spBdev;
     OffloadOptions offloadOptions;
+    Poller<OffloadRqst> *poller;
 
     const static char *spdkHugepageDirname;
 
-  private:
-    inline bool isNvmeInOptions() {
-        return !offloadOptions.nvmeAddr.empty() &&
-               !offloadOptions.nvmeName.empty();
-    }
-    inline std::string getNvmeAddress() { return offloadOptions.nvmeAddr; }
-    inline std::string getNvmeName() { return offloadOptions.nvmeName; }
+    void signalReady();
+    bool waitReady();
+    void setPoller(Poller<OffloadRqst> *pol) { poller = pol; }
+    static int spdkCoreMainLoop(SpdkCore *spdkCore);
 
+    /*
+     * Callback function called by SPDK spdk_app_start in the context of an SPDK
+     * thread.
+     */
+    static void spdkStart(void *arg);
+    void startSpdk();
+
+  private:
+    std::thread *_spdkThread;
+    std::thread *_loopThread;
+    bool _ready;
+
+    size_t _cpuCore;
+    SpdkConf _spdkConf;
     std::string _confFile;
+
+    std::mutex _syncMutex;
+    std::condition_variable _cv;
+
+    inline bool isNvmeInOptions() {
+        return offloadOptions._devs.size() ? true : false;
+    }
+    inline std::string getName() { return offloadOptions.name; }
+
+    void _spdkThreadMain(void);
 };
 
 } // namespace DaqDB

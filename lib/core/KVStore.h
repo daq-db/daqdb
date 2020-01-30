@@ -18,6 +18,7 @@
 
 #include <mutex>
 
+#include <SpdkBdevFactory.h>
 #include <daqdb/KVStoreBase.h>
 
 #include <OffloadPoller.h> /* net/if.h (put before linux/if.h) */

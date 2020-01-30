@@ -45,7 +45,7 @@ using namespace pmem::obj;
 // Allocation class alignment
 #define ALLOC_CLASS_ALIGNMENT 0
 // Units per allocation block.
-#define ALLOC_CLASS_UNITS_PER_BLOCK 1000
+#define ALLOC_CLASS_UNITS_PER_BLOCK 100
 #define BITS_IN_BYTE 8
 
 enum OBJECT_TYPES { VALUE, IOV };
@@ -63,7 +63,7 @@ struct ValueWrapper {
     p<int> location;
     union locationPtr {
         persistent_ptr<char> value; // for location == PMEM
-        persistent_ptr<uint64_t> IOVptr;
+        persistent_ptr<DeviceAddr> IOVptr;
         locationPtr() : value(nullptr){};
     } locationPtr;
 
@@ -119,8 +119,10 @@ class RTree : public DaqDB::RTreeEngine {
              int32_t valuebytes) final;
     void Remove(const char *key) final; // remove value for key
     void AllocValueForKey(const char *key, size_t size, char **value) final;
-    void AllocateIOVForKey(const char *key, uint64_t **ptr, size_t size) final;
-    void UpdateValueWrapper(const char *key, uint64_t *ptr, size_t size) final;
+    void AllocateIOVForKey(const char *key, DeviceAddr **ptr,
+                           size_t size) final;
+    void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
+                            size_t size) final;
 
   private:
     Tree *tree;

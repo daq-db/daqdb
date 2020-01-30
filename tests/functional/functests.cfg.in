@@ -42,9 +42,19 @@ neighbors : ({
  *		e.g. "0000:88:00.0"
  * offload_nvme_name
  *		e.g. "Nvme0"
+ * offload_dev_type
+ *      e.g. "bdev", "jbod"
+ * when off_dev_type = "jbod" devices must be specified
+ *  e.g. devices = {
+ *   dev1 = {offload_nvme_addr = "0000:89:00.0"; offload_nvme_name = "Nvme1";};
+ *   dev2 = {offload_nvme_addr = "0000:8a:00.0"; offload_nvme_name = "Nvme2";};
+ *   dev3 = {offload_nvme_addr = "0000:8b:00.0"; offload_nvme_name = "Nvme3";};
+ *   dev4 = {offload_nvme_addr = "0000:8c:00.0"; offload_nvme_name = "Nvme4";};
+ *   }; 
  */
 offload_unit_alloc_size = 16384;
-offload_nvme_addr = "0000:88:00.0";
-offload_nvme_name = "Nvme0";
+offload_nvme_addr = "0000:89:00.0";
+offload_nvme_name = "Nvme1";
+offload_dev_type = "bdev"
 
 //************************************ EOF ************************************

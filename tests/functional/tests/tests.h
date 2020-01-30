@@ -22,6 +22,8 @@ bool testSyncOperations(DaqDB::KVStoreBase *kvs);
 bool testAsyncOperations(DaqDB::KVStoreBase *kvs);
 bool testSyncOffloadOperations(DaqDB::KVStoreBase *kvs);
 bool testAsyncOffloadOperations(DaqDB::KVStoreBase *kvs);
+bool testSyncOffloadExtOperations(DaqDB::KVStoreBase *kvs);
+bool testAsyncOffloadExtOperations(DaqDB::KVStoreBase *kvs);
 bool testDhtConnect(DaqDB::KVStoreBase *kvs);
 bool testValueSizes(DaqDB::KVStoreBase *kvs);
 bool testMultiplePuts(DaqDB::KVStoreBase *kvs);

@@ -19,8 +19,17 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <thread>
 
 #include "spdk/bdev.h"
+
+#include "BdevStats.h"
+#include "OffloadFreeList.h"
+#include "Rqst.h"
+#include "SpdkConf.h"
+#include "SpdkDevice.h"
+#include <Logger.h>
+#include <RTreeEngine.h>
 
 namespace DaqDB {
 
@@ -31,50 +40,202 @@ enum class SpdkBdevState : std::uint8_t {
     SPDK_BDEV_ERROR
 };
 
-extern "C" enum CSpdkBdevState {
-    SPDK_BDEV_INIT = 0,
-    SPDK_BDEV_NOT_FOUND,
-    SPDK_BDEV_READY,
-    SPDK_BDEV_ERROR
-};
+class FinalizePoller;
+class SpdkIoEngine;
 
-extern "C" struct SpdkBdevCtx {
-    spdk_bdev *bdev;
-    spdk_bdev_desc *bdev_desc;
-    spdk_io_channel *io_channel;
-    char *buff;
-    const char *bdev_name;
-    struct spdk_bdev_io_wait_entry bdev_io_wait;
-    uint32_t blk_size = 0;
-    uint32_t buf_align = 0;
-    uint64_t blk_num = 0;
-    CSpdkBdevState state;
-};
-
-class SpdkBdev {
+class SpdkBdev : public SpdkDevice {
   public:
-    SpdkBdev(void);
+    SpdkBdev(bool enableStats = false);
+    virtual ~SpdkBdev();
+
+    static size_t getCoreNum();
 
     /**
      * Initialize BDEV device and sets SpdkBdev state.
      *
      * @return true if this BDEV device successfully opened, false otherwise
      */
-    int init(const char *bdev_name);
-    void deinit();
+    virtual bool init(const SpdkConf &conf);
+    virtual void deinit();
+    virtual void initFreeList();
+    virtual int64_t getFreeLba();
+    virtual void putFreeLba(const DeviceAddr *devAddr);
+    virtual bool bdevInit();
 
-    inline size_t getAlignedSize(size_t size) {
-        return size + spBdevCtx->blk_size - 1 & ~(spBdevCtx->blk_size - 1);
-    }
-    inline uint32_t getSizeInBlk(size_t &size) {
-        return size / spBdevCtx->blk_size;
-    }
-    void setReady() {
-        spBdevCtx->state = SPDK_BDEV_READY;
-    }
+    /*
+     * Optimal size is 4k times
+     */
+    virtual size_t getOptimalSize(size_t size);
+    virtual size_t getAlignedSize(size_t size);
+    virtual uint32_t getSizeInBlk(size_t &size);
+    virtual void setReady();
+    virtual bool isOffloadEnabled();
+    virtual bool isBdevFound();
+    virtual SpdkBdevCtx *getBdevCtx();
+
+    /*
+     * SpdkDevice virtual interface
+     */
+    virtual bool read(DeviceTask *task);
+    virtual bool write(DeviceTask *task);
+    virtual bool doRead(DeviceTask *task);
+    virtual bool doWrite(DeviceTask *task);
+    virtual int reschedule(DeviceTask *task);
+
+    virtual void enableStats(bool en);
+
+    /*
+     * Spdk Bdev specifics
+     */
+    virtual uint32_t getBlockSize() { return spBdevCtx.blk_size; }
+    virtual uint32_t getIoPoolSize() { return spBdevCtx.io_pool_size; }
+    virtual uint32_t getIoCacheSize() { return spBdevCtx.io_cache_size; }
+
+    /*
+     * Callback function for a read IO completion.
+     */
+    static void readComplete(struct spdk_bdev_io *bdev_io, bool success,
+                             void *cb_arg);
+
+    /*
+     * Callback function for a write IO completion.
+     */
+    static void writeComplete(struct spdk_bdev_io *bdev_io, bool success,
+                              void *cb_arg);
+
+    /*
+     * Callback function that SPDK framework will call when an io buffer becomes
+     * available Called by SPDK framework when enough of IO buffers become
+     * available to complete the IO
+     */
+    static void readQueueIoWait(void *cb_arg);
+
+    /*
+     * Callback function that SPDK framework will call when an io buffer becomes
+     * available Called by SPDK framework when enough of IO buffers become
+     * available to complete the IO
+     */
+    static void writeQueueIoWait(void *cb_arg);
+
+    enum class State : std::uint8_t {
+        BDEV_IO_INIT = 0,
+        BDEV_IO_READY,
+        BDEV_IO_ERROR,
+        BDEV_IO_QUIESCING,
+        BDEV_IO_QUIESCENT,
+        BDEV_IO_STOPPED,
+        BDEV_IO_ABORTED
+    };
+
+    virtual void IOQuiesce();
+    virtual bool isIOQuiescent();
+    virtual void IOAbort();
+
+    virtual bool stateMachine();
 
     std::atomic<SpdkBdevState> state;
-    std::unique_ptr<SpdkBdevCtx> spBdevCtx;
+    struct spdk_poller *_spdkPoller;
+    volatile State _IoState;
+    int confBdevNum;
+    static struct spdk_bdev *prevBdev;
+
+  public:
+    static SpdkDeviceClass bdev_class;
+
+    BdevStats stats;
+
+    size_t cpuCore;
+    size_t cpuCoreFin;
+    size_t cpuCoreIoEng;
+    static const size_t cpuCoreStart = 40;
+    static size_t cpuCoreCounter;
+
+    virtual uint32_t canQueue() {
+        uint32_t canQue = maxIoBufs > ioBufsInUse ? maxIoBufs - ioBufsInUse : 0;
+        return canQue;
+    }
+    virtual uint64_t getBlockOffsetForLba(uint64_t lba) {
+        return lba * blkNumForLba;
+    }
+    virtual void setBlockNumForLba(uint64_t blk_num_flba) {
+        blkNumForLba = blk_num_flba;
+    }
+    virtual void setMaxQueued(uint32_t io_cache_size, uint32_t blk_size);
+    virtual void setRunning(int running) { isRunning = running; }
+    virtual bool IsRunning(int running) { return isRunning; }
+
+    SpdkIoEngine *ioEngine;
+    std::thread *ioEngineThread;
+    void ioEngineThreadMain(void);
+    static int ioEngineIoFunction(void *arg);
+
+    FinalizePoller *finalizer;
+    std::thread *finalizerThread;
+    void finilizerThreadMain(void);
+
+    OffloadFreeList *freeLbaList = nullptr;
+
+    std::atomic<int> ioEngineInitDone;
+    uint32_t maxIoBufs;
+    uint32_t maxCacheIoBufs;
+    uint32_t ioBufsInUse;
+
+  private:
+    std::atomic<int> isRunning;
+    bool statsEnabled;
+
+    pool<DaqDB::OffloadFreeList> _offloadFreeList;
+    const static char *lbaMgmtFileprefix;
 };
+
+inline size_t SpdkBdev::getOptimalSize(size_t size) {
+    return size ? (((size - 1) / 4096 + 1) * spBdevCtx.io_min_size) : 0;
+}
+
+inline size_t SpdkBdev::getAlignedSize(size_t size) {
+    return getOptimalSize(size) + spBdevCtx.blk_size - 1 &
+           ~(spBdevCtx.blk_size - 1);
+}
+
+inline uint32_t SpdkBdev::getSizeInBlk(size_t &size) {
+    return getOptimalSize(size) / spBdevCtx.blk_size;
+}
+
+inline void SpdkBdev::setReady() { spBdevCtx.state = SPDK_BDEV_READY; }
+
+inline bool SpdkBdev::isOffloadEnabled() {
+    return spBdevCtx.state == SPDK_BDEV_READY;
+}
+
+inline bool SpdkBdev::isBdevFound() {
+    return state != SpdkBdevState::SPDK_BDEV_NOT_FOUND;
+}
+
+inline SpdkBdevCtx *SpdkBdev::getBdevCtx() { return &spBdevCtx; }
+
+inline bool SpdkBdev::stateMachine() {
+    switch (_IoState) {
+    case SpdkBdev::State::BDEV_IO_INIT:
+    case SpdkBdev::State::BDEV_IO_READY:
+        break;
+    case SpdkBdev::State::BDEV_IO_ERROR:
+        deinit();
+        break;
+    case SpdkBdev::State::BDEV_IO_QUIESCING:
+        if (!stats.outstanding_io_cnt) {
+            _IoState = SpdkBdev::State::BDEV_IO_QUIESCENT;
+        }
+        return true;
+    case SpdkBdev::State::BDEV_IO_QUIESCENT:
+        return true;
+    case SpdkBdev::State::BDEV_IO_STOPPED:
+        break;
+    case SpdkBdev::State::BDEV_IO_ABORTED:
+        deinit();
+        return true;
+    }
+    return false;
+}
+using BdevTask = DeviceTask;
 
 } // namespace DaqDB

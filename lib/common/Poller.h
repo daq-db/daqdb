@@ -25,41 +25,51 @@ namespace DaqDB {
 
 template <class T> class Poller {
   public:
-    Poller(bool create_buf = true) :
-        rqstRing(0),
-        requests(new T *[DEQUEUE_RING_LIMIT]),
-        createBuf(create_buf) {
-        if ( createBuf == true ) {
-            rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
+    Poller(bool _createBuf = true,
+           spdk_ring_type _rsqRingType = SPDK_RING_TYPE_MP_SC)
+        : rqstRing(0), requests(new T *[DEQUEUE_RING_LIMIT]),
+          createBuf(_createBuf), rsqRingType(_rsqRingType) {
+        if (createBuf == true) {
+            rqstRing =
+                spdk_ring_create(rsqRingType, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
         }
     }
     virtual ~Poller() {
         spdk_ring_free(rqstRing);
         delete[] requests;
     }
-
     bool init() {
-        if ( createBuf == false ) {
-            rqstRing = spdk_ring_create(SPDK_RING_TYPE_MP_SC, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
+        if (createBuf == false) {
+            rqstRing =
+                spdk_ring_create(rsqRingType, 4096 * 4, SPDK_ENV_SOCKET_ID_ANY);
             return rqstRing ? true : false;
         }
         return true;
     }
-
     virtual bool enqueue(T *rqst) {
         size_t count = spdk_ring_enqueue(rqstRing, (void **)&rqst, 1, 0);
         return (count == 1);
     }
-    virtual void dequeue() {
-        requestCount = spdk_ring_dequeue(rqstRing, (void **)&requests[0], DEQUEUE_RING_LIMIT);
-        assert(requestCount <= DEQUEUE_RING_LIMIT);
+    virtual void dequeue(uint32_t cnt = DEQUEUE_RING_LIMIT) {
+        requestCount = spdk_ring_dequeue(
+            rqstRing, (void **)&requests[0],
+            cnt >= DEQUEUE_RING_LIMIT ? DEQUEUE_RING_LIMIT : cnt);
+        assert(requestCount <=
+               (cnt >= DEQUEUE_RING_LIMIT ? DEQUEUE_RING_LIMIT : cnt));
     }
+    size_t count() { return rqstRing ? spdk_ring_count(rqstRing) : 0; }
 
     virtual void process() = 0;
+
+    virtual void setRunning(int rn) {}
+    virtual bool isOffloadRunning() { return false; }
+    virtual void initFreeList() {}
+    virtual uint32_t canQueue() { return 0; }
 
     struct spdk_ring *rqstRing;
     unsigned short requestCount = 0;
     T **requests;
+    spdk_ring_type rsqRingType;
     bool createBuf;
 };
 

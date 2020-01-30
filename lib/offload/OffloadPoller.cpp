@@ -19,7 +19,7 @@
 
 #include <iostream>
 #include <pthread.h>
-#include <string>
+
 #include <thread>
 
 #include <boost/asio.hpp>
@@ -37,7 +37,7 @@
 
 #include "OffloadPoller.h"
 #include <Logger.h>
-#include <RTree.h>
+#include <RTreeEngine.h>
 #include <daqdb/Status.h>
 
 
@@ -49,306 +49,11 @@ namespace DaqDB {
 
 const char *OffloadPoller::pmemFreeListFilename = "/mnt/pmem/offload_free.pm";
 
-std::ostringstream &OffloadStats::formatWriteBuf(std::ostringstream &buf) {
-    buf << "write_compl_cnt[" << write_compl_cnt << "] write_err_cnt[" << write_err_cnt << "] outs_io_cnt[" << outstanding_io_cnt << "]";
-    return buf;
-}
-
-std::ostringstream &OffloadStats::formatReadBuf(std::ostringstream &buf) {
-    buf << "read_compl_cnt[" << read_compl_cnt << "] read_err_cnt[" << read_err_cnt << "] outs_io_cnt[" << outstanding_io_cnt << "]";
-    return buf;
-}
-
-void OffloadStats::printWritePer(std::ostream &os) {
-    if ( enable == true && !((write_compl_cnt++)%quant_per) ) {
-        std::ostringstream buf;
-        char time_buf[128];
-        time_t now = time (0);
-        strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S.000", localtime(&now));
-        os << formatWriteBuf(buf).str() << " " << time_buf << std::endl;
-    }
-}
-
-void OffloadStats::printReadPer(std::ostream &os) {
-    if ( enable == true && !((read_compl_cnt++)%quant_per) ) {
-        std::ostringstream buf;
-        char time_buf[128];
-        time_t now = time (0);
-        strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S.000", localtime(&now));
-        os << formatReadBuf(buf).str() << " " << time_buf << std::endl;
-    }
-}
-
-//#define TEST_RAW_IOPS
-
-OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *spdkCore,
-                             const size_t cpuCore, bool enableStats):
-    Poller<OffloadRqst>(false),
-    rtree(rtree), spdkCore(spdkCore), _spdkThread(0), _loopThread(0), 
-        _cpuCore(cpuCore), _ready(false), _spdkPoller(0), stats(enableStats) {
-
-    _state = OffloadPoller::State::OFFLOAD_POLLER_INIT;
-    if (spdkCore->isSpdkReady() == true ) {
-        startSpdk();
-    }
-}
+OffloadPoller::OffloadPoller(RTreeEngine *rtree, SpdkCore *_spdkCore)
+    : Poller<OffloadRqst>(false), rtree(rtree), spdkCore(_spdkCore) {}
 
 OffloadPoller::~OffloadPoller() {
     isRunning = 0;
-    _state = OffloadPoller::State::OFFLOAD_POLLER_STOPPED;
-    if ( _loopThread != nullptr)
-        _loopThread->join();
-    if (_spdkThread != nullptr)
-        _spdkThread->join();
-}
-
-void OffloadPoller::IOQuiesce() {
-    _state = OffloadPoller::State::OFFLOAD_POLLER_QUIESCING;
-}
-
-bool OffloadPoller::isIOQuiescent() {
-    return _state == OffloadPoller::State::OFFLOAD_POLLER_QUIESCENT || _state == OffloadPoller::State::OFFLOAD_POLLER_ABORTED ? true : false;
-}
-
-void OffloadPoller::IOAbort() {
-    _state = OffloadPoller::State::OFFLOAD_POLLER_ABORTED;
-}
-
-/*
- * Callback function for a write IO completion.
- */
-void OffloadPoller::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
-                           void *cb_arg) {
-#ifdef TEST_RAW_IOPS
-    spdk_dma_free(bdev_io);
-#else
-    spdk_bdev_free_io(bdev_io);
-#endif
-    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
-    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
-
-    if ( poller->stats.outstanding_io_cnt )
-        poller->stats.outstanding_io_cnt--;
-
-    (void )poller->stateMachine();
-
-    if (success) {
-        poller->stats.printWritePer(std::cout);
-        if (ioCtx->updatePmemIOV)
-            ioCtx->rtree->UpdateValueWrapper(ioCtx->key, ioCtx->lba,
-                                             sizeof(uint64_t));
-        if (ioCtx->clb)
-            ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
-                       ioCtx->buff, ioCtx->size);
-    } else {
-        if (ioCtx->clb)
-            ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
-                       ioCtx->keySize, nullptr, 0);
-    }
-
-    delete [] ioCtx->key;
-    delete ioCtx;
-}
-
-/*
- * Callback function for a read IO completion.
- */
-void OffloadPoller::readComplete(struct spdk_bdev_io *bdev_io, bool success,
-                          void *cb_arg) {
-#ifdef TEST_RAW_IOPS
-    spdk_dma_free(bdev_io);
-#else
-    spdk_bdev_free_io(bdev_io);
-#endif
-    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
-    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
-
-    if ( poller->stats.outstanding_io_cnt )
-        poller->stats.outstanding_io_cnt--;
-
-    (void )poller->stateMachine();
-
-    if (success) {
-        poller->stats.printReadPer(std::cout);
-        if (ioCtx->clb)
-            ioCtx->clb(nullptr, StatusCode::OK, ioCtx->key, ioCtx->keySize,
-                       ioCtx->buff, ioCtx->size);
-    } else {
-        if (ioCtx->clb)
-            ioCtx->clb(nullptr, StatusCode::UNKNOWN_ERROR, ioCtx->key,
-                       ioCtx->keySize, nullptr, 0);
-    }
-
-    delete [] ioCtx->key;
-    delete ioCtx;
-}
-
-/*
- * Start up Spdk, including SPDK thread, to initialize SPDK environemnt and a Bdev
- */
-void OffloadPoller::startSpdk() {
-    _spdkThread = new std::thread(&OffloadPoller::_spdkThreadMain, this);
-    DAQ_DEBUG("OffloadPoller thread started");
-    if (_cpuCore) {
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET(_cpuCore, &cpuset);
-
-        const int set_result = pthread_setaffinity_np(
-            _spdkThread->native_handle(), sizeof(cpu_set_t), &cpuset);
-        if (set_result == 0) {
-            DAQ_DEBUG("OffloadPoller thread affinity set on CPU core [" +
-                      std::to_string(_cpuCore) + "]");
-        } else {
-            DAQ_DEBUG("Cannot set affinity on CPU core [" +
-                      std::to_string(_cpuCore) + "] for OffloadReactor");
-        }
-    }
-}
-
-/*
- * Callback function that SPDK framework will call when an io buffer becomes available
- */
-void OffloadPoller::readQueueIoWait(void *cb_arg) {
-    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
-    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
-
-    int r_rc = spdk_bdev_read_blocks(poller->getBdevDesc(), poller->getBdevIoChannel(), ioCtx->buff,
-                                 poller->getBlockOffsetForLba(*ioCtx->lba),
-                                 ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
-
-    /* If a read IO still fails due to shortage of io buffers, queue it up for later execution */
-    if ( r_rc ) {
-        r_rc = spdk_bdev_queue_io_wait(poller->getBdevCtx()->bdev, poller->getBdevIoChannel(),
-                &ioCtx->bdev_io_wait);
-        if ( r_rc ) {
-            DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(r_rc) + "] for offload bdev");
-            poller->getBdev()->deinit();
-            spdk_app_stop(-1);
-        }
-    } else {
-        poller->stats.read_err_cnt--;
-        poller->stats.outstanding_io_cnt++;
-    }
-}
-
-bool OffloadPoller::read(OffloadIoCtx *ioCtx) {
-    if ( stateMachine() == true ) {
-        spdk_dma_free(ioCtx->buff);
-        return false;
-    }
-
-#ifdef TEST_RAW_IOPS
-    int r_rc = 0;
-    OffloadPoller::readComplete(reinterpret_cast<struct spdk_bdev_io *>(ioCtx->buff), true, ioCtx);
-#else
-    int r_rc = spdk_bdev_read_blocks(getBdevDesc(), getBdevIoChannel(), ioCtx->buff,
-                                 getBlockOffsetForLba(*ioCtx->lba),
-                                 ioCtx->blockSize, OffloadPoller::readComplete, ioCtx);
-#endif
-    /* TODO: refactor the following block for better code reusability */
-    if ( r_rc ) {
-        stats.read_err_cnt++;
-        /*
-         * -ENOMEM condition indicates a shoortage of IO buffers.
-         *  Schedule this IO for later execution by providing a callback function, when sufficient 
-         *  IO buffers are available
-         */
-        if ( r_rc == -ENOMEM ) { 
-            ioCtx->bdev_io_wait.bdev = getBdevCtx()->bdev;
-            ioCtx->bdev_io_wait.cb_fn = OffloadPoller::readQueueIoWait;
-            ioCtx->bdev_io_wait.cb_arg = ioCtx;
-
-            r_rc = spdk_bdev_queue_io_wait(getBdevCtx()->bdev, getBdevIoChannel(),
-                    &ioCtx->bdev_io_wait);
-            if ( r_rc ) {
-                DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(r_rc) + "] for offload bdev");
-                getBdev()->deinit();
-                spdk_app_stop(-1);
-            }
-        } else {
-            DAQ_CRITICAL("Spdk read error [" + std::to_string(r_rc) + "] for offload bdev");
-            getBdev()->deinit();
-            spdk_app_stop(-1);
-        }
-    } else
-        stats.outstanding_io_cnt++;
-
-    return !r_rc ? true : false;
-}
-
-/*
- * Callback function that SPDK framework will call when an io buffer becomes available
- */
-void OffloadPoller::writeQueueIoWait(void *cb_arg) {
-    OffloadIoCtx *ioCtx = reinterpret_cast<OffloadIoCtx *>(cb_arg);
-    OffloadPoller *poller = dynamic_cast<OffloadPoller *>(ioCtx->poller);
-
-    int w_rc = spdk_bdev_write_blocks(poller->getBdevDesc(), poller->getBdevIoChannel(),
-                                  ioCtx->buff,
-                                  poller->getBlockOffsetForLba(*ioCtx->lba),
-                                  ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
-
-    /* If a write IO still fails due to shortage of io buffers, queue it up for later execution */
-    if ( w_rc ) {
-        w_rc = spdk_bdev_queue_io_wait(poller->getBdevCtx()->bdev, poller->getBdevIoChannel(),
-                &ioCtx->bdev_io_wait);
-        if ( w_rc ) {
-            DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(w_rc) + "] for offload bdev");
-            poller->getBdev()->deinit();
-            spdk_app_stop(-1);
-        }
-    } else {
-        poller->stats.write_err_cnt--;
-        poller->stats.outstanding_io_cnt++;
-    }
-}
-
-bool OffloadPoller::write(OffloadIoCtx *ioCtx) {
-    if ( stateMachine() == true ) {
-        spdk_dma_free(ioCtx->buff);
-        return false;
-    }
-
-#ifdef TEST_RAW_IOPS
-    int w_rc = 0;
-    OffloadPoller::writeComplete(reinterpret_cast<struct spdk_bdev_io *>(ioCtx->buff), true, ioCtx);
-#else
-    int w_rc = spdk_bdev_write_blocks(getBdevDesc(), getBdevIoChannel(),
-                                  ioCtx->buff,
-                                  getBlockOffsetForLba(*ioCtx->lba),
-                                  ioCtx->blockSize, OffloadPoller::writeComplete, ioCtx);
-#endif
-
-    /* TODO: refactor the following block for better code reusability */
-    if ( w_rc ) {
-        stats.write_err_cnt++;
-        /*
-         * -ENOMEM condition indicates a shoortage of IO buffers.
-         *  Schedule this IO for later execution by providing a callback function, when sufficient 
-         *  IO buffers are available
-         */
-        if ( w_rc == -ENOMEM ) {
-            ioCtx->bdev_io_wait.bdev = getBdevCtx()->bdev;
-            ioCtx->bdev_io_wait.cb_fn = OffloadPoller::writeQueueIoWait;
-            ioCtx->bdev_io_wait.cb_arg = ioCtx;
-
-            w_rc = spdk_bdev_queue_io_wait(getBdevCtx()->bdev, getBdevIoChannel(),
-                    &ioCtx->bdev_io_wait);
-            if ( w_rc ) {
-                DAQ_CRITICAL("Spdk queue_io_wait error [" + std::to_string(w_rc) + "] for offload bdev");
-                getBdev()->deinit();
-                spdk_app_stop(-1);
-            }
-        } else {
-            DAQ_CRITICAL("Spdk write error [" + std::to_string(w_rc) + "] for offload bdev");
-            getBdev()->deinit();
-            spdk_app_stop(-1);
-        }
-    } else
-        stats.outstanding_io_cnt++;
-
-    return !w_rc ? true : false;
 }
 
 void OffloadPoller::initFreeList() {
@@ -364,7 +69,7 @@ void OffloadPoller::initFreeList() {
             initNeeded = true;
         }
         freeLbaList = _offloadFreeList.get_root().get();
-        freeLbaList->maxLba = getBdevCtx()->blk_num / _blkNumForLba;
+        freeLbaList->maxLba = getBdevCtx()->blk_num / getBdev()->blkNumForLba;
         if (initNeeded) {
             freeLbaList->push(_offloadFreeList, -1);
         }
@@ -383,128 +88,129 @@ StatusCode OffloadPoller::_getValCtx(const OffloadRqst *rqst,
     return StatusCode::OK;
 }
 
-void OffloadPoller::_processGet(const OffloadRqst *rqst) {
+void OffloadPoller::_processGet(OffloadRqst *rqst) {
     ValCtx valCtx;
 
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
+        OffloadRqst::getPool.put(rqst);
         return;
     }
 
-    if (isValInPmem(valCtx)) {
+    if (valCtx.location == LOCATIONS::PMEM) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
+        OffloadRqst::getPool.put(rqst);
         return;
     }
 
-    auto size = getBdev()->getAlignedSize(valCtx.size);
+    SpdkDevice *spdkDev = getBdev();
 
-    char *buff = reinterpret_cast<char *>(spdk_dma_zmalloc(size, getBdevCtx()->buf_align, NULL));
+    rqst->valueSize = valCtx.size;
+    DeviceTask *ioTask =
+        new (rqst->taskBuffer) DeviceTask{0,
+                                          spdkDev->getOptimalSize(valCtx.size),
+                                          0,
+                                          rqst->keySize,
+                                          static_cast<DeviceAddr *>(valCtx.val),
+                                          false,
+                                          rtree,
+                                          rqst->clb,
+                                          spdkDev,
+                                          rqst,
+                                          OffloadOperation::GET};
+    memcpy(ioTask->key, rqst->key, rqst->keySize);
 
-    auto blkSize = getBdev()->getSizeInBlk(size);
-    OffloadIoCtx *ioCtx = new OffloadIoCtx{
-        buff,      valCtx.size,   blkSize,
-        rqst->key, rqst->keySize, static_cast<uint64_t *>(valCtx.val),
-        false,     rtree,         rqst->clb, this};
-
-    if (read(ioCtx) != true)
+    if (spdkDev->read(ioTask) != true) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
+        OffloadRqst::getPool.put(rqst);
+    }
 }
 
-void OffloadPoller::_processUpdate(const OffloadRqst *rqst) {
-    OffloadIoCtx *ioCtx = nullptr;
-    ValCtx valCtx;
+void OffloadPoller::_processUpdate(OffloadRqst *rqst) {
+    DeviceTask *ioTask = nullptr;
 
     if (rqst == nullptr) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
         return;
     }
 
-    auto rc = _getValCtx(rqst, valCtx);
-    if (rc != StatusCode::OK) {
-        _rqstClb(rqst, rc);
-        return;
-    }
-
-    if (isValInPmem(valCtx)) {
-
-        const char *val;
-        size_t valSize = 0;
-        if (rqst->valueSize > 0) {
-            val = rqst->value;
-            valSize = rqst->valueSize;
-        } else {
-            val = static_cast<char *>(valCtx.val);
-            valSize = valCtx.size;
-        }
-
-        auto valSizeAlign = getBdev()->getAlignedSize(valSize);
-        auto buff = reinterpret_cast<char *>(
-            spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
-
-        memcpy(buff, val, valSize);
-        ioCtx = new OffloadIoCtx{
-            buff,      valSize,       getBdev()->getSizeInBlk(valSizeAlign),
-            rqst->key, rqst->keySize, nullptr,
-            true,      rtree,         rqst->clb, this};
-        try {
-            rtree->AllocateIOVForKey(rqst->key, &ioCtx->lba, sizeof(uint64_t));
-        } catch (...) {
-            /** @todo fix exception handling */
-            delete ioCtx;
-            _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
-            return;
-        }
-        *ioCtx->lba = getFreeLba();
-
-    } else if (isValOffloaded(valCtx)) {
-        if (valCtx.size == 0) {
+    SpdkDevice *spdkDev = getBdev();
+    auto valSizeAlign = spdkDev->getAlignedSize(rqst->valueSize);
+    if (rqst->loc == LOCATIONS::PMEM) {
+        ioTask = new (rqst->taskBuffer)
+            DeviceTask{0,
+                       spdkDev->getOptimalSize(rqst->valueSize),
+                       spdkDev->getSizeInBlk(valSizeAlign),
+                       rqst->keySize,
+                       nullptr,
+                       true,
+                       rtree,
+                       rqst->clb,
+                       spdkDev,
+                       rqst,
+                       OffloadOperation::UPDATE};
+        memcpy(ioTask->key, rqst->key, rqst->keySize);
+    } else if (rqst->loc == LOCATIONS::DISK) {
+        if (rqst->valueSize == 0) {
             _rqstClb(rqst, StatusCode::OK);
+            OffloadRqst::updatePool.put(rqst);
             return;
         }
-        auto valSizeAlign = getBdev()->getAlignedSize(rqst->valueSize);
-        auto buff = reinterpret_cast<char *>(
-            spdk_dma_zmalloc(valSizeAlign, getBdevCtx()->buf_align, NULL));
-        memcpy(buff, rqst->value, rqst->valueSize);
 
-        ioCtx = new OffloadIoCtx{
-            buff,      rqst->valueSize, getBdev()->getSizeInBlk(valSizeAlign),
-            rqst->key, rqst->keySize,   new uint64_t,
-            false,     rtree,           rqst->clb, this};
-        *ioCtx->lba = *(static_cast<uint64_t *>(valCtx.val));
-
+        ioTask = new (rqst->taskBuffer)
+            DeviceTask{0,
+                       spdkDev->getOptimalSize(rqst->valueSize),
+                       spdkDev->getSizeInBlk(valSizeAlign),
+                       rqst->keySize,
+                       new (rqst->devAddrBuf) DeviceAddr,
+                       false,
+                       rtree,
+                       rqst->clb,
+                       spdkDev,
+                       rqst,
+                       OffloadOperation::UPDATE};
+        memcpy(ioTask->key, rqst->key, rqst->keySize);
+        memcpy(ioTask->bdevAddr, rqst->value, sizeof(*ioTask->bdevAddr));
     } else {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
+        OffloadRqst::updatePool.put(rqst);
         return;
     }
 
-    if (write(ioCtx) != true)
+    if (spdkDev->write(ioTask) != true) {
         _rqstClb(rqst, StatusCode::UNKNOWN_ERROR);
-
-    if ( rqst->valueSize > 0 )
-        delete [] rqst->value;
+        OffloadRqst::updatePool.put(rqst);
+    }
 }
 
-void OffloadPoller::_processRemove(const OffloadRqst *rqst) {
+void OffloadPoller::_processRemove(OffloadRqst *rqst) {
 
     ValCtx valCtx;
 
     auto rc = _getValCtx(rqst, valCtx);
     if (rc != StatusCode::OK) {
         _rqstClb(rqst, rc);
+        if (rqst->valueSize > 0)
+            delete[] rqst->value;
+        OffloadRqst::removePool.put(rqst);
         return;
     }
 
-    if (isValInPmem(valCtx)) {
+    if (valCtx.location == LOCATIONS::PMEM) {
         _rqstClb(rqst, StatusCode::KEY_NOT_FOUND);
+        if (rqst->valueSize > 0)
+            delete[] rqst->value;
+        OffloadRqst::removePool.put(rqst);
         return;
     }
 
     uint64_t lba = *(static_cast<uint64_t *>(valCtx.val));
 
-    freeLbaList->push(_offloadFreeList, lba);
+    getBdev()->putFreeLba(static_cast<const DeviceAddr *>(valCtx.val));
     rtree->Remove(rqst->key);
     _rqstClb(rqst, StatusCode::OK);
+    OffloadRqst::removePool.put(rqst);
 }
 
 void OffloadPoller::process() {
@@ -513,106 +219,22 @@ void OffloadPoller::process() {
             OffloadRqst *rqst = requests[RqstIdx];
             switch (rqst->op) {
             case OffloadOperation::GET:
-                _processGet(const_cast<const OffloadRqst *>(rqst));
+                _processGet(rqst);
                 break;
             case OffloadOperation::UPDATE: {
-                _processUpdate(const_cast<const OffloadRqst *>(rqst));
+                _processUpdate(rqst);
                 break;
             }
             case OffloadOperation::REMOVE: {
-                _processRemove(const_cast<const OffloadRqst *>(rqst));
+                _processRemove(rqst);
                 break;
             }
             default:
                 break;
             }
-            delete requests[RqstIdx];
         }
         requestCount = 0;
     }
-}
-
-int OffloadPoller::spdkPollerFn(void *arg) {
-    OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
-
-    poller->dequeue();
-    poller->process();
-
-    if ( !poller->isRunning ) {
-        spdk_poller_unregister(&poller->_spdkPoller);
-        poller->getBdev()->deinit();
-        spdk_app_stop(0);
-    }
-
-    return 0;
-}
-
-/*
- * Callback function called by SPDK spdk_app_start in the context of an SPDK thread.
- */
-void OffloadPoller::spdkStart(void *arg) {
-    OffloadPoller *poller = reinterpret_cast<OffloadPoller *>(arg);
-    SpdkBdevCtx *bdev_c = poller->getBdev()->spBdevCtx.get();
-
-    bool rc = poller->getBdev()->init(poller->bdevName.c_str());
-    if ( rc == false ) {
-        DAQ_CRITICAL("Bdev init failed");
-        poller->signalReady();
-        spdk_app_stop(-1);
-        return;
-    }
-
-    auto aligned = poller->getBdev()->getAlignedSize(poller->spdkCore->offloadOptions.allocUnitSize);
-    poller->setBlockNumForLba(aligned / bdev_c->blk_size);
-
-    poller->initFreeList();
-    bool i_rc = poller->init();
-    if ( i_rc == false ) {
-        DAQ_CRITICAL("Poller init failed");
-        poller->signalReady();
-        spdk_app_stop(-1);
-        return;
-    }
-
-    poller->getBdev()->setReady();
-    poller->signalReady();
-    poller->spdkCore->restoreSignals();
-
-    poller->isRunning = 1;
-    poller->setSpdkPoller(spdk_poller_register(OffloadPoller::spdkPollerFn, poller, 0));
-}
-
-void OffloadPoller::_spdkThreadMain(void) {
-    struct spdk_app_opts daqdb_opts = {};
-    spdk_app_opts_init(&daqdb_opts);
-    daqdb_opts.config_file = DEFAULT_SPDK_CONF_FILE.c_str();
-    daqdb_opts.name = "daqdb_nvme";
-
-    daqdb_opts.mem_size = 1024;
-    daqdb_opts.shm_id = 1;
-    daqdb_opts.hugepage_single_segments = 1;
-    daqdb_opts.hugedir = SpdkCore::spdkHugepageDirname;
-
-    int rc = spdk_app_start(&daqdb_opts, OffloadPoller::spdkStart, this);
-    if ( rc ) {
-        DAQ_CRITICAL("Error spdk_app_start[" + std::to_string(rc) + "]");
-        return;
-    }
-    DAQ_DEBUG("spdk_app_start[" + std::to_string(rc) + "]");
-    spdk_app_fini();
-}
-
-void OffloadPoller::signalReady() {
-    std::unique_lock<std::mutex> lk(_syncMutex);
-    _ready = true;
-    _cv.notify_all();
-}
-
-bool OffloadPoller::waitReady() {
-    const std::chrono::milliseconds timeout(10000);
-    std::unique_lock<std::mutex> lk(_syncMutex);
-    _cv.wait_for(lk, timeout, [this] { return _ready; });
-    return _ready;
 }
 
 int64_t OffloadPoller::getFreeLba() {

@@ -17,7 +17,7 @@
 #include <cstdint>
 
 #include "../../lib/offload/OffloadPoller.cpp"
-#include "../../lib/pmem/RTree.h"
+#include "../../lib/pmem/ARTree.h"
 #include "../../lib/spdk/SpdkBdev.h"
 #include "../../lib/spdk/SpdkCore.h"
 
@@ -44,7 +44,8 @@ void *spdk_zmalloc(size_t size, size_t align, uint64_t *phys_addr,
 
 BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
     Mock<DaqDB::OffloadPoller> pollerMock;
-    Mock<DaqDB::RTree> rtreeMock;
+    Mock<DaqDB::SpdkBdev> bdevMock;
+    Mock<DaqDB::ARTree> rtreeMock;
     char valRef[] = "abc";
     size_t sizeRef = 3;
     uint8_t location = DISK;
@@ -59,125 +60,182 @@ BOOST_AUTO_TEST_CASE(ProcessEmptyRing) {
             *valSize = sizeRef;
             *loc = location;
         });
-    When(Method(pollerMock, read)).Return(0);
-    When(Method(pollerMock, write)).Return(0);
+    When(Method(bdevMock, read)).Return(0);
+    When(Method(bdevMock, write)).Return(0);
 
     poller.process();
     VerifyNoOtherInvocations(
         OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
                                               size_t *, uint8_t *)));
-    VerifyNoOtherInvocations(Method(pollerMock, read));
-    VerifyNoOtherInvocations(Method(pollerMock, write));
+    VerifyNoOtherInvocations(Method(bdevMock, read));
+    VerifyNoOtherInvocations(Method(bdevMock, write));
 }
 
 BOOST_AUTO_TEST_CASE(ProcessGetRequest) {
     Mock<DaqDB::OffloadPoller> pollerMock;
-    Mock<DaqDB::RTree> rtreeMock;
+    Mock<DaqDB::ARTree> rtreeMock;
 
     uint64_t lbaRef = 123;
-    size_t valSizeRef = 4;
+    struct DaqDB::DeviceAddr dAddr;
+    dAddr.lba = 123;
+    dAddr.busAddr.busAddr = 0;
+    size_t valSizeRef = sizeof(struct DaqDB::DeviceAddr);
+
     char valRef[] = "1234";
     uint8_t location = DISK;
 
-    DaqDB::SpdkBdev spdkBdev;
-    spdkBdev.spBdevCtx.reset(new DaqDB::SpdkBdevCtx());
-    spdkBdev.spBdevCtx->blk_size = 512;
-    spdkBdev.spBdevCtx->blk_num = 1024;
-    spdkBdev.spBdevCtx->buf_align = 1;
+    Mock<DaqDB::SpdkBdev> bdevMock;
+    DaqDB::SpdkBdev &spdkBdev = bdevMock.get();
+
+    spdkBdev.spBdevCtx.blk_size = 512;
+    spdkBdev.spBdevCtx.blk_num = 1024;
+    spdkBdev.spBdevCtx.buf_align = 1;
+    spdkBdev.spBdevCtx.io_min_size = 4096;
+    spdkBdev.spBdevCtx.bdev = 0;
+    spdkBdev.spBdevCtx.bdev_desc = 0;
+    spdkBdev.spBdevCtx.io_channel = 0;
+    spdkBdev.spBdevCtx.buff = 0;
+    strcpy(spdkBdev.spBdevCtx.bdev_name, "test");
+    strcpy(spdkBdev.spBdevCtx.bdev_addr, "test");
+    spdkBdev.spBdevCtx.data_blk_size = 0;
+    spdkBdev.spBdevCtx.io_pool_size = 0;
+    spdkBdev.spBdevCtx.io_cache_size = 0;
+    spdkBdev.spBdevCtx.io_min_size = 4096;
+    spdkBdev.spBdevCtx.state = DaqDB::CSpdkBdevState::SPDK_BDEV_READY;
+
+    spdkBdev.blkNumForLba = 0;
+    spdkBdev.IoBytesQueued = 0;
+    spdkBdev.IoBytesMaxQueued = 0;
 
     DaqDB::OffloadPoller &poller = pollerMock.get();
-    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
-                                               size_t *, uint8_t *))
+    When(OverloadedMethod(
+             rtreeMock, Get,
+             void(const char *, int32_t, void **, size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *loc) {
-            *val = &lbaRef;
+            *val = &dAddr;
             *valSize = valSizeRef;
             *loc = location;
         });
-    When(Method(pollerMock, read)).Return(0);
-    When(Method(pollerMock, write)).Return(0);
+
+    When(Method(bdevMock, getAlignedSize)).Return(0);
+    When(Method(bdevMock, getOptimalSize)).Return(0);
+    When(Method(bdevMock, getSizeInBlk)).Return(0);
+
+    When(Method(bdevMock, read)).Return(0);
+    When(Method(bdevMock, write)).Return(0);
     When(Method(pollerMock, getBdev)).AlwaysReturn(&spdkBdev);
-    When(Method(pollerMock, getBdevCtx)).AlwaysReturn(spdkBdev.spBdevCtx.get());
+    When(Method(pollerMock, getBdevCtx)).AlwaysReturn(&spdkBdev.spBdevCtx);
 
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     poller.rtree = &rtree;
 
     poller.requests = new DaqDB::OffloadRqst *[1];
-    poller.requests[0] =
-        new DaqDB::OffloadRqst(DaqDB::OffloadOperation::GET, expectedKey,
-                               expectedKeySize, nullptr, 0, nullptr);
+    poller.requests[0] = DaqDB::OffloadRqst::getPool.get();
+    poller.requests[0]->finalizeGet(expectedKey, expectedKeySize, nullptr, 0,
+                                    nullptr);
     poller.requestCount = 1;
 
     poller.process();
 
-    VerifyNoOtherInvocations(Method(pollerMock, write));
-    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
-                                                 size_t *, uint8_t *)))
+    VerifyNoOtherInvocations(Method(bdevMock, write));
+    Verify(OverloadedMethod(
+               rtreeMock, Get,
+               void(const char *, int32_t, void **, size_t *, uint8_t *)))
         .Exactly(1);
-    Verify(Method(pollerMock, read)).Exactly(1);
+    Verify(Method(bdevMock, read)).Exactly(1);
 
+    DaqDB::OffloadRqst::getPool.put(poller.requests[0]);
     delete[] poller.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
     Mock<DaqDB::OffloadPoller> pollerMock;
-    Mock<DaqDB::RTree> rtreeMock;
+    Mock<DaqDB::ARTree> rtreeMock;
 
-    uint64_t lbaRef = 123;
-    size_t valSizeRef = 4;
+    struct DaqDB::DeviceAddr dRef;
+    dRef.lba = 123;
+    dRef.busAddr.busAddr = 0;
+    size_t valSizeRef = sizeof(struct DaqDB::DeviceAddr);
+
+    struct DaqDB::PciAddr pciAddrRef = {0, 0, 0, 0};
     char valRef[] = "1234";
     uint8_t location = PMEM;
 
-    DaqDB::SpdkBdev spdkBdev;
-    spdkBdev.spBdevCtx.reset(new DaqDB::SpdkBdevCtx());
-    spdkBdev.spBdevCtx->blk_size = 512;
-    spdkBdev.spBdevCtx->blk_num = 1024;
-    spdkBdev.spBdevCtx->buf_align = 1;
+    Mock<DaqDB::SpdkBdev> bdevMock;
+    DaqDB::SpdkBdev &spdkBdev = bdevMock.get();
+    spdkBdev.spBdevCtx.blk_size = 512;
+    spdkBdev.spBdevCtx.blk_num = 1024;
+    spdkBdev.spBdevCtx.buf_align = 1;
+    spdkBdev.spBdevCtx.io_min_size = 4096;
+    spdkBdev.spBdevCtx.bdev = 0;
+    spdkBdev.spBdevCtx.bdev_desc = 0;
+    spdkBdev.spBdevCtx.io_channel = 0;
+    spdkBdev.spBdevCtx.buff = 0;
+    strcpy(spdkBdev.spBdevCtx.bdev_name, "test");
+    strcpy(spdkBdev.spBdevCtx.bdev_addr, "test");
+    spdkBdev.spBdevCtx.data_blk_size = 0;
+    spdkBdev.spBdevCtx.io_pool_size = 0;
+    spdkBdev.spBdevCtx.io_cache_size = 0;
+    spdkBdev.spBdevCtx.io_min_size = 4096;
+    spdkBdev.spBdevCtx.state = DaqDB::CSpdkBdevState::SPDK_BDEV_READY;
+
+    spdkBdev.blkNumForLba = 0;
+    spdkBdev.IoBytesQueued = 0;
+    spdkBdev.IoBytesMaxQueued = 0;
 
     DaqDB::OffloadPoller &poller = pollerMock.get();
-    When(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
-                                               size_t *, uint8_t *))
+    When(OverloadedMethod(
+             rtreeMock, Get,
+             void(const char *, int32_t, void **, size_t *, uint8_t *))
              .Using(expectedKey, expectedKeySize, _, _, _))
         .AlwaysDo([&](const char *key, int32_t keySize, void **val,
                       size_t *valSize, uint8_t *loc) {
-            *val = valRef;
+            *val = &dRef;
             *valSize = valSizeRef;
             *loc = location;
         });
     When(Method(rtreeMock, AllocateIOVForKey))
-        .AlwaysDo([&](const char *key, uint64_t **ptr, size_t size) {
-            *ptr = &lbaRef;
+        .AlwaysDo([&](const char *key, DaqDB::DeviceAddr **ptr, size_t size) {
+            (*ptr)->lba = 123;
+            (*ptr)->busAddr.pciAddr = pciAddrRef;
         });
 
+    When(Method(bdevMock, getAlignedSize)).Return(0);
+    When(Method(bdevMock, getOptimalSize)).Return(0);
+    When(Method(bdevMock, getSizeInBlk)).Return(0);
+
     When(Method(pollerMock, getFreeLba)).Return(1);
-    When(Method(pollerMock, read)).Return(0);
-    When(Method(pollerMock, write)).Return(0);
+    When(Method(bdevMock, read)).Return(0);
+    When(Method(bdevMock, write)).Return(0);
     When(Method(pollerMock, getBdev)).AlwaysReturn(&spdkBdev);
-    When(Method(pollerMock, getBdevCtx)).AlwaysReturn(spdkBdev.spBdevCtx.get());
+    When(Method(pollerMock, getBdevCtx)).AlwaysReturn(&spdkBdev.spBdevCtx);
 
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     poller.rtree = &rtree;
 
     poller.requests = new DaqDB::OffloadRqst *[1];
-    poller.requests[0] =
-        new DaqDB::OffloadRqst(DaqDB::OffloadOperation::UPDATE, expectedKey,
-                               expectedKeySize, nullptr, 0, nullptr);
+    poller.requests[0] = DaqDB::OffloadRqst::updatePool.get();
+    poller.requests[0]->finalizeUpdate(expectedKey, expectedKeySize, nullptr, 0,
+                                       nullptr, PMEM);
     poller.requestCount = 1;
 
     poller.process();
-    VerifyNoOtherInvocations(Method(pollerMock, read));
+    VerifyNoOtherInvocations(Method(bdevMock, read));
 
-    Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
-                                                 size_t *, uint8_t *)))
-        .Exactly(1);
-    Verify(Method(pollerMock, write)).Exactly(1);
+    VerifyNoOtherInvocations(OverloadedMethod(
+        rtreeMock, Get,
+        void(const char *, int32_t, void **, size_t *, uint8_t *)));
+    Verify(Method(bdevMock, write)).Exactly(1);
+
+    DaqDB::OffloadRqst::updatePool.put(poller.requests[0]);
     delete[] poller.requests;
 }
 
 BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
     Mock<DaqDB::OffloadPoller> pollerMock;
-    Mock<DaqDB::RTree> rtreeMock;
+    Mock<DaqDB::ARTree> rtreeMock;
     uint64_t lbaRef = 123;
     size_t valSizeRef = 4;
     char valRef[] = "1234";
@@ -193,23 +251,48 @@ BOOST_AUTO_TEST_CASE(ProcessRemoveRequest) {
             *valSize = valSizeRef;
             *loc = location;
         });
-    When(Method(pollerMock, read)).Return(0);
-    When(Method(pollerMock, write)).Return(0);
+
+    Mock<DaqDB::SpdkBdev> bdevMock;
+    DaqDB::SpdkBdev &spdkBdev = bdevMock.get();
+    spdkBdev.spBdevCtx.blk_size = 512;
+    spdkBdev.spBdevCtx.blk_num = 1024;
+    spdkBdev.spBdevCtx.buf_align = 1;
+    spdkBdev.spBdevCtx.io_min_size = 4096;
+    spdkBdev.spBdevCtx.bdev = 0;
+    spdkBdev.spBdevCtx.bdev_desc = 0;
+    spdkBdev.spBdevCtx.io_channel = 0;
+    spdkBdev.spBdevCtx.buff = 0;
+    strcpy(spdkBdev.spBdevCtx.bdev_name, "test");
+    strcpy(spdkBdev.spBdevCtx.bdev_addr, "test");
+    spdkBdev.spBdevCtx.data_blk_size = 0;
+    spdkBdev.spBdevCtx.io_pool_size = 0;
+    spdkBdev.spBdevCtx.io_cache_size = 0;
+    spdkBdev.spBdevCtx.io_min_size = 4096;
+    spdkBdev.spBdevCtx.state = DaqDB::CSpdkBdevState::SPDK_BDEV_READY;
+
+    spdkBdev.blkNumForLba = 0;
+    spdkBdev.IoBytesQueued = 0;
+    spdkBdev.IoBytesMaxQueued = 0;
+
+    When(Method(bdevMock, read)).Return(0);
+    When(Method(bdevMock, write)).Return(0);
 
     DaqDB::RTreeEngine &rtree = rtreeMock.get();
     poller.rtree = &rtree;
 
     poller.requests = new DaqDB::OffloadRqst *[1];
-    poller.requests[0] =
-        new DaqDB::OffloadRqst(DaqDB::OffloadOperation::REMOVE, expectedKey,
-                               expectedKeySize, nullptr, 0, nullptr);
+    poller.requests[0] = DaqDB::OffloadRqst::removePool.get();
+    poller.requests[0]->finalizeRemove(expectedKey, expectedKeySize, nullptr, 0,
+                                       nullptr);
     poller.requestCount = 1;
 
     poller.process();
-    VerifyNoOtherInvocations(Method(pollerMock, read));
-    VerifyNoOtherInvocations(Method(pollerMock, write));
+    VerifyNoOtherInvocations(Method(bdevMock, read));
+    VerifyNoOtherInvocations(Method(bdevMock, write));
     Verify(OverloadedMethod(rtreeMock, Get, void(const char *, int32_t, void **,
                                                  size_t *, uint8_t *)))
         .Exactly(1);
+
+    DaqDB::OffloadRqst::removePool.put(poller.requests[0]);
     delete[] poller.requests;
 }

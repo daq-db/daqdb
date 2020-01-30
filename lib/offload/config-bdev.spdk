@@ -1,0 +1,6 @@
+offload_unit_alloc_size = 1024
+offload_dev_name = "example_offload"
+offload_dev_type = "bdev"
+offload_nvme_addr = "0000:89:00.0"
+offload_nvme_name = "Nvme1"
+

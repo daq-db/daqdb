@@ -1,0 +1,10 @@
+offload_unit_alloc_size = 1024
+offload_dev_name = "example_offload_jbod"
+offload_dev_type = "jbod"
+devices = {
+dev1 = {offload_nvme_addr = "0000:89:00.0"; offload_nvme_name = "Nvme1";};
+dev2 = {offload_nvme_addr = "0000:8a:00.0"; offload_nvme_name = "Nvme2";};
+dev3 = {offload_nvme_addr = "0000:8b:00.0"; offload_nvme_name = "Nvme3";};
+dev4 = {offload_nvme_addr = "0000:8c:00.0"; offload_nvme_name = "Nvme4";};
+};
+

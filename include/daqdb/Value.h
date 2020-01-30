@@ -33,6 +33,14 @@ class Value {
     inline bool isKvsBuffered() const {
         return (attr & KeyValAttribute::KVS_BUFFERED);
     };
+    inline Value &operator=(const Value &r) {
+        if (&r == this)
+            return *this;
+        _data = r._data;
+        _size = r._size;
+        attr = r.attr;
+        return *this;
+    }
 
   protected:
     KeyValAttribute attr;
