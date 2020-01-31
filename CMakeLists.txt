@@ -41,12 +41,12 @@ if(ERPC_RAW_TRANSPORT)
 	MESSAGE(STATUS "Build eRPC in RAW transport mode")
 	set(ERPC_TRANSPORT_MODE raw)
 	set(ERPC_LIBS numa ibverbs liberpc)
-	add_definitions(-DRAW)
+	add_definitions(-DERPC_RAW)
 else(ERPC_RAW_TRANSPORT)
 	MESSAGE(STATUS "Build eRPC in DPDK transport mode")
 	set(ERPC_TRANSPORT_MODE dpdk)
 	set(ERPC_LIBS numa liberpc)
-	add_definitions(-DDPDK)
+	add_definitions(-DERPC_DPDK)
 endif(ERPC_RAW_TRANSPORT)
 
 if(LOOPBACK_DHT_SERVER)
@@ -79,7 +79,7 @@ set(3RDPARTY ${PROJECT_SOURCE_DIR}/third-party)
 add_subdirectory(${3RDPARTY})
 
 include_directories(${LIBCONFIG_INCLUDES_EXPORT})
-include_directories(${3RDPARTY}/eRPC-fork/src)
+include_directories(${3RDPARTY}/eRPC/src)
 include_directories(${3RDPARTY}/spdk/dpdk/build/include)
 
 file(GLOB_RECURSE DAQDB_THIN_SOURCES lib/thin/*.cpp lib/common/*.cpp
