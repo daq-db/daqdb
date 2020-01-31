@@ -61,11 +61,9 @@ template <uint32_t Size> class SpdkIoSizedBuf : public SpdkIoBuf {
     uint32_t bufSize;
     int backIdx;
 
-    static MemMgmt::GeneralPool<SpdkIoSizedBuf,
-                                MemMgmt::ClassAlloc<SpdkIoSizedBuf>>
+    static DaqDB::GeneralPool<SpdkIoSizedBuf, DaqDB::ClassAlloc<SpdkIoSizedBuf>>
         writePool;
-    static MemMgmt::GeneralPool<SpdkIoSizedBuf,
-                                MemMgmt::ClassAlloc<SpdkIoSizedBuf>>
+    static DaqDB::GeneralPool<SpdkIoSizedBuf, DaqDB::ClassAlloc<SpdkIoSizedBuf>>
         readPool;
 };
 
@@ -112,13 +110,13 @@ template <uint32_t Size> void SpdkIoSizedBuf<Size>::setIdx(int idx) {
 }
 
 template <uint32_t Size>
-MemMgmt::GeneralPool<SpdkIoSizedBuf<Size>,
-                     MemMgmt::ClassAlloc<SpdkIoSizedBuf<Size>>>
+DaqDB::GeneralPool<SpdkIoSizedBuf<Size>,
+                   DaqDB::ClassAlloc<SpdkIoSizedBuf<Size>>>
     SpdkIoSizedBuf<Size>::writePool(queueDepth, "writeSpdkIoBufPool");
 
 template <uint32_t Size>
-MemMgmt::GeneralPool<SpdkIoSizedBuf<Size>,
-                     MemMgmt::ClassAlloc<SpdkIoSizedBuf<Size>>>
+DaqDB::GeneralPool<SpdkIoSizedBuf<Size>,
+                   DaqDB::ClassAlloc<SpdkIoSizedBuf<Size>>>
     SpdkIoSizedBuf<Size>::readPool(queueDepth, "readSpdkIoBufPool");
 
 class SpdkIoBufMgr {

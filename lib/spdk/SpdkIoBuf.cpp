@@ -20,8 +20,6 @@
 
 namespace DaqDB {
 
-using namespace MemMgmt;
-
 SpdkIoBufMgr::~SpdkIoBufMgr() {}
 
 SpdkIoBuf *SpdkIoBufMgr::getIoWriteBuf(uint32_t ioSize, uint32_t align) {
