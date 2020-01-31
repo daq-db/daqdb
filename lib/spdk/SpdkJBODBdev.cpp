@@ -26,7 +26,10 @@ namespace DaqDB {
 SpdkDeviceClass SpdkJBODBdev::bdev_class = SpdkDeviceClass::JBOD;
 
 SpdkJBODBdev::SpdkJBODBdev(bool _statsEnabled)
-    : statsEnabled(_statsEnabled), isRunning(0) {}
+    : statsEnabled(_statsEnabled), isRunning(0) {
+    for (int i = 0; i < maxHash; i++)
+        deviceHash[i] = -1;
+}
 
 SpdkJBODBdev::~SpdkJBODBdev() {
     IOQuiesce();
@@ -52,14 +55,10 @@ bool SpdkJBODBdev::read(DeviceTask *task) {
     if (!isRunning)
         return false;
 
-    for (uint32_t i = 0; i < numDevices; i++) {
-        if (task->bdevAddr->busAddr.pciAddr ==
-            devices[i].addr.busAddr.pciAddr) {
-            task->bdev = devices[i].bdev;
-            return devices[i].bdev->read(task);
-        }
-    }
-    return false;
+    int32_t idx = deviceHash[hashAddr(task->bdevAddr)];
+    if (idx < 0)
+        return false;
+    return devices[static_cast<uint32_t>(idx)].bdev->read(task);
 }
 
 bool SpdkJBODBdev::write(DeviceTask *task) {
@@ -115,6 +114,8 @@ bool SpdkJBODBdev::init(const SpdkConf &conf) {
             return false;
         }
         spBdevCtx = devices[numDevices].bdev->spBdevCtx;
+
+        deviceHash[hashAddr(&devices[numDevices].addr)] = numDevices;
         numDevices++;
     }
 
