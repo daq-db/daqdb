@@ -58,6 +58,7 @@ bool SpdkJBODBdev::read(DeviceTask *task) {
     int32_t idx = deviceHash[hashAddr(task->bdevAddr)];
     if (idx < 0)
         return false;
+    task->bdev = devices[static_cast<uint32_t>(idx)].bdev;
     return devices[static_cast<uint32_t>(idx)].bdev->read(task);
 }
 
