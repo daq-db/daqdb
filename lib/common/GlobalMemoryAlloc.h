@@ -22,7 +22,7 @@
 using namespace std;
 #include <stdlib.h>
 
-namespace MemMgmt {
+namespace DaqDB {
 template <class Y> class GlobalMemoryAlloc {
   public:
     virtual ~GlobalMemoryAlloc();
@@ -77,4 +77,4 @@ template <class Y> inline const char *GlobalMemoryAlloc<Y>::getName() {
 
     return ti.name();
 }
-} // namespace MemMgmt
+} // namespace DaqDB

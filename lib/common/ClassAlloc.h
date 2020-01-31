@@ -23,7 +23,15 @@ using namespace std;
 
 void *getNewPtr(size_t siz_, size_t inc_);
 
-namespace MemMgmt {
+namespace DaqDB {
+
+/*
+ * ClassAlloc template is a default class allocator, see GeneralPool.h
+ * User-defined classes may opt to use their own allocators, implementing
+ * user-defined allocation strategies
+ * When instantiated with a user-defined class, it'll be reposible for
+ * allocating and constructing instances and destroying and deleting them
+ */
 template <class Z> class ClassAlloc {
   public:
     static Z *New(unsigned int padd_);
@@ -71,4 +79,4 @@ template <class Z> inline const char *ClassAlloc<Z>::getName() {
 
     return ti.name();
 }
-} // namespace MemMgmt
+} // namespace DaqDB

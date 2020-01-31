@@ -21,13 +21,16 @@ using namespace std;
 #include <stdlib.h>
 #include <string.h>
 
-namespace MemMgmt {
-const unsigned int MAX_BUFFER_SLOTS = 1024;
-const unsigned int OBJ_PADDING = sizeof(unsigned int);
+namespace DaqDB {
+const unsigned int MAX_BUFFER_SLOTS =
+    1024; // that many buffers we can have maximum
+const unsigned int OBJ_PADDING =
+    sizeof(unsigned int); // each object in memory padded with that many bytes
 
-const unsigned int BUCKET_SIZE_MASK = 0x00FFFFFF;
-const unsigned int BUCKET_NUMBER_SHIFT = 24;
-const unsigned int BUCKET_NUMBER_MASK = 0x000000FF;
+const unsigned int BUCKET_SIZE_MASK = 0x00FFFFFF; // bucket size mask
+const unsigned int BUCKET_NUMBER_SHIFT =
+    24; // bucket number is shifted by 24 bits
+const unsigned int BUCKET_NUMBER_MASK = 0x000000FF; // bucket number mask
 
 template <class T, class Alloc> class GeneralPoolBuffer {
   public:
@@ -88,4 +91,4 @@ inline void GeneralPoolBuffer<T, Alloc>::zeroOut(unsigned int howMany_) {
     memset((void *)slots, '\0', (size_t)(howMany_ * sizeof(T *)));
 }
 
-} // namespace MemMgmt
+} // namespace DaqDB

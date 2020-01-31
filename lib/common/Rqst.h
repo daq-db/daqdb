@@ -100,21 +100,21 @@ class Rqst {
     unsigned char taskBuffer[256];
     uint64_t devAddrBuf[2];
 
-    static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> updatePool;
-    static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> getPool;
-    static MemMgmt::GeneralPool<Rqst, MemMgmt::ClassAlloc<Rqst>> removePool;
+    static DaqDB::GeneralPool<Rqst, DaqDB::ClassAlloc<Rqst>> updatePool;
+    static DaqDB::GeneralPool<Rqst, DaqDB::ClassAlloc<Rqst>> getPool;
+    static DaqDB::GeneralPool<Rqst, DaqDB::ClassAlloc<Rqst>> removePool;
 };
 
 template <class T>
-MemMgmt::GeneralPool<Rqst<T>, MemMgmt::ClassAlloc<Rqst<T>>>
+DaqDB::GeneralPool<Rqst<T>, DaqDB::ClassAlloc<Rqst<T>>>
     Rqst<T>::updatePool(100, "updateRqstPool");
 
 template <class T>
-MemMgmt::GeneralPool<Rqst<T>, MemMgmt::ClassAlloc<Rqst<T>>>
+DaqDB::GeneralPool<Rqst<T>, DaqDB::ClassAlloc<Rqst<T>>>
     Rqst<T>::getPool(100, "getRqstPool");
 
 template <class T>
-MemMgmt::GeneralPool<Rqst<T>, MemMgmt::ClassAlloc<Rqst<T>>>
+DaqDB::GeneralPool<Rqst<T>, DaqDB::ClassAlloc<Rqst<T>>>
     Rqst<T>::removePool(100, "removeRqstPool");
 
 } // namespace DaqDB

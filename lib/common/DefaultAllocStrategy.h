@@ -18,7 +18,7 @@
 
 #include "AllocStrategy.h"
 
-namespace MemMgmt {
+namespace DaqDB {
 class DefaultAllocStrategy : public AllocStrategy {
   public:
     DefaultAllocStrategy() = default;
@@ -35,5 +35,13 @@ class DefaultAllocStrategy : public AllocStrategy {
   private:
     DefaultAllocStrategy(const DefaultAllocStrategy &right);
     DefaultAllocStrategy &operator=(const DefaultAllocStrategy &right);
+
+    static const unsigned int defaultPreallocCount = 0;
+    static const unsigned int defaultIncCount = 320;
+    static const unsigned int defaultDecCount = 0;
+    static const unsigned int defaultMinIncQuant = 4;
+    static const unsigned int defaultMaxIncQuant = 10;
+    static const unsigned int defaultMinDecQuant = 0;
+    static const unsigned int defaultMaxDecQuant = 0;
 };
-} // namespace MemMgmt
+} // namespace DaqDB

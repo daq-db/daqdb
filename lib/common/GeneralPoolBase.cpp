@@ -20,7 +20,7 @@
 #include "GeneralPoolBase.h"
 #include "PoolManager.h"
 
-namespace MemMgmt {
+namespace DaqDB {
 unsigned short GeneralPoolBase::idGener = 1;
 
 GeneralPoolBase::GeneralPoolBase(unsigned short id_, const char *name_)
@@ -63,4 +63,4 @@ void GeneralPoolBase::setRttiName(const char *_rttiName) {
     strncpy(rttiName, _rttiName, sizeof(rttiName) - 1);
     rttiName[sizeof(rttiName) - 1] = '\0';
 }
-} // namespace MemMgmt
+} // namespace DaqDB

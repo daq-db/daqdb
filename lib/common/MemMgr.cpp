@@ -19,10 +19,10 @@
 #include "MemMgr.h"
 
 #ifdef _MM_GMP_ON_
-MemMgmt::MemMgr theMemMgr;
+DaqDB::MemMgr theMemMgr;
 #endif
 
-namespace MemMgmt {
+namespace DaqDB {
 bool MemMgr::started = false;
 
 MemMgr::MemMgr(const AllocStrategy &strategy_)
@@ -252,4 +252,4 @@ void MemMgr::putMem(void *ptr) {
 void MemMgr::engage() { started = true; }
 
 void MemMgr::dump() {}
-} // namespace MemMgmt
+} // namespace DaqDB

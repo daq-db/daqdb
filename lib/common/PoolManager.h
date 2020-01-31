@@ -30,7 +30,7 @@ typedef std::mutex Lock;
 typedef std::unique_lock<Lock> WriteLock;
 typedef std::unique_lock<Lock> ReadLock;
 
-namespace MemMgmt {
+namespace DaqDB {
 class PoolManager {
   public:
     typedef map<unsigned int, GeneralPoolBase *, less<unsigned int>>
@@ -50,8 +50,6 @@ class PoolManager {
 
   private:
     PoolManager();
-    // PoolManager(const PoolManager &right);
-    // PoolManager & operator=(const PoolManager &right);
 
     static PoolManager *instance;
     Lock mutex;
@@ -59,11 +57,13 @@ class PoolManager {
     static Lock instMutex;
 
     std::thread *collector;
+    static const int defaultSleepInterval = 5;
 
 #ifdef _MEM_STATS_
     FILE *statsFile;
     int statsInterval;
     bool statsOn;
+    static const int defaultStatsInterval = 5;
 #endif
 };
-} // namespace MemMgmt
+} // namespace DaqDB
