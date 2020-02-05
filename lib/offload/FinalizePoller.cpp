@@ -36,7 +36,7 @@
 
 namespace DaqDB {
 
-FinalizePoller::FinalizePoller() : FinPollerQueue() {}
+FinalizePoller::FinalizePoller() : FinPoller() {}
 
 void FinalizePoller::process() {
     if (requestCount > 0) {

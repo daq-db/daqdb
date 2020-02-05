@@ -39,9 +39,9 @@
 
 namespace DaqDB {
 
-typedef Poller<DeviceTask> FinPollerQueue;
+typedef Poller<DeviceTask> FinPoller;
 
-class FinalizePoller : public FinPollerQueue {
+class FinalizePoller : public FinPoller {
   public:
     FinalizePoller();
     virtual ~FinalizePoller() = default;
