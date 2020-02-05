@@ -30,6 +30,7 @@
 #include "spdk/queue.h"
 
 #include <BlockingPoller.h>
+#include <Poller.h>
 #include <RTree.h>
 #include <Rqst.h>
 #include <SpdkBdev.h>
@@ -38,7 +39,9 @@
 
 namespace DaqDB {
 
-class FinalizePoller : public BlockingPoller<DeviceTask> {
+typedef Poller<DeviceTask> FinPollerQueue;
+
+class FinalizePoller : public FinPollerQueue {
   public:
     FinalizePoller();
     virtual ~FinalizePoller() = default;
