@@ -236,6 +236,8 @@ bool SpdkBdev::doRead(DeviceTask *task) {
         task->buff->getSpdkDmaBuf(), task->blockSize * task->bdevAddr->lba,
         task->blockSize, SpdkBdev::readComplete, task);
 #endif
+    bdev->stats.outstanding_io_cnt++;
+
     if (r_rc) {
         stats.read_err_cnt++;
         /*
@@ -297,6 +299,7 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
         task->buff->getSpdkDmaBuf(), task->blockSize * task->freeLba,
         task->blockSize, SpdkBdev::writeComplete, task);
 #endif
+    bdev->stats.outstanding_io_cnt++;
 
     if (w_rc) {
         stats.write_err_cnt++;
@@ -346,7 +349,6 @@ bool SpdkBdev::doRemove(DeviceTask *task) {
 int SpdkBdev::reschedule(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
-    bdev->stats.outstanding_io_cnt++;
     task->bdev_io_wait.bdev = spBdevCtx.bdev;
     task->bdev_io_wait.cb_fn = SpdkBdev::writeQueueIoWait;
     task->bdev_io_wait.cb_arg = task;

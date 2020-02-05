@@ -139,7 +139,7 @@ class SpdkBdev : public SpdkDevice {
 
     std::atomic<SpdkBdevState> state;
     struct spdk_poller *_spdkPoller;
-    volatile State _IoState;
+    std::atomic<State> _IoState;
     int confBdevNum;
     static struct spdk_bdev *prevBdev;
 
@@ -229,8 +229,9 @@ inline bool SpdkBdev::stateMachine() {
     case SpdkBdev::State::BDEV_IO_QUIESCING:
         if (!stats.outstanding_io_cnt) {
             _IoState = SpdkBdev::State::BDEV_IO_QUIESCENT;
+            return true;
         }
-        return true;
+        break;
     case SpdkBdev::State::BDEV_IO_QUIESCENT:
         return true;
     case SpdkBdev::State::BDEV_IO_STOPPED:
