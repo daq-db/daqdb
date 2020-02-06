@@ -83,16 +83,20 @@ size_t SpdkBdev::getCoreNum() {
     return SpdkBdev::cpuCoreCounter;
 }
 
-void SpdkBdev::IOQuiesce() { _IoState = SpdkBdev::State::BDEV_IO_QUIESCING; }
+void SpdkBdev::IOQuiesce() {
+    finalizer->Quiesce();
+    _IoState = SpdkBdev::IOState::BDEV_IO_QUIESCING;
+}
 
 bool SpdkBdev::isIOQuiescent() {
-    return _IoState == SpdkBdev::State::BDEV_IO_QUIESCENT ||
-                   _IoState == SpdkBdev::State::BDEV_IO_ABORTED
+    return ((_IoState == SpdkBdev::IOState::BDEV_IO_QUIESCENT ||
+             _IoState == SpdkBdev::IOState::BDEV_IO_ABORTED) &&
+            finalizer->isQuiescent() == true)
                ? true
                : false;
 }
 
-void SpdkBdev::IOAbort() { _IoState = SpdkBdev::State::BDEV_IO_ABORTED; }
+void SpdkBdev::IOAbort() { _IoState = SpdkBdev::IOState::BDEV_IO_ABORTED; }
 
 /*
  * Callback function for a write IO completion.

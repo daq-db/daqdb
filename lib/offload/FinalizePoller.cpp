@@ -44,21 +44,37 @@ void FinalizePoller::process() {
             DeviceTask *task = requests[RqstIdx];
             if (!task) // due to possible timeout
                 continue;
+            bool dropIt = false;
+            if (_state != FinalizePoller::State::FP_READY)
+                dropIt = true;
+
             switch (task->op) {
             case OffloadOperation::GET:
-                _processGet(task);
+                if (dropIt == true)
+                    OffloadRqst::getPool.put(task->rqst);
+                else
+                    _processGet(task);
                 break;
             case OffloadOperation::UPDATE:
-                _processUpdate(task);
+                if (dropIt == true)
+                    OffloadRqst::updatePool.put(task->rqst);
+                else
+                    _processUpdate(task);
                 break;
             case OffloadOperation::REMOVE:
-                _processRemove(task);
+                if (dropIt == true)
+                    OffloadRqst::removePool.put(task->rqst);
+                else
+                    _processRemove(task);
                 break;
             default:
                 break;
             }
         }
         requestCount = 0;
+    } else {
+        if (_state == FinalizePoller::State::FP_QUIESCENT)
+            _state = FinalizePoller::State::FP_QUIESCENT;
     }
 }
 

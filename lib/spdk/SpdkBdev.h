@@ -121,7 +121,7 @@ class SpdkBdev : public SpdkDevice {
      */
     static void writeQueueIoWait(void *cb_arg);
 
-    enum class State : std::uint8_t {
+    enum IOState {
         BDEV_IO_INIT = 0,
         BDEV_IO_READY,
         BDEV_IO_ERROR,
@@ -139,7 +139,7 @@ class SpdkBdev : public SpdkDevice {
 
     std::atomic<SpdkBdevState> state;
     struct spdk_poller *_spdkPoller;
-    std::atomic<State> _IoState;
+    std::atomic<IOState> _IoState;
     int confBdevNum;
     static struct spdk_bdev *prevBdev;
 
@@ -220,23 +220,23 @@ inline SpdkBdevCtx *SpdkBdev::getBdevCtx() { return &spBdevCtx; }
 
 inline bool SpdkBdev::stateMachine() {
     switch (_IoState) {
-    case SpdkBdev::State::BDEV_IO_INIT:
-    case SpdkBdev::State::BDEV_IO_READY:
+    case SpdkBdev::IOState::BDEV_IO_INIT:
+    case SpdkBdev::IOState::BDEV_IO_READY:
         break;
-    case SpdkBdev::State::BDEV_IO_ERROR:
+    case SpdkBdev::IOState::BDEV_IO_ERROR:
         deinit();
         break;
-    case SpdkBdev::State::BDEV_IO_QUIESCING:
+    case SpdkBdev::IOState::BDEV_IO_QUIESCING:
         if (!stats.outstanding_io_cnt) {
-            _IoState = SpdkBdev::State::BDEV_IO_QUIESCENT;
+            _IoState = SpdkBdev::IOState::BDEV_IO_QUIESCENT;
             return true;
         }
         break;
-    case SpdkBdev::State::BDEV_IO_QUIESCENT:
+    case SpdkBdev::IOState::BDEV_IO_QUIESCENT:
         return true;
-    case SpdkBdev::State::BDEV_IO_STOPPED:
+    case SpdkBdev::IOState::BDEV_IO_STOPPED:
         break;
-    case SpdkBdev::State::BDEV_IO_ABORTED:
+    case SpdkBdev::IOState::BDEV_IO_ABORTED:
         deinit();
         return true;
     }

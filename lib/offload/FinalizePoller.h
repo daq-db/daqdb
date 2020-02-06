@@ -48,10 +48,20 @@ class FinalizePoller : public FinPoller {
 
     void process() final;
 
+    enum State { FP_READY = 0, FP_QUIESCING, FP_QUIESCENT };
+
+    void Quiesce() { _state = FinalizePoller::State::FP_QUIESCING; }
+    bool isQuiescent() {
+        return _state == FinalizePoller::State::FP_QUIESCENT ? true : false;
+    }
+
   protected:
     void _processGet(DeviceTask *task);
     void _processUpdate(DeviceTask *task);
     void _processRemove(DeviceTask *task);
+
+  private:
+    std::atomic<State> _state;
 };
 
 } // namespace DaqDB
