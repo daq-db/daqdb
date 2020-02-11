@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.5)
 
 include(ExternalProject)
 
+execute_process(COMMAND nasm -v OUTPUT_VARIABLE NASM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+string(REGEX MATCH "NASM version ([0-9\.]+) compiled on.+" NASM_MATCH NASM_VERSION)
+if(CMAKE_MATCH_0 VERSION_LESS "2.13.03")
+	message(WARNING "${NASM_VERSION} too low, SPDK configure step may fail")
+endif()
+
 ExternalProject_Add(project_spdk
 	PREFIX ${PROJECT_SOURCE_DIR}/spdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
