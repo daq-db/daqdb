@@ -25,9 +25,11 @@
 
 #include "BdevStats.h"
 #include "OffloadFreeList.h"
+#include "OffloadLbaAlloc.h"
 #include "Rqst.h"
 #include "SpdkConf.h"
 #include "SpdkDevice.h"
+#include "SpdkIoBuf.h"
 #include <Logger.h>
 #include <RTreeEngine.h>
 
@@ -58,8 +60,8 @@ class SpdkBdev : public SpdkDevice {
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
     virtual void initFreeList();
-    virtual int64_t getFreeLba();
-    virtual void putFreeLba(const DeviceAddr *devAddr);
+    virtual int64_t getFreeLba(size_t ioSize);
+    virtual void putFreeLba(const DeviceAddr *devAddr, size_t ioSize);
     virtual bool bdevInit();
 
     /*
@@ -78,8 +80,10 @@ class SpdkBdev : public SpdkDevice {
      */
     virtual bool read(DeviceTask *task);
     virtual bool write(DeviceTask *task);
+    virtual bool remove(DeviceTask *task);
     virtual bool doRead(DeviceTask *task);
     virtual bool doWrite(DeviceTask *task);
+    virtual bool doRemove(DeviceTask *task);
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);
@@ -117,7 +121,7 @@ class SpdkBdev : public SpdkDevice {
      */
     static void writeQueueIoWait(void *cb_arg);
 
-    enum class State : std::uint8_t {
+    enum IOState {
         BDEV_IO_INIT = 0,
         BDEV_IO_READY,
         BDEV_IO_ERROR,
@@ -135,7 +139,7 @@ class SpdkBdev : public SpdkDevice {
 
     std::atomic<SpdkBdevState> state;
     struct spdk_poller *_spdkPoller;
-    volatile State _IoState;
+    std::atomic<IOState> _IoState;
     int confBdevNum;
     static struct spdk_bdev *prevBdev;
 
@@ -173,18 +177,19 @@ class SpdkBdev : public SpdkDevice {
     std::thread *finalizerThread;
     void finilizerThreadMain(void);
 
-    OffloadFreeList *freeLbaList = nullptr;
+    OffloadLbaAlloc *lbaAllocator = nullptr;
 
     std::atomic<int> ioEngineInitDone;
     uint32_t maxIoBufs;
     uint32_t maxCacheIoBufs;
     uint32_t ioBufsInUse;
 
+    SpdkIoBufMgr *ioPoolMgr;
+
   private:
     std::atomic<int> isRunning;
     bool statsEnabled;
 
-    pool<DaqDB::OffloadFreeList> _offloadFreeList;
     const static char *lbaMgmtFileprefix;
 };
 
@@ -215,22 +220,23 @@ inline SpdkBdevCtx *SpdkBdev::getBdevCtx() { return &spBdevCtx; }
 
 inline bool SpdkBdev::stateMachine() {
     switch (_IoState) {
-    case SpdkBdev::State::BDEV_IO_INIT:
-    case SpdkBdev::State::BDEV_IO_READY:
+    case SpdkBdev::IOState::BDEV_IO_INIT:
+    case SpdkBdev::IOState::BDEV_IO_READY:
         break;
-    case SpdkBdev::State::BDEV_IO_ERROR:
+    case SpdkBdev::IOState::BDEV_IO_ERROR:
         deinit();
         break;
-    case SpdkBdev::State::BDEV_IO_QUIESCING:
+    case SpdkBdev::IOState::BDEV_IO_QUIESCING:
         if (!stats.outstanding_io_cnt) {
-            _IoState = SpdkBdev::State::BDEV_IO_QUIESCENT;
+            _IoState = SpdkBdev::IOState::BDEV_IO_QUIESCENT;
+            return true;
         }
-        return true;
-    case SpdkBdev::State::BDEV_IO_QUIESCENT:
-        return true;
-    case SpdkBdev::State::BDEV_IO_STOPPED:
         break;
-    case SpdkBdev::State::BDEV_IO_ABORTED:
+    case SpdkBdev::IOState::BDEV_IO_QUIESCENT:
+        return true;
+    case SpdkBdev::IOState::BDEV_IO_STOPPED:
+        break;
+    case SpdkBdev::IOState::BDEV_IO_ABORTED:
         deinit();
         return true;
     }

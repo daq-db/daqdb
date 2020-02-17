@@ -27,10 +27,10 @@ namespace DaqDB {
 
 /*
  * ClassAlloc template is a default class allocator, see GeneralPool.h
- * User-defined classes may opt to use their own allocators, implementing 
+ * User-defined classes may opt to use their own allocators, implementing
  * user-defined allocation strategies
- * When instantiated with a user-defined class, it'll be reposible for allocating
- * and constructing instances and destroying and deleting them
+ * When instantiated with a user-defined class, it'll be reposible for
+ * allocating and constructing instances and destroying and deleting them
  */
 template <class Z> class ClassAlloc {
   public:

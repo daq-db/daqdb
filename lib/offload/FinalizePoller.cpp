@@ -36,25 +36,45 @@
 
 namespace DaqDB {
 
-FinalizePoller::FinalizePoller()
-    : Poller<DeviceTask>(true, SPDK_RING_TYPE_SP_SC) {}
+FinalizePoller::FinalizePoller() : FinPoller() {}
 
 void FinalizePoller::process() {
     if (requestCount > 0) {
         for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
             DeviceTask *task = requests[RqstIdx];
+            if (!task) // due to possible timeout
+                continue;
+            bool dropIt = false;
+            if (_state != FinalizePoller::State::FP_READY)
+                dropIt = true;
+
             switch (task->op) {
             case OffloadOperation::GET:
-                _processGet(task);
+                if (dropIt == true)
+                    OffloadRqst::getPool.put(task->rqst);
+                else
+                    _processGet(task);
                 break;
             case OffloadOperation::UPDATE:
-                _processUpdate(task);
+                if (dropIt == true)
+                    OffloadRqst::updatePool.put(task->rqst);
+                else
+                    _processUpdate(task);
+                break;
+            case OffloadOperation::REMOVE:
+                if (dropIt == true)
+                    OffloadRqst::removePool.put(task->rqst);
+                else
+                    _processRemove(task);
                 break;
             default:
                 break;
             }
         }
         requestCount = 0;
+    } else {
+        if (_state == FinalizePoller::State::FP_QUIESCENT)
+            _state = FinalizePoller::State::FP_QUIESCENT;
     }
 }
 
@@ -64,14 +84,14 @@ void FinalizePoller::_processGet(DeviceTask *task) {
     if (task->result) {
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff, task->rqst->valueSize);
+                      task->buff->getSpdkDmaBuf(), task->rqst->valueSize);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
                       task->keySize, nullptr, 0);
     }
 
-    spdk_dma_free(task->buff);
+    bdev->ioPoolMgr->putIoReadBuf(task->buff);
     bdev->ioBufsInUse--;
     OffloadRqst::getPool.put(task->rqst);
 }
@@ -98,7 +118,7 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
                                             sizeof(DeviceAddr));
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff, task->rqst->valueSize);
+                      task->buff->getSpdkDmaBuf(), task->rqst->valueSize);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
@@ -106,6 +126,23 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
     }
 
     OffloadRqst::updatePool.put(task->rqst);
+}
+
+void FinalizePoller::_processRemove(DeviceTask *task) {
+    SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
+
+    if (task->result) {
+        task->rtree->Remove(task->rqst->key);
+        if (task->clb)
+            task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
+                      nullptr, 0);
+    } else {
+        if (task->clb)
+            task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
+                      task->keySize, nullptr, 0);
+    }
+
+    OffloadRqst::removePool.put(task->rqst);
 }
 
 } // namespace DaqDB

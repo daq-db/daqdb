@@ -22,12 +22,15 @@ using namespace std;
 #include <string.h>
 
 namespace DaqDB {
-const unsigned int MAX_BUFFER_SLOTS = 1024;            // that many buffers we can have maximum
-const unsigned int OBJ_PADDING = sizeof(unsigned int); // each object in memory padded with that many bytes
+const unsigned int MAX_BUFFER_SLOTS =
+    1024; // that many buffers we can have maximum
+const unsigned int OBJ_PADDING =
+    sizeof(unsigned int); // each object in memory padded with that many bytes
 
-const unsigned int BUCKET_SIZE_MASK = 0x00FFFFFF;      // bucket size mask
-const unsigned int BUCKET_NUMBER_SHIFT = 24;           // bucket number is shifted by 24 bits
-const unsigned int BUCKET_NUMBER_MASK = 0x000000FF;    // bucket number mask
+const unsigned int BUCKET_SIZE_MASK = 0x00FFFFFF; // bucket size mask
+const unsigned int BUCKET_NUMBER_SHIFT =
+    24; // bucket number is shifted by 24 bits
+const unsigned int BUCKET_NUMBER_MASK = 0x000000FF; // bucket number mask
 
 template <class T, class Alloc> class GeneralPoolBuffer {
   public:

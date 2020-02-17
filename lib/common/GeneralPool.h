@@ -33,7 +33,8 @@
 namespace DaqDB {
 const unsigned int MAX_POOL_BUCKETS = 64;
 
-template <class T, class Alloc = DaqDB::ClassAlloc<T>> class GeneralPool : public GeneralPoolBase {
+template <class T, class Alloc = DaqDB::ClassAlloc<T>>
+class GeneralPool : public GeneralPoolBase {
   public:
     friend class MemMgr;
 
@@ -201,7 +202,7 @@ template <class T, class Alloc> inline GeneralPool<T, Alloc>::~GeneralPool() {
 }
 
 /*
- * Virtual method allowing PoolManager to manage the pool asynchronously. 
+ * Virtual method allowing PoolManager to manage the pool asynchronously.
  * Invoked by PoolMgr periodically or upon a specific event.
  */
 template <class T, class Alloc> inline void GeneralPool<T, Alloc>::manage() {

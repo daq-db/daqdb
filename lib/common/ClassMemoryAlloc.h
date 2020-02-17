@@ -25,12 +25,11 @@ using namespace std;
 namespace DaqDB {
 
 /*
- * ClassMemoryAlloc template is an example class allocator with built-in standard
- * new operator
- * User-defined classes may opt to use their own allocators, implementing 
- * user-defined allocation strategies
- * When instantiated with a user-defined class, it'll be reposible for allocating
- * and constructing instances and destroying and deleting them
+ * ClassMemoryAlloc template is an example class allocator with built-in
+ * standard new operator User-defined classes may opt to use their own
+ * allocators, implementing user-defined allocation strategies When instantiated
+ * with a user-defined class, it'll be reposible for allocating and constructing
+ * instances and destroying and deleting them
  */
 template <class W> class ClassMemoryAlloc {
   public:

@@ -64,6 +64,8 @@ struct PciAddr SpdkConf::getBdevSpdkPciAddr() const {
 }
 
 SpdkConf &SpdkConf::operator=(const SpdkConf &_r) {
+    if (this == &_r)
+        return *this;
     this->_devType = _r._devType;
     this->_name = _r._name;
     this->_devs = _r._devs;

@@ -40,6 +40,22 @@ void OffloadFreeList::push(pool_base &pop, int64_t value) {
     });
 }
 
+void OffloadFreeList::pushBlock(pool_base &pop, int64_t value, uint32_t slot) {
+    transaction::exec_tx(pop, [&] {
+        auto n = make_persistent<FreeLba>();
+
+        n->lba = value;
+        n->next = nullptr;
+
+        if (_heads[slot] == nullptr && _tails[slot] == nullptr) {
+            _heads[slot] = _tails[slot] = n;
+        } else {
+            _tails[slot]->next = n;
+            _tails[slot] = n;
+        }
+    });
+}
+
 int64_t OffloadFreeList::get(pool_base &pop) {
     int64_t ret = -1;
     transaction::exec_tx(pop, [&] {
@@ -72,6 +88,56 @@ int64_t OffloadFreeList::get(pool_base &pop) {
     return ret;
 }
 
+int64_t OffloadFreeList::getBlock(pool_base &pop, int64_t *lbas,
+                                  uint32_t lbasSize, uint32_t slot) {
+    int64_t ret = -1;
+    uint32_t cnt = 0;
+    assert(slot < numSlots);
+    transaction::exec_tx(pop, [&] {
+        if (_heads[slot] == nullptr || maxLba == 0)
+            transaction::abort(EINVAL);
+
+        for (ret = _heads[slot]->lba;;) {
+            if (ret < 0 || cnt >= lbasSize)
+                break;
+
+            lbas[cnt++] = ret;
+            auto n = _heads[slot]->next;
+            delete_persistent<FreeLba>(_heads[slot]);
+            _heads[slot] = n;
+            if (_heads[slot] == nullptr) {
+                _tails[slot] = nullptr;
+                break;
+            }
+        }
+
+        if (cnt < lbasSize && ret < 0 && _heads[slot] != nullptr) {
+            ret = abs(ret);
+            if (ret <= maxLba - (slot + 1)) {
+                lbas[cnt] = ret;
+                for (; cnt < lbasSize; cnt++) {
+                    _heads[slot]->lba = _heads[slot]->lba - (slot + 1);
+                    ret = abs(_heads[slot]->lba);
+                    lbas[cnt] = ret;
+                    if (!ret)
+                        break;
+                }
+            } else {
+                ret = -1;
+                transaction::abort(EINVAL);
+            }
+        }
+    });
+
+    return static_cast<int64_t>(cnt);
+}
+
+void OffloadFreeList::putBlock(pool_base &pop, int64_t *lbas, uint32_t lbasSize,
+                               uint32_t slot) {
+    for (uint32_t i = 0; i < lbasSize; i++)
+        pushBlock(pop, lbas[i], slot);
+}
+
 void OffloadFreeList::clear(pool_base &pop) {
     transaction::exec_tx(pop, [&] {
         while (_head != nullptr) {
@@ -86,11 +152,30 @@ void OffloadFreeList::clear(pool_base &pop) {
     });
 }
 
+void OffloadFreeList::clearBlock(pool_base &pop, uint32_t slot) {
+    transaction::exec_tx(pop, [&] {
+        while (_heads[slot] != nullptr) {
+            auto n = _heads[slot]->next;
+
+            delete_persistent<FreeLba>(_heads[slot]);
+            _heads[slot] = n;
+
+            if (_heads[slot] == nullptr)
+                _tails[slot] = nullptr;
+        }
+    });
+}
+
 /*
  * Prints the entire contents of the queue.
  */
 void OffloadFreeList::show(void) const {
     for (auto n = _head; n != nullptr; n = n->next)
+        std::cout << n->lba << std::endl;
+}
+
+void OffloadFreeList::showBlock(uint32_t slot) const {
+    for (auto n = _heads[slot]; n != nullptr; n = n->next)
         std::cout << n->lba << std::endl;
 }
 

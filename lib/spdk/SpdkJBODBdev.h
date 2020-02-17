@@ -37,6 +37,18 @@ struct JBODDevice {
     uint32_t num;
 };
 
+struct DeviceHash {
+    uint16_t domain : 2;
+    uint16_t bus : 6;
+    uint16_t dev : 5;
+    uint16_t func : 3;
+} __attribute__((packed));
+
+union JBODDeviceHash {
+    uint16_t idx;
+    struct DeviceHash hash;
+} __attribute__((packed));
+
 class SpdkJBODBdev : public SpdkDevice {
   public:
     SpdkJBODBdev(bool _statsEnabled = false);
@@ -51,14 +63,15 @@ class SpdkJBODBdev : public SpdkDevice {
     virtual bool init(const SpdkConf &conf);
     virtual void deinit();
     virtual void initFreeList();
-    virtual int64_t getFreeLba();
-    virtual void putFreeLba(const DeviceAddr *devAddr);
+    virtual int64_t getFreeLba(size_t ioSize);
+    virtual void putFreeLba(const DeviceAddr *devAddr, size_t ioSize);
 
     /*
      * SpdkDevice virtual interface
      */
     virtual bool read(DeviceTask *task);
     virtual bool write(DeviceTask *task);
+    virtual bool remove(DeviceTask *task);
     virtual int reschedule(DeviceTask *task);
 
     virtual void enableStats(bool en);
@@ -97,9 +110,21 @@ class SpdkJBODBdev : public SpdkDevice {
 
     bool statsEnabled;
 
+  protected:
+    uint16_t hashAddr(const DeviceAddr *devAddr) {
+        JBODDeviceHash devHash;
+        devHash.hash.domain = devAddr->busAddr.pciAddr.domain;
+        devHash.hash.bus = devAddr->busAddr.pciAddr.bus;
+        devHash.hash.dev = devAddr->busAddr.pciAddr.dev;
+        devHash.hash.func = devAddr->busAddr.pciAddr.func;
+        return devHash.idx;
+    }
+
   private:
     const static uint32_t maxDevices = 64;
     JBODDevice devices[maxDevices];
+    const static uint16_t maxHash = -1;
+    int32_t deviceHash[maxHash];
     uint32_t numDevices = 0;
     uint32_t currDevice = 0;
     std::atomic<int> isRunning;

@@ -32,6 +32,8 @@ using pmem::obj::make_persistent;
 using pmem::obj::delete_persistent;
 using pmem::obj::transaction;
 
+const uint32_t numSlots = 8;
+
 class OffloadFreeList {
 
     /* entry in the list */
@@ -41,13 +43,20 @@ class OffloadFreeList {
     };
 
   public:
-    OffloadFreeList() {};
-    ~OffloadFreeList() {};
+    OffloadFreeList() {}
+    ~OffloadFreeList() {}
 
     void push(pool_base &pop, int64_t value);
+    void pushBlock(pool_base &pop, int64_t value, uint32_t slot);
     int64_t get(pool_base &pop);
+    int64_t getBlock(pool_base &pop, int64_t *lbas, uint32_t lbasSize,
+                     uint32_t slot);
+    void putBlock(pool_base &pop, int64_t *lbas, uint32_t lbasSize,
+                  uint32_t slot);
     void clear(pool_base &pop);
+    void clearBlock(pool_base &pop, uint32_t slot);
     void show(void) const;
+    void showBlock(uint32_t slot) const;
 
     uint64_t maxLba = 0;
 
@@ -55,6 +64,8 @@ class OffloadFreeList {
 
     persistent_ptr<FreeLba> _head;
     persistent_ptr<FreeLba> _tail;
+    persistent_ptr<FreeLba> _heads[numSlots];
+    persistent_ptr<FreeLba> _tails[numSlots];
 };
 
 }

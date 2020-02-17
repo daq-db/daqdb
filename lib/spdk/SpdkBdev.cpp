@@ -63,7 +63,8 @@ SpdkBdev::SpdkBdev(bool enableStats)
       cpuCore(SpdkBdev::getCoreNum()), cpuCoreFin(cpuCore + 1),
       cpuCoreIoEng(cpuCoreFin + 1), finalizer(0), finalizerThread(0),
       ioEngine(0), ioEngineThread(0), isRunning(0), statsEnabled(enableStats),
-      ioEngineInitDone(0), maxIoBufs(0), ioBufsInUse(0), maxCacheIoBufs(0) {}
+      ioEngineInitDone(0), maxIoBufs(0), ioBufsInUse(0), maxCacheIoBufs(0),
+      ioPoolMgr(SpdkIoBufMgr::getSpdkIoBufMgr()) {}
 
 SpdkBdev::~SpdkBdev() {
     if (finalizerThread != nullptr)
@@ -82,16 +83,20 @@ size_t SpdkBdev::getCoreNum() {
     return SpdkBdev::cpuCoreCounter;
 }
 
-void SpdkBdev::IOQuiesce() { _IoState = SpdkBdev::State::BDEV_IO_QUIESCING; }
+void SpdkBdev::IOQuiesce() {
+    finalizer->Quiesce();
+    _IoState = SpdkBdev::IOState::BDEV_IO_QUIESCING;
+}
 
 bool SpdkBdev::isIOQuiescent() {
-    return _IoState == SpdkBdev::State::BDEV_IO_QUIESCENT ||
-                   _IoState == SpdkBdev::State::BDEV_IO_ABORTED
+    return ((_IoState == SpdkBdev::IOState::BDEV_IO_QUIESCENT ||
+             _IoState == SpdkBdev::IOState::BDEV_IO_ABORTED) &&
+            finalizer->isQuiescent() == true)
                ? true
                : false;
 }
 
-void SpdkBdev::IOAbort() { _IoState = SpdkBdev::State::BDEV_IO_ABORTED; }
+void SpdkBdev::IOAbort() { _IoState = SpdkBdev::IOState::BDEV_IO_ABORTED; }
 
 /*
  * Callback function for a write IO completion.
@@ -100,7 +105,7 @@ void SpdkBdev::writeComplete(struct spdk_bdev_io *bdev_io, bool success,
                              void *cb_arg) {
     BdevTask *task = reinterpret_cast<DeviceTask *>(cb_arg);
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
-    spdk_dma_free(task->buff);
+    bdev->ioPoolMgr->putIoWriteBuf(task->buff);
     bdev->ioBufsInUse--;
 
 #ifndef TEST_RAW_IOPS
@@ -152,9 +157,9 @@ void SpdkBdev::readQueueIoWait(void *cb_arg) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     int r_rc = spdk_bdev_read_blocks(
-        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->bdevAddr->lba, task->blockSize,
-        SpdkBdev::readComplete, task);
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel,
+        task->buff->getSpdkDmaBuf(), task->blockSize * task->bdevAddr->lba,
+        task->blockSize, SpdkBdev::readComplete, task);
 
     /* If a read IO still fails due to shortage of io buffers, queue it up for
      * later execution */
@@ -182,9 +187,9 @@ void SpdkBdev::writeQueueIoWait(void *cb_arg) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
     int w_rc = spdk_bdev_write_blocks(
-        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->freeLba, task->blockSize,
-        SpdkBdev::writeComplete, task);
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel,
+        task->buff->getSpdkDmaBuf(), task->blockSize * task->freeLba,
+        task->blockSize, SpdkBdev::writeComplete, task);
 
     /* If a write IO still fails due to shortage of io buffers, queue it up for
      * later execution */
@@ -212,7 +217,8 @@ bool SpdkBdev::read(DeviceTask *task) {
 bool SpdkBdev::doRead(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
-        spdk_dma_free(task->buff);
+        if (task->buff)
+            ioPoolMgr->putIoReadBuf(task->buff);
         bdev->ioBufsInUse--;
         return false;
     }
@@ -221,10 +227,8 @@ bool SpdkBdev::doRead(DeviceTask *task) {
     auto blkSize = bdev->getSizeInBlk(algnSize);
     task->blockSize = blkSize;
 
-    char *buff = reinterpret_cast<char *>(
-        spdk_dma_zmalloc(task->size, bdev->spBdevCtx.buf_align, NULL));
     bdev->ioBufsInUse++;
-    task->buff = buff;
+    task->buff = ioPoolMgr->getIoReadBuf(task->size, bdev->spBdevCtx.buf_align);
 
 #ifdef TEST_RAW_IOPS
     int r_rc = 0;
@@ -232,10 +236,12 @@ bool SpdkBdev::doRead(DeviceTask *task) {
                            true, task);
 #else
     int r_rc = spdk_bdev_read_blocks(
-        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->bdevAddr->lba, task->blockSize,
-        SpdkBdev::readComplete, task);
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel,
+        task->buff->getSpdkDmaBuf(), task->blockSize * task->bdevAddr->lba,
+        task->blockSize, SpdkBdev::readComplete, task);
 #endif
+    bdev->stats.outstanding_io_cnt++;
+
     if (r_rc) {
         stats.read_err_cnt++;
         /*
@@ -271,22 +277,21 @@ bool SpdkBdev::write(DeviceTask *task) {
 bool SpdkBdev::doWrite(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
     if (stateMachine() == true) {
-        spdk_dma_free(task->buff);
+        if (task->buff)
+            ioPoolMgr->putIoWriteBuf(task->buff);
         bdev->ioBufsInUse--;
         return false;
     }
 
-    if (task->rqst->loc == LOCATIONS::PMEM)
-        task->freeLba = getFreeLba();
-
     auto valSize = task->rqst->valueSize;
     auto valSizeAlign = bdev->getAlignedSize(valSize);
-    auto buff = reinterpret_cast<char *>(
-        spdk_dma_zmalloc(valSizeAlign, bdev->spBdevCtx.buf_align, NULL));
+    if (task->rqst->loc == LOCATIONS::PMEM)
+        task->freeLba = getFreeLba(valSizeAlign);
     bdev->ioBufsInUse++;
+    task->buff =
+        ioPoolMgr->getIoWriteBuf(valSizeAlign, bdev->spBdevCtx.buf_align);
 
-    memcpy(buff, task->rqst->value, valSize);
-    task->buff = buff;
+    memcpy(task->buff->getSpdkDmaBuf(), task->rqst->value, valSize);
 
 #ifdef TEST_RAW_IOPS
     int w_rc = 0;
@@ -294,10 +299,11 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
                             true, task);
 #else
     int w_rc = spdk_bdev_write_blocks(
-        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel, task->buff,
-        task->blockSize * task->freeLba, task->blockSize,
-        SpdkBdev::writeComplete, task);
+        bdev->spBdevCtx.bdev_desc, bdev->spBdevCtx.io_channel,
+        task->buff->getSpdkDmaBuf(), task->blockSize * task->freeLba,
+        task->blockSize, SpdkBdev::writeComplete, task);
 #endif
+    bdev->stats.outstanding_io_cnt++;
 
     if (w_rc) {
         stats.write_err_cnt++;
@@ -325,10 +331,28 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
     return !w_rc ? true : false;
 }
 
+bool SpdkBdev::remove(DeviceTask *task) {
+    if (ioEngine && task->routing == true)
+        return ioEngine->enqueue(task);
+    return doRemove(task);
+}
+
+bool SpdkBdev::doRemove(DeviceTask *task) {
+    if (stateMachine() == true) {
+        return false;
+    }
+
+    auto valSize = task->rqst->valueSize;
+    auto valSizeAlign = getAlignedSize(valSize);
+
+    putFreeLba(task->bdevAddr, valSizeAlign);
+    task->result = true;
+    return finalizer->enqueue(task);
+}
+
 int SpdkBdev::reschedule(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
-    bdev->stats.outstanding_io_cnt++;
     task->bdev_io_wait.bdev = spBdevCtx.bdev;
     task->bdev_io_wait.cb_fn = SpdkBdev::writeQueueIoWait;
     task->bdev_io_wait.cb_arg = task;
@@ -347,29 +371,19 @@ void SpdkBdev::deinit() {
 
 struct spdk_bdev *SpdkBdev::prevBdev = 0;
 
-int64_t SpdkBdev::getFreeLba() { return freeLbaList->get(_offloadFreeList); }
+int64_t SpdkBdev::getFreeLba(size_t ioSize) {
+    return lbaAllocator->getLba(ioSize);
+}
 
-void SpdkBdev::putFreeLba(const DeviceAddr *devAddr) {
-    freeLbaList->push(_offloadFreeList, devAddr->lba);
+void SpdkBdev::putFreeLba(const DeviceAddr *devAddr, size_t ioSize) {
+    lbaAllocator->putLba(devAddr->lba, ioSize);
 }
 
 void SpdkBdev::initFreeList() {
-    auto initNeeded = false;
     std::string fileName =
         std::string(SpdkBdev::lbaMgmtFileprefix) + spBdevCtx.bdev_name + ".pm";
-    if (boost::filesystem::exists(fileName.c_str())) {
-        _offloadFreeList =
-            pool<OffloadFreeList>::open(fileName.c_str(), poolLayout);
-    } else {
-        _offloadFreeList = pool<OffloadFreeList>::create(
-            fileName.c_str(), poolLayout, poolFreelistSize, CREATE_MODE_RW);
-        initNeeded = true;
-    }
-    freeLbaList = _offloadFreeList.get_root().get();
-    freeLbaList->maxLba = spBdevCtx.blk_num / blkNumForLba;
-    if (initNeeded) {
-        freeLbaList->push(_offloadFreeList, -1);
-    }
+    lbaAllocator =
+        new OffloadLbaAlloc(true, fileName, spBdevCtx.blk_num, blkNumForLba);
 }
 
 bool SpdkBdev::bdevInit() {

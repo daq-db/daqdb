@@ -36,7 +36,7 @@ class KVSet64 {
     KVSet64() = default;
     virtual ~KVSet64() = default;
 
-    void generateUniformIntNoDups(size_t setSize, uint64_t maxVal = 4096);
+    void generateUniformIntNoDups(size_t setSize, uint64_t maxVal = (4096 * 7));
     bool operator==(const KVSet64 &r);
     bool operator!=(const KVSet64 &r);
     void addKv(const pair<uint64_t, Value> &kv);

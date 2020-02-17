@@ -132,9 +132,9 @@ template <class T, class Alloc> class GeneralPoolBucket {
 template <class T, class Alloc>
 inline GeneralPoolBucket<T, Alloc>::GeneralPoolBucket()
     : head(0), tail(0), full(false), empty(true), quantInc(0), quantDec(0),
-      numBuffers(0), bucketNum(0), stamp(0), totalMax(MAX_BUCKET_BUFFERS * MAX_BUFFER_SLOTS),
-      currentMax(0), objSize(Alloc::objectSize()), padding(2 * OBJ_PADDING),
-      stackTraceFile(0)
+      numBuffers(0), bucketNum(0), stamp(0),
+      totalMax(MAX_BUCKET_BUFFERS * MAX_BUFFER_SLOTS), currentMax(0),
+      objSize(Alloc::objectSize()), padding(2 * OBJ_PADDING), stackTraceFile(0)
 #ifdef _MEM_STATS_
       ,
       getRequests(0UL), putRequests(0UL), memAllocs(0UL), memDeallocs(0UL),
@@ -262,7 +262,7 @@ inline T *GeneralPoolBucket<T, Alloc>::getNoLock() {
 #endif
 
     unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
-    // bucket number is shifted by BUCKET_NUMBER_SHIFT 
+    // bucket number is shifted by BUCKET_NUMBER_SHIFT
     unsigned int o_bucket_number =
         (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
 
@@ -384,7 +384,7 @@ inline void GeneralPoolBucket<T, Alloc>::putNoLock(T *obj_) {
 #endif
 
     unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
-    // bucket number is shifted by BUCKET_NUMBER_SHIFT 
+    // bucket number is shifted by BUCKET_NUMBER_SHIFT
     unsigned int o_bucket_number =
         (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
 
@@ -535,7 +535,7 @@ inline void GeneralPoolBucket<T, Alloc>::dumpNoLock() {
 #endif
 
             unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
-            // bucket number is shifted by BUCKET_NUMBER_SHIFT 
+            // bucket number is shifted by BUCKET_NUMBER_SHIFT
             unsigned int o_bucket_number =
                 (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
 
@@ -561,7 +561,7 @@ inline void GeneralPoolBucket<T, Alloc>::dumpNoLock() {
 
 template <class T, class Alloc>
 inline void GeneralPoolBucket<T, Alloc>::makeStamp() {
-    // bucket number is shifted by BUCKET_NUMBER_SHIFT 
+    // bucket number is shifted by BUCKET_NUMBER_SHIFT
     stamp = (bucketNum << BUCKET_NUMBER_SHIFT) + objSize;
 
 #ifdef _MM_DEBUG_
@@ -668,7 +668,7 @@ inline void GeneralPoolBucket<T, Alloc>::makeBuffer() {
 #endif
 
             unsigned int o_bucket_size = o_stamp & BUCKET_SIZE_MASK;
-            // bucket number is shifted by BUCKET_NUMBER_SHIFT 
+            // bucket number is shifted by BUCKET_NUMBER_SHIFT
             unsigned int o_bucket_number =
                 (o_stamp >> BUCKET_NUMBER_SHIFT) & BUCKET_NUMBER_MASK;
 
