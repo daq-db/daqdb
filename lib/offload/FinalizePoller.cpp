@@ -109,13 +109,14 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
     //        OffloadRqst::updatePool.put(task->rqst);
     //        return;
     //    }
-    task->bdevAddr->busAddr.pciAddr = bdev->spBdevCtx.pci_addr;
-    task->bdevAddr->lba = task->freeLba;
+    DeviceAddr devAddr;
+    devAddr.busAddr.pciAddr = bdev->spBdevCtx.pci_addr;
+    devAddr.lba = task->freeLba;
 
     if (task->result) {
         if (task->updatePmemIOV)
             task->rtree->AllocateAndUpdateValueWrapper(
-                task->key, sizeof(DeviceAddr), task->bdevAddr);
+                task->key, sizeof(DeviceAddr), &devAddr);
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
                       task->buff->getSpdkDmaBuf(), task->rqst->valueSize);
