@@ -152,7 +152,7 @@ KVSet64 kvsetRef; // reference kv set
 bool initialized = false;
 
 static void InitKVRefSet() {
-    kvsetRef.generateUniformIntNoDups(270); // generate random 270 kv pairs
+    kvsetRef.generateUniformIntNoDups(64); // generate random kv pairs
 }
 /*
  * Run insert a number of times and compare results

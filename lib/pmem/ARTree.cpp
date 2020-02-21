@@ -592,9 +592,11 @@ void ARTree::UpdateValueWrapper(const char *key, DeviceAddr *ptr, size_t size) {
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
                       DISK);
     pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 4);
-    // pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+    pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
     delete[] val->actionUpdate;
+    delete[] val->actionValue;
     val->actionUpdate = nullptr;
+    val->actionValue = nullptr;
 }
 
 /*
@@ -633,9 +635,10 @@ void ARTree::AllocateAndUpdateValueWrapper(const char *key, size_t size,
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
                       DISK);
     pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 4);
-    // pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
-
+    pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+    delete[] val->actionValue;
     val->actionUpdate = nullptr;
+    val->actionValue = nullptr;
 }
 
 } // namespace DaqDB
