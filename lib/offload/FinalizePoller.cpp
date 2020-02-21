@@ -99,23 +99,23 @@ void FinalizePoller::_processGet(DeviceTask *task) {
 void FinalizePoller::_processUpdate(DeviceTask *task) {
     SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
 
-    try {
-        task->rtree->AllocateIOVForKey(task->key, &task->bdevAddr,
-                                       sizeof(DeviceAddr));
-    } catch (...) {
-        if (task->clb)
-            task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
-                      task->keySize, nullptr, 0);
-        OffloadRqst::updatePool.put(task->rqst);
-        return;
-    }
+    //    try {
+    //        task->rtree->AllocateIOVForKey(task->key, &task->bdevAddr,
+    //                                       sizeof(DeviceAddr));
+    //    } catch (...) {
+    //        if (task->clb)
+    //            task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
+    //                      task->keySize, nullptr, 0);
+    //        OffloadRqst::updatePool.put(task->rqst);
+    //        return;
+    //    }
     task->bdevAddr->busAddr.pciAddr = bdev->spBdevCtx.pci_addr;
     task->bdevAddr->lba = task->freeLba;
 
     if (task->result) {
         if (task->updatePmemIOV)
-            task->rtree->UpdateValueWrapper(task->key, task->bdevAddr,
-                                            sizeof(DeviceAddr));
+            task->rtree->AllocateAndUpdateValueWrapper(
+                task->key, sizeof(DeviceAddr), task->bdevAddr);
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
                       task->buff->getSpdkDmaBuf(), task->rqst->valueSize);

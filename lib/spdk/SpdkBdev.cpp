@@ -286,7 +286,7 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
     auto valSize = task->rqst->valueSize;
     auto valSizeAlign = bdev->getAlignedSize(valSize);
     if (task->rqst->loc == LOCATIONS::PMEM)
-        task->freeLba = getFreeLba(valSizeAlign);
+        task->freeLba = getFreeLba(valSize);
     bdev->ioBufsInUse++;
     task->buff =
         ioPoolMgr->getIoWriteBuf(valSizeAlign, bdev->spBdevCtx.buf_align);

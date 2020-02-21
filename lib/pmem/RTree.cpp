@@ -195,6 +195,47 @@ void RTree::UpdateValueWrapper(const char *key, DeviceAddr *ptr, size_t size) {
     delete val->actionUpdate;
 }
 
+/*
+ * Allocate IOV Vector for given Key and Update the Wrapper.
+ * Vector is reserved and its address is returned.
+ * Action related to reservation is stored in ValueWrapper in actionUpdate
+ */
+void RTree::AllocateAndUpdateValueWrapper(const char *key, size_t size,
+                                          const DeviceAddr *devAddr) {
+    persistent_ptr<ValueWrapper> valPrstPtr;
+    ValueWrapper *val;
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key);
+    struct pobj_action actions[4];
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
+    val->actionUpdate = actions;
+    /** @todo Consider changing to xreserve */
+    pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
+                                   val->actionUpdate, size, IOV);
+    if (OID_IS_NULL(poid)) {
+        delete val->actionUpdate;
+        val->actionUpdate = nullptr;
+        throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
+    }
+
+    DeviceAddr *ptr = reinterpret_cast<DeviceAddr *>(pmemobj_direct(poid));
+    pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
+    val =
+        reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
+                      &val->locationPtr.IOVptr->lba, devAddr->lba);
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
+                      &val->locationPtr.IOVptr->busAddr.busAddr,
+                      devAddr->busAddr.busAddr);
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[3]),
+                      reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
+                      DISK);
+    pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 4);
+    // pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
+
+    val->actionUpdate = nullptr;
+}
+
 void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {
     int i;
     depth++;

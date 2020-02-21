@@ -84,5 +84,7 @@ class RTreeEngine {
                       size_t size) = 0; // allocate IOV vector for given Key
     virtual void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
                                     size_t size) = 0;
+    virtual void AllocateAndUpdateValueWrapper(const char *key, size_t size,
+                                               const DeviceAddr *devAddr) = 0;
 };
 } // namespace DaqDB

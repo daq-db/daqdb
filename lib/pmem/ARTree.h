@@ -177,6 +177,8 @@ class ARTree : public DaqDB::RTreeEngine {
                            size_t size) final;
     void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
                             size_t size) final;
+    void AllocateAndUpdateValueWrapper(const char *key, size_t size,
+                                       const DeviceAddr *devAddr) final;
     void printKey(const char *key);
     void decrementParent(persistent_ptr<Node> node);
     void removeFromParent(persistent_ptr<ValueWrapper> valPrstPtr);

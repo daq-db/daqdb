@@ -123,6 +123,8 @@ class RTree : public DaqDB::RTreeEngine {
                            size_t size) final;
     void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
                             size_t size) final;
+    void AllocateAndUpdateValueWrapper(const char *key, size_t size,
+                                       const DeviceAddr *devAddr) final;
 
   private:
     Tree *tree;
