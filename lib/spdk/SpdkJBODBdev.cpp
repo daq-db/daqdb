@@ -66,8 +66,9 @@ bool SpdkJBODBdev::write(DeviceTask *task) {
     if (!isRunning)
         return false;
 
-    task->bdev = devices[currDevice].bdev;
-    bool ret = devices[currDevice].bdev->write(task);
+    uint32_t currDev = currDevice;
+    task->bdev = devices[currDev].bdev;
+    bool ret = devices[currDev].bdev->write(task);
     currDevice++;
     currDevice %= numDevices;
     return ret;
