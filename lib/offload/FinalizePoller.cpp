@@ -36,7 +36,8 @@
 
 namespace DaqDB {
 
-FinalizePoller::FinalizePoller() : FinPoller() {}
+FinalizePoller::FinalizePoller() 
+    : _state(FinalizePoller::State::FP_READY), FinPoller() {}
 
 void FinalizePoller::process() {
     if (requestCount > 0) {
@@ -44,6 +45,7 @@ void FinalizePoller::process() {
             DeviceTask *task = requests[RqstIdx];
             if (!task) // due to possible timeout
                 continue;
+
             bool dropIt = false;
             if (_state != FinalizePoller::State::FP_READY)
                 dropIt = true;
@@ -103,7 +105,7 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
     devAddr.lba = task->freeLba;
 
     if (task->result) {
-        if (task->updatePmemIOV)
+        if (task->updatePmemIOV) {
             try {
                 task->rtree->AllocateAndUpdateValueWrapper(
                     task->key, sizeof(DeviceAddr), &devAddr);
@@ -114,9 +116,10 @@ void FinalizePoller::_processUpdate(DeviceTask *task) {
                 OffloadRqst::updatePool.put(task->rqst);
                 return;
             }
+        }
         if (task->clb)
             task->clb(nullptr, StatusCode::OK, task->key, task->keySize,
-                      task->buff->getSpdkDmaBuf(), task->rqst->valueSize);
+                      nullptr, 0);
     } else {
         if (task->clb)
             task->clb(nullptr, StatusCode::UNKNOWN_ERROR, task->key,
