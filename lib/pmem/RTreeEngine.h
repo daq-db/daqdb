@@ -79,11 +79,6 @@ class RTreeEngine {
     virtual void Remove(const char *key) = 0; // remove value for key
     virtual void AllocValueForKey(const char *key, size_t size,
                                   char **value) = 0;
-    virtual void
-    AllocateIOVForKey(const char *key, DeviceAddr **ptr,
-                      size_t size) = 0; // allocate IOV vector for given Key
-    virtual void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
-                                    size_t size) = 0;
     virtual void AllocateAndUpdateValueWrapper(const char *key, size_t size,
                                                const DeviceAddr *devAddr) = 0;
 };

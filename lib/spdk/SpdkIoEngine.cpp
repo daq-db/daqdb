@@ -47,9 +47,9 @@ void SpdkIoEngine::process() {
         for (unsigned short RqstIdx = 0; RqstIdx < requestCount; RqstIdx++) {
             DeviceTask *task = requests[RqstIdx];
             task->routing = false;
+            SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
             switch (task->op) {
             case OffloadOperation::GET: {
-                SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
                 bool ret = bdev->read(task);
                 if (ret != true) {
                     rqstClb(task->rqst, StatusCode::UNKNOWN_ERROR);
@@ -57,7 +57,6 @@ void SpdkIoEngine::process() {
                 }
             } break;
             case OffloadOperation::UPDATE: {
-                SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
                 bool ret = bdev->write(task);
                 if (ret != true) {
                     rqstClb(task->rqst, StatusCode::UNKNOWN_ERROR);
@@ -65,7 +64,6 @@ void SpdkIoEngine::process() {
                 }
             } break;
             case OffloadOperation::REMOVE: {
-                SpdkBdev *bdev = reinterpret_cast<SpdkBdev *>(task->bdev);
                 bool ret = bdev->remove(task);
                 if (ret != true) {
                     rqstClb(task->rqst, StatusCode::UNKNOWN_ERROR);

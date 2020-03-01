@@ -60,7 +60,7 @@ SpdkCore::SpdkCore(OffloadOptions _offloadOptions)
     bool conf_file_ok = createConfFile();
 
     spBdev = SpdkBdevFactory::getBdev(offloadOptions.devType);
-    spBdev->enableStats(false);
+    spBdev->enableStats(true);
 
     if (conf_file_ok == false) {
         if (spdkEnvInit() == false)
