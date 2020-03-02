@@ -196,10 +196,10 @@ BOOST_AUTO_TEST_CASE(ProcessUpdateRequest) {
             *valSize = valSizeRef;
             *loc = location;
         });
-    When(Method(rtreeMock, AllocateIOVForKey))
-        .AlwaysDo([&](const char *key, DaqDB::DeviceAddr **ptr, size_t size) {
-            (*ptr)->lba = 123;
-            (*ptr)->busAddr.pciAddr = pciAddrRef;
+    When(Method(rtreeMock, AllocateAndUpdateValueWrapper))
+        .AlwaysDo([&](const char *key, size_t size, const DaqDB::DeviceAddr *devAddr) {
+            const_cast<DaqDB::DeviceAddr *>(devAddr)->lba = 123;
+            const_cast<DaqDB::DeviceAddr *>(devAddr)->busAddr.pciAddr = pciAddrRef;
         });
 
     When(Method(bdevMock, getAlignedSize)).Return(0);

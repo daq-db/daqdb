@@ -119,10 +119,8 @@ class RTree : public DaqDB::RTreeEngine {
              int32_t valuebytes) final;
     void Remove(const char *key) final; // remove value for key
     void AllocValueForKey(const char *key, size_t size, char **value) final;
-    void AllocateIOVForKey(const char *key, DeviceAddr **ptr,
-                           size_t size) final;
-    void UpdateValueWrapper(const char *key, DeviceAddr *ptr,
-                            size_t size) final;
+    void AllocateAndUpdateValueWrapper(const char *key, size_t size,
+                                       const DeviceAddr *devAddr) final;
 
   private:
     Tree *tree;

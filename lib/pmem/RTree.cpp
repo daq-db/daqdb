@@ -155,44 +155,49 @@ void RTree::AllocValueForKey(const char *key, size_t size, char **value) {
 }
 
 /*
- * Allocate IOV Vector for given Key.
- * Vector is reserved and it's address is returned.
+ * Allocate IOV Vector for given Key and Update the Wrapper.
+ * Vector is reserved and its address is returned.
  * Action related to reservation is stored in ValueWrapper in actionUpdate
  */
-void RTree::AllocateIOVForKey(const char *key, DeviceAddr **ptrIOV,
-                              size_t size) {
-    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    val->actionUpdate = new pobj_action[4];
-    pmemoid poid = pmemobj_reserve(tree->_pm_pool.get_handle(),
-                                   &(val->actionUpdate[0]), size, IOV);
-    if (OID_IS_NULL(poid)) {
-        delete val->actionUpdate;
-        val->actionUpdate = nullptr;
-        throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
-    }
-    *ptrIOV = reinterpret_cast<DeviceAddr *>(pmemobj_direct(poid));
-}
+void RTree::AllocateAndUpdateValueWrapper(const char *key, size_t size,
+                                          const DeviceAddr *devAddr) {
+    persistent_ptr<ValueWrapper> valPrstPtr;
 
-/*
- *	Updates location and locationPtr to STORAGE.
- *	Calls persist on IOVVector.
- *	Removes value buffer allocated in PMEM.
- */
-void RTree::UpdateValueWrapper(const char *key, DeviceAddr *ptr, size_t size) {
-    pmemobj_persist(tree->_pm_pool.get_handle(), ptr, size);
-    ValueWrapper *val = tree->findValueInNode(tree->treeRoot->rootNode, key);
-    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[1]),
-                      &val->locationPtr.IOVptr->lba, ptr->lba);
-    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[2]),
+    valPrstPtr = tree->findValueInNode(tree->treeRoot->rootNode, key);
+    if (valPrstPtr == nullptr)
+        throw OperationFailedException(Status(PMEM_ALLOCATION_ERROR));
+
+    pmemobj_cancel(tree->_pm_pool.get_handle(), valPrstPtr->actionValue, 1);
+    delete[] valPrstPtr->actionValue;
+    valPrstPtr->actionValue = nullptr;
+
+    struct pobj_action actions[4];
+    valPrstPtr->actionUpdate = actions;
+#ifdef USE_ALLOCATION_CLASSES
+    valPrstPtr->locationPtr.IOVptr = pmemobj_xreserve(
+        tree->_pm_pool.get_handle(), &valPrstPtr->actionUpdate[0], size, VALUE,
+        POBJ_CLASS_ID(tree->getClassId(ALLOC_CLASS_VALUE)));
+#else
+    valPrstPtr->locationPtr.IOVptr = pmemobj_reserve(
+        tree->_pm_pool.get_handle(), &valPrstPtr->actionUpdate[0], size, VALUE);
+#endif
+
+    pmemobj_persist(tree->_pm_pool.get_handle(), valPrstPtr->locationPtr.IOVptr.get(), size);
+
+    ValueWrapper *val =
+                      reinterpret_cast<ValueWrapper *>(pmemobj_direct(*valPrstPtr.raw_ptr()));
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &valPrstPtr->actionUpdate[1],
+                      &val->locationPtr.IOVptr->lba,
+                      devAddr->lba);
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &valPrstPtr->actionUpdate[2],
                       &val->locationPtr.IOVptr->busAddr.busAddr,
-                      ptr->busAddr.busAddr);
-    pmemobj_set_value(tree->_pm_pool.get_handle(), &(val->actionUpdate[3]),
+                      devAddr->busAddr.busAddr);
+    pmemobj_set_value(tree->_pm_pool.get_handle(), &valPrstPtr->actionUpdate[3],
                       reinterpret_cast<uint64_t *>(&(val->location).get_rw()),
                       DISK);
-    pmemobj_publish(tree->_pm_pool.get_handle(), val->actionUpdate, 4);
-    pmemobj_cancel(tree->_pm_pool.get_handle(), val->actionValue, 1);
-    delete val->actionValue;
-    delete val->actionUpdate;
+    pmemobj_publish(tree->_pm_pool.get_handle(), valPrstPtr->actionUpdate, 4);
+    valPrstPtr->actionUpdate = nullptr;
+
 }
 
 void Tree::allocateLevel(persistent_ptr<Node> current, int depth, int *count) {

@@ -254,12 +254,16 @@ bool SpdkBdev::doRead(DeviceTask *task) {
             if (r_rc) {
                 DAQ_CRITICAL("Spdk queue_io_wait error [" +
                              std::to_string(r_rc) + "] for spdk bdev");
+                if (task->buff)
+                    ioPoolMgr->putIoReadBuf(task->buff);
                 bdev->deinit();
                 spdk_app_stop(-1);
             }
         } else {
             DAQ_CRITICAL("Spdk read error [" + std::to_string(r_rc) +
                          "] for spdk bdev");
+            if (task->buff)
+                ioPoolMgr->putIoReadBuf(task->buff);
             bdev->deinit();
             spdk_app_stop(-1);
         }
@@ -286,7 +290,7 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
     auto valSize = task->rqst->valueSize;
     auto valSizeAlign = bdev->getAlignedSize(valSize);
     if (task->rqst->loc == LOCATIONS::PMEM)
-        task->freeLba = getFreeLba(valSizeAlign);
+        task->freeLba = getFreeLba(valSize);
     bdev->ioBufsInUse++;
     task->buff =
         ioPoolMgr->getIoWriteBuf(valSizeAlign, bdev->spBdevCtx.buf_align);
@@ -317,12 +321,16 @@ bool SpdkBdev::doWrite(DeviceTask *task) {
             if (w_rc) {
                 DAQ_CRITICAL("Spdk queue_io_wait error [" +
                              std::to_string(w_rc) + "] for spdk bdev");
+                if (task->buff)
+                    ioPoolMgr->putIoWriteBuf(task->buff);
                 bdev->deinit();
                 spdk_app_stop(-1);
             }
         } else {
             DAQ_CRITICAL("Spdk write error [" + std::to_string(w_rc) +
                          "] for spdk bdev");
+            if (task->buff)
+                ioPoolMgr->putIoWriteBuf(task->buff);
             bdev->deinit();
             spdk_app_stop(-1);
         }
@@ -339,6 +347,7 @@ bool SpdkBdev::remove(DeviceTask *task) {
 
 bool SpdkBdev::doRemove(DeviceTask *task) {
     if (stateMachine() == true) {
+        OffloadRqst::removePool.put(task->rqst);
         return false;
     }
 
