@@ -5,6 +5,9 @@ project(daqdb)
 include(FindPkgConfig)
 include(CTest)
 
+# Fix https://github.com/boostorg/boost_install/issues/12#issuecomment-508683006
+set(Boost_NO_BOOST_CMAKE ON)
+
 find_package(PkgConfig)
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
