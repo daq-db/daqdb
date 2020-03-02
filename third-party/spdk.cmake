@@ -7,7 +7,7 @@ ExternalProject_Add(project_spdk
 	SOURCE_DIR ${PROJECT_SOURCE_DIR}/spdk
 	PATCH_COMMAND ${ROOT_DAQDB_DIR}/scripts/patch_spdk_isal.sh
 	BUILD_IN_SOURCE ${PROJECT_SOURCE_DIR}/spdk
-	CONFIGURE_COMMAND "./configure --with-isal"
+	CONFIGURE_COMMAND "./configure" "--with-isal"
 	BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 	INSTALL_COMMAND ${ROOT_DAQDB_DIR}/scripts/prepare_spdk_libs.sh
 )

@@ -41,6 +41,7 @@ git submodule update --init --recursive
 * boost-test (1.64+)
 * cmake (3.11+)
 * gtest-devel (1.8+)
+* nasm (2.13.03+)
 
 ##### CERN's LHC
 
