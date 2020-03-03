@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <stdio.h>
@@ -24,15 +24,15 @@
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 
-#include "spdk/stdinc.h"
+#include "spdk/conf.h"
 #include "spdk/cpuset.h"
-#include "spdk/queue.h"
-#include "spdk/log.h"
-#include "spdk/thread.h"
+#include "spdk/env.h"
 #include "spdk/event.h"
 #include "spdk/ftl.h"
-#include "spdk/conf.h"
-#include "spdk/env.h"
+#include "spdk/log.h"
+#include "spdk/queue.h"
+#include "spdk/stdinc.h"
+#include "spdk/thread.h"
 
 #include "Rqst.h"
 #include "SpdkBdev.h"
@@ -418,19 +418,23 @@ bool SpdkBdev::bdevInit() {
         spBdevCtx.state = SPDK_BDEV_NOT_FOUND;
         return false;
     }
-    DAQ_DEBUG("NVMe devices detected for name[" + spBdevCtx->bdev_name + "]");
+    DAQ_DEBUG(std::string("NVMe devices detected for name[") +
+              spBdevCtx.bdev_name + "]");
 
     spdk_bdev_opts bdev_opts;
     int rc = spdk_bdev_open(spBdevCtx.bdev, true, 0, 0, &spBdevCtx.bdev_desc);
     if (rc) {
-        DAQ_CRITICAL("Open BDEV failed with error code[" + std::to_string(rc) + "]");
+        DAQ_CRITICAL("Open BDEV failed with error code[" + std::to_string(rc) +
+                     "]");
         spBdevCtx.state = SPDK_BDEV_ERROR;
         return false;
     }
 
     spdk_bdev_get_opts(&bdev_opts);
-    DAQ_DEBUG("bdev.bdev_io_pool_size[" + bdev_opts.bdev_io_pool_size + "]" +
-              " bdev.bdev.io_cache_size[" + bdev_opts.bdev_io_cache_size + "]");
+    DAQ_DEBUG(std::string("bdev.bdev_io_pool_size[") +
+              std::to_string(bdev_opts.bdev_io_pool_size) + "]" +
+              " bdev.bdev.io_cache_size[" +
+              std::to_string(bdev_opts.bdev_io_cache_size) + "]");
 
     spBdevCtx.io_pool_size = bdev_opts.bdev_io_pool_size;
     maxIoBufs = spBdevCtx.io_pool_size;
@@ -450,7 +454,8 @@ bool SpdkBdev::bdevInit() {
     DAQ_DEBUG("BDEV block size[" + std::to_string(spBdevCtx.blk_size) + "]");
 
     spBdevCtx.data_blk_size = spdk_bdev_get_data_block_size(spBdevCtx.bdev);
-    DAQ_DEBUG("BDEV data block size[" + spBdevCtx.data_blk_size + "]");
+    DAQ_DEBUG("BDEV data block size[" +
+              std::to_string(spBdevCtx.data_blk_size) + "]");
 
     spBdevCtx.buf_align = spdk_bdev_get_buf_align(spBdevCtx.bdev);
     DAQ_DEBUG("BDEV align[" + std::to_string(spBdevCtx.buf_align) + "]");
