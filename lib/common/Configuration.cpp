@@ -79,6 +79,7 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         options.runtime.baseCoreId = baseCoreId;
 
     int offloadAllocUnitSize;
+    bool noOffload = false;
     if (cfg.lookupValue("offload_unit_alloc_size", offloadAllocUnitSize))
         options.offload.allocUnitSize = offloadAllocUnitSize;
     std::string dev_type;
@@ -91,56 +92,61 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         else if (dev_type == "raid0")
             options.offload.devType = OffloadDevType::RAID0;
         else {
-            ss << "No offload dev type found ... continuing" << dev_type;
-            options.offload.devType = static_cast<OffloadDevType>(10);
+            ss << "No offload dev found ... continuing " << std::endl;
+            noOffload = true;
         }
 
-        std::string offload_name;
-        if (cfg.lookupValue("offload_dev_name", offload_name))
-            options.offload.name = offload_name;
-        else
-            options.offload.name = "anonymous";
+        if (noOffload == false) {
+            std::string offload_name;
+            if (cfg.lookupValue("offload_dev_name", offload_name))
+                options.offload.name = offload_name;
+            else
+                options.offload.name = "anonymous";
 
-        OffloadDevDescriptor offload_desc;
-        switch (options.offload.devType) {
-        case OffloadDevType::BDEV:
-            if (cfg.lookupValue("offload_nvme_addr", offload_desc.nvmeAddr) &&
-                cfg.lookupValue("offload_nvme_name", offload_desc.nvmeName)) {
-                options.offload._devs.push_back(offload_desc);
-            } else {
-                ss << "No nvme device found for BDEV in offload";
-                return false;
+            OffloadDevDescriptor offload_desc;
+            switch (options.offload.devType) {
+            case OffloadDevType::BDEV:
+                if (cfg.lookupValue("offload_nvme_addr",
+                                    offload_desc.nvmeAddr) &&
+                    cfg.lookupValue("offload_nvme_name",
+                                    offload_desc.nvmeName)) {
+                    options.offload._devs.push_back(offload_desc);
+                } else {
+                    ss << "No nvme device found for BDEV in offload";
+                    return false;
+                }
+                break;
+            case OffloadDevType::JBOD:
+            case OffloadDevType::RAID0: {
+                const Setting &root = cfg.getRoot();
+                const Setting &devices = root["devices"];
+                int count = devices.getLength();
+                for (int i = 0; i < count; i++) {
+                    const Setting &device = devices[i];
+                    offload_desc.devName = device.getName();
+                    ;
+                    if (!device.lookupValue("offload_nvme_addr",
+                                            offload_desc.nvmeAddr) ||
+                        !device.lookupValue("offload_nvme_name",
+                                            offload_desc.nvmeName))
+                        continue;
+                    options.offload._devs.push_back(offload_desc);
+                }
+                if (!options.offload._devs.size()) {
+                    ss << "No nvme device found in devices for offload";
+                    return false;
+                }
+                int stripeSize = 128;
+                if (options.offload.devType == OffloadDevType::RAID0) {
+                    if (cfg.lookupValue("offload_raid0_stripe_size",
+                                        stripeSize))
+                        options.offload.raid0StripeSize =
+                            static_cast<size_t>(stripeSize);
+                }
+            } break;
+            default:
+                break;
             }
-            break;
-        case OffloadDevType::JBOD:
-        case OffloadDevType::RAID0: {
-            const Setting &root = cfg.getRoot();
-            const Setting &devices = root["devices"];
-            int count = devices.getLength();
-            for (int i = 0; i < count; i++) {
-                const Setting &device = devices[i];
-                offload_desc.devName = device.getName();
-                ;
-                if (!device.lookupValue("offload_nvme_addr",
-                                        offload_desc.nvmeAddr) ||
-                    !device.lookupValue("offload_nvme_name",
-                                        offload_desc.nvmeName))
-                    continue;
-                options.offload._devs.push_back(offload_desc);
-            }
-            if (!options.offload._devs.size()) {
-                ss << "No nvme device found in devices for offload";
-                return false;
-            }
-            int stripeSize = 128;
-            if (options.offload.devType == OffloadDevType::RAID0) {
-                if (cfg.lookupValue("offload_raid0_stripe_size", stripeSize))
-                    options.offload.raid0StripeSize =
-                        static_cast<size_t>(stripeSize);
-            }
-        } break;
-        default:
-            break;
         }
     }
 
