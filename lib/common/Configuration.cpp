@@ -91,8 +91,8 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
         else if (dev_type == "raid0")
             options.offload.devType = OffloadDevType::RAID0;
         else {
-            ss << "Parse error, invalid offload dev type " << dev_type;
-            return false;
+            ss << "No offload dev type found ... continuing" << dev_type;
+            options.offload.devType = static_cast<OffloadDevType>(10);
         }
 
         std::string offload_name;
@@ -140,9 +140,6 @@ bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
             }
         } break;
         default:
-            ss << "Invalid or unsupported device type["
-               << options.offload.devType << "] for offload";
-            return false;
             break;
         }
     }
