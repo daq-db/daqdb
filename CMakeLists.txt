@@ -176,7 +176,7 @@ if(NOT THIN_LIB)
 	add_dependencies(tests_func_thin clinode daqdb_thin)
 
 	add_custom_target(tests)
-	add_dependencies(tests_unit tests_func tests_func_thin)
+	add_dependencies(tests tests_unit tests_func tests_func_thin)
 endif()
 
 # Initiate githooks for clang-format
