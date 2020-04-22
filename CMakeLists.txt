@@ -151,16 +151,26 @@ if(NOT THIN_LIB)
 	
 	add_custom_target(tests_unit
 		COMMAND ${CMAKE_MAKE_PROGRAM}
+		COMMAND ${CMAKE_BUILD_TOOL} DhtClientTest  # TODO: remove after cmake fix
+		COMMAND ${CMAKE_BUILD_TOOL} DhtNodeTest
+		COMMAND ${CMAKE_BUILD_TOOL} DhtUtilsTest
+		COMMAND ${CMAKE_BUILD_TOOL} PmemPollerTest
+		COMMAND ${CMAKE_BUILD_TOOL} OffloadPollerTest
+		COMMAND ${CMAKE_BUILD_TOOL} OffloadFreeListTest
+		COMMAND ${CMAKE_BUILD_TOOL} DhtCoreTest
+
 		WORKING_DIRECTORY tests/unit
 	)
 	add_custom_target(tests_func
 		COMMAND ${CMAKE_MAKE_PROGRAM}
+		COMMAND ${CMAKE_BUILD_TOOL} functests  # TODO: remove after cmake fix
 		WORKING_DIRECTORY tests/functional
 	)
 	add_dependencies(tests_func daqdb)
 
 	add_custom_target(tests_func_thin
 		COMMAND ${CMAKE_MAKE_PROGRAM}
+		COMMAND ${CMAKE_BUILD_TOOL} functests_thin  # TODO: remove after cmake fix
 		WORKING_DIRECTORY tests/functional_thin
 	)
 	add_dependencies(tests_func_thin clinode daqdb_thin)
