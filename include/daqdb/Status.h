@@ -20,6 +20,8 @@
 #include <limits>
 #include <string>
 
+#define DAQDB_DEFAULT_ERROR_MSG "DAQDB Error: "
+
 namespace DaqDB {
 
 enum StatusCode : long {
@@ -43,10 +45,10 @@ enum StatusCode : long {
 
 class Status {
   public:
-    Status() : _code(OK) {}
+    Status() : _code(OK),_errorMsg(DAQDB_DEFAULT_ERROR_MSG) {}
 
-    Status(long errnum) : _code(static_cast<StatusCode>(errnum)) {}
-    explicit Status(StatusCode c) : _code(c) {}
+    Status(long errnum) : _code(static_cast<StatusCode>(errnum)), _errorMsg(DAQDB_DEFAULT_ERROR_MSG) {}
+    explicit Status(StatusCode c) : _code(c), _errorMsg(DAQDB_DEFAULT_ERROR_MSG) {}
 
     bool ok() const { return _code == OK; }
 
@@ -55,12 +57,36 @@ class Status {
     StatusCode getStatusCode() { return _code; }
 
     std::string to_string() {
+
         if (_code < _MAX_ERRNO)
             return ::strerror((int)_code);
-
         switch (_code) {
+        case KEY_NOT_FOUND:
+            return _errorMsg + "KEY_NOT_FOUND";
+        case BAD_KEY_FORMAT:
+            return _errorMsg + "BAD_KEY_FORMAT";
+        case PMEM_ALLOCATION_ERROR:
+            return _errorMsg + "PMEM_ALLOCATION_ERROR";
+        case DHT_ALLOCATION_ERROR:
+            return _errorMsg + "DHT_ALLOCATION_ERROR";
+        case  SPDK_ALLOCATION_ERROR:
+            return _errorMsg + "SPDK_ALLOCATION_ERROR";
+        case OFFLOAD_DISABLED_ERROR:
+            return _errorMsg + "OFFLOAD_DISABLED_ERROR";
+        case QUEUE_FULL_ERROR:
+            return _errorMsg + "QUEUE_FULL_ERROR";
+        case DHT_DISABLED_ERROR:
+            return _errorMsg + "DHT_DISABLED_ERROR";
+        case TIME_OUT:
+            return _errorMsg + "TIME_OUT";
+        case DHT_CONNECT_ERROR:
+            return _errorMsg + "DHT_CONNECT_ERROR_STATUSAAA";
         case NOT_IMPLEMENTED:
-            return "Not Implemented";
+            return _errorMsg + "NOT_IMPLEMENTED";
+        case NOT_SUPPORTED:
+            return _errorMsg + "NOT_SUPPORTED";
+        case UNKNOWN_ERROR:
+            return _errorMsg + "UNKNOWN_ERROR";
         default:
             return "code = " + std::to_string(_code);
         }
@@ -68,6 +94,7 @@ class Status {
 
   private:
     StatusCode _code;
+    std::string _errorMsg;
 };
 
 Status errno2status(int err);
