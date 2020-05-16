@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-#include <config/Configuration.h>
+#include <config/Configuration_DAQDB.h>
 #include <libconfig.h++>
 
 using namespace libconfig;

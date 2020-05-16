@@ -21,7 +21,7 @@
 #include <daqdb/Options.h>
 
 #include "debug.h"
-#include <config/Configuration.h>
+#include <config/Configuration_DAQDB.h>
 
 struct __attribute__((packed)) CliNodeKey {
     uint8_t eventId[5];
