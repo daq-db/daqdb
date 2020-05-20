@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-#include <config/Configuration_DAQDB.h>
+#include <config/KVStoreConfig.h>
 #include <libconfig.h++>
 
 using namespace libconfig;
