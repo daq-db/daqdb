@@ -14,8 +14,14 @@
  * limitations under the License. 
  */
 
-#include <libconfig.h++>
-#include <daqdb/Options.h>
-#include <config/KVStoreConfig.h>
+#pragma once
 
-void initKvsOptions(DaqDB::Options &options, const std::string &configFile);
+#include <daqdb/Options.h>
+#include <sstream>
+
+namespace DaqDB {
+bool readConfiguration(const std::string &configFile, DaqDB::Options &options);
+bool readConfiguration(const std::string &configFile, DaqDB::Options &options,
+                       std::stringstream &ss);
+
+} // namespace DaqDB

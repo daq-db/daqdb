@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-#include <config/Configuration.h>
+#include <config/KVStoreConfig.h>
 #include <libconfig.h++>
 
 using namespace libconfig;

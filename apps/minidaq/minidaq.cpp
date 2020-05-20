@@ -23,7 +23,7 @@
 #include "MinidaqFfNode.h"
 #include "MinidaqFfNodeSeq.h"
 #include "MinidaqRoNode.h"
-#include "config/Configuration.h"
+#include "config/KVStoreConfig.h"
 #include "daqdb/KVStoreBase.h"
 
 using namespace std;
