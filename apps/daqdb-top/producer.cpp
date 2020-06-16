@@ -111,10 +111,6 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     options.dht.id = 0;
 
 
-    options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
-    options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;
-    options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
-
     options.key.field(0, sizeof(CliNodeKey::eventId), true);
     options.key.field(1, sizeof(CliNodeKey::detectorId));
     options.key.field(2, sizeof(CliNodeKey::componentId));
@@ -317,6 +313,10 @@ int main(int argc, const char *argv[]) {
     options.dht.numOfDhtThreads = nDhtThreads;
     options.dht.baseDhtId = bDhtId ;
     options.runtime.maxReadyKeys = maxReadyKeys;
+    options.pmem.poolPath = pmem_path;
+    options.pmem.totalSize = pmem_size;
+    options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
+
 
 
     if (!satellite) {

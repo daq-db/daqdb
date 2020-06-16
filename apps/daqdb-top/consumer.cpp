@@ -27,7 +27,6 @@
 
 namespace po = boost::program_options;
 
-#define DEFAULT_DAQDB_PATH "/home/fogkv/daqdb_200306/daqdb/bin/"
 #define DEFAULT_FRAGMENT_SIZE 1024
 #define DEFAULT_NUMBER_EVENTS 1000000
 #define DEFAULT_PMEM_POOL_PATH "/mnt/pmem/fogkv_minidaq.pm"
@@ -87,11 +86,6 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     /* Set default values */
     options.dht.id = 0;
   
-
-    // The following three lines are needed by the 
-    //options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
-    //options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;
-    //options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
 
     options.key.field(0, sizeof(CliNodeKey::eventId), true);
     options.key.field(1, sizeof(CliNodeKey::detectorId));
@@ -340,6 +334,11 @@ int main(int argc, const char *argv[]) {
     options.dht.numOfDhtThreads = nDhtThreads;
     //options.dht.baseDhtId = bDhtId ;
     options.runtime.maxReadyKeys = maxReadyKeys;
+    // The following three lines are needed by the consumer application 
+    //options.pmem.poolPath = pmem_path;
+    //options.pmem.totalSize = pmem_size;
+    //options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
+
 
     if (!satellite) {
         std::cout << "### Satellite mode disabled\n";
