@@ -3,7 +3,7 @@
 // 
 // Author: Adam Abed Abud
 // Mail: adam.abed.abud@cern.ch
-// Last update: June 11, 2020
+// Last update: June 16, 2020
 
 
 // Standard 
@@ -65,25 +65,6 @@ namespace po = boost::program_options;
 #define DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE 1024
 
 
-std::string pmem_path;
-size_t pmem_size;
-std::string spdk_conf;
-int nPoolers;
-int tIter_ms;
-int tTest_ms;
-int tRamp_ms;
-int nDhtThreads;
-int maxReadyKeys;
-size_t  fSize;
-std::string frDistro = DEFAULT_FR_DISTRO;
-std::string configFile;
-bool stopOnError = DEFAULT_STOPONERROR;
-size_t maxIters;
-int delay;
-
-
-int nCoresUsed = 0 ;
-
 
 
 
@@ -106,11 +87,11 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
     /* Set default values */
     options.dht.id = 0;
   
-    //options.dht.baseDhtId = 1 ;
 
-    options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
-    options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;
-    options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
+    // The following three lines are needed by the 
+    //options.pmem.poolPath = DEFAULT_PMEM_POOL_PATH;
+    //options.pmem.totalSize = DEFAULT_PMEM_POOL_SIZE;
+    //options.pmem.allocUnitSize = DEFAULT_PMEM_ALLOC_UNIT_SIZE;
 
     options.key.field(0, sizeof(CliNodeKey::eventId), true);
     options.key.field(1, sizeof(CliNodeKey::detectorId));
@@ -118,14 +99,13 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
 
     options.offload.allocUnitSize = DEFAULT_OFFLOAD_ALLOC_UNIT_SIZE;
     if (boost::filesystem::exists(configFile)) {
-       std::cout << "### Reading configuration file: " << configFile << std::endl;
+       std::cout << "### Reading configuration file: " << configFile << "\n";
        std::stringstream errorMsg;
        if (!DaqDB::readConfiguration(configFile, options, errorMsg)) {
-           std::cout << "### Failed to read minidaq configuration file. "
-                     << std::endl
-                     << errorMsg.str() << std::endl;
+           std::cout << "### Failed to read minidaq configuration file.\n"
+                     << errorMsg.str() << "\n";
        }
-       std::cout << "### Done parsing configuration file. " << std::endl;
+       std::cout << "### Done parsing configuration file.\n";
     }
 }
 
@@ -149,8 +129,12 @@ DaqDB::Value daqdb_get(DaqDB::KVStoreBase *kvs, DaqDB::Key &key) {
 
 
 double reader_thread(int starting_events, int number_events, std::shared_ptr<DaqDB::KVStoreBase> m_kvs, 
-          int componentId, int fragment_size, int coreId, int threadId, std::vector<double> stats) {
+          int componentId, int coreId) {
+
+   // Set affinity of the consumer thread
    SetAffinityFiltering(coreId);
+
+   // Benchmark execution time of the consumer thread
    auto start = std::chrono::high_resolution_clock::now();
    for (uint64_t i=starting_events; i<number_events; i++) {
        DaqDB::Key daqdb_key = assign_key(m_kvs.get(), i, componentId);
@@ -160,23 +144,21 @@ double reader_thread(int starting_events, int number_events, std::shared_ptr<Daq
            //std::cout << "daqdb_val: " << daqdb_val.data() << "\n" ; 
        } catch (...) {
            daqdb_val = daqdb_get(m_kvs.get(), daqdb_key);
-           std::cout << "Object not found. Check key. " << std::endl ; 
+           std::cout << "Object not found. Check key.\n"; 
            throw;
        }
    }
    auto end = std::chrono::high_resolution_clock::now();
    double thread_execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();   
-   std::cout << "\nThread ID: " << threadId << "  execution time: " << thread_execution_time << "\n" ;
-   stats.push_back(thread_execution_time);
    return thread_execution_time ;
 }
 
 
 
 int main(int argc, const char *argv[]) {
-    std::cout << "===========================" << std::endl ;
-    std::cout << "      Started DAQDB GET    " << std::endl ; 
-    std::cout << "===========================" << std::endl ;
+    std::cout << "===================================\n";
+    std::cout << "       Started DAQDB CONSUMER      \n"; 
+    std::cout << "===================================\n";
 
     std::string results_prefix;
     std::string results_all;
@@ -351,9 +333,7 @@ int main(int argc, const char *argv[]) {
     }
 
 
-    std::string daqdb_path = std::string(DEFAULT_DAQDB_PATH) + std::string(DEFAULT_CONF) ;
     DaqDB::Options options;
-
     options.runtime.baseCoreId = bCoreId;
     options.runtime.numOfPollers = nPoolers;
     nCoresUsed += nPoolers;
@@ -362,18 +342,16 @@ int main(int argc, const char *argv[]) {
     options.runtime.maxReadyKeys = maxReadyKeys;
 
     if (!satellite) {
-        std::cout << "Satellite mode disabled" << std::endl ;
+        std::cout << "### Satellite mode disabled\n";
         nCoresUsed += nDhtThreads;
     }
     if (nCoresUsed > nCores) {
-        std::cout << "Not enough CPU cores." << std::endl;
+        std::cout << "### Not enough CPU cores.\n";
         exit(1);
     }
 
 
-
-    initKvsOptions(options, daqdb_path);
-
+    initKvsOptions(options, configFile);
 
 
     // Create KVS
@@ -383,40 +361,33 @@ int main(int argc, const char *argv[]) {
             std::shared_ptr<DaqDB::KVStoreBase>(DaqDB::KVStoreBase::Open(options));
 
     } catch (DaqDB::OperationFailedException &e) {
-        std::cout << "Failed to create KVStore: " << e.what() << std::endl;
+        std::cout << "Failed to create KVStore: " << e.what() << "\n";
         return -1;
     }
 
-    std::cout<<"--- CONNECTED TO KVS SUCCESSFULLY ---"<<std::endl;
-    std::cout << "Size of PMEM " <<  pmem_size  << std::endl ; 
+    std::cout<<"### Connected to KVS successfully\n";
 
     // Set the structure of the key
     uint64_t eventId = 1;
     uint64_t componentId = 1;
-    std::cout << "Setting CPU affinity to core: " << bCoreId << std::endl ;
+ 
+    // Setting CPU affinity of the DHT core      
+    std::cout << "Setting CPU affinity to core: " << bCoreId << "\n" ;
     SetAffinity(bCoreId);
  
 
-
-    std::cout<<"--- KVS Started benchmark ---"<<std::endl; 
-    auto start = std::chrono::high_resolution_clock::now();
-
     // Start benchmarking 
-
     std::vector<std::shared_future<double>> _futureVec;
-    std::vector<double> stats;
     float events_thread = number_events/nFfTh ;    
     
     std::cout<<"### Started benchmark \n"; 
     // Create async threads. Divide number of events by number of threads and assign
     // each portiion to the right thread so that there is no PMEM:ALLOCATION issue.
-     
-
     for (uint64_t j=0; j< nFfTh ;j++){
             std::cout << "Creating new thread \n" ;
             _futureVec.emplace_back(std::async(std::launch::async, reader_thread, 
                   j*events_thread, j*events_thread+events_thread, 
-                  m_kvs, componentId, fSize, FilteringCores+j, j, stats));             
+                  m_kvs, componentId, FilteringCores+j));             
     }
 
 
@@ -429,19 +400,16 @@ int main(int argc, const char *argv[]) {
 
     std::cout<<"### Finished benchmark \n" ;
 
-    std::cout << "================ Statistics ================\n" << std::endl ;
+    std::cout << "================ Statistics ================\n";
     std::cout << "Number of threads:\t\t\t" << nFfTh << "\n" ; 
     std::cout << "Number of events per thread:\t\t\t" << events_thread << "\n";
 
     for (auto &f: _futureVec) {
       auto s = f.get();
-      std::cout << "Execution time in ms:\t\t\t" << s << "\t\tRate\t\t" << events_thread/s << "\n";
-     
-    }
+      std::cout << "Execution time [ms]: " << s << "\tRate [kIOPS]: " << events_thread/s << "\n";
+  }
 
-    //std::cout << "Rate: " << number_events/(thread_execution_time) << " kIOPS" << std::endl ; 
-
-    std::cout << "\n============================================" << std::endl ;
+    std::cout << "\n============================================\n";
 
 
 }

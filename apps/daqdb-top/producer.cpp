@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <future>
 
-// DAQDB specific
+// DAQDB
 #include "utils.hpp"
 #include <daqdb/KVStoreBase.h>
 #include <boost/program_options.hpp>
@@ -65,23 +65,6 @@ namespace po = boost::program_options;
 #define DEFAULT_READOUT_CORE 1
 
 
-
-std::string pmem_path;
-size_t pmem_size;
-std::string spdk_conf;
-int nPoolers;
-int tIter_ms;
-int tTest_ms;
-int tRamp_ms;
-int nDhtThreads;
-int maxReadyKeys;
-size_t  fSize;
-std::string frDistro = DEFAULT_FR_DISTRO;
-std::string configFile;
-bool stopOnError = DEFAULT_STOPONERROR;
-size_t maxIters;
-int delay;
-int nCoresUsed = 0 ;
 
 
 // Set CPU affinity for writing thread
@@ -151,9 +134,9 @@ void initKvsOptions(DaqDB::Options &options, const std::string &configFile) {
 
 
 int main(int argc, const char *argv[]) {
-    std::cout << "===========================\n";
+    std::cout << "==================================\n";
     std::cout << "      Started DAQDB producer    \n"; 
-    std::cout << "===========================\n";
+    std::cout << "==================================\n";
 
     std::string results_prefix;
     std::string results_all;
@@ -191,7 +174,7 @@ int main(int argc, const char *argv[]) {
     int collectorDelay = 0;
     int startSubId = 0;
     int nAroTh = 0;
-    int nRoTh = 0;
+    int nRoTh = 1; //at least one writing thread, avoid div by zero
     int nFfTh = 0;
     int nEbTh = 0;
     int subId = 0;
@@ -337,15 +320,14 @@ int main(int argc, const char *argv[]) {
 
 
     if (!satellite) {
-        std::cout << "Satellite mode disabled\n";
+        std::cout << "### Satellite mode disabled\n";
         nCoresUsed += nDhtThreads;
     }
     if (nCoresUsed > nCores) {
-        std::cout << "Not enough CPU cores.\n";
+        std::cout << "### Not enough CPU cores.\n";
         exit(1);
     }
   
-    std::cout << "configFile: " << configFile << "\n" ;  
     initKvsOptions(options, configFile);
     
   
@@ -365,12 +347,13 @@ int main(int argc, const char *argv[]) {
     std::cout << "Size of PMEM " <<  pmem_size  << "\n" ; 
     std::cout << "Fragmnet size " << fSize << "\n" ; 
     std::cout << "Number of events " << number_events << "\n" ;
+    std::cout << "Number of writing threads " << nRoTh << "\n" ;
     
     // Set the structure of the key. Setting fixed componentId and changing the eventId
     uint64_t componentId = 1;
 
     // Setting CPU affinity of the DHT core 
-    std::cout << "Setting CPU affinity to core: " << bCoreId << "\n";
+    std::cout << "Setting DHT thread to CPU core: " << bCoreId << "\n";
     SetAffinity(bCoreId) ;
 
 
@@ -378,7 +361,7 @@ int main(int argc, const char *argv[]) {
     std::vector<std::shared_future<double>> _futureVec;
     float events_thread = number_events/nRoTh ; 
 
-    std::cout<<"### Started benchmark \n"; 
+    std::cout<<"\n### Started benchmark \n"; 
     // Create async threads. Divide number of events by number of threads and assign
     // each portiion to the right thread so that there is no PMEM:ALLOCATION issue.
     for (uint64_t j=0; j< nRoTh ;j++){
@@ -399,7 +382,7 @@ int main(int argc, const char *argv[]) {
 
     std::cout<<"### Finished benchmark \n" ;
 
-    std::cout << "================ Statistics ================\n";
+    std::cout << "\n================ Statistics ================\n";
     std::cout << "Number of threads: " << nRoTh << "\n" ; 
     std::cout << "Number of events per thread: " << events_thread << "\n";
 
@@ -408,7 +391,6 @@ int main(int argc, const char *argv[]) {
       std::cout << "Execution time [ms]: " << s << "\tRate [kIOPS]: " << events_thread/s << "\n";
      
     }
-
 
     std::cout << "\n============================================\n";
 
@@ -447,10 +429,8 @@ int main(int argc, const char *argv[]) {
 */ 
 
 
-
-
     // Sleep in order to keep the connection open
-    std::cout << "\nKeeping connection open. \n" ;
+    std::cout << "\nKeeping connection open for clients. \n" ;
     while (true){
         sleep(10);
     }

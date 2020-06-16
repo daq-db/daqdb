@@ -10,7 +10,7 @@
 
 number of events assigned to each thread is equal to the number of events divided by the number of execution threads
 
-
+Setting fixed componentId and changing the eventI
 
 ## will add performance monitoring 
 
