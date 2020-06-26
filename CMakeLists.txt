@@ -124,7 +124,7 @@ endif()
 
 if(NOT THIN_LIB)
 	set(EXAMPLES ${PROJECT_SOURCE_DIR}/examples)
-	#add_subdirectory(${EXAMPLES}/clinode)
+	add_subdirectory(${EXAMPLES}/clinode)
 	add_subdirectory(${EXAMPLES}/basic)
 endif()
 
@@ -174,7 +174,7 @@ if(NOT THIN_LIB)
 		COMMAND ${CMAKE_BUILD_TOOL} functests_thin  # TODO: remove after cmake fix
 		WORKING_DIRECTORY tests/functional_thin
 	)
-	#add_dependencies(tests_func_thin clinode daqdb_thin)
+	add_dependencies(tests_func_thin clinode daqdb_thin)
 
 	add_custom_target(tests)
 	add_dependencies(tests tests_unit tests_func tests_func_thin)

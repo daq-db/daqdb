@@ -2,7 +2,6 @@
 // USAGE:  see README file
 // 
 // Author: Adam Abed Abud
-// Mail: adam.abed.abud@cern.ch
 // Last update: June 16, 2020
 
 
