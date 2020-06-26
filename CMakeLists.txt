@@ -135,6 +135,7 @@ endif()
 set(APPS ${PROJECT_SOURCE_DIR}/apps)
 add_subdirectory(${APPS}/mist)
 add_subdirectory(${APPS}/minidaq)
+add_subdirectory(${APPS}/daqdb-top)
 
 
 ###############################################################################
