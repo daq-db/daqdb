@@ -81,7 +81,7 @@ struct locationWrapper {
     int value;
 };
 class Node;
-
+class NodeLeafCompressed;
 struct ValueWrapper {
     explicit ValueWrapper()
         : actionValue(nullptr), actionUpdate(nullptr), location(EMPTY) {}
@@ -95,7 +95,8 @@ struct ValueWrapper {
     v<locationWrapper> locationVolatile;
     struct pobj_action *actionValue;
     struct pobj_action *actionUpdate;
-    persistent_ptr<Node> parent; // pointer to parent, needed for removal
+    persistent_ptr<NodeLeafCompressed>
+        parent; // pointer to parent, needed for removal
 };
 
 class Node {
@@ -176,8 +177,9 @@ class ARTree : public DaqDB::RTreeEngine {
     void AllocateAndUpdateValueWrapper(const char *key, size_t size,
                                        const DeviceAddr *devAddr) final;
     void printKey(const char *key);
-    void decrementParent(persistent_ptr<Node> node);
-    void removeFromParent(persistent_ptr<ValueWrapper> valPrstPtr);
+    void decrementParent(persistent_ptr<Node256> node, const char *key);
+    void removeFromTree(persistent_ptr<NodeLeafCompressed> current,
+                        const char *key);
 
   private:
     inline bool
